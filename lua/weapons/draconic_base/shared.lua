@@ -175,7 +175,6 @@ SWEP.Idle = 0
 SWEP.IdleTimer = CurTime()
 SWEP.IsTaunting = 0
 SWEP.TauntCooldown = 1
-self.TauntSounds = {nil}
 SWEP.PassiveHealing			= ""
 SWEP.FallDamage				= true
 SWEP.NoFallDamageCrouchOnly = true

@@ -1473,22 +1473,6 @@ if self.IronCD == false then
 else end
 end
 
-
-function SWEP:CustomAmmoDisplay()
-	self.AmmoDisplay = self.AmmoDisplay or {}
-	self.AmmoDisplay = self.DrawAmmo
-	
-	if self.Primary.ClipSize > 0 then
-		self.AmmoDisplay.PrimaryClip = self:Clip1()
-		self.AmmoDisplay.PrimaryAmmo = self:Ammo1()
-	end
-	if self.Secondary.ClipSize > 0 then
-		self.AmmoDisplay.SecondaryAmmo = self:Ammo2()
-	end
-	
-	return self.AmmoDisplay
-end
-
 function SWEP:Precache()
 	
 end

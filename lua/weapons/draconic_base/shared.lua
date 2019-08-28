@@ -175,6 +175,7 @@ SWEP.Idle = 0
 SWEP.IdleTimer = CurTime()
 SWEP.IsTaunting = 0
 SWEP.TauntCooldown = 1
+self.TauntSounds = {nil}
 SWEP.PassiveHealing			= ""
 SWEP.FallDamage				= true
 SWEP.NoFallDamageCrouchOnly = true
@@ -1387,9 +1388,12 @@ end
 function SWEP:Taunt()
 	local ply = self:GetOwner()
 	local tauntsounds = self.TauntSounds
-	self.IsTaunting = 1
-	ply:EmitSound( table.Random( self.TauntSounds ) )
-	timer.Simple( self.TauntCooldown, function() self:TauntReady() end)
+	
+	if self.TauntSounds == nil then else
+		self.IsTaunting = 1
+		ply:EmitSound( table.Random( self.TauntSounds ) )
+		timer.Simple( self.TauntCooldown, function() self:TauntReady() end)
+	end
 end
 
 function SWEP:TauntReady()

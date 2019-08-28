@@ -390,6 +390,7 @@ local eyeang = ply:EyeAngles()
 local cv = ply:Crouching()
 	
 	if ( self:CanPrimaryAttack() ) then
+	
 	if self.Weapon:GetNWBool("ironsights") == false && cv == false then
 		if CLIENT then
 		eyeang.pitch = eyeang.pitch - ((math.Rand(self.Primary.RecoilUp / 1.85, self.Primary.RecoilUp * 1.62)) - (math.Rand(self.Primary.RecoilDown / 1.85, self.Primary.RecoilDown * 1.85) * FrameTime()))
@@ -857,6 +858,17 @@ function SWEP:ManuallyLoadAfterReload()
 			self:SendWeaponAnim(ACT_SHOTGUN_PUMP)
 		else end
 	else end
+end
+
+function SWEP:Taunt()
+	local ply = self:GetOwner()
+	local tauntsounds = self.TauntSounds
+	
+	if self.TauntSounds == nil then else
+		self.IsTaunting = 1
+		ply:EmitSound( table.Random( self.TauntSounds ) )
+		timer.Simple( self.TauntCooldown, function() self:TauntReady() end)
+	end
 end
 
 function SWEP:ShootEffects()

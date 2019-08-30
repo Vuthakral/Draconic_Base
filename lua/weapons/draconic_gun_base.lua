@@ -56,7 +56,6 @@ SWEP.Primary.ProjSpeed			 = 750
 SWEP.Primary.ProjInheritVelocity = false
 
 SWEP.Primary.CanMelee		= false
-SWEP.Primary.MeleeKeyInput	= IN_USE
 SWEP.Primary.MeleeSwingSound	= Sound( "" )
 SWEP.Primary.MeleeHitSoundWorld = Sound( "" )
 SWEP.Primary.MeleeHitSoundFlesh = Sound( "" )
@@ -91,13 +90,15 @@ SWEP.Secondary.Force			= 0.2
 SWEP.Secondary.Damage			= 12
 SWEP.Secondary.Ammo				= "none"
 SWEP.Secondary.Automatic		= false
+SWEP.Secondary.AutoReload		= true
+SWEP.Secondary.DoReloadAnimation = true
 SWEP.Secondary.RPM				= 444
 SWEP.Secondary.ClipSize			= 18
 SWEP.Secondary.DefaultClip		= 18
 SWEP.Secondary.DropMagReload	= false
 SWEP.Secondary.APS				= 1
 SWEP.Secondary.Tracer			= 1 -- https://wiki.garrysmod.com/page/Enums/TRACER
-SWEP.Secondary.Sound = Sound("weapon_pistol.Single")
+SWEP.Secondary.Sound = Sound("")
 
 -- Settings for NPCs
 SWEP.NPCBurstShots = 0
@@ -107,6 +108,8 @@ SWEP.JackalSniper = false
 SWEP.Loading = false
 SWEP.IronCD = false
 SWEP.FireDelay = 0
+SWEP.ManuallyReloading = false
+SWEP.SecondaryAttacking = false
 
 function SWEP:CanPrimaryAttack()
 local ply = self:GetOwner()
@@ -118,7 +121,7 @@ local ply = self:GetOwner()
 			self:EmitSound ( "Weapon_AR2.Empty" )
 			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
 			return false
-		elseif ( self.Weapon:Clip1() <= 0 ) && self.InfAmmo == true then
+		elseif ( self.Weapon:Clip1() <= 0 ) && self.SecondaryAttacking == false && self.InfAmmo == true then
 			return true
 		end
 		if self.Weapon:GetNWBool("ironsights") == false then
@@ -134,7 +137,7 @@ local ply = self:GetOwner()
 			elseif self.EnableFOVKick == false then
 			end
 		end
-		if self.Loading == true or self.ManuallyReloading == true then
+		if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true then
 			return false
 		else
 		return true
@@ -208,7 +211,7 @@ function SWEP:PrimaryAttack()
 	
 if ply:IsPlayer() then
 	if self.Primary.CanMelee == true then
-		if ply:KeyDown(self.Primary.MeleeKeyInput) then
+		if ply:KeyDown(IN_USE) then
 			self:DoMelee()
 		else
 			if self.Loading == false then
@@ -391,23 +394,31 @@ local cv = ply:Crouching()
 	
 	if ( self:CanPrimaryAttack() ) then
 	
+	self:DoCustomPrimaryAttackEvents()
+	
 	if self.Weapon:GetNWBool("ironsights") == false && cv == false then
-		if CLIENT then
-		eyeang.pitch = eyeang.pitch - ((math.Rand(self.Primary.RecoilUp / 1.85, self.Primary.RecoilUp * 1.62)) - (math.Rand(self.Primary.RecoilDown / 1.85, self.Primary.RecoilDown * 1.85) * FrameTime()))
-		eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -0.81) ) * FrameTime())
+		if CLIENT or game.SinglePlayer() then
+			eyeang.pitch = eyeang.pitch - ((math.Rand(self.Primary.RecoilUp / 1.85, self.Primary.RecoilUp * 1.62)) - (math.Rand(self.Primary.RecoilDown / 1.85, self.Primary.RecoilDown * 1.85) * FrameTime()))
+			eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -0.81) ) * FrameTime())
 		else end
 		self.Owner:ViewPunch(Angle( -self.Primary.Kick, 0, 0 ))
 	elseif self.Weapon:GetNWBool("ironsights") == true && cv == false then
-		eyeang.pitch = eyeang.pitch - (((math.Rand(self.Primary.RecoilUp / 1.5, self.Primary.RecoilUp * 1.5)) - (math.Rand(self.Primary.RecoilDown / 1.5, self.Primary.RecoilDown * 1.5) * FrameTime())) * self.Primary.IronRecoilMul)
-		eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -1) ) * FrameTime())
+		if CLIENT or game.SinglePlayer() then
+			eyeang.pitch = eyeang.pitch - (((math.Rand(self.Primary.RecoilUp / 1.5, self.Primary.RecoilUp * 1.5)) - (math.Rand(self.Primary.RecoilDown / 1.5, self.Primary.RecoilDown * 1.5) * FrameTime())) * self.Primary.IronRecoilMul)
+			eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -1) ) * FrameTime())
+		end
 		self.Owner:ViewPunch(Angle( (-self.Primary.Kick * 0.69) * self.Primary.IronRecoilMul, 0, 0 ))
 	elseif self.Weapon:GetNWBool("ironsights") == false && cv == true then
-		eyeang.pitch = eyeang.pitch - ((math.Rand(self.Primary.RecoilUp / 1.5, self.Primary.RecoilUp * 1.5)) - (math.Rand(self.Primary.RecoilDown / 1.5, self.Primary.RecoilDown * 1.5) * FrameTime()))
+		if CLIENT or game.SinglePlayer() then
+			eyeang.pitch = eyeang.pitch - ((math.Rand(self.Primary.RecoilUp / 1.5, self.Primary.RecoilUp * 1.5)) - (math.Rand(self.Primary.RecoilDown / 1.5, self.Primary.RecoilDown * 1.5) * FrameTime()))
 			eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -1) ) * FrameTime())
+		end
 		self.Owner:ViewPunch(Angle( -self.Primary.Kick * 0.75, 0, 0 ))
 	elseif self.Weapon:GetNWBool("ironsights") == true && cv == true then
-		eyeang.pitch = eyeang.pitch - (((math.Rand(self.Primary.RecoilUp / 1.5, self.Primary.RecoilUp * 0.9)) - (math.Rand(self.Primary.RecoilDown / 1.9, self.Primary.RecoilDown * 0.9) * FrameTime())) * self.Primary.IronRecoilMul)
-		eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -1) ) * FrameTime())
+		if CLIENT or game.SinglePlayer() then
+			eyeang.pitch = eyeang.pitch - (((math.Rand(self.Primary.RecoilUp / 1.5, self.Primary.RecoilUp * 0.9)) - (math.Rand(self.Primary.RecoilDown / 1.9, self.Primary.RecoilDown * 0.9) * FrameTime())) * self.Primary.IronRecoilMul)
+			eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -1) ) * FrameTime())
+		end
 		self.Owner:ViewPunch(Angle( (-self.Primary.Kick * 0.42) * self.Primary.IronRecoilMul, 0, 0 ))
 	end
 		local bullet = {}
@@ -586,6 +597,8 @@ local eyeang = ply:EyeAngles()
 local cv = ply:Crouching()
 local curFOV = ply:GetFOV()
 local IronFOV = self.Secondary.IronFOV
+local loopseq = self:SelectWeightedSequence( ACT_VM_SECONDARYATTACK )
+local looptime = self:SequenceDuration( loopseq )
 	
 	if ( self:CanSecondaryAttack() ) then
 
@@ -600,6 +613,7 @@ local IronFOV = self.Secondary.IronFOV
 		self.Owner:ViewPunch(Angle( -self.Secondary.Kick * 0.75, 0, 0 ))
 	end
 	else end
+	self.SecondaryAttacking = true
 		local bullet = {}
 			bullet.Num = self.Secondary.NumShots
 			bullet.Src = self.Owner:GetShootPos()
@@ -645,6 +659,12 @@ local IronFOV = self.Secondary.IronFOV
 	self:TakeSecondaryAmmo( self.Secondary.APS )
 	self:SetNextSecondaryFire( CurTime() + (60 / self.Secondary.RPM) )
 	self:MuzzleFlash()
+	
+	if self.Secondary.AutoReload == true && self:Clip2() <= 0 && ply:GetAmmoCount(self.Secondary.Ammo) >= 1 then
+	timer.Simple((looptime - 0.2), function() self:ReloadSecondary() end)
+	end
+	
+	timer.Simple(looptime, function() self.SecondaryAttacking = false end)
 	else return end
 end
 
@@ -704,7 +724,7 @@ if ply:IsPlayer() then
 				return true
 			elseif ( self.Weapon:Clip1() < self.Primary.ClipSize ) && self.Weapon:Ammo1() > 1 then
 			end
-	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) then
+	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
 		if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then
 		else
 			self:SetHoldType(self.Secondary.ReloadHoldType)
@@ -712,11 +732,14 @@ if ply:IsPlayer() then
 			self:ReloadSecondary()
 		end
 	end
-elseif !ply:IsPlayer() && ply:IsNPC() then
-	if ply:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) or not ply:IsCurrentSchedule(SCHED_RELOAD) and not ply:GetActivity() == ACT_RELOAD then
-		ply:SetSchedule(SCHED_RELOAD)
+	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
+		if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then
+		else
+			self:SetHoldType(self.Secondary.ReloadHoldType)
+			ply:SetFOV(0, 0.05)
+			self:ReloadSecondary()
+		end
 	end
-end
 end
 
 function SWEP:ReloadSecondary()
@@ -729,8 +752,12 @@ function SWEP:ReloadSecondary()
 		self.Loading = true
 		self:SetIronsights(false, self.Owner)
 		
-		self:SendWeaponAnim( self.Secondary.ReloadAct )
-		timer.Simple( reloadtime, function() self:EndSecondaryReload() end)
+		if self.Secondary.DoReloadAnimation == true then
+			self:SendWeaponAnim( self.Secondary.ReloadAct )
+			timer.Simple( reloadtime, function() self:EndSecondaryReload() end)
+		else
+			self:EndSecondaryReload()
+		end
 	else end
 end
 
@@ -761,6 +788,7 @@ function SWEP:DoReload()
 		self:SetIronsights(false, self.Owner)
 		
 		self:SendWeaponAnim(ACT_VM_RELOAD)
+		self:DoCustomReloadStartEvents()
 		timer.Simple( reloadtime, function() self:EndReload() end)
 	else end
 end
@@ -771,6 +799,7 @@ function SWEP:EndReload()
 	self.IronCD = false
 	
 	if self:IsValid() && ply:IsValid() && ply:Alive() then
+	self:DoCustomReloadEndEvents()
 		if self.Primary.DropMagReload == false then
 		ply:RemoveAmmo( (self.Primary.ClipSize - self.Weapon:Clip1()), self.Primary.Ammo)
 		else
@@ -869,6 +898,27 @@ function SWEP:Taunt()
 		ply:EmitSound( table.Random( self.TauntSounds ) )
 		timer.Simple( self.TauntCooldown, function() self:TauntReady() end)
 	end
+end
+
+function SWEP:DoCustomPrimaryAttackEvents()
+end
+
+function SWEP:DoCustomVentEvents()
+end
+
+function SWEP:DoCustomVentHoldEvents()
+end
+
+function SWEP:DoCustomFinishVentEvents()
+end
+
+function SWEP:DoCustomOverheatEvents()
+end
+
+function SWEP:DoCustomReloadEndEvents()
+end
+
+function SWEP:DoCustomReloadStartEvents()
 end
 
 function SWEP:ShootEffects()

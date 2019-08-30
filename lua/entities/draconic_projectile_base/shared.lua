@@ -15,6 +15,7 @@ ENT.ProjectileType = "point"
 ENT.ExplodeShakePower = 25
 ENT.ExplodeShakeTime  = 0.5	
 ENT.ExplodeShakeDistance = 500
+ENT.FuseTime	= 5
 
 function ENT:Think()
 	local vel = self:GetVelocity()
@@ -23,8 +24,9 @@ function ENT:Think()
 end
 
 function ENT:Initialize()
+local type = self.ProjectileType
 	self:SetModel(self.Model)
-	self:PhysicsInit(SOLID_OBB)
+	self:PhysicsInit(SOLID_VPHYSICS)
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	
@@ -32,6 +34,10 @@ function ENT:Initialize()
 	
 	if self.Gravity == false then
 		phys:EnableGravity(false)
+	else end
+
+	if SERVER && type == "grenade" then
+		timer.Simple(self.FuseTime, function() self:TriggerExplosion() end)
 	else end
 	
 	self:DoCustomInitialize()
@@ -73,6 +79,10 @@ function ENT:DamageTarget(tgt, tr)
 	tgt:DispatchTraceAttack(dmg, self:GetPos() + ang:Forward() * 3, tgt:GetPos()) -- this code is taken from the TTT knife because I have no fucking clue how this works
 	
 	timer.Simple(0.01, function() self:Remove() end)
+end
+
+function ENT:TriggerExplosion()
+	self:Explode()
 end
 
 function ENT:Explode()

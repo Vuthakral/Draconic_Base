@@ -137,3 +137,43 @@ sound.Add( {
 	"weapons/explode3.wav",
 	"weapons/hegrenade/explode5.wav" }
 } )
+
+sound.Add( {
+	name = "draconic.VentGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.4,
+	level = 60,
+	pitch = { 125, 132 },
+	sound = { "ambient/gas/steam2.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.VentOpenGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.4,
+	level = 60,
+	pitch = { 95, 105 },
+	sound = { "weapons/grenade_launcher_drum_open.wav",
+		"weapons/revolver_reload_cylinder_open.wav", 
+		"weapons/scatter_gun_double_shells_in.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.VentCloseGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.4,
+	level = 60,
+	pitch = { 95, 105 },
+	sound = { "weapons/grenade_launcher_drum_open.wav",
+		"weapons/scatter_gun_double_tube_open.wav", 
+		"weapons/revolver_reload_cylinder_close.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.OverheatGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.69,
+	level = 90,
+	pitch = { 100, 105 },
+	sound = { "weapons/barret_arm_zap.wav" }
+} )

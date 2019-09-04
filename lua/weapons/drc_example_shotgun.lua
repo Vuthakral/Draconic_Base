@@ -6,6 +6,7 @@ SWEP.CrouchHoldType		= "shotgun"
 SWEP.ReloadHoldType		= "shotgun"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "Shotgun Example"
+SWEP.InfoName			= "M3"
 SWEP.Auhtor				= "Vuthakral"
 SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
 SWEP.Purpose			= ""
@@ -29,6 +30,12 @@ SWEP.IronSightsPos 		= Vector(-7.65, 15, 3.4)
 SWEP.IronSightsAng 		= Vector(0, 0, 0)
 SWEP.SS = 1
 SWEP.BS = 1
+
+SWEP.FireModes_CanAuto	= false
+SWEP.FireModes_CanBurst = false
+SWEP.FireModes_CanSemi	= true
+SWEP.FireModes_BurstShots = 3
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.LoadAfterShot 			= true
 SWEP.LoadAfterReloadEmpty	= false

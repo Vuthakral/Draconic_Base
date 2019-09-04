@@ -5,6 +5,7 @@ SWEP.HoldType			= "smg"
 SWEP.CrouchHoldType		= "smg"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "HL2 SMG"
+SWEP.InfoName			= "MP7A1"
 SWEP.Auhtor				= "Vuthakral"
 SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
 SWEP.Purpose			= ""
@@ -28,6 +29,12 @@ SWEP.IronSightsPos 		= Vector(-6.5, 15, 1.1)
 SWEP.IronSightsAng 		= Vector(0, 0, 0)
 SWEP.SS = 1
 SWEP.BS = 1
+
+SWEP.FireModes_CanAuto	= true
+SWEP.FireModes_CanBurst = true
+SWEP.FireModes_CanSemi	= true
+SWEP.FireModes_BurstShots = 3
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Spread			= 12

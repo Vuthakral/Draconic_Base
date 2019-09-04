@@ -7,6 +7,7 @@ SWEP.IdleSequence		= "idle_unsil"
 SWEP.WalkSequence		= "idle_unsil"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "Bolt-Action Example"
+SWEP.InfoName			= "Sniper"
 SWEP.Auhtor				= "Vuthakral"
 SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
 SWEP.Purpose			= ""
@@ -31,6 +32,12 @@ SWEP.IronSightsAng = Vector(2.253, -1.4, -4.256)
 SWEP.IronSightViewAng	= Vector(0, 0, 0)
 SWEP.SS = 1
 SWEP.BS = 1
+
+SWEP.FireModes_CanAuto	= false
+SWEP.FireModes_CanBurst = false
+SWEP.FireModes_CanSemi	= true
+SWEP.FireModes_BurstShots = 3
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.LoadAfterShot 			= true
 SWEP.LoadAfterReloadEmpty	= false

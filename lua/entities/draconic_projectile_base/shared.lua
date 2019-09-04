@@ -30,6 +30,12 @@ local type = self.ProjectileType
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	
+	if SERVER && type == "magazine" then
+		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+	
+		timer.Simple(15, function() self:Remove() end)
+	else end
+	
 	local phys = self:GetPhysicsObject()
 	
 	if self.Gravity == false then
@@ -39,7 +45,6 @@ local type = self.ProjectileType
 	if SERVER && type == "grenade" then
 		timer.Simple(self.FuseTime, function() self:TriggerExplosion() end)
 	else end
-	
 	self:DoCustomInitialize()
 end
 

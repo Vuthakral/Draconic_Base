@@ -7,6 +7,7 @@ SWEP.IdleSequence		= "idle1"
 SWEP.WalkSequence		= "idle1"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "Handgun Example"
+SWEP.InfoName			= "Desert Eagle"
 SWEP.Auhtor				= "Vuthakral"
 SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
 SWEP.Purpose			= ""
@@ -30,6 +31,12 @@ SWEP.IronSightsPos = Vector(-6.4, -8 ,2)
 SWEP.IronSightsAng = Vector(0, 0, 0)
 SWEP.SS = 1
 SWEP.BS = 1
+
+SWEP.FireModes_CanAuto	= false
+SWEP.FireModes_CanBurst = false
+SWEP.FireModes_CanSemi	= true
+SWEP.FireModes_BurstShots = 3
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Spread			= 12

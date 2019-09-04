@@ -1,9 +1,10 @@
 SWEP.Base			= "draconic_battery_base"
 SWEP.Gun			= "draconic_plasmagun_example"
 
-SWEP.HoldType			= "smg"
+SWEP.HoldType			= "ar2"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "Plasma Gun Example"
+SWEP.InfoName			= "Plasmagun"
 SWEP.Auhtor				= "Vuthakral"
 SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
 SWEP.Purpose			= "Example weapon for the 'battery' base of DSB"
@@ -28,6 +29,12 @@ SWEP.IronSightsAng = Vector(-0.5, -0.84, 0)
 SWEP.SS = 1
 SWEP.BS = 1
 
+SWEP.FireModes_CanAuto	= true
+SWEP.FireModes_CanBurst = true
+SWEP.FireModes_CanSemi	= true
+SWEP.FireModes_BurstShots = 3
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
+
 SWEP.DisperseHeatPassively = true
 SWEP.CanOverheat			= true
 SWEP.CanVent				= true
@@ -47,6 +54,7 @@ SWEP.OverheatStrength		= 2
 SWEP.OverHeatFinishPercent	= 0.32
 SWEP.VentingStrength		= 4
 SWEP.HeatRPMmin				= 400
+SWEP.BatteryConsumPerShot	= 0.5
 
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Spread			= 12
@@ -58,11 +66,13 @@ SWEP.Primary.RecoilHoriz	= 25
 SWEP.Primary.Force			= 0.2
 SWEP.Primary.Damage			= 12
 SWEP.Primary.RPM			= 700
-SWEP.Primary.ClipSize		= 200
-SWEP.Primary.DefaultClip	= 200
 SWEP.Primary.Automatic		= true
 SWEP.Primary.Tracer			= 1 -- https://wiki.garrysmod.com/page/Enums/TRACER
 SWEP.Primary.Sound = Sound("draconic.PewPew")
+
+SWEP.Primary.Projectile		= nil
+SWEP.Primary.ProjSpeed			 = 750
+SWEP.Primary.ProjInheritVelocity = false
 
 SWEP.Secondary.Ironsights	= true
 SWEP.Secondary.Scoped		= false

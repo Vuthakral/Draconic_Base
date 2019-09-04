@@ -7,6 +7,7 @@ SWEP.IdleSequence		= "idle_unsil"
 SWEP.WalkSequence		= "idle_unsil"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "Scoped Rifle Example"
+SWEP.InfoName			= "G3SG/1"
 SWEP.Auhtor				= "Vuthakral"
 SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
 SWEP.Purpose			= ""
@@ -30,6 +31,12 @@ SWEP.IronSightsPos = Vector(-7.7, -7.463, 0.657)
 SWEP.IronSightsAng = Vector(2.253, -1.4, -4.256)
 SWEP.SS = 1
 SWEP.BS = 1
+
+SWEP.FireModes_CanAuto	= true
+SWEP.FireModes_CanBurst = false
+SWEP.FireModes_CanSemi	= true
+SWEP.FireModes_BurstShots = 3
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Spread			= 4

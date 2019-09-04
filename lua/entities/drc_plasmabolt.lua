@@ -16,3 +16,8 @@ ENT.ProjectileType	= "point"
 ENT.ExplodeShakePower = 25
 ENT.ExplodeShakeTime  = 0.5	
 ENT.ExplodeShakeDistance = 500
+
+-- DO NOT USE THIS THING YET IM STILL FIGURING OUT SPAWNED ENTITY PROJECTILES
+
+function ENT:DoCustomInitialize()
+end

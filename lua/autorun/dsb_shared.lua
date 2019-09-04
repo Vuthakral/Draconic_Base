@@ -177,3 +177,13 @@ sound.Add( {
 	pitch = { 100, 105 },
 	sound = { "weapons/barret_arm_zap.wav" }
 } )
+
+sound.Add( {
+	name = "draconic.EmptyGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.69,
+	level = 90,
+	pitch = { 99, 102 },
+	sound = { "weapons/clipempty_pistol.wav",
+		"weapons/clipempty_rifle.wav" }
+} )

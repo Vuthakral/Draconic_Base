@@ -51,6 +51,7 @@ SWEP.OverheatSound			= Sound("draconic.OverheatGeneric")
 SWEP.VentingSound			= Sound("draconic.VentGeneric")
 SWEP.VentingStartSound		= Sound("draconic.VentOpenGeneric")
 SWEP.VentingStopSound		= Sound("draconic.VentCloseGeneric")
+SWEP.BatteryConsumPerShot	= 0.5
 
 SWEP.LoadAfterShot 			= false
 SWEP.LoadAfterReloadEmpty	= false
@@ -63,9 +64,6 @@ SWEP.Primary.Force			= 0
 SWEP.Primary.Damage			= 1
 SWEP.Primary.Automatic		= true
 SWEP.Primary.RPM			= 857
-SWEP.Primary.ClipSize		= 100
-SWEP.Primary.DefaultClip	= 100
-SWEP.Primary.APS			= 1
 SWEP.Primary.Tracer			= 4 -- https://wiki.garrysmod.com/page/Enums/TRACER
 SWEP.Primary.Sound			= Sound("draconic.PewPew")
 
@@ -98,6 +96,8 @@ SWEP.JackalSniper = false
 
 -- the DO NOT TOUCH zone
 SWEP.Primary.Ammo = "CombineHeavyCannon"
+SWEP.Primary.ClipSize		= 100
+SWEP.Primary.DefaultClip	= 100
 
 function SWEP:CanPrimaryAttack()
 local ply = self:GetOwner()
@@ -243,30 +243,41 @@ end
 
 function SWEP:FinishVent()
 	local ply = self:GetOwner()
-	local loopseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
+	local loopseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_FINISH )
 	local looptime = self:SequenceDuration( loopseq )
 	local ventingsound = self.VentingSound
 	local ventingend = self.VentingStopSound
 	
-	self.ManuallyReloading = false
-	self.IsOverheated = false
-	self.IronCD = false
 	self:SetHoldType( self.HoldType )
 	self.Weapon:StopSound(ventingsound)
 	self.Weapon:EmitSound(ventingend)
 	self:DoCustomFinishVentEvents()
-	if CLIENT or SERVER && self.DoVentingAnimation == true then
-		self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
+	
+	if self.DoVentingAnimation == true && self.IsOverheated == false then
+		if CLIENT or SERVER then
+			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
+		end
+	elseif self.IsOverheated == true && self.DoOverheatAnimation == true then
+		if CLIENT or SERVER then
+			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
+		end
 	else end
 	self.Weapon:SetNWFloat("HeatDispersePower", 1)
 	
+	timer.Simple( looptime, function()
+		self.Idle = 0
+		self.ManuallyReloading = false
+		self.IsOverheated = false
+		self.IronCD = false	
+	end)
 	timer.Simple( looptime, function() self:ManuallyLoadAfterReload() end)
 end
 
 function SWEP:Overheat()
 	local ply = self:GetOwner()
-	local loopseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
+	local loopseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_START )
 	local looptime = self:SequenceDuration( loopseq )
+	self.Idle = 0
 	self.ManuallyReloading = true
 	self.IsOverheated = true
 	self:SetIronsights(false, self.Owner)
@@ -279,7 +290,7 @@ function SWEP:Overheat()
 	elseif self.Weapon:Clip1() <= 0 && self.InfAmmo == true then
 		self.Weapon:SetNWFloat("HeatDispersePower", self.OverheatStrength)
 		if CLIENT or SERVER && self.DoOverheatAnimation == true then
-			self:SendWeaponAnim(ACT_VM_RELOAD)
+			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
 		else end
 		if self.DoOverheatSound == true then
 			local overheatsound = self.OverheatSound
@@ -299,7 +310,7 @@ function SWEP:Overheat()
 	else
 		self.Weapon:SetNWFloat("HeatDispersePower", self.OverheatStrength)
 		if CLIENT or SERVER && self.DoOverheatAnimation == true then
-			self:SendWeaponAnim(ACT_VM_RELOAD)
+			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
 		else end
 		if self.DoOverheatSound == true then
 			local overheatsound = self.OverheatSound
@@ -328,6 +339,7 @@ function SWEP:AutoVent()
 local ply = self:GetOwner()
 local AmmoName = self.Primary.Ammo
 
+	self.Idle = 0
 	self:DoCustomVentEvents()
 	if ply:GetAmmoCount(AmmoName) > 0 then
 		if ply:GetAmmoCount(AmmoName) >= (100 - (100 * self.OverHeatFinishPercent)) then
@@ -343,6 +355,7 @@ local AmmoName = self.Primary.Ammo
 end
 
 function SWEP:AutoVentLoop()
+	self.Idle = 0
 	self.Weapon:SetNWFloat("HeatDispersePower", self.OverheatStrength)
 	timer.Simple(0.05, function() self:AutoVent() end)
 end
@@ -354,12 +367,34 @@ function SWEP:PrimaryAttack()
 	local heat = self:GetNWInt("Heat")
 	
 if ply:IsPlayer() then
-	if self.Primary.CanMelee == true then
+	if self.Primary.CanMelee == true  then
 		if ply:KeyDown(IN_USE) then
-			self:DoMelee()
+			if self.IsOverheated == false && self.Loading == false && self.ManuallyReloading == false then
+				self:DoMelee()
+			else end
 		else
 			if self.Loading == false then
+				if self.Weapon:GetNWString("FireMode") == "Semi" or self.Weapon:GetNWString("FireMode") == "Auto" then
 				self:DoPrimaryAttack()
+				elseif self.Weapon:GetNWString("FireMode") == "Burst" && self.Bursting == false then
+				self.Bursting = true
+				timer.Simple(((60 / self.Primary.RPM) * self.FireModes_BurstShots + 0.05), function() self.Bursting = false end)
+					for i=0, (self.FireModes_BurstShots - 1) do
+						timer.Simple(i * (60 / self.Primary.RPM), function()
+							if not IsValid(self) or not IsValid(self.Owner) then
+								return
+								end
+							if not self:CanPrimaryAttack() then
+								return
+							end
+							if self.Loading == false then
+								if SERVER or game.SinglePlayer() then
+								self:DoPrimaryAttack()
+								else end
+							end
+						end)
+					end
+				else end
 					if self.LoadAfterShot == true && (self.Weapon:Clip1() > 0) then
 						self.Loading = true
 						timer.Simple( firetime, function() self:LoadNextShot() end)
@@ -370,7 +405,25 @@ if ply:IsPlayer() then
 			end
 		end
 	elseif self.Primary.CanMelee == false && self.Loading == false then
+		if self.Weapon:GetNWString("FireMode") == "Semi" or self.Weapon:GetNWString("FireMode") == "Auto" then
 		self:DoPrimaryAttack()
+		elseif self.Weapon:GetNWString("FireMode") == "Burst" && self.Bursting == false then
+		self.Bursting = true
+		timer.Simple(((60 / self.Primary.RPM) * self.FireModes_BurstShots + 0.05), function() self.Bursting = false end)
+			for i=0, (self.FireModes_BurstShots - 1) do
+				timer.Simple(i * (60 / self.Primary.RPM), function()
+					if not IsValid(self) or not IsValid(self.Owner) then
+						return
+						end
+					if not self:CanPrimaryAttack() then
+						return
+					end
+					if self.Loading == false then
+						self:DoPrimaryAttack()
+					end
+				end)
+			end
+		else end
 		if self.LoadAfterShot == true && (self.Weapon:Clip1() > 0) then
 			self.Loading = true
 			timer.Simple( firetime, function() self:LoadNextShot() end)
@@ -422,6 +475,10 @@ local ply = self:GetOwner()
 local eyeang = ply:EyeAngles()
 local cv = ply:Crouching()
 local heat = self:GetNWInt("Heat")
+local loopseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
+local looptime = self:SequenceDuration( loopseq )
+local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
+local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 	
 	if ( self:CanPrimaryAttack() ) then
 	ply:SetAmmo(self:GetNWInt("Heat"), self.Primary.Ammo)
@@ -450,7 +507,11 @@ local heat = self:GetNWInt("Heat")
 			bullet.Num = self.Primary.NumShots
 			bullet.Src = self.Owner:GetShootPos()
 			bullet.Dir = self.Owner:GetAimVector()
-			bullet.Spread = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv, 0 )
+			if self.Weapon:GetNWString("FireMode") != "Burst" then
+				bullet.Spread = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv, 0 )
+			else
+				bullet.Spread = math.Rand(-Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ), Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ))
+			end
 			bullet.Tracer = self.Primary.Tracer
 			bullet.Force = self.Primary.Force
 			bullet.Damage = self.Primary.Damage
@@ -462,7 +523,7 @@ local heat = self:GetNWInt("Heat")
 	local aim = self.Owner:GetAimVector()
 	local side = aim:Cross(Vector(0,0,0))
 	local up = side:Cross(aim)
-	local pos = self.Owner:GetShootPos() + side * 0 + up * 0
+	local pos = ply:GetBonePosition(RightHand)
 		if SERVER then
 			local proj = ents.Create(self.Primary.Projectile)
 			if !proj:IsValid() then return false end
@@ -490,12 +551,14 @@ local heat = self:GetNWInt("Heat")
 	elseif self.Secondary.SightsSuppressAnim == true && self.Weapon:GetNWBool("ironsights") == false then
 		self.Weapon:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
 	elseif self.Secondary.SightsSuppressAnim == true && self.Weapon:GetNWBool("ironsights") == true then
+	else
 	end
 	self.Weapon:EmitSound(Sound(self.Primary.Sound))
 	if CLIENT then
 		ply:SetEyeAngles( eyeang )
 	else end
-		self:TakePrimaryAmmo( self.Primary.APS )
+		self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - self.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+		self:TakePrimaryAmmo( self.BatteryConsumPerShot )
 		self:SetNWInt("Heat", (self:GetNWInt("Heat") + self.HPS))
 		if self.LowerRPMWithHeat == true then
 			self:SetNextPrimaryFire ( CurTime() + math.Clamp(((heat * 2) / self.Primary.RPM), (60 / self.Primary.RPM), (60 / self.HeatRPMmin)) )
@@ -504,6 +567,7 @@ local heat = self:GetNWInt("Heat")
 		end
 		self:MuzzleFlash()
 		self:ShootEffects()
+	timer.Simple(looptime, function() self.Idle = 1 end)
 	else return end
 end
 
@@ -594,7 +658,7 @@ if ( self:CanPrimaryAttackNPC() ) then
 		if self.Primary.NPCSound == nil then self.Weapon:EmitSound(Sound(self.Primary.Sound))
 		else self.Weapon:EmitSound(Sound(self.Primary.NPCSound)) end
 	end
-		self:TakePrimaryAmmo( self.Primary.APS )
+		self:TakePrimaryAmmo( self.BatteryConsumPerShot )
 		self:SetNWInt("Heat", (self:GetNWInt("Heat") + self.HPS))
 		if self.LowerRPMWithHeat == true then
 			self:SetNextPrimaryFire ( CurTime() + math.Clamp(((heat * 2) / self.Primary.RPM), (60 / self.Primary.RPM), (60 / self.HeatRPMmin)) )

@@ -40,7 +40,7 @@ SWEP.ManualReload			= false
 SWEP.MagazineEntity			= nil
 
 SWEP.FireModes_CanAuto	= true
-SWEP.FireModes_CanBurst = true
+SWEP.FireModes_CanBurst = false
 SWEP.FireModes_CanSemi	= true
 SWEP.FireModes_BurstShots = 3
 SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
@@ -156,7 +156,7 @@ local ply = self:GetOwner()
 			elseif self.EnableFOVKick == false then
 			end
 		end
-		if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true then
+		if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self.Weapon:GetNWBool("Passive") == true then
 			return false
 		else 
 			return true
@@ -689,16 +689,14 @@ function SWEP:TogglePassive()
 		self.Weapon:SendWeaponAnim( ACT_VM_HOLSTER )
 		self.Passive = true
 		self:DoPassiveHoldtype()
-		self.VMPos = self.VMPos
-		self.VMAng = self.VMAng
-		self.PassivePos = self.PassivePos
-		self.PassiveAng = self.PassiveAng
+		self.Weapon:SetNWBool("Passive", true)
 	else
 		self.Loading = true
 		self.Idle = 0
 		self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
+		self.Weapon:SetNWBool("Passive", false)
 		timer.Simple(looptime, function()
 			self.Loading = false 
 			self.Idle = 1

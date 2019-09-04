@@ -1061,8 +1061,14 @@ local ply = self:GetOwner()
 	local fIronTime = self.fIronTime or 0
 	
 	local Mul = 1
+	
+	if (fIronTime > CurTime() - IRONSIGHT_TIME) then
+		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
 
-	if self.Weapon:GetNWBool("ironsights") == false && self.Passive == false then
+		if (!ironBool) then Mul = 1 - Mul end
+	end
+
+	if self.Weapon:GetNWBool("Passive") == false then
 		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
 		pos = pos + (ang:Right() * self.VMPos.x + ang:Right() * (eyeangforward.x /135 * Mul))
 		pos = pos + (ang:Forward() * self.VMPos.y + ang:Forward() * (eyeangforward.x /100 * 5 * Mul))
@@ -1073,14 +1079,14 @@ local ply = self:GetOwner()
 		
 		self.SwayScale = self.SS
 		self.BobScale = self.BS
-	elseif self.Weapon:GetNWBool("ironsights") == false && self.Passive == true then
+	elseif self.Weapon:GetNWBool("Passive") == true then
 		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
-		ang:RotateAroundAxis(ang:Right(), 	self.PassiveAng.x * Mul)
-		ang:RotateAroundAxis(ang:Up(), 	self.PassiveAng.y * Mul)
-		ang:RotateAroundAxis(ang:Forward(), self.PassiveAng.z * Mul)
-		pos = pos + (self.PassivePos.x) * ang:Right() * Mul
+		pos = pos + (ang:Right() * self.PassivePos.x + ang:Right() * (eyeangforward.x /90 * Mul))
 		pos = pos + (ang:Forward() * self.PassivePos.y + ang:Forward() * (eyeangforward.x /100 * 5 * Mul))
-		pos = pos + (self.PassivePos.z -255) * ang:Up() * Mul
+		pos = pos + (ang:Up() * (self.PassivePos.z - 6) + ang:Up() * (eyeangforward.x / 45 * Mul))
+		ang:RotateAroundAxis(ang:Right() * (eyeangforward.x /125), self.PassiveAng.x * Mul)
+		ang:RotateAroundAxis(ang:Up(), self.PassiveAng.y * Mul)
+		ang:RotateAroundAxis(ang:Forward(), self.PassiveAng.z * Mul)
 		
 		self.SwayScale = self.SS
 		self.BobScale = self.BS

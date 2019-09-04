@@ -147,11 +147,11 @@ local IronFOV = self.Secondary.IronFOV
 		elseif self.EnableFOVKick == false then
 		end
 	end
-	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true then
-		return false
-	else
-	return true
-	end
+		if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self.Weapon:GetNWBool("Passive") == true then
+			return false
+		else 
+			return true
+		end
 end
 
 function SWEP:CanPrimaryAttackNPC()

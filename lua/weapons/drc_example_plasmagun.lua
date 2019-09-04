@@ -54,7 +54,6 @@ SWEP.OverheatStrength		= 2
 SWEP.OverHeatFinishPercent	= 0.32
 SWEP.VentingStrength		= 4
 SWEP.HeatRPMmin				= 400
-SWEP.BatteryConsumPerShot	= 0.5
 
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.Spread			= 12

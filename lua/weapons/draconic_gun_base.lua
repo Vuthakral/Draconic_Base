@@ -156,7 +156,7 @@ local ply = self:GetOwner()
 			elseif self.EnableFOVKick == false then
 			end
 		end
-		if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self.Weapon:GetNWBool("Passive") == true then
+		if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Weapon:GetNWBool("Passive") == true then
 			return false
 		else 
 			return true
@@ -686,7 +686,7 @@ function SWEP:TogglePassive()
 	self.Weapon:EmitSound(self.FireModes_SwitchSound)
 	
 	if self.Passive == false then
-		self.Weapon:SendWeaponAnim( ACT_VM_HOLSTER )
+		self.Weapon:SendWeaponAnim( ACT_VM_IDLE )
 		self.Passive = true
 		self:DoPassiveHoldtype()
 		self.Weapon:SetNWBool("Passive", true)
@@ -718,33 +718,39 @@ local string = self.Weapon:GetNWString("FireMode")
 
 	if string == "Semi" then
 		if self.FireModes_CanAuto == true then
-			self.Weapon:SetNWString("FireMode", "Auto")
-			self.Primary.Automatic = true
-			timer.Simple(0.01, function() self:DisplayFireMode() end)
+			timer.Simple(0.01, function()
+				self.Weapon:SetNWString("FireMode", "Auto")
+				self.Primary.Automatic = true end)
+			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
 		elseif self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
-			self.Weapon:SetNWString("FireMode", "Burst")
-			self.Primary.Automatic = false
-			timer.Simple(0.01, function() self:DisplayFireMode() end)
+			timer.Simple(0.01, function()
+				self.Weapon:SetNWString("FireMode", "Burst")
+				self.Primary.Automatic = false end)
+			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
 		else end
 	elseif string == "Burst" then
 		if self.FireModes_CanSemi == true then
-			self.Weapon:SetNWString("FireMode", "Semi")
-			self.Primary.Automatic = false
-			timer.Simple(0.01, function() self:DisplayFireMode() end)
+			timer.Simple(0.01, function()
+				self.Weapon:SetNWString("FireMode", "Semi")
+				self.Primary.Automatic = false end)
+			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
 		elseif self.FireModes_CanAuto == true && self.FireModes_CanSemi == false then
-			self.Weapon:SetNWString("FireMode", "Auto")
-			self.Primary.Automatic = true
-			timer.Simple(0.01, function() self:DisplayFireMode() end)
+			timer.Simple(0.01, function()
+				self.Weapon:SetNWString("FireMode", "Auto")
+				self.Primary.Automatic = true end)
+			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
 		else end
 	elseif string == "Auto" then
 		if self.FireModes_CanBurst == true then
-			self.Weapon:SetNWString("FireMode", "Burst")
-			self.Primary.Automatic = false
-			timer.Simple(0.01, function() self:DisplayFireMode() end)
+			timer.Simple(0.01, function()
+				self.Weapon:SetNWString("FireMode", "Burst")
+				self.Primary.Automatic = false end)
+			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
 		elseif self.FireModes_CanSemi == true && self.FireModes_CanBurst == false then
-			self.Weapon:SetNWString("FireMode", "Semi")
-			self.Primary.Automatic = false
-			timer.Simple(0.01, function() self:DisplayFireMode() end)
+			timer.Simple(0.01, function()
+				self.Weapon:SetNWString("FireMode", "Semi")
+				self.Primary.Automatic = false end)
+			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
 		else end
 	else end
 end
@@ -754,11 +760,11 @@ local ply = self:GetOwner()
 local string = self.Weapon:GetNWString("FireMode")
 	self.Weapon:EmitSound(self.FireModes_SwitchSound)
 	
-	if CLIENT or game.SinglePlayer() then
+	if CLIENT or SERVER or game.SinglePlayer() then
 		if self.InfoName == "" then
-			ply:PrintMessage( HUD_PRINTTALK, "Switched to "..string..".")
+			ply:PrintMessage( HUD_PRINTCENTER, "Switched to "..string..".")
 		else
-			ply:PrintMessage( HUD_PRINTTALK, ""..self.InfoName.." switched to "..string..".")
+			ply:PrintMessage( HUD_PRINTCENTER, ""..self.InfoName.." switched to "..string..".")
 		end
 	else end
 end

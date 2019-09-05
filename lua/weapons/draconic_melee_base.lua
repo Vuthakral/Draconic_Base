@@ -91,6 +91,11 @@ SWEP.Secondary.CrouchMissActivity	= ACT_VM_MISSCENTER2
 SWEP.Secondary.HitDelay		= 0.23
 SWEP.Secondary.Velocity		= Vector(0, 0, 0)
 
+-- DO NOT TOUCH
+SWEP.Primary.Ammo = nil
+SWEP.Secondary.Ammo = nil
+-- end DNT
+
 function SWEP:PrimaryAttack()
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()

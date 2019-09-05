@@ -56,24 +56,6 @@ SWEP.Primary.ReloadHoldType	= "smg"
 SWEP.Primary.Sound = Sound("weapon_smg1.Single")
 SWEP.Primary.NPCSound = Sound("Weapon_SMG1.NPC_Single")
 
-SWEP.Primary.CanMelee		= true
-SWEP.Primary.MeleeKeyInput	= IN_USE
-SWEP.Primary.MeleeSwingSound	= Sound( "" )
-SWEP.Primary.MeleeHitSoundWorld = Sound( "" )
-SWEP.Primary.MeleeHitSoundFlesh = Sound( "" )
-SWEP.Primary.MeleeHitSoundEnt 	= Sound( "" )
-SWEP.Primary.MeleeImpactDecal 	= ""
-SWEP.Primary.MeleeDamage		= 12
-SWEP.Primary.MeleeDamageType	= DMG_SLASH
-SWEP.Primary.MeleeRange			= 16.5
-SWEP.Primary.MeleeForce			= 5
-SWEP.Primary.MeleeDelayMiss		= 0.42
-SWEP.Primary.MeleeDelayHit 		= 0.54
-SWEP.Primary.CanAttackCrouched = false
-SWEP.Primary.MeleeHitActivity	= ACT_VM_PRIMARYATTACK 
-SWEP.Primary.MeleeMissActivity	= ACT_VM_PRIMARYATTACK 
-SWEP.Primary.MeleeHitDelay		= 0.07
-
 SWEP.Secondary.Ironsights	= false
 SWEP.Secondary.Scoped		= false
 SWEP.Secondary.ScopeMat		= "overlays/scope_lens"

@@ -54,7 +54,7 @@ SWEP.Primary.ClipSize		= 30
 SWEP.Primary.DefaultClip	= 30
 SWEP.Primary.APS			= 1
 SWEP.Primary.Tracer			= 1 -- https://wiki.garrysmod.com/page/Enums/TRACER
-SWEP.Primary.ReloadHoldType	= "smg"
+SWEP.Primary.ReloadHoldType	= "ar2"
 SWEP.Primary.Sound = Sound("weapon_ar2.Single")
 SWEP.Primary.NPCSound = Sound("weapon_ar2.NPC_Single")
 

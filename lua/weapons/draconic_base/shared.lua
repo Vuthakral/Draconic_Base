@@ -232,6 +232,7 @@ local ply = self:GetOwner()
 	end
 	self:DoCustomInitialize()
 	self:SetNWInt("Heat", 0)
+	self:SetNWBool("Passive", false)
 	self.Passive = false
 	
 	
@@ -239,9 +240,11 @@ local ply = self:GetOwner()
 		self.Weapon:SetNWString("FireMode", "Semi")
 	elseif self.Primary.Automatic == true then
 		self.Weapon:SetNWString("FireMode", "Auto")
-	elseif self.Primary.Automatic == true or false && self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
+	elseif self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
 		self.Weapon:SetNWString("FireMode", "Burst")
-	else end
+	else 
+		self.Weapon:SetNWString("FireMode", "Semi")
+	end
 	
 	if self.Primary.Ammo != nil then
 		self.Weapon:SetNWInt("LoadedAmmo", self.Primary.DefaultClip)
@@ -455,7 +458,6 @@ end
 function SWEP:Deploy()
 local ply = self:GetOwner()
 local cv = ply:Crouching()
-	if ply:EntIndex() == 0 then else
 		if self.Passive == true then
 		self:DoPassiveHoldtype()
 		else
@@ -515,22 +517,22 @@ self:RegeneratingHealth(ply)
 		
 	else end
 
-	self.HookUID_1 = "Draconic_HOOK_UID_"..ply:Name().."_Movement"
+	self.HookUID_1 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_Movement"
 --	print(self.HookUID_1)
 	
-	self.HookUID_2 = "Draconic_HOOK_UID_"..ply:Name().."_CrouchSprint"
+	self.HookUID_2 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_CrouchSprint"
 --	print(self.HookUID_2)
 	
-	self.HookUID_3 = "Draconic_HOOK_UID_"..ply:Name().."_SprintJumpCrouch"
+	self.HookUID_3 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_SprintJumpCrouch"
 --	print(self.HookUID_3)
 	
-	self.HookUID_4 = "Draconic_HOOK_UID_"..ply:Name().."_FallDamage"
+	self.HookUID_4 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_FallDamage"
 --	print(self.HookUID_4)
 	
 --	self.HookUID_5 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_"..ply:Name().."_Blocking"
 --	print(self.HookUID_5)
 
-	self.HookUID_6 = "Draconic_HOOK_UID_"..ply:Name().."_BlockingTakeDamage"
+	self.HookUID_6 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_BlockingTakeDamage"
 --	print(self.HookUID_6)
 	
 	if ( SERVER ) && ply:IsPlayer() then
@@ -936,7 +938,6 @@ self:RegeneratingHealth(ply)
 	self:DoCustomDeploy()
 return true
 end
-end
 
 function SWEP:DoCustomDeploy()
 end
@@ -1068,7 +1069,7 @@ local ply = self:GetOwner()
 		if (!ironBool) then Mul = 1 - Mul end
 	end
 
-	if self.Weapon:GetNWBool("Passive") == false then
+	if self.Weapon:GetNWBool("Passive") == false && self.Weapon:GetNWBool("ironsights") == false then
 		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
 		pos = pos + (ang:Right() * self.VMPos.x + ang:Right() * (eyeangforward.x /135 * Mul))
 		pos = pos + (ang:Forward() * self.VMPos.y + ang:Forward() * (eyeangforward.x /100 * 5 * Mul))
@@ -1079,7 +1080,7 @@ local ply = self:GetOwner()
 		
 		self.SwayScale = self.SS
 		self.BobScale = self.BS
-	elseif self.Weapon:GetNWBool("Passive") == true then
+	elseif self.Weapon:GetNWBool("Passive") == true && self.Weapon:GetNWBool("ironsights") == false then
 		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
 		pos = pos + (ang:Right() * self.PassivePos.x + ang:Right() * (eyeangforward.x /90 * Mul))
 		pos = pos + (ang:Forward() * self.PassivePos.y + ang:Forward() * (eyeangforward.x /100 * 5 * Mul))
@@ -1090,7 +1091,7 @@ local ply = self:GetOwner()
 		
 		self.SwayScale = self.SS
 		self.BobScale = self.BS
-	elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == false then
+	elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == false && self.Weapon:GetNWBool("Passive") == false then
 		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
 		ang:RotateAroundAxis(ang:Right(), 	self.IronSightsAng.x * Mul)
 		ang:RotateAroundAxis(ang:Up(), 	self.IronSightsAng.y * Mul)
@@ -1101,7 +1102,7 @@ local ply = self:GetOwner()
 	
 		self.SwayScale 	= 0.3
 		self.BobScale 	= 0.1
-	elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true then
+	elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true && self.Weapon:GetNWBool("Passive") == false then
 		Mul = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
 		ang:RotateAroundAxis(ang:Right(), 	self.IronSightsAng.x * Mul)
 		ang:RotateAroundAxis(ang:Up(), 	self.IronSightsAng.y * Mul)

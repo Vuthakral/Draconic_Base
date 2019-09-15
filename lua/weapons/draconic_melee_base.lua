@@ -168,7 +168,7 @@ if ply:GetNWBool("IsBlocking") == false then
 			self:SetHoldType( self.Primary.HoldType )
 			self:DoPrimaryAttack()
 			elseif cv == true && CanCrouchAttack == true then
-			self:SetHoldType( self.Primary.HoldTypeCrouch )
+			self:SetHoldType( self.Primary.CrouchHoldType )
 			self:DoPrimaryAttack()
 			elseif cv == true && CanCrouchAttack == false then
 		end

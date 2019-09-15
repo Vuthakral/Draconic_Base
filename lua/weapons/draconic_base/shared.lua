@@ -21,6 +21,11 @@
 	
 --]]
 
+if ( SERVER ) then
+	util.AddNetworkString( "LightOn" )
+	util.AddNetworkString( "LightOff" )
+end
+
 SWEP.Gun				= "draconic_base"
 
 SWEP.HoldType			= "default"
@@ -50,6 +55,12 @@ SWEP.DrawAmmo			= true
 
 SWEP.WallHax	= false
 SWEP.InfAmmo	= false
+
+SWEP.EmitsLight = false
+SWEP.LightSSide = false
+SWEP.LightColR = 40
+SWEP.LightColG = 40
+SWEP.LightColB = 40
 
 SWEP.UseHands			= true
 SWEP.ViewModel			= ""
@@ -414,12 +425,12 @@ end
 	if CLIENT or SERVER then
 	local ply = self:GetOwner()
 		if ply:Health() < 1 then
-			hook.Remove( "Move",self.HookUID_1 )
-			hook.Remove( "Move",self.HookUID_2 )
-			hook.Remove( "Move",self.HookUID_3 )
-			hook.Remove( "Move",self.HookUID_4 )
---			hook.Remove( "Think",self.HookUID_5 )
-			hook.Remove( "EntityTakeDamage",self.HookUID_6 )
+			hook.Remove( "Move",self.Weapon.HookUID_1 )
+			hook.Remove( "Move",self.Weapon.HookUID_2 )
+			hook.Remove( "Move",self.Weapon.HookUID_3 )
+			hook.Remove( "Move",self.Weapon.HookUID_4 )
+--			hook.Remove( "Think",self.Weapon.HookUID_5 )
+			hook.Remove( "EntityTakeDamage",self.Weapon.HookUID_6 )
 		else
 		end
 	end
@@ -497,6 +508,15 @@ self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
 self.ManuallyReloading 	= false
 self.Loading			= false
 
+if self.EmitsLight == true then
+	if ( SERVER ) then
+	local ply = self:GetOwner()
+		net.Start( "LightOn" )
+		net.WriteEntity( ply )
+		net.Send( ply )
+	end
+else end
+
 	local vm = self.Owner:GetViewModel()
 	if self.Passive == true then else
 		vm:SendViewModelMatchingSequence( vm:SelectWeightedSequence( ACT_VM_DRAW ) )
@@ -517,28 +537,28 @@ self:RegeneratingHealth(ply)
 		
 	else end
 
-	self.HookUID_1 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_Movement"
---	print(self.HookUID_1)
+	self.Weapon.HookUID_1 = "Draconic_HOOK_UID_"..ply:Name().."_Movement"
+--	print(self.Weapon.HookUID_1)
 	
-	self.HookUID_2 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_CrouchSprint"
---	print(self.HookUID_2)
+	self.Weapon.HookUID_2 = "Draconic_HOOK_UID_"..ply:Name().."_CrouchSprint"
+--	print(self.Weapon.HookUID_2)
 	
-	self.HookUID_3 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_SprintJumpCrouch"
---	print(self.HookUID_3)
+	self.Weapon.HookUID_3 = "Draconic_HOOK_UID_"..ply:Name().."_SprintJumpCrouch"
+--	print(self.Weapon.HookUID_3)
 	
-	self.HookUID_4 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_FallDamage"
---	print(self.HookUID_4)
+	self.Weapon.HookUID_4 = "Draconic_HOOK_UID_"..ply:Name().."_FallDamage"
+--	print(self.Weapon.HookUID_4)
 	
---	self.HookUID_5 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_"..ply:Name().."_Blocking"
---	print(self.HookUID_5)
+--	self.Weapon.HookUID_5 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_"..ply:Name().."_Blocking"
+--	print(self.Weapon.HookUID_5)
 
-	self.HookUID_6 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_BlockingTakeDamage"
---	print(self.HookUID_6)
+	self.Weapon.HookUID_6 = "Draconic_HOOK_UID_"..ply:Name().."_BlockingTakeDamage"
+--	print(self.Weapon.HookUID_6)
 	
 	if ( SERVER ) && ply:IsPlayer() then
 	local ply = self:GetOwner()
 			
-		hook.Add("Move", self.HookUID_1, function(ply,mv)
+		hook.Add("Move", self.Weapon.HookUID_1, function(ply,mv)
 		local cv = ply:Crouching()
 		local forwkey = ply:KeyDown(IN_FORWARD)
 		local backkey = ply:KeyDown(IN_BACK)
@@ -883,7 +903,7 @@ self:RegeneratingHealth(ply)
 			end
 		end)
 		
-		hook.Add("Move", self.HookUID_2, function(ply,mv)
+		hook.Add("Move", self.Weapon.HookUID_2, function(ply,mv)
 		local cv = ply:Crouching()
 			if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_SPEED) && self.DoSSCrouchFwd == true then
 			-- crouch sprint sound forward
@@ -900,7 +920,7 @@ self:RegeneratingHealth(ply)
 			end
 		end)
 		
-		hook.Add("Move", self.HookUID_3, function(ply,mv)
+		hook.Add("Move", self.Weapon.HookUID_3, function(ply,mv)
 		local cv = ply:Crouching()
 			if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && self.DoSJCrouchSFwd == true then
 			-- Crouch Sprint Jump Sound Front
@@ -917,7 +937,7 @@ self:RegeneratingHealth(ply)
 				end
 		end)
 		
-		hook.Add("Move", self.HookUID_4, function(ply,mv)
+		hook.Add("Move", self.Weapon.HookUID_4, function(ply,mv)
 		local cv = ply:Crouching()
 			if self.FallDamage == false && self.NoFallDamageCrouchOnly == true then
 				if cv == true then
@@ -932,7 +952,7 @@ self:RegeneratingHealth(ply)
 			end
 		end)
 
-		hook.Add("EntityTakeDamage", self.HookUID_6, ReduceFallDamage)
+		hook.Add("EntityTakeDamage", self.Weapon.HookUID_6, ReduceFallDamage)
 	else end
 
 	self:DoCustomDeploy()
@@ -949,10 +969,10 @@ self.Owner.ShouldReduceFallDamage = false
 	if ( SERVER ) then
 	local ply = self:GetOwner()
 	if ply:IsPlayer() then
-		hook.Remove( "Move", self.HookUID_1 )
-		hook.Remove( "Move", self.HookUID_2 )
-		hook.Remove( "Move", self.HookUID_3 )
-		hook.Remove( "Move", self.HookUID_4 )
+		hook.Remove( "Move", self.Weapon.HookUID_1 )
+		hook.Remove( "Move", self.Weapon.HookUID_2 )
+		hook.Remove( "Move", self.Weapon.HookUID_3 )
+		hook.Remove( "Move", self.Weapon.HookUID_4 )
 		hook.Remove( "EntityTakeDamage","BlockingTakeDamage" )
 		hook.Remove( "HUDPaint", self.ScopeHookID )
 		
@@ -969,6 +989,15 @@ self.Owner.ShouldReduceFallDamage = false
 	elseif CLIENT && self:IsValid() && self.ScopeUp == true then
 		hook.Remove( "HUDPaint", self.ScopeHookID )
 	end
+	
+	if self.EmitsLight == true then
+		if ( SERVER ) then
+		local ply = self:GetOwner()
+			net.Start( "LightOff" )
+			net.WriteEntity( ply )
+			net.Send( ply )
+		end
+	else end
 	
 	if self.Primary.Ammo == "CombineHeavyCannon" then
 		local ventingsound = self.VentingSound
@@ -988,10 +1017,10 @@ self.Owner.ShouldReduceFallDamage = false
 	local ply = self:GetOwner()
 	if ply:IsPlayer() then
 		ply:StopLoopingSound( 0 )
-		hook.Remove( "Move", self.HookUID_1 )
-		hook.Remove( "Move", self.HookUID_2 )
-		hook.Remove( "Move", self.HookUID_3 )
-		hook.Remove( "Move", self.HookUID_4 )
+		hook.Remove( "Move", self.Weapon.HookUID_1 )
+		hook.Remove( "Move", self.Weapon.HookUID_2 )
+		hook.Remove( "Move", self.Weapon.HookUID_3 )
+		hook.Remove( "Move", self.Weapon.HookUID_4 )
 		hook.Remove( "EntityTakeDamage","BlockingTakeDamage" )
 		
 		timer.Remove( self.PassiveHealing )
@@ -1008,6 +1037,15 @@ self.Owner.ShouldReduceFallDamage = false
 		hook.Remove( "HUDPaint", self.ScopeHookID )
 	else end
 	end
+	
+	if self.EmitsLight == true then
+		if ( SERVER ) then
+		local ply = self:GetOwner()
+			net.Start( "LightOff" )
+			net.WriteEntity( ply )
+			net.Send( ply )
+		end
+	else end
 	
 	if self.Primary.Ammo == "CombineHeavyCannon" then
 		local ventingsound = self.VentingSound
@@ -1990,6 +2028,33 @@ if CLIENT then
 		
 	end
 	
+end
+
+if( CLIENT or game.SinglePlayer() ) then
+	net.Receive( "LightOn", function ( len, ply )
+		local ply = net.ReadEntity()
+		WeaponLight = DynamicLight( 0 )
+		if ( WeaponLight ) then
+			WeaponLight.Pos = ply:GetPos()
+			WeaponLight.r = 0
+			WeaponLight.g = 0
+			WeaponLight.b = 0
+			WeaponLight.Brightness = 0
+			WeaponLight.Size = 0
+			WeaponLight.DieTime = CurTime()+100000
+			WeaponLight.Style = 0
+		end
+		timer.Create( "LightTimer", 0.01, 0, function()
+			WeaponLight.Pos = ply:GetShootPos()
+		end)
+	end)
+	net.Receive( "LightOff", function ( len, ply )
+		local ply = net.ReadEntity()
+		timer.Destroy( "LightTimer" )
+		if WeaponLight then
+			WeaponLight.DieTime = CurTime()+0.1
+		end
+	end)
 end
 
 function SWEP:Precache()	

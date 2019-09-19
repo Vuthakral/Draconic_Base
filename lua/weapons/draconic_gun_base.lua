@@ -23,17 +23,6 @@ SWEP.EnableFOVKick		= false -- DO NOT USE. Need to make fully client side before
 SWEP.FOVKickMult		= 1
 SWEP.FOVKickTimeMult	= 1
 
-SWEP.ViewModel = ""
-SWEP.WorldModel = ""
-SWEP.VMPos = Vector(0, 0, 0)
-SWEP.VMAng = Vector(0, 0, 0)
-SWEP.IronSightPos = Vector(0, 0, 0)
-SWEP.IronSightAng = Vector(0, 0, 0)
-SWEP.PassivePos = Vector(5, 0, 3)
-SWEP.PassiveAng = Vector(-15, 25, 0)
-SWEP.SS = 0
-SWEP.BS = 0
-
 SWEP.LoadAfterShot 			= false
 SWEP.LoadAfterReloadEmpty	= false
 SWEP.ManualReload			= false
@@ -59,7 +48,8 @@ SWEP.Primary.ClipSize		= 30
 SWEP.Primary.DefaultClip	= 30
 SWEP.Primary.DropMagReload	= false
 SWEP.Primary.APS			= 1
-SWEP.Primary.Tracer			= 4 -- https://wiki.garrysmod.com/page/Enums/TRACER
+SWEP.Primary.Tracer			= "Tracer" -- https://wiki.garrysmod.com/page/Effects
+SWEP.Primary.ImpactEffect	= nil
 SWEP.Primary.Sound = Sound("weapon_smg1.Single")
 SWEP.Primary.NPCSound = nil
 
@@ -171,7 +161,6 @@ local npc = self:GetOwner()
 		self:LoadNextShot()
 		return false
 	end
-	npc:SetSchedule(SCHED_RANGE_ATTACK1)
 	return true
 end
 
@@ -453,6 +442,10 @@ local looptime = self:SequenceDuration( loopseq )
 local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
 local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 
+local tr = util.GetPlayerTrace(ply)
+local trace = util.TraceLine( tr )
+
+
 	if ( self:CanPrimaryAttack() ) then
 	
 	self.Idle = 0
@@ -544,7 +537,7 @@ local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 		self:TakePrimaryAmmo( self.Primary.APS )
 		self:SetNextPrimaryFire( CurTime() + (60 / self.Primary.RPM) )
 		self:MuzzleFlash()
-		self:ShootEffects()
+		self:ShootEffects( trace.HitPos, trace.HitNormal, trace.Entity, trace.PhysicsBone )
 	timer.Simple(looptime, function() self.Idle = 1 end)
 	else return end
 end
@@ -690,6 +683,11 @@ function SWEP:TogglePassive()
 		self.Passive = true
 		self:DoPassiveHoldtype()
 		self.Weapon:SetNWBool("Passive", true)
+		if self.Weapon:GetNWBool("ironsights") == true then 
+			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
+			self.Weapon:SetNWBool("ironsights", false)
+		else end
+		ply:EmitSound("draconic.IronOutGeneric")
 	else
 		self.Loading = true
 		self.Idle = 0
@@ -697,6 +695,7 @@ function SWEP:TogglePassive()
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
 		self.Weapon:SetNWBool("Passive", false)
+		ply:EmitSound("draconic.IronInGeneric")
 		timer.Simple(looptime, function()
 			self.Loading = false 
 			self.Idle = 1
@@ -760,11 +759,11 @@ local ply = self:GetOwner()
 local string = self.Weapon:GetNWString("FireMode")
 	self.Weapon:EmitSound(self.FireModes_SwitchSound)
 	
-	if CLIENT or SERVER or game.SinglePlayer() then
+	if CLIENT or game.SinglePlayer() then
 		if self.InfoName == "" then
-			ply:PrintMessage( HUD_PRINTCENTER, "Switched to "..string..".")
+			ply:ChatPrint("Switched to "..string..".")
 		else
-			ply:PrintMessage( HUD_PRINTCENTER, ""..self.InfoName.." switched to "..string..".")
+			ply:ChatPrint(""..self.InfoName.." switched to "..string..".")
 		end
 	else end
 end
@@ -1060,9 +1059,7 @@ function SWEP:DoManualReload()
 		self.Weapon:SetNWBool("LoadedAmmo", self.Weapon:GetNWBool("LoadedAmmo") + self.Primary.APS)
 		self:SetClip1(self.Weapon:GetNWInt("LoadedAmmo"))
 
-		if CLIENT or SERVER then
-			self:SendWeaponAnim(ACT_VM_RELOAD)
-		end
+		self:SendWeaponAnim(ACT_VM_RELOAD)
 		timer.Simple( looptime, function() self:ManualReloadLoop() end)
 	else end
 end
@@ -1070,12 +1067,10 @@ end
 function SWEP:ManualReloadLoop()
 local ply = self:GetOwner()
 	if self:IsValid() && ply:IsValid() && ply:Alive() then
-		self:SendWeaponAnim(ACT_VM_RELOAD)
 			if self:Clip1() <= self.Primary.ClipSize then
 				if ply:KeyDown(IN_RELOAD) && self:Clip1() < self.Primary.ClipSize then
 					if ( ply:GetAmmoCount(self.Primary.Ammo) ) > 0 then
 						self:DoManualReload()
-						self:SendWeaponAnim(ACT_VM_RELOAD)
 					else
 						self:FinishManualReload()
 					end
@@ -1122,6 +1117,30 @@ function SWEP:Taunt()
 	end
 end
 
+function SWEP:ShootEffects( hitpos, hitnormal, entity, physbone, bFirstTimePredicted )
+	if self.Loading == false && self.ManuallyReloading == false then
+	self.Owner:SetAnimation( PLAYER_ATTACK1 ) 
+	else end
+end
+
+function SWEP:DoImpactEffect(tr, nDamageType)
+	if ( tr.HitSky ) then return end
+
+	local effectdata = EffectData()
+	effectdata:SetOrigin( tr.HitPos )
+	effectdata:SetStart( self.Owner:GetShootPos() )
+	effectdata:SetAttachment( 1 )
+	effectdata:SetEntity( self )
+	util.Effect( self.Primary.Tracer, effectdata )
+	
+	if self.Primary.ImpactEffect == nil then else
+		local effectdata = EffectData()
+		effectdata:SetOrigin( tr.HitPos + tr.HitNormal )
+		effectdata:SetNormal( tr.HitNormal )
+		util.Effect( self.Primary.ImpactEffect, effectdata )
+	end
+end
+
 function SWEP:DoCustomPrimaryAttackEvents()
 end
 
@@ -1147,10 +1166,4 @@ function SWEP:DoCustomReloadEndEvents()
 end
 
 function SWEP:DoCustomReloadStartEvents()
-end
-
-function SWEP:ShootEffects()
-	if self.Loading == false && self.ManuallyReloading == false then
-	self.Owner:SetAnimation( PLAYER_ATTACK1 )
-	else end
 end

@@ -92,8 +92,8 @@ SWEP.Secondary.HitDelay		= 0.23
 SWEP.Secondary.Velocity		= Vector(0, 0, 0)
 
 -- DO NOT TOUCH
-SWEP.Primary.Ammo = nil
-SWEP.Secondary.Ammo = nil
+SWEP.Primary.Ammo = ""
+SWEP.Secondary.Ammo = ""
 -- end DNT
 
 function SWEP:PrimaryAttack()

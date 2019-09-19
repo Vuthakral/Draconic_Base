@@ -66,7 +66,8 @@ SWEP.Primary.Force			= 0.2
 SWEP.Primary.Damage			= 12
 SWEP.Primary.RPM			= 700
 SWEP.Primary.Automatic		= true
-SWEP.Primary.Tracer			= 1 -- https://wiki.garrysmod.com/page/Enums/TRACER
+SWEP.Primary.Tracer			= "ToolTracer" -- https://wiki.garrysmod.com/page/Effects
+SWEP.Primary.ImpactEffect	= "AR2Impact"
 SWEP.Primary.Sound = Sound("draconic.PewPew")
 
 SWEP.Primary.Projectile		= nil

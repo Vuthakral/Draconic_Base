@@ -1,8 +1,8 @@
 SWEP.Base			= "draconic_gun_base"
 SWEP.Gun			= "draconic_hl2smg"
 
-SWEP.HoldType			= "smg"
-SWEP.CrouchHoldType		= "smg"
+SWEP.HoldType			= "ar2"
+SWEP.CrouchHoldType		= "ar2"
 SWEP.Category			= "Draconic Examples"
 SWEP.PrintName			= "HL2 AR2"
 SWEP.InfoName			= "OSIPR"

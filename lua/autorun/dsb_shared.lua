@@ -1,7 +1,4 @@
-if SERVER then
-	AddCSLuaFile()
-	return
-end
+AddCSLuaFile()
 
 if SERVER then
 	resource.AddFile ( 'materials/overlays/draconic_scope.vmt' )
@@ -9,15 +6,11 @@ if SERVER then
 else end
 
 if GetConVar("sv_drc_movement") == nil then
-	CreateConVar("sv_drc_movement", "1", {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE}, "Enables or disables the custom movement modifiers of ALL weapons made on the Draconic SWEP Base.")
+	CreateConVar("sv_drc_movement", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom movement modifiers of ALL weapons made on the Draconic SWEP Base.")
 end
 
-if GetConVar("drc_sv_movesounds") == nil then
-	CreateConVar("drc_sv_movesounds", "1", {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.")
-end
-
-if GetConVar("drc_sv_movesounds") == nil then
-	CreateConVar("drc_sv_movesounds", "1", {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.")
+if GetConVar("sv_drc_movesounds") == nil then
+	CreateConVar("sv_drc_movesounds", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.")
 end
 
 sound.Add( {

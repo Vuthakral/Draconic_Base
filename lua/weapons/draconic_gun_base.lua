@@ -193,24 +193,6 @@ local curFOV = ply:GetFOV()
 	ply:SetFOV(curFOV - 1 * self.FOVKickMult, 0)
 end
 
-function SWEP:FireAnimationEvent( pos, ang, event, options )
-	if ( event == 5001 or event == 5011 or event == 5021 or event == 5031 or event == 21 ) then
-
-		local data = EffectData()
-		data:SetFlags( 0 )
-		data:SetEntity( self.Owner:GetViewModel() )
-		data:SetAttachment( math.floor( ( event - 4991 ) / 10 ) )
-		data:SetScale( 1 ) -- Change me
-
-		if ( self.CSMuzzleX ) then
-			util.Effect( "CS_MuzzleFlash_X", data )
-		else
-			util.Effect( "CS_MuzzleFlash", data )
-		end
-
-		return true
-	end
-end
 
 function SWEP:PrimaryAttack()
 	local ply = self:GetOwner()
@@ -555,6 +537,9 @@ local accuracy = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Prim
 local AccuracyHorizmath = math.random((self.Primary.Kick * -self.Primary.RecoilHoriz), (self.Primary.Kick * self.Primary.RecoilHoriz))
 local AccuracyVertmath = math.random((math.Rand((self.Primary.Kick * -self.Primary.RecoilUp), (self.Primary.Kick * self.Primary.RecoilUp))), (math.Rand((self.Primary.Kick * -self.Primary.RecoilDown), (self.Primary.Kick * self.Primary.RecoilDown))))
 
+local tr = util.GetPlayerTrace(ply)
+local trace = util.TraceLine( tr )
+
 if self.JackalSniper == false then
 	if tgt:IsPlayer() or tgtclass == "npc_citizen" or tgtclass == "npc_combine_s" or tgtclass == "npc_metropolice" or tgtclass == "npc_helicopter" or tgtclass == "npc_strider" or tgtclass == "npc_ministrider" or tgtclass == "npc_hunter" or tgtclass == "npc_barnacle" or tgtclass == "npc_zombie_torso" or tgtclass == "npc_fastzombie_torso" or tgtclass == "monster_alien_controller" or tgtclass == "monster_scientist" or tgtclass == "monster_barney" then
 		tgtpos = (eyepos - Vector(AccuracyHorizmath, 0, (AccuracyVertmath + math.random(5, 15))))
@@ -627,7 +612,7 @@ if ( self:CanPrimaryAttackNPC() ) then
 	self.Weapon:SetNWInt("LoadedAmmo", (self.Weapon:GetNWInt("LoadedAmmo") - self.Primary.APS))
 	self:TakePrimaryAmmo( self.Primary.APS )
 	self:MuzzleFlash()
-	self:ShootEffects()
+	self:ShootEffects( trace.HitPos, trace.HitNormal, trace.Entity, trace.PhysicsBone )
 	self:SetNextPrimaryFire( CurTime() + (60 / self.Primary.RPM) )
 	else return end
 end
@@ -715,41 +700,45 @@ function SWEP:SetFireMode()
 local ply = self:GetOwner()
 local string = self.Weapon:GetNWString("FireMode")
 
+	if self.FireModes_CanAuto == true or self.FireModes_CanBurst == true or self.FireModes_CanSemi == true then
+	timer.Simple(0.05, function() self:DisplayFireMode() end)
+	end
+
 	if string == "Semi" then
 		if self.FireModes_CanAuto == true then
 			timer.Simple(0.01, function()
 				self.Weapon:SetNWString("FireMode", "Auto")
 				self.Primary.Automatic = true end)
-			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
+			if CLIENT or game.SinglePlayer() then  else end
 		elseif self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
 			timer.Simple(0.01, function()
 				self.Weapon:SetNWString("FireMode", "Burst")
 				self.Primary.Automatic = false end)
-			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
+			if CLIENT or game.SinglePlayer() then  else end
 		else end
 	elseif string == "Burst" then
 		if self.FireModes_CanSemi == true then
 			timer.Simple(0.01, function()
 				self.Weapon:SetNWString("FireMode", "Semi")
 				self.Primary.Automatic = false end)
-			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
+			if CLIENT or game.SinglePlayer() then  else end
 		elseif self.FireModes_CanAuto == true && self.FireModes_CanSemi == false then
 			timer.Simple(0.01, function()
 				self.Weapon:SetNWString("FireMode", "Auto")
 				self.Primary.Automatic = true end)
-			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
+			if CLIENT or game.SinglePlayer() then  else end
 		else end
 	elseif string == "Auto" then
 		if self.FireModes_CanBurst == true then
 			timer.Simple(0.01, function()
 				self.Weapon:SetNWString("FireMode", "Burst")
 				self.Primary.Automatic = false end)
-			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
+			if CLIENT or game.SinglePlayer() then  else end
 		elseif self.FireModes_CanSemi == true && self.FireModes_CanBurst == false then
 			timer.Simple(0.01, function()
 				self.Weapon:SetNWString("FireMode", "Semi")
 				self.Primary.Automatic = false end)
-			if CLIENT or game.SinglePlayer() then timer.Simple(0.05, function() self:DisplayFireMode() end) else end
+			if CLIENT or game.SinglePlayer() then  else end
 		else end
 	else end
 end
@@ -761,9 +750,9 @@ local string = self.Weapon:GetNWString("FireMode")
 	
 	if CLIENT or game.SinglePlayer() then
 		if self.InfoName == "" then
-			ply:ChatPrint("Switched to "..string..".")
+			ply:PrintMessage( HUD_PRINTCENTER, "Switched to "..string..".")
 		else
-			ply:ChatPrint(""..self.InfoName.." switched to "..string..".")
+			ply:PrintMessage( HUD_PRINTCENTER, ""..self.InfoName.." switched to "..string..".")
 		end
 	else end
 end

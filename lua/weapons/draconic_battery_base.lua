@@ -109,12 +109,10 @@ local IronFOV = self.Secondary.IronFOV
 		return false
 	end
 	if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:Clip1() >= 1 && self.CanOverheat == true && self.InfAmmo == false then
-		self:SetHoldType(self.OverheatHoldType)
 		self:Overheat()
 		ply:SetFOV(0, 0.05)
 		return false
 	elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:Clip1() >= 1 && self.CanOverheat == false && self.InfAmmo == false then
-		self:SetHoldType(self.OverheatHoldType)
 		ply:SetFOV(0, 0.05)
 		return true
 	elseif self.Weapon:Clip1() <= 0 && self.InfAmmo == false then
@@ -122,12 +120,10 @@ local IronFOV = self.Secondary.IronFOV
 		self:SetNextPrimaryFire (( CurTime() + 0.3 ))
 		return false
 	elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:Clip1() >= 0 && self.CanOverheat == true && self.InfAmmo == true then
-		self:SetHoldType(self.OverheatHoldType)
 		self:Overheat()
 		ply:SetFOV(0, 0.05)
 		return false
 	elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:Clip1() >= 0 && self.CanOverheat == false && self.InfAmmo == true then
-		self:SetHoldType(self.OverheatHoldType)
 		ply:SetFOV(0, 0.05)
 		return true
 	elseif self.Weapon:Clip1() <= 0 && self.InfAmmo == true && self.Loading == false && self.ManuallyReloading == false then
@@ -281,6 +277,7 @@ function SWEP:Overheat()
 	self.ManuallyReloading = true
 	self.IsOverheated = true
 	self:SetIronsights(false, self.Owner)
+	self:SetHoldType(self.OverheatHoldType)
 	ply:SetFOV(0, 0.05)
 	
 	if self.Weapon:Clip1() <= 0 && self.InfAmmo == false then
@@ -480,6 +477,9 @@ local looptime = self:SequenceDuration( loopseq )
 local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
 local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 	
+local tr = util.GetPlayerTrace(ply)
+local trace = util.TraceLine( tr )	
+
 	if ( self:CanPrimaryAttack() ) then
 	ply:SetAmmo(self:GetNWInt("Heat"), self.Primary.Ammo)
 	self:DoCustomPrimaryAttackEvents()
@@ -518,7 +518,11 @@ local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 			self.AmmoType = self.Primary.AmmoType
 				
 	if self.Primary.Projectile == nil then
-		self.Owner:FireBullets ( bullet )
+		if self.Weapon:GetNWString("FireMode") == "Burst" && SERVER then
+			self.Owner:FireBullets ( bullet )
+		elseif CLIENT && self.Weapon:GetNWString("FireMode") != "Burst" && CLIENT or SERVER then
+			self.Owner:FireBullets ( bullet )
+		else end
 	else
 	local aim = self.Owner:GetAimVector()
 	local side = aim:Cross(Vector(0,0,0))
@@ -566,7 +570,7 @@ local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 			self:SetNextPrimaryFire ( CurTime() + (60 / self.Primary.RPM) )
 		end
 		self:MuzzleFlash()
-		self:ShootEffects()
+		self:ShootEffects( trace.HitPos, trace.HitNormal, trace.Entity, trace.PhysicsBone )
 	timer.Simple(looptime, function() self.Idle = 1 end)
 	else return end
 end
@@ -584,6 +588,9 @@ local accuracy = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Prim
 local AccuracyHorizmath = math.random((self.Primary.Kick * -self.Primary.RecoilHoriz), (self.Primary.Kick * self.Primary.RecoilHoriz))
 local AccuracyVertmath = math.random((math.Rand((self.Primary.Kick * -self.Primary.RecoilUp), (self.Primary.Kick * self.Primary.RecoilUp))), (math.Rand((self.Primary.Kick * -self.Primary.RecoilDown), (self.Primary.Kick * self.Primary.RecoilDown))))
 local heat = self:GetNWInt("Heat")	
+
+local tr = util.GetPlayerTrace(ply)
+local trace = util.TraceLine( tr )
 
 if self.JackalSniper == false then
 	if tgt:IsPlayer() or tgtclass == "npc_citizen" or tgtclass == "npc_combine_s" or tgtclass == "npc_metropolice" or tgtclass == "npc_helicopter" or tgtclass == "npc_strider" or tgtclass == "npc_ministrider" or tgtclass == "npc_hunter" or tgtclass == "npc_barnacle" or tgtclass == "npc_zombie_torso" or tgtclass == "npc_fastzombie_torso" or tgtclass == "monster_alien_controller" or tgtclass == "monster_scientist" or tgtclass == "monster_barney" then
@@ -666,6 +673,6 @@ if ( self:CanPrimaryAttackNPC() ) then
 			self:SetNextPrimaryFire ( CurTime() + (60 / self.Primary.RPM) )
 		end
 		self:MuzzleFlash()
-		self:ShootEffects()
+		self:ShootEffects( trace.HitPos, trace.HitNormal, trace.Entity, trace.PhysicsBone )
 	else return end
 end

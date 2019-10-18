@@ -1,7 +1,7 @@
 AddCSLuaFile()
 
 ENT.Base	= "draconic_projectile_base"
-ENT.Entity	= "drc_40mm"
+ENT.Entity	= "drc_fraggrenade"
 
 ENT.PrintName		= "40mm"
 ENT.Author			= "Vuthakral"

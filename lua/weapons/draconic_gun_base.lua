@@ -50,7 +50,10 @@ SWEP.Primary.DropMagReload	= false
 SWEP.Primary.APS			= 1
 SWEP.Primary.Tracer			= "Tracer" -- https://wiki.garrysmod.com/page/Effects
 SWEP.Primary.ImpactEffect	= nil
+SWEP.Primary.SoundIsLooped	= false
 SWEP.Primary.Sound = Sound("weapon_smg1.Single")
+SWEP.Primary.StartSound = Sound("")
+SWEP.Primary.EndSound = Sound("")
 SWEP.Primary.NPCSound = nil
 
 SWEP.Primary.Projectile			 = nil
@@ -433,6 +436,7 @@ local trace = util.TraceLine( tr )
 	self.Idle = 0
 	self:DoCustomPrimaryAttackEvents()
 	
+	if self.Primary.isvFire == false then
 		if self.Weapon:GetNWBool("ironsights") == false && cv == false then
 			if CLIENT then
 				eyeang.pitch = eyeang.pitch - ((math.Rand(self.Primary.RecoilUp / 1.85, self.Primary.RecoilUp * 1.62)) - (math.Rand(self.Primary.RecoilDown / 1.85, self.Primary.RecoilDown * 1.85) * FrameTime()))
@@ -501,6 +505,16 @@ local trace = util.TraceLine( tr )
 			end
 		end
 	end
+	self.Weapon:EmitSound(Sound(self.Primary.Sound))
+	elseif self.Primary.isvFire == true then
+	self:ShootFire() 
+		if SERVER then
+			if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+				self.LoopingFireSound = CreateSound(self.Owner, self.Primary.Sound)
+			end
+		if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+		end
+	end
 	self.Owner:MuzzleFlash()
 	ply:SetAnimation( PLAYER_ATTACK1 )
 	if self.Secondary.SightsSuppressAnim == false && self.Weapon:GetNWBool("ironsights") == false then
@@ -511,7 +525,6 @@ local trace = util.TraceLine( tr )
 		self.Weapon:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
 	elseif self.Secondary.SightsSuppressAnim == true && self.Weapon:GetNWBool("ironsights") == true then
 	end
-	self.Weapon:EmitSound(Sound(self.Primary.Sound))
 	if CLIENT then
 		ply:SetEyeAngles( eyeang )
 	else end
@@ -537,7 +550,7 @@ local accuracy = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Prim
 local AccuracyHorizmath = math.random((self.Primary.Kick * -self.Primary.RecoilHoriz), (self.Primary.Kick * self.Primary.RecoilHoriz))
 local AccuracyVertmath = math.random((math.Rand((self.Primary.Kick * -self.Primary.RecoilUp), (self.Primary.Kick * self.Primary.RecoilUp))), (math.Rand((self.Primary.Kick * -self.Primary.RecoilDown), (self.Primary.Kick * self.Primary.RecoilDown))))
 
-local tr = util.GetPlayerTrace(ply)
+local tr = util.GetPlayerTrace(npc)
 local trace = util.TraceLine( tr )
 
 if self.JackalSniper == false then
@@ -770,6 +783,7 @@ local looptime = self:SequenceDuration( loopseq )
 	
 	self:DoCustomSecondaryAttackEvents()
 
+	if self.Primary.isvFire == false then
 	timer.Simple(self.Secondary.ProjectileSpawnDelay, function()
 		if cv == false then
 			eyeang.pitch = eyeang.pitch - ((math.Rand(self.Secondary.RecoilUp / 1.85, self.Secondary.RecoilUp * 1.62)) - (math.Rand(self.Secondary.RecoilDown / 1.85, self.Secondary.RecoilDown * 1.85) * FrameTime()))
@@ -828,6 +842,17 @@ local looptime = self:SequenceDuration( loopseq )
 					phys:SetVelocity(self.Owner:GetAimVector() * self.Secondary.ProjSpeed)
 				end
 			end)
+		end
+	end
+	self.Weapon:EmitSound(Sound(self.Primary.Sound))
+	elseif self.Primary.isvFire == true then
+	self:ShootFire() 
+		if SERVER then
+			if self.Weapon:GetNWBool("Passive") == true then else
+			if (self.Owner:KeyPressed(IN_ATTACK2) || !self.LoopingFireSoundSecondary) then
+				self.LoopingFireSoundSecondary = CreateSound(self.Owner, self.Primary.Sound)
+			end end
+		if (self.LoopingFireSoundSecondary) then self.LoopingFireSoundSecondary:Play() end
 		end
 	end
 	self.Owner:MuzzleFlash()

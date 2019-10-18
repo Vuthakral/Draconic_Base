@@ -192,3 +192,12 @@ sound.Add( {
 	sound = { "weapons/clipempty_pistol.wav",
 		"weapons/clipempty_rifle.wav" }
 } )
+
+sound.Add( {
+	name = "draconic.vFireStopGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.69,
+	level = 90,
+	pitch = { 90, 110 },
+	sound = { "weapons/flame_thrower_bb_end.wav" }
+} )

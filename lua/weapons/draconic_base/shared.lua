@@ -10,14 +10,14 @@
 		Wingblast: http://steamcommunity.com/profiles/76561198065151971
 	- Dynamic movement of viewmodels based on eye angles (the up/down adjust)
 	
-		Death: http://steamcommunity.com/profiles/76561197978925248
-	- Helping me troubleshoot a fair amount of problems I ran into while working on the block system & hooks
-	
 		Gluk SWEP melee pack ( shoutout: https://steamcommunity.com/sharedfiles/filedetails/?id=1630549918&searchtext=Gluk )
 	- Nothing was directly taken from this addon, but I did use it to see how they did melee code so I could make my own, since facepunch is ded
 	
 		Clavus: http://steamcommunity.com/profiles/76561197970953315
 	- Creation of the immensely handy SWEP construction kit, which is of course supported by this base.
+	
+		Vioxtar: http://steamcommunity.com/profiles/76561197986874627
+	- Created vFire flamethrower which allowed me to integrate vFire flamethrower systems into the base.
 	
 --]]
 
@@ -229,6 +229,20 @@ SWEP.BlockType_DMG_BUCKSHOT 	= 4
 SWEP.BlockType_DMG_SNIPER 		= 1
 SWEP.BlockType_DMG_MISSILEDEFENSE = 4
 
+-- ADDON COMPATIBILITY
+
+SWEP.DManip_AllowFL = true
+
+SWEP.vFireLife = 2
+SWEP.vFireVolatility = 0.15
+SWEP.vFireSpeed = 1
+SWEP.vFireSpawnDist = 30
+SWEP.vFireStopSound = Sound("draconic.vFireStopGeneric")
+SWEP.Primary.isvFire = false
+SWEP.Secondary.isvFire = false
+
+-- Everything past this is code for DSB
+
 function SWEP:DoDrawCrosshair( x, y )
 	surface.SetDrawColor( 0, 0, 0, 0 )
 --	surface.DrawOutlinedRect( x -32, y -32, 64, 64 )
@@ -236,15 +250,15 @@ function SWEP:DoDrawCrosshair( x, y )
 end
 
 function SWEP:Initialize()
-local ply = self:GetOwner()
-	if ply:EntIndex() == 0 then
-		self:SetHoldType(self.HoldType)
-	elseif ply:IsPlayer() then
-		self:SetHoldType(self.HoldType)
-	elseif ply:IsNPC() then
-		self:SetHoldType(self.HoldType)
-	else
-	end
+	local ply = self:GetOwner()
+		if ply:EntIndex() == 0 then
+			self:SetHoldType(self.HoldType)
+		elseif ply:IsPlayer() then
+			self:SetHoldType(self.HoldType)
+		elseif ply:IsNPC() then
+			self:SetHoldType(self.HoldType)
+		else end
+	
 	self:DoCustomInitialize()
 	self:SetNWInt("Heat", 0)
 	self:SetNWBool("Passive", false)
@@ -265,30 +279,34 @@ local ply = self:GetOwner()
 		self.Weapon:SetNWInt("LoadedAmmo", self.Primary.DefaultClip)
 	else end
 	
+	if SERVER then
+		self:SetShooting(false)
+	end
+
 	-- SCK Stuff
 	if CLIENT && self:GetOwner():IsPlayer() then
 	
-		// Create a new table for every weapon instance
+		-- Create a new table for every weapon instance
 		self.VElements = table.FullCopy( self.VElements )
 		self.WElements = table.FullCopy( self.WElements )
 		self.ViewModelBoneMods = table.FullCopy( self.ViewModelBoneMods )
 		self:CreateModels(self.VElements) // create viewmodels
 		self:CreateModels(self.WElements) // create worldmodels
 		
-		// init view model bone build function
+		-- init view model bone build function
 		if IsValid(self.Owner) then
 			local vm = self.Owner:GetViewModel()
 			if IsValid(vm) then
 				self:ResetBonePositions(vm)
 				
-				// Init viewmodel visibility
+				-- Init viewmodel visibility
 				if (self.ShowViewModel == nil or self.ShowViewModel) then
 					vm:SetColor(Color(255,255,255,255))
 				else
-					// we set the alpha to 1 instead of 0 because else ViewModelDrawn stops being called
+					-- we set the alpha to 1 instead of 0 because else ViewModelDrawn stops being called
 					vm:SetColor(Color(255,255,255,1))
-					// ^ stopped working in GMod 13 because you have to do Entity:SetRenderMode(1) for translucency to kick in
-					// however for some reason the view model resets to render mode 0 every frame so we just apply a debug material to prevent it from drawing
+					-- ^ stopped working in GMod 13 because you have to do Entity:SetRenderMode(1) for translucency to kick in
+					-- however for some reason the view model resets to render mode 0 every frame so we just apply a debug material to prevent it from drawing
 					vm:SetMaterial("Debug/hsv")			
 				end
 			end
@@ -306,6 +324,7 @@ local cv = ply:Crouching()
 local vm = ply:GetViewModel()
 
 self:DoCustomThink()
+
 	if GetConVar("sv_drc_movement"):GetString() == "1" then
 		self:UpdateMovement()
 	else end
@@ -464,6 +483,46 @@ end
 			end
 		elseif self.Secondary.CanBlock == false then
 		end
+
+	if self:GetNextSecondaryFire() > CurTime() then return end
+	
+	if self.Weapon:GetNWBool("Passive") == true then
+		if self.LoopingFireSound != nil then
+			self.LoopingFireSound:Stop()
+		end
+		if self.LoopingFireSoundSecondary != nil then
+			self.LoopingFireSoundSecondary:Stop()
+		end
+	end
+	
+	if self.LoopingFireSound != nil then
+		if (self.Owner:KeyReleased(IN_ATTACK) && self.Weapon:GetNWBool("Passive") == false || (!self.Owner:KeyDown(IN_ATTACK) && self.LoopingFireSound)) then
+			if self:CanPrimaryAttack() == true then
+				if (self.LoopingFireSound) then
+					self.LoopingFireSound:Stop()
+					self.LoopingFireSound = nil
+					self:PlayCloseSound()
+					if (!game.SinglePlayer()) then self:CallOnClient("PlayCloseSound", "") end
+				end
+			else self.LoopingFireSound:Stop() end
+			self:SetShooting(false)
+		end
+	end
+	
+	if self.LoopingFireSoundSecondary != nil then
+		if (self.Owner:KeyReleased(IN_ATTACK2) && self.Weapon:GetNWBool("Passive") == false || (!self.Owner:KeyDown(IN_ATTACK2) && self.LoopingFireSoundSecondary)) then
+			if self:CanPrimaryAttack() == true then
+				if (self.LoopingFireSoundSecondary) then
+					self.LoopingFireSoundSecondary:Stop()
+					self.LoopingFireSoundSecondary = nil
+					self:PlayCloseSound()
+					if (!game.SinglePlayer()) then self:CallOnClient("PlayCloseSound", "") end
+				end
+			else self.LoopingFireSoundSecondary:Stop() end
+			self:SetShooting(false)
+		end
+	end
+	
 end
 
 function SWEP:DoCustomThink()
@@ -871,6 +930,17 @@ local cv = ply:Crouching()
 	if CLIENT then
 	hook.Remove( "HUDPaint", self.ScopeHookID )
 	else end
+	
+	self.ScopeHookID = "DRC_Scope_" .. ply:Name() .. ""
+	self.DManip_PlyID = "DRC_DManip_" ..ply:Name().. ""
+	
+	hook.Add("DManipPlayerSwitchFlashlight", self.DManip_PlyID, function( ply, b )
+		if self.DManip_AllowFL == true or self.DManip_AllowFL == nil then
+			return true
+		else
+			return false
+		end
+	end)
 
 	self.Weapon:SetNWBool( "Ironsights", false )
 	
@@ -990,7 +1060,7 @@ self.Owner.ShouldReduceFallDamage = false
 --		hook.Remove( "Move", self.Weapon.HookUID_3 )
 --		hook.Remove( "Move", self.Weapon.HookUID_4 )
 		hook.Remove( "EntityTakeDamage","BlockingTakeDamage" )
-		hook.Remove( "HUDPaint", self.ScopeHookID )
+		hook.Remove( "DManipPlayerSwitchFlashlight","DManip_PlyID" )
 		
 		timer.Remove( self.PassiveHealing )
 		if self.Primary.Ammo == "CombineHeavyCannon" then
@@ -1038,6 +1108,7 @@ self.Owner.ShouldReduceFallDamage = false
 --		hook.Remove( "Move", self.Weapon.HookUID_3 )
 --		hook.Remove( "Move", self.Weapon.HookUID_4 )
 		hook.Remove( "EntityTakeDamage","BlockingTakeDamage" )
+		hook.Remove( "DManipPlayerSwitchFlashlight","DManip_PlyID" )
 		
 		timer.Remove( self.PassiveHealing )
 		if self.Primary.Ammo == "CombineHeavyCannon" then
@@ -1670,6 +1741,91 @@ if self.IronCD == false then
 			self.IronSightsAng = self.IronSightsAng
 		else end
 else end
+end
+
+function SWEP:PlayCloseSound()
+	self:EmitSound(self.vFireStopSound, 80, math.random(90, 110))
+end
+
+function SWEP:GetShootPosition()
+	local pos
+	local ang
+
+	if CLIENT then -- We're drawing the view model
+		if LocalPlayer() == self:GetOwner() and GetViewEntity() == LocalPlayer() then
+
+			local vm = LocalPlayer():GetViewModel()
+			pos, ang = vm:GetBonePosition(0)
+			pos = pos
+				+ ang:Forward() * -5 -- Left
+				+ ang:Right() * 1.5 -- Down
+				+ ang:Up() * 20 -- Forward
+
+		else -- We're drawing the world model
+
+			local ply = self:GetOwner()
+			
+			if !self.flameThrowerHand then
+				self.flameThrowerHand = ply:LookupAttachment("anim_attachment_rh")
+			end
+
+			local handData = ply:GetAttachment(self.flameThrowerHand)
+
+			ang = handData.Ang
+			pos = handData.Pos
+				+ ang:Forward() * 28
+				+ ang:Right() * 0.3
+				+ ang:Up() * 4.5
+
+		end
+	end
+
+	if SERVER then -- Mainly used for positioning our fire balls
+
+		pos = self:GetOwner():GetShootPos()
+		ang = self:GetOwner():EyeAngles()
+		pos = pos
+			+ ang:Forward() * -50
+			+ ang:Right() * 0
+			+ ang:Up() * -20
+
+	end
+
+	return pos
+end
+
+function SWEP:ShootFire()
+	if !self:GetShooting() then
+		self:SetShooting(true)
+	end
+
+	if SERVER then
+		local life = math.Rand(2, 4) * self.vFireLife
+		local owner = self:GetOwner()
+
+		if owner:IsNPC() then
+			local npc = self:GetOwner()
+			local tgt = npc:GetEnemy()
+			local ctrpos = tgt:WorldSpaceCenter()
+			
+			npc:SetEyeTarget(ctrpos)
+			local forward = self:GetOwner():EyeAngles():Forward()
+			local pos = self:GetShootPosition() + forward * self.vFireSpawnDist
+			local vel = forward * math.Rand(900, 1000) * self.vFireSpeed
+			local feedCarry = math.Rand(3, 8) * self.vFireVolatility
+			CreateVFireBall(life, feedCarry, pos, vel, owner)
+		elseif owner:IsPlayer() then
+			local forward = self:GetOwner():EyeAngles():Forward()
+			local pos = self:GetShootPosition() + forward * self.vFireSpawnDist
+			local vel = forward * math.Rand(900, 1000) * self.vFireSpeed
+			local feedCarry = math.Rand(3, 8) * self.vFireVolatility
+			CreateVFireBall(life, feedCarry, pos, vel, owner)
+		end
+	end
+end
+
+function SWEP:SetupDataTables()
+	self:NetworkVar("Bool", 0, "Shooting")
 end
 
 -- SCK

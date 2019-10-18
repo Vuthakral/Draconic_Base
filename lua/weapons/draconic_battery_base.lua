@@ -503,6 +503,8 @@ local trace = util.TraceLine( tr )
 		eyeang.yaw = eyeang.yaw - (math.Rand( self.Primary.RecoilHoriz, (self.Primary.RecoilHoriz * -1) ) * FrameTime())
 		self.Owner:ViewPunch(Angle( (-self.Primary.Kick * 0.42) * self.Primary.IronRecoilMul, 0, 0 ))
 	end
+	
+	if self.Primary.isvFire == false then
 		local bullet = {}
 			bullet.Num = self.Primary.NumShots
 			bullet.Src = self.Owner:GetShootPos()
@@ -546,6 +548,16 @@ local trace = util.TraceLine( tr )
 			end
 		end
 	end
+	self.Weapon:EmitSound(Sound(self.Primary.Sound))
+	elseif self.Primary.isvFire == true then
+	self:ShootFire() 
+		if SERVER then
+			if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+				self.LoopingFireSound = CreateSound(self.Owner, self.Primary.Sound)
+			end
+		if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+		end
+	end
 	self.Owner:MuzzleFlash()
 	ply:SetAnimation( PLAYER_ATTACK1 )
 	if self.Secondary.SightsSuppressAnim == false && self.Weapon:GetNWBool("ironsights") == false then
@@ -557,7 +569,6 @@ local trace = util.TraceLine( tr )
 	elseif self.Secondary.SightsSuppressAnim == true && self.Weapon:GetNWBool("ironsights") == true then
 	else
 	end
-	self.Weapon:EmitSound(Sound(self.Primary.Sound))
 	if CLIENT then
 		ply:SetEyeAngles( eyeang )
 	else end
@@ -589,7 +600,7 @@ local AccuracyHorizmath = math.random((self.Primary.Kick * -self.Primary.RecoilH
 local AccuracyVertmath = math.random((math.Rand((self.Primary.Kick * -self.Primary.RecoilUp), (self.Primary.Kick * self.Primary.RecoilUp))), (math.Rand((self.Primary.Kick * -self.Primary.RecoilDown), (self.Primary.Kick * self.Primary.RecoilDown))))
 local heat = self:GetNWInt("Heat")	
 
-local tr = util.GetPlayerTrace(ply)
+local tr = util.GetPlayerTrace(npc)
 local trace = util.TraceLine( tr )
 
 if self.JackalSniper == false then
@@ -613,6 +624,7 @@ end
 if ( self:CanPrimaryAttackNPC() ) then
 	self:DoCustomPrimaryAttackEvents()
 
+	if self.Primary.isvFire == false then
 	local bullet = {}
 		bullet.Num = self.Primary.NumShots
 		bullet.Src = self.Owner:GetShootPos()
@@ -656,6 +668,9 @@ if ( self:CanPrimaryAttackNPC() ) then
 				phys:SetVelocity(self.Owner:GetAimVector() * self.Primary.ProjSpeed)
 			end
 		end
+	end
+	elseif self.Primary.isvFire == true then
+	self:ShootFire() 
 	end
 	self.Owner:MuzzleFlash()
 	self.Owner:SetAnimation( PLAYER_ATTACK1 )

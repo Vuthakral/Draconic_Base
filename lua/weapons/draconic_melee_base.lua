@@ -97,6 +97,7 @@ SWEP.Secondary.Ammo = ""
 -- end DNT
 
 function SWEP:PrimaryAttack()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()
 	local CanCrouchAttack = self.Primary.CanAttackCrouched
@@ -120,11 +121,31 @@ if ply:GetNWBool("IsBlocking") == false then
 					if cv == false then
 						ply:SetNWBool( "IsAttacking", true )
 						self:SetHoldType( self.Primary.HoldType )
-						self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 						elseif cv == true && CanCrouchAttack == true then
 						ply:SetNWBool( "IsAttacking", true )
 						self:SetHoldType( self.Primary.CrouchHoldType )
-						self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 						elseif cv == true && CanCrouchAttack == false then
 					end
 				end
@@ -132,11 +153,31 @@ if ply:GetNWBool("IsBlocking") == false then
 				if cv == false then
 					ply:SetNWBool( "IsAttacking", true )
 					self:SetHoldType( self.Primary.HoldType )
-					self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 					elseif cv == true && CanCrouchAttack == true then
 					ply:SetNWBool( "IsAttacking", true )
 					self:SetHoldType( self.Primary.CrouchHoldType )
-					self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 					elseif cv == true && CanCrouchAttack == false then
 				end
 			end
@@ -149,27 +190,77 @@ if ply:GetNWBool("IsBlocking") == false then
 					elseif !ply:KeyDown(self.Primary.LungeKeyInput) then
 						self:SetHoldType( self.Primary.HoldType )
 						ply:SetNWBool( "IsAttacking", true )
-						self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 					end
 				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
 					ply:SetNWBool( "IsAttacking", true )
 					self:SetHoldType( self.Primary.HoldType )
-					self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 				end
 			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
 				ply:SetNWBool( "IsAttacking", true )
 				self:SetHoldType( self.Primary.HoldType )
-				self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 			end
 		end
 
 	elseif self.Primary.CanLunge == false then
 		if cv == false then
 			self:SetHoldType( self.Primary.HoldType )
-			self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 			elseif cv == true && CanCrouchAttack == true then
 			self:SetHoldType( self.Primary.CrouchHoldType )
-			self:DoPrimaryAttack()
+							if self.Primary.isvFire == false then
+								self:DoPrimaryAttack()
+							else 
+							self:ShootFire()
+								if SERVER then
+									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+										self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+									end
+								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+								end
+							end
 			elseif cv == true && CanCrouchAttack == false then
 		end
 	end
@@ -178,6 +269,7 @@ end
 end
 
 function SWEP:DoPrimaryLunge()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 local ply = self:GetOwner()
 local cv = ply:Crouching()
 local et = ply:GetEyeTrace()
@@ -232,6 +324,7 @@ end
 end
 
 function SWEP:PrimaryLungeImpact()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 	local tr = util.TraceLine( {
 		start = self.Owner:GetShootPos(),
 		endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.LungeRange*4,
@@ -285,6 +378,7 @@ end
 end
 
 function SWEP:DoPrimaryAttack()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 local ply = self:GetOwner()
 local cv = ply:Crouching()
 
@@ -335,6 +429,7 @@ end
 end
 
 function SWEP:PrimaryImpact()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 	local tr = util.TraceLine( {
 		start = self.Owner:GetShootPos(),
 		endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.Range*4,
@@ -389,6 +484,7 @@ end
 
 
 function SWEP:SecondaryAttack()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()
 	local CanCrouchAttack = self.Secondary.CanAttackCrouched
@@ -407,17 +503,37 @@ function SWEP:SecondaryAttack()
 		end
 	elseif self.Secondary.CanBlock == false then
 		if cv == false then
-			self:DoSecondaryAttack()
 			self:SetHoldType( self.Secondary.HoldType )
+			if self.Secondary.isvFire == false then
+				self:DoSecondaryAttack()
+			else 
+			self:ShootFire() 
+				if SERVER then
+					if (self.Owner:KeyPressed(IN_ATTACK2) || !self.LoopingFireSoundSecondary) then
+						self.LoopingFireSoundSecondary = CreateSound(self.Owner, self.Secondary.SwingSound)
+					end end
+				if (self.LoopingFireSoundSecondary) then self.LoopingFireSoundSecondary:Play() end
+			end
 		elseif cv == true && CanCrouchAttack == true then
-			self:DoSecondaryAttack()
 			self:SetHoldType( self.Secondary.HoldTypeCrouch )
+			if self.Secondary.isvFire == false then
+				self:DoSecondaryAttack()
+			else 
+			self:ShootFire()
+				if SERVER then
+					if (self.Owner:KeyPressed(IN_ATTACK2) || !self.LoopingFireSoundSecondary) then
+						self.LoopingFireSoundSecondary = CreateSound(self.Owner, self.Secondary.SwingSound)
+					end
+				if (self.LoopingFireSoundSecondary) then self.LoopingFireSoundSecondary:Play() end
+				end
+			end
 		elseif cv == true && CanCrouchAttack == false then
 		end
 	end
 end
 
 function SWEP:DoSecondaryAttack()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 local ply = self:GetOwner()
 local cv = ply:Crouching()
 
@@ -469,6 +585,7 @@ end
 end
 
 function SWEP:SecondaryImpact()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 local tr = util.TraceLine( {
 	start = self.Owner:GetShootPos(),
 	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Secondary.Range*4,
@@ -541,10 +658,12 @@ local walkkey = ply:KeyDown(IN_WALK)
 end
 
 function SWEP:SendAttackAnim()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 	self.Owner:SetAnimation( PLAYER_ATTACK1 )
 end
 
 function SWEP:EndAttack()
+if not IsValid(self) or not IsValid(self.Owner) then return end
 	local ply = self:GetOwner()
 	ply:SetNWBool( "IsAttacking", false )
 end

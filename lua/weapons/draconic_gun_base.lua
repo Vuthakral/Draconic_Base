@@ -32,7 +32,6 @@ SWEP.FireModes_CanAuto	= true
 SWEP.FireModes_CanBurst = false
 SWEP.FireModes_CanSemi	= true
 SWEP.FireModes_BurstShots = 3
-SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.Primary.NumShots 		= 1
 SWEP.Primary.IronRecoilMul	= 0.5
@@ -698,14 +697,6 @@ function SWEP:TogglePassive()
 			self.Loading = false 
 			self.Idle = 1
 		end)
-	end
-end
-
-function SWEP:DoPassiveHoldtype()
-	if self.HoldType == "pistol" or self.HoldType == "revolver" or self.HoldType == "magic" or self.HoldType == "knife" or self.HoldType == "melee" or self.HoldType == "melee2" or self.HoldType == "slam" or self.HoldType == "fist" or self.HoldType == "grenade" or self.HoldType == "duel" then
-		self:SetHoldType("normal")
-	elseif self.HoldType == "smg" or self.HoldType == "ar2" or self.HoldType == "rpg" or self.HoldType == "crossbow" or self.HoldType == "shotgun" or self.HoldType == "physgun" then
-		self:SetHoldType("passive")
 	end
 end
 

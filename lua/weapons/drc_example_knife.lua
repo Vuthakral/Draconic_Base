@@ -20,7 +20,7 @@ SWEP.SlotPos        = 1
 
 SWEP.UseHands		= true
 SWEP.ViewModel 		= "models/weapons/cstrike/c_knife_t.mdl"
-SWEP.WorldModel 	= "models/weapons/w_knife_t.mdl"
+SWEP.WorldModel 	= "models/weapons/w_spade.mdl"
 SWEP.ViewModelFOV   = 70
 SWEP.VMPos 			= Vector(0, 0, 0)
 SWEP.VMAng 			= Vector(0, 0, 0)

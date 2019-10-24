@@ -28,6 +28,10 @@ end
 
 SWEP.Gun				= "draconic_base"
 
+if ( CLIENT ) then
+	SWEP.WepSelectIcon = surface.GetTextureID( "vgui/entities/drc_default" )
+end
+
 SWEP.HoldType			= "default"
 SWEP.CrouchHoldType		= "default"
 SWEP.IdleSequence		= "idle"
@@ -77,6 +81,8 @@ SWEP.InspectDelay = 0.5
 
 SWEP.IdleActivity = ACT_VM_IDLE
 SWEP.CrouchIdleActivity = ACT_VM_IDLE
+
+SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
 SWEP.Secondary.CanBlock				= false
 SWEP.Secondary.CanBlockCrouched		= false
@@ -1655,6 +1661,24 @@ function SWEP:TauntReady()
 	self.IsTaunting = 0
 end
 
+function SWEP:DrawWeaponSelection( x, y, wide, tall, alpha )
+	// Set us up the texture
+	surface.SetDrawColor( 255, 255, 255, alpha )
+	surface.SetTexture( self.WepSelectIcon )
+	
+	// Lets get a sin wave to make it bounce
+	local fsin = 0
+	
+--	if ( self.BounceWeaponIcon == true ) then
+--		fsin = math.sin( CurTime() * 10 ) * 5
+--	end
+
+	alpha = 150
+	surface.DrawTexturedRect( x + (wide/4), y + (tall / 16),  (wide*0.5)-fsin*2 , ( wide / 2 ) + (fsin) )
+	
+	self:PrintWeaponInfo( x + wide, y + tall, alpha )
+end
+
 function SWEP:RegeneratingHealth(ply)
 	local ply = self:GetOwner()
 	local hp, maxhp
@@ -1741,6 +1765,14 @@ if self.IronCD == false then
 			self.IronSightsAng = self.IronSightsAng
 		else end
 else end
+end
+
+function SWEP:DoPassiveHoldtype()
+	if self.HoldType == "pistol" or self.HoldType == "revolver" or self.HoldType == "magic" or self.HoldType == "knife" or self.HoldType == "melee" or self.HoldType == "melee2" or self.HoldType == "slam" or self.HoldType == "fist" or self.HoldType == "grenade" or self.HoldType == "duel" then
+		self:SetHoldType("normal")
+	elseif self.HoldType == "smg" or self.HoldType == "ar2" or self.HoldType == "rpg" or self.HoldType == "crossbow" or self.HoldType == "shotgun" or self.HoldType == "physgun" then
+		self:SetHoldType("passive")
+	end
 end
 
 function SWEP:PlayCloseSound()

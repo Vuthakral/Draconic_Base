@@ -13,6 +13,23 @@ if GetConVar("sv_drc_movesounds") == nil then
 	CreateConVar("sv_drc_movesounds", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.")
 end
 
+if CLIENT then
+	surface.CreateFont("WpnDisplay", {
+		font 	= "lcd",
+		size	= 24,
+		weight	= 300	
+	})
+end
+
+hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
+	spawnmenu.AddToolMenuOption( "Options", "Draconic", "SWEP Settings", "SWEP Settings", "", "", function( panel )
+		panel:ClearControls()
+	--	panel:SetTitle( "Settings" )
+		panel:CheckBox( "Draconic Movement", "sv_drc_movement")
+		panel:CheckBox( "Draconic Movement Sounds", "sv_drc_movesounds")
+	end )
+end )
+
 sound.Add( {
 	name = "draconic.IronInGeneric",
 	channel = CHAN_AUTO,

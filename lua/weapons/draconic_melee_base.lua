@@ -20,6 +20,9 @@ SWEP.DrawAmmo		= false
 SWEP.IdleActivity = ACT_VM_IDLE
 SWEP.CrouchIdleActivity = ACT_VM_IDLE_LOWERED
 
+SWEP.PassivePos = Vector(0, -25, -25)
+SWEP.PassiveAng = Vector(0, 0, 0)
+
 SWEP.ViewModelFlip  = false
 SWEP.ShowWorldModel = false
 
@@ -91,6 +94,8 @@ SWEP.Secondary.CrouchMissActivity	= ACT_VM_MISSCENTER2
 SWEP.Secondary.HitDelay		= 0.23
 SWEP.Secondary.Velocity		= Vector(0, 0, 0)
 
+SWEP.FireModes_SwitchSound = Sound("draconic.IronOutGeneric")
+
 -- DO NOT TOUCH
 SWEP.Primary.Ammo = ""
 SWEP.Secondary.Ammo = ""
@@ -109,7 +114,7 @@ if ply:GetNWBool("IsBlocking") == false then
 		if self.Primary.LungeAutomatic == true then
 			if (IsValid( res ) and res:IsNPC() or res:IsPlayer() ) then
 				if(ply:GetPos():Distance(res:GetPos()) < self.Primary.LungeMaxDist) then
-					if cv == false then
+					if cv == false && self.Weapon:GetNWBool("Passive") == false then
 						ply:SetNWBool( "IsAttacking", true )
 						self:DoPrimaryLunge()
 						elseif cv == true && CanCrouchAttack == true then
@@ -120,10 +125,9 @@ if ply:GetNWBool("IsBlocking") == false then
 				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
 					if cv == false then
 						ply:SetNWBool( "IsAttacking", true )
-						self:SetHoldType( self.Primary.HoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -134,10 +138,9 @@ if ply:GetNWBool("IsBlocking") == false then
 							end
 						elseif cv == true && CanCrouchAttack == true then
 						ply:SetNWBool( "IsAttacking", true )
-						self:SetHoldType( self.Primary.CrouchHoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -152,10 +155,9 @@ if ply:GetNWBool("IsBlocking") == false then
 			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
 				if cv == false then
 					ply:SetNWBool( "IsAttacking", true )
-					self:SetHoldType( self.Primary.HoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -166,10 +168,9 @@ if ply:GetNWBool("IsBlocking") == false then
 							end
 					elseif cv == true && CanCrouchAttack == true then
 					ply:SetNWBool( "IsAttacking", true )
-					self:SetHoldType( self.Primary.CrouchHoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -188,11 +189,10 @@ if ply:GetNWBool("IsBlocking") == false then
 						ply:SetNWBool( "IsAttacking", true )
 						self:DoPrimaryLunge()
 					elseif !ply:KeyDown(self.Primary.LungeKeyInput) then
-						self:SetHoldType( self.Primary.HoldType )
 						ply:SetNWBool( "IsAttacking", true )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -204,10 +204,9 @@ if ply:GetNWBool("IsBlocking") == false then
 					end
 				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
 					ply:SetNWBool( "IsAttacking", true )
-					self:SetHoldType( self.Primary.HoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -219,10 +218,9 @@ if ply:GetNWBool("IsBlocking") == false then
 				end
 			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
 				ply:SetNWBool( "IsAttacking", true )
-				self:SetHoldType( self.Primary.HoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -236,10 +234,9 @@ if ply:GetNWBool("IsBlocking") == false then
 
 	elseif self.Primary.CanLunge == false then
 		if cv == false then
-			self:SetHoldType( self.Primary.HoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -249,10 +246,9 @@ if ply:GetNWBool("IsBlocking") == false then
 								end
 							end
 			elseif cv == true && CanCrouchAttack == true then
-			self:SetHoldType( self.Primary.CrouchHoldType )
-							if self.Primary.isvFire == false then
+							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
-							else 
+							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -384,6 +380,16 @@ local cv = ply:Crouching()
 
 ply:SetNWBool( "IsAttacking", true )
 
+	if cv == false then
+		if CLIENT or SERVER then
+		self:SetHoldType( self.Primary.HoldType )
+		end
+	elseif cv == true then
+		if CLIENT or SERVER then
+		self:SetHoldType( self.Primary.HoldTypeCrouch )
+		end
+	end
+
 self:EmitSound(Sound(self.Primary.SwingSound))
 
 local tr = util.TraceLine( {
@@ -487,25 +493,33 @@ function SWEP:SecondaryAttack()
 if not IsValid(self) or not IsValid(self.Owner) then return end
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()
+	local usekey = ply:KeyDown(IN_USE)
+	local reloadkey = ply:KeyDown(IN_RELOAD)
+	local sprintkey = ply:KeyDown(IN_SPEED)
+	local attackkey = ply:KeyPressed(IN_ATTACK2)
 	local CanCrouchAttack = self.Secondary.CanAttackCrouched
 	
 	if self.Secondary.CanBlock == true then
 		if ply:KeyDown(self.Secondary.BlockKeyInput) then
 		elseif !ply:KeyDown(self.Secondary.BlockKeyInput) then
-			if cv == false then
+			if cv == false && self.Weapon:GetNWBool("Passive") == false then
 				self:DoSecondaryAttack()
-				self:SetHoldType( self.Secondary.HoldType )
-			elseif cv == true && CanCrouchAttack == true then
+			elseif cv == true && self.Weapon:GetNWBool("Passive") == false && CanCrouchAttack == true then
 				self:DoSecondaryAttack()
-				self:SetHoldType( self.Secondary.HoldTypeCrouch )
 			elseif cv == true && CanCrouchAttack == false then
 			end
+		elseif sprintkey && usekey && attackkey then
+		self:TogglePassive()
 		end
 	elseif self.Secondary.CanBlock == false then
 		if cv == false then
-			self:SetHoldType( self.Secondary.HoldType )
 			if self.Secondary.isvFire == false then
-				self:DoSecondaryAttack()
+				if sprintkey && usekey && attackkey then
+					self:TogglePassive()
+				elseif sprintkey && usekey then
+				elseif self.Weapon:GetNWBool("Passive") == false then
+					self:DoSecondaryAttack()
+				end
 			else 
 			self:ShootFire() 
 				if SERVER then
@@ -515,8 +529,7 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 				if (self.LoopingFireSoundSecondary) then self.LoopingFireSoundSecondary:Play() end
 			end
 		elseif cv == true && CanCrouchAttack == true then
-			self:SetHoldType( self.Secondary.HoldTypeCrouch )
-			if self.Secondary.isvFire == false then
+			if self.Secondary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 				self:DoSecondaryAttack()
 			else 
 			self:ShootFire()
@@ -536,6 +549,16 @@ function SWEP:DoSecondaryAttack()
 if not IsValid(self) or not IsValid(self.Owner) then return end
 local ply = self:GetOwner()
 local cv = ply:Crouching()
+
+	if cv == false then
+		if CLIENT or SERVER then
+		self:SetHoldType( self.Secondary.HoldType )
+		end
+	elseif cv == true then
+		if CLIENT or SERVER then
+		self:SetHoldType( self.Secondary.HoldTypeCrouch )
+		end
+	end
 
 ply:SetNWBool( "IsAttacking", true )
 self:EmitSound(Sound(self.Secondary.SwingSound))
@@ -666,4 +689,31 @@ function SWEP:EndAttack()
 if not IsValid(self) or not IsValid(self.Owner) then return end
 	local ply = self:GetOwner()
 	ply:SetNWBool( "IsAttacking", false )
+end
+
+function SWEP:TogglePassive()
+	local ply = self:GetOwner()
+	local loopseq = self:SelectWeightedSequence( ACT_VM_DRAW )
+	local looptime = self:SequenceDuration( loopseq )
+	self.Weapon:EmitSound(self.FireModes_SwitchSound)
+	
+	if self.Passive == false then
+		self.Weapon:SendWeaponAnim( ACT_VM_IDLE )
+		self.Passive = true
+		self:DoPassiveHoldtype()
+		self.Weapon:SetNWBool("Passive", true)
+		ply:EmitSound("draconic.IronOutGeneric")
+	else
+		self.Loading = true
+		self.Idle = 0
+		self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
+		self:SetHoldType(self.HoldType)
+		self.Passive = false
+		self.Weapon:SetNWBool("Passive", false)
+		ply:EmitSound("draconic.IronInGeneric")
+		timer.Simple(looptime, function()
+			self.Loading = false 
+			self.Idle = 1
+		end)
+	end
 end

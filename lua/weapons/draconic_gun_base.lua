@@ -82,6 +82,7 @@ SWEP.Secondary.Scoped		= false
 SWEP.Secondary.ScopeMat		= "overlays/draconic_scope"
 SWEP.Secondary.IronFOV		= 60
 SWEP.Secondary.ScopeZoomTime = 0.15
+SWEP.Secondary.SpreadRecoilMul = 1.0
 
 SWEP.Secondary.NumShots 		= 0
 SWEP.Secondary.Spread			= 3.5
@@ -105,7 +106,7 @@ SWEP.Secondary.Tracer			= 1 -- https://wiki.garrysmod.com/page/Enums/TRACER
 SWEP.Secondary.Sound 			= Sound("")
 SWEP.Secondary.ChargeSound 		= Sound("")
 
-SWEP.Secondary.Projectile			 = "" -- rj_plasmanade
+SWEP.Secondary.Projectile			 = ""
 SWEP.Secondary.ProjSpeed			 = 750
 SWEP.Secondary.ProjInheritVelocity = true
 SWEP.Secondary.ProjectileSpawnDelay = 0
@@ -159,8 +160,13 @@ end
 function SWEP:CanPrimaryAttackNPC()
 local npc = self:GetOwner()
 
+	if self.Weapon:GetNWInt("LoadedAmmo") <= 1 then
+		self.Weapon:SetNWInt("LoadedAmmo", self.Primary.ClipSize)
+	else end
+	
 	if self.Weapon:Clip1() <= 0 or npc:GetActivity() == ACT_RELOAD or self.Weapon:GetNWBool("NPCLoading") == true then
 		self:LoadNextShot()
+		self.Weapon:SetNWInt("LoadedAmmo", self.Primary.ClipSize)
 		return false
 	end
 	return true
@@ -466,10 +472,26 @@ local trace = util.TraceLine( tr )
 			bullet.Src = self.Owner:GetShootPos()
 			bullet.Dir = self.Owner:GetAimVector()
 			if self.Weapon:GetNWString("FireMode") != "Burst" then
-				bullet.Spread = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv, 0 )
+				if GetConVar("sv_drc_callofdutyspread"):GetString() == "1" then
+					if self.Weapon:GetNWBool("ironsights") == false then
+						bullet.Spread = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv, 0 )
+					else
+						bullet.Spread = Vector( self.Secondary.SpreadRecoilMul * (self.Primary.Spread / self.Primary.SpreadDiv), self.Secondary.SpreadRecoilMul * (self.Primary.Spread / self.Primary.SpreadDiv), 0 )
+					end
+				else
+					bullet.Spread = Vector( self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv, 0 )
+				end
 			else
-				bullet.Spread = math.Rand(-Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ), Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ))
-			end
+				if GetConVar("sv_drc_callofdutyspread"):GetString() == "1" then
+					if self.Weapon:GetNWBool("ironsights") == false then
+						bullet.Spread = math.Rand(-Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ), Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ))
+					else
+						bullet.Spread = math.Rand(-Vector( (self.Secondary.SpreadRecoilMul * math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv)), (self.Secondary.SpreadRecoilMul * math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv)), 0 ), Vector( (self.Secondary.SpreadRecoilMul * math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv)), (self.Secondary.SpreadRecoilMul * math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv)), 0 ))
+					end
+				else
+					bullet.Spread = math.Rand(-Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ), Vector( math.Rand(self.Primary.Spread / self.Primary.SpreadDiv, -self.Primary.Spread / self.Primary.SpreadDiv), math.Rand(-self.Primary.Spread / self.Primary.SpreadDiv, self.Primary.Spread / self.Primary.SpreadDiv), 0 ))
+				end
+		end
 			bullet.Tracer = self.Primary.Tracer
 			bullet.Force = self.Primary.Force
 			bullet.Damage = self.Primary.Damage
@@ -553,18 +575,18 @@ local tr = util.GetPlayerTrace(npc)
 local trace = util.TraceLine( tr )
 
 if self.JackalSniper == false then
-	if tgt:IsPlayer() or tgtclass == "npc_citizen" or tgtclass == "npc_combine_s" or tgtclass == "npc_metropolice" or tgtclass == "npc_helicopter" or tgtclass == "npc_strider" or tgtclass == "npc_ministrider" or tgtclass == "npc_hunter" or tgtclass == "npc_barnacle" or tgtclass == "npc_zombie_torso" or tgtclass == "npc_fastzombie_torso" or tgtclass == "monster_alien_controller" or tgtclass == "monster_scientist" or tgtclass == "monster_barney" then
-		tgtpos = (eyepos - Vector(AccuracyHorizmath, 0, (AccuracyVertmath + math.random(5, 15))))
+	if tgt:IsPlayer() or tgtclass == "npc_citizen" or tgtclass == "npc_combine_s" or tgtclass == "npc_metropolice" or tgtclass == "npc_helicopter" or tgtclass == "npc_strider" or tgtclass == "npc_ministrider" or tgtclass == "npc_hunter" or tgtclass == "npc_barnacle" or tgtclass == "monster_alien_controller" or tgtclass == "monster_scientist" or tgtclass == "monster_barney" then
+		tgtpos = (eyepos - Vector(AccuracyHorizmath, 0, (AccuracyVertmath + (GetConVar("sv_drc_npc_accuracy"):GetString() * 2 * math.random(-5, 5)))))
 	elseif tgtclass == "npc_zombie" or tgtclass == "npc_fastzombie" or tgtclass == "npc_poisonzombie" or tgtclass == "npc_zombine" or tgtclass == "monster_human_grunt" or tgtclass == "npc_stalker" or tgtclass == "monster_tentacle" or tgtclass == "monster_alien_grunt" or tgtclass == "monster_human_assassin" or tgtclass == "monster_alien_slave" or tgtclass == "monster_zombie" then
-		tgtpos = (ctrpos + Vector(AccuracyHorizmath, 0, (AccuracyVertmath + math.Rand(10, 17))))
-	elseif tgtclass == "npc_headcrab" or tgtclass == "npc_headcrab_black" or tgtclass == "npc_headcrab_fast" or tgtclass == "npc_manhack" or tgtclass == "npc_rollermine" or tgtclass == "npc_turret_floor" or tgtclass == "npc_cscanner" or tgtclass == "npc_clawscanner" or tgtclass == "npc_antlion_worker" or tgtclass == "npc_antlionguard" or tgtclass == "npc_antlionguardian" or tgtclass == "monster_sentry" or tgtclass == "monster_snark" or tgtclass == "monster_houndeye"  or tgtclass == "monster_babycrab" or tgtclass == "monster_bullchicken" or tgtclass == "monster_cockroach" or tgtclass == "monster_headcrab" or tgtclass == "monster_turret" or tgtclass == "monster_miniturret" or tgtclass == "npc_combinegunship" then
+		tgtpos = (ctrpos + Vector(AccuracyHorizmath, 0, (AccuracyVertmath + (GetConVar("sv_drc_npc_accuracy"):GetString() * 2 * math.Rand(-8, 8)))))
+	elseif tgtclass == "npc_headcrab" or tgtclass == "npc_headcrab_black" or tgtclass == "npc_headcrab_fast" or tgtclass == "npc_zombie_torso" or tgtclass == "npc_fastzombie_torso" or tgtclass == "npc_manhack" or tgtclass == "npc_rollermine" or tgtclass == "npc_turret_floor" or tgtclass == "npc_cscanner" or tgtclass == "npc_clawscanner" or tgtclass == "npc_antlion_worker" or tgtclass == "npc_antlionguard" or tgtclass == "npc_antlionguardian" or tgtclass == "monster_sentry" or tgtclass == "monster_snark" or tgtclass == "monster_houndeye"  or tgtclass == "monster_babycrab" or tgtclass == "monster_bullchicken" or tgtclass == "monster_cockroach" or tgtclass == "monster_headcrab" or tgtclass == "monster_turret" or tgtclass == "monster_miniturret" or tgtclass == "npc_combinegunship" then
 		tgtpos = ctrpos
 	elseif tgtclass == "npc_antlion" then
 		tgtpos = eyepos
 	elseif tgtclass == "monster_gargantua" or tgtclass == "monster_nihilanth" or tgtclass == "monster_bigmomma" then
 		tgtpos = (ctrpos + Vector(AccuracyHorizmath, 0, (AccuracyVertmath + math.random(6, 102))))
 	else
-		tgtpos = (ctrpos + Vector(AccuracyHorizmath, 0, (AccuracyVertmath + math.random(-5, 15))))
+		tgtpos = (ctrpos + Vector(AccuracyHorizmath, 0, (AccuracyVertmath + (GetConVar("sv_drc_npc_accuracy"):GetString() * 2 * math.random(-5, 15)))))
 	end
 elseif self.JackalSniper == true then
 	tgtpos = eyepos - Vector(0, 0, 5)
@@ -928,13 +950,8 @@ if ply:IsPlayer() then
 			self:ReloadSecondary()
 		end
 	end
-	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
-		if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then
-		else
-			self:SetHoldType(self.Secondary.ReloadHoldType)
-			ply:SetFOV(0, 0.05)
-			self:ReloadSecondary()
-		end
+	elseif !ply:IsPlayer() then
+		self:DoReload()
 	end
 end
 

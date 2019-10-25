@@ -273,10 +273,14 @@ function SWEP:Initialize()
 	
 	if self.Primary.Automatic == false then
 		self.Weapon:SetNWString("FireMode", "Semi")
-	elseif self.Primary.Automatic == true then
+	elseif self.Primary.Automatic == true && self.FireModes_CanAuto == true then
 		self.Weapon:SetNWString("FireMode", "Auto")
-	elseif self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
+	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
 		self.Weapon:SetNWString("FireMode", "Burst")
+		self.Primary.Automatic = false
+	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == false && self.FireModes_CanAuto == false && self.FireModes_CanSemi == true then
+		self.Weapon:SetNWString("FireMode", "Semi")
+		self.Primary.Automatic = false
 	else 
 		self.Weapon:SetNWString("FireMode", "Semi")
 	end

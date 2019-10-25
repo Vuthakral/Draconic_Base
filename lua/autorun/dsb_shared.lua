@@ -13,6 +13,18 @@ if GetConVar("sv_drc_movesounds") == nil then
 	CreateConVar("sv_drc_movesounds", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.")
 end
 
+if GetConVar("sv_drc_callofdutyspread") == nil then
+	CreateConVar("sv_drc_callofdutyspread", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Do you hate 'Call of Duty aim' where weapon spread is unrealistically reduced when aiming down the sights? Me too! Unfortunately for you, people begged me to add it to my base anyways. But fortunately for you, I tied it all to a serverside config to disable it entirely!")
+end
+
+if GetConVar("sv_drc_npc_accuracy") == nil then
+	CreateConVar("sv_drc_npc_accuracy", 2, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DEMO}, "NPC accuracy on a scale of 0-10. 0 = Seal Team Six, 2 = hl2 default, 10 = Can't hit shit.")
+end
+
+if GetConVar("cl_drc_sell_soul") == nil then
+	CreateConVar("cl_drc_sell_soul", 1, {FCVAR_DEMO}, "Give unto the dragon.")
+end
+
 if CLIENT then
 	surface.CreateFont("WpnDisplay", {
 		font 	= "lcd",
@@ -24,9 +36,19 @@ end
 hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
 	spawnmenu.AddToolMenuOption( "Options", "Draconic", "SWEP Settings", "SWEP Settings", "", "", function( panel )
 		panel:ClearControls()
-	--	panel:SetTitle( "Settings" )
-		panel:CheckBox( "Draconic Movement", "sv_drc_movement")
-		panel:CheckBox( "Draconic Movement Sounds", "sv_drc_movesounds")
+		panel:ControlHelp( "" )
+		panel:ControlHelp( "Server / Admin-only Settings" )
+		panel:CheckBox( "Enable Draconic Movement", "sv_drc_movement")
+		panel:CheckBox( "Enable Draconic Movement Sounds", "sv_drc_movesounds")
+		panel:CheckBox( "Allow Call of Duty Spread", "sv_drc_callofdutyspread")
+		panel:NumSlider( "NPC Accuracy Handicap", "sv_drc_npc_accuracy", 0, 10, 1 )
+		panel:Help( "0 = Seal Team Six" )
+		panel:Help( "2 = HL2 Accuracy" )
+		panel:Help( "10 = Can't hit shit." )
+		panel:ControlHelp( "" )
+		panel:ControlHelp( "Client Settings" )
+		panel:Help( "None! ...yet." )
+	--	panel:CheckBox( "Sell your soul to Vuthakral", "cl_drc_sell_soul")
 	end )
 end )
 

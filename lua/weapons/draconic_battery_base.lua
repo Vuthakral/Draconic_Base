@@ -603,6 +603,12 @@ local heat = self:GetNWInt("Heat")
 local tr = util.GetPlayerTrace(npc)
 local trace = util.TraceLine( tr )
 
+	if muzzle == "0" then
+		local muzzle = self:LookupAttachment("muzzle_flash")
+			if muzzle == "0" then
+			end
+	else end
+
 if self.JackalSniper == false then
 	if tgt:IsPlayer() or tgtclass == "npc_citizen" or tgtclass == "npc_combine_s" or tgtclass == "npc_metropolice" or tgtclass == "npc_helicopter" or tgtclass == "npc_strider" or tgtclass == "npc_ministrider" or tgtclass == "npc_hunter" or tgtclass == "npc_barnacle" or tgtclass == "monster_alien_controller" or tgtclass == "monster_scientist" or tgtclass == "monster_barney" then
 		tgtpos = (eyepos - Vector(AccuracyHorizmath, 0, (AccuracyVertmath + (GetConVar("sv_drc_npc_accuracy"):GetString() * 2 * math.random(-5, 5)))))

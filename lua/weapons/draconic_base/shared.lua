@@ -249,6 +249,8 @@ SWEP.Secondary.isvFire = false
 
 -- Everything past this is code for DSB
 
+SWEP.Draconic = true
+
 function SWEP:DoDrawCrosshair( x, y )
 	surface.SetDrawColor( 0, 0, 0, 0 )
 --	surface.DrawOutlinedRect( x -32, y -32, 64, 64 )
@@ -267,6 +269,7 @@ function SWEP:Initialize()
 	
 	self:DoCustomInitialize()
 	self:SetNWInt("Heat", 0)
+	self:GetNWString("DebugSpread", 0)
 	self:SetNWBool("Passive", false)
 	self.Passive = false
 	
@@ -532,6 +535,30 @@ end
 			self:SetShooting(false)
 		end
 	end
+	
+if self:CanGunMelee() == true then
+	local ht = self:GetHoldType()
+	local usekey = ply:KeyDown(IN_USE)
+	local attackkey = ply:KeyPressed(IN_ATTACK)
+
+	if usekey && attackkey then
+		if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
+			self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND, true)
+		elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
+			self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE, true)
+		end
+	end
+else end
+end
+
+function SWEP:CanGunMelee()
+	local ply = self:GetOwner()
+	local sights = self.Weapon:GetNWBool("ironsights")
+	local passive = self.Weapon:GetNWBool("Passive")
+	
+	if self.Primary.CanMelee == false then return false end
+	
+	if sights == false && passive == false then return true else return false end
 	
 end
 
@@ -1062,6 +1089,9 @@ function SWEP:OnRemove()
 self.Idle = 0
 self.IdleTimer = CurTime()
 self.Owner.ShouldReduceFallDamage = false
+
+	self:DoCustomRemove()
+
 	if ( SERVER ) then
 	local ply = self:GetOwner()
 	if ply:IsPlayer() then
@@ -1104,10 +1134,15 @@ self.Owner.ShouldReduceFallDamage = false
 	self:Holster()
 end
 
+function SWEP:DoCustomRemove()
+end
+
 function SWEP:Holster()
 self.Idle = 0
 self.IdleTimer = CurTime()
 self.Owner.ShouldReduceFallDamage = false
+
+	self:DoCustomHolster()
 
 	if ( SERVER ) then
 	local ply = self:GetOwner()
@@ -1158,6 +1193,9 @@ self.Owner.ShouldReduceFallDamage = false
 	end
 	
 return true
+end
+
+function SWEP:DoCustomHolster()
 end
 
 function SWEP:DoBlock()

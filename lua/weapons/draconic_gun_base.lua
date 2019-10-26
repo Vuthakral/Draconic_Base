@@ -206,10 +206,12 @@ function SWEP:PrimaryAttack()
 	local ply = self:GetOwner()
 	local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
 	local firetime = self:SequenceDuration( fireseq )
+	local scope = self.Weapon:GetNWBool("ironsights")
+	local passive = self.Weapon:GetNWBool("Passive")
 	
 if ply:IsPlayer() then
 	if self.Primary.CanMelee == true then
-		if ply:KeyDown(IN_USE) then
+		if ply:KeyDown(IN_USE) && self:CanGunMelee() == true then
 			self:DoMelee()
 		else
 			if self.Loading == false then
@@ -330,6 +332,8 @@ end
 function SWEP:DoMelee()
 local ply = self:GetOwner()
 local cv = ply:Crouching()
+local ht = self:GetHoldType()
+
 	if cv == false then
 		self:SetHoldType( self.HoldType )
 	elseif cv == true then
@@ -573,6 +577,12 @@ local AccuracyVertmath = math.random((math.Rand((self.Primary.Kick * -self.Prima
 
 local tr = util.GetPlayerTrace(npc)
 local trace = util.TraceLine( tr )
+
+	if muzzle == "0" then
+		local muzzle = self:LookupAttachment("muzzle_flash")
+			if muzzle == "0" then
+			end
+	else end
 
 if self.JackalSniper == false then
 	if tgt:IsPlayer() or tgtclass == "npc_citizen" or tgtclass == "npc_combine_s" or tgtclass == "npc_metropolice" or tgtclass == "npc_helicopter" or tgtclass == "npc_strider" or tgtclass == "npc_ministrider" or tgtclass == "npc_hunter" or tgtclass == "npc_barnacle" or tgtclass == "monster_alien_controller" or tgtclass == "monster_scientist" or tgtclass == "monster_barney" then

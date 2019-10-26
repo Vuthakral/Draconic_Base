@@ -22,7 +22,11 @@ if GetConVar("sv_drc_npc_accuracy") == nil then
 end
 
 if GetConVar("cl_drc_sell_soul") == nil then
-	CreateConVar("cl_drc_sell_soul", 1, {FCVAR_DEMO}, "Give unto the dragon.")
+	CreateClientConVar("cl_drc_sell_soul", 1, {FCVAR_DEMO}, "Give unto the dragon.")
+end
+
+if GetConVar("cl_drc_debugmode") == nil then
+	CreateClientConVar("cl_drc_debugmode", 0, {FCVAR_ARCHIVE}, "Enables / Disables drawing of a clientside HUD detailing information about a currently held Draconic SWEP.")
 end
 
 if CLIENT then
@@ -47,7 +51,7 @@ hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
 		panel:Help( "10 = Can't hit shit." )
 		panel:ControlHelp( "" )
 		panel:ControlHelp( "Client Settings" )
-		panel:Help( "None! ...yet." )
+		panel:CheckBox( "Enable Debug HUD", "cl_drc_debugmode")
 	--	panel:CheckBox( "Sell your soul to Vuthakral", "cl_drc_sell_soul")
 	end )
 end )

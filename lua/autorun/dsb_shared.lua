@@ -30,12 +30,12 @@ if GetConVar("cl_drc_debugmode") == nil then
 end
 
 if CLIENT then
-	surface.CreateFont("WpnDisplay", {
-		font 	= "lcd",
-		size	= 24,
-		weight	= 300	
-	})
-end
+surface.CreateFont("WpnDisplay", {
+	font 	= "lcd",
+	size	= 24,
+	weight	= 300	
+})
+else end
 
 hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
 	spawnmenu.AddToolMenuOption( "Options", "Draconic", "SWEP Settings", "SWEP Settings", "", "", function( panel )

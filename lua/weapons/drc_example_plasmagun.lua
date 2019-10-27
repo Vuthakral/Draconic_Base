@@ -102,10 +102,10 @@ local ply = self:GetOwner()
 	if CLIENT then
 	local ply = self:GetOwner()
 		self.VElements["HeatINdicator"].draw_func = function( weapon ) 
-			draw.SimpleTextOutlined(self:Clip1(), "WpnDisplay", 0, 3, Color(0,200,200,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0, 255))
+			draw.SimpleTextOutlined(self:Clip1(), "DermaDefault", 0, 3, Color(0,200,200,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0, 255))
 		end
 		self.VElements["HeatINdicator++"].draw_func = function( weapon )
-			draw.SimpleText(""..(204 + (8 * ply:GetAmmoCount(self.Primary.Ammo))).." °C", "WpnDisplay", 0, 3, Color(0,200,200,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
+			draw.SimpleText(""..(204 + (8 * ply:GetAmmoCount(self.Primary.Ammo))).." °C", "DermaDefault", 0, 3, Color(0,200,200,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
 		end
 		self.VElements["HeatINdicator+"].draw_func = function( weapon )
 			draw.SimpleTextOutlined("▉▉▉", "DermaLarge", 0, 8, Color((1 * ply:GetAmmoCount(self.Primary.Ammo)),(100 - (1 * (ply:GetAmmoCount(self.Primary.Ammo)))),0,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 4, Color((2.55 * ply:GetAmmoCount(self.Primary.Ammo)),(255 - (2.55 * (ply:GetAmmoCount(self.Primary.Ammo)))),0,255))

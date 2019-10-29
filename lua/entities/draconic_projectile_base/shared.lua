@@ -42,7 +42,7 @@ local type = self.ProjectileType
 		phys:EnableGravity(false)
 	else end
 
-	if SERVER && type == "grenade" then
+	if SERVER && type == "grenade" or type == "sticky" or type == "playersticky" then
 		timer.Simple(self.FuseTime, function() self:TriggerExplosion() end)
 	else end
 	self:DoCustomInitialize()
@@ -61,12 +61,29 @@ local tgt = data.HitEntity
 			self:DamageTarget(tgt, tr)
 		elseif type == "explosive" then
 			self:Explode()
+		elseif type == "playersticky" then 
+			if tgt:IsNPC() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
+				self:SetSolid(SOLID_NONE)
+				self:SetMoveType(MOVETYPE_NONE)
+				self:SetParent(tgt)
+			end
+		elseif type == "sicky" then
+			if tgt:IsNPC() or tgt:IsWorld() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
+				self:SetSolid(SOLID_NONE)
+				self:SetMoveType(MOVETYPE_NONE)
+				self:SetParent(tgt)
+			end
 		end
 	elseif tgt:IsWorld() then
 		if type == "point" then
 			timer.Simple(0.01, function() self:Remove() end)
 		elseif type == "explosive" then
 			self:Explode()
+		elseif type == "sticky" then
+			self:SetSolid(SOLID_NONE)
+			self:SetMoveType(MOVETYPE_NONE)
+			self:SetParent(tgt)
+		else
 		end
 	end
 end
@@ -87,25 +104,29 @@ function ENT:DamageTarget(tgt, tr)
 end
 
 function ENT:TriggerExplosion()
-	self:Explode()
+	if self:IsValid() then
+		self:Explode()
+	else end
 end
 
 function ENT:Explode()
-	if self:GetOwner() != nil then
-		self.explosion = self:GetOwner()
-	else
-		self.explosion = self
-	end
-	self:EmitSound("draconic.ExplosionSmallGeneric")
-	local explo = ents.Create("env_explosion")
-		explo:SetOwner(self.explosion)
-		explo:SetPos(self.Entity:GetPos())
-		explo:SetKeyValue("iMagnitude", "25")
-		explo:SetKeyValue("radius", "200")
-		explo:Spawn()
-		explo:Activate()
-		explo:Fire("Explode", "", 0)
-	util.BlastDamage(self, self.explosion, self:GetPos(), 120, self.Damage)
-	util.ScreenShake( Vector( self:GetPos() ), (self.ExplodeShakePower / 2), self.ExplodeShakePower, self.ExplodeShakeTime, self.ExplodeShakeDistance )
-	timer.Simple(0.01, function() self:Remove() end)
+	if self:IsValid() then
+		if self:GetOwner() != nil then
+			self.explosion = self:GetOwner()
+		else
+			self.explosion = self
+		end
+		self:EmitSound("draconic.ExplosionSmallGeneric")
+		local explo = ents.Create("env_explosion")
+			explo:SetOwner(self.explosion)
+			explo:SetPos(self.Entity:GetPos())
+			explo:SetKeyValue("iMagnitude", "25")
+			explo:SetKeyValue("radius", "200")
+			explo:Spawn()
+			explo:Activate()
+			explo:Fire("Explode", "", 0)
+		util.BlastDamage(self, self.explosion, self:GetPos(), 120, self.Damage)
+		util.ScreenShake( Vector( self:GetPos() ), (self.ExplodeShakePower / 2), self.ExplodeShakePower, self.ExplodeShakeTime, self.ExplodeShakeDistance )
+		timer.Simple(0.01, function() self:Remove() end)
+	else end
 end

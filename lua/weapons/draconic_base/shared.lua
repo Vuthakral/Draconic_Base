@@ -237,6 +237,8 @@ SWEP.BlockType_DMG_MISSILEDEFENSE = 4
 
 -- ADDON COMPATIBILITY
 
+SWEP.CanTFALean = true
+
 SWEP.DManip_AllowFL = true
 
 SWEP.vFireLife = 2
@@ -1900,6 +1902,10 @@ end
 
 function SWEP:SetupDataTables()
 	self:NetworkVar("Bool", 0, "Shooting")
+end
+
+function SWEP:GetIronSights()
+	if self.Weapon:GetNWBool("ironsights") == true && self.CanTFALean == true then return true else return false end
 end
 
 -- SCK

@@ -1,10 +1,8 @@
-# Draconic SWEP Base
+# Draconic Base
 
 _____
 
-This is a SWEP Base made by Vuthakral, for the game "Garry's Mod".
-
-The intent & goal of this SWEP base is to offer developers of both low & high levels an in-depth weapon base that uses as little network usage as possible while still enabling complete freedom of these content developers to do anything they want.
+This is a framework base made by Vuthakral for the game "Garry's Mod". The Draconic Base provides a competent and lightweight weapon base, playermodel extensions, stuff for extra visual effects, and a physical object projectile base with a ton of features, and some smaller less notable things.
 
 _____
 
@@ -14,5 +12,3 @@ tl;dr don't reupload my code, kthx.
 > Steam Workshop Page: [https://steamcommunity.com/sharedfiles/filedetails/?id=1847505933](https://steamcommunity.com/sharedfiles/filedetails/?id=1847505933)
 
 > GitHub Wiki for this SWEP Base: [https://github.com/Vuthakral/Draconic_SWEP_Base/wiki](https://github.com/Vuthakral/Draconic_SWEP_Base/wiki)
-
-> Discord Server: [https://discord.gg/6Y7WXrX](https://discord.gg/6Y7WXrX)

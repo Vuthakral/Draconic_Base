@@ -1,13 +1,9 @@
-"Refract"
+"UnlitGeneric"
 {
-	"$model"			"1"
-	"$normalmap"		"overlays\draconic_scope_refract"
- 	"$refractamount"		"0.5"
- 	"$bluramount"		"0"
-	"$scale"			"[1 1]"
-	"$RefractTintTexture"	"overlays\draconic_scope"
-	"$translucent"		"0"
-	"$ignorez"		"0"
-	"$no_fullbright"		"0"	
+	"$BaseTexture"	"overlays\draconic_scope"
+	"$translucent" "1"
+	"$vertexcolor" "1"
+	"$vertexalpha" "1"
+	"$ignorez"     "1"
 }
 

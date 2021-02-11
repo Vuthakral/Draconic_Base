@@ -3,7 +3,7 @@ if CLIENT or SERVER then
 	AddCSLuaFile("shared.lua")
 
 	include("shared.lua")
-	include("ai_translations.lua")
+	include("sh_funcs.lua")
 end
 
 if SERVER then

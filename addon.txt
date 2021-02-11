@@ -1,0 +1,6 @@
+"AddonInfo"
+{
+	"name" "Draconic Base"
+	"author_name" "Vuthakral"
+	"info" " { 	"description": "", 	"type": "", 	"":  	[ 		"" 	] }"
+}

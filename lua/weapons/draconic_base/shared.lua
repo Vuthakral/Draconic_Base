@@ -1,47 +1,26 @@
---[[
+--[[     I M P O R T A N T
 
-	GITHUB :: https://github.com/Vuthakral/Draconic_SWEP_Base
-	Report issues you find THERE ^ and not on the Garry's Mod workshop, please and thank you.
+Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.
+https://github.com/Vuthakral/Draconic_Base/wiki
 
-	// CREDITS //
-		Vuthakral: http://steamcommunity.com/profiles/76561198050250649
-	- SWEP Base, everything except for:
-	
-		Wingblast: http://steamcommunity.com/profiles/76561198065151971
-	- Dynamic movement of viewmodels based on eye angles (the up/down adjust)
-	
-		Gluk SWEP melee pack ( shoutout: https://steamcommunity.com/sharedfiles/filedetails/?id=1630549918&searchtext=Gluk )
-	- Nothing was directly taken from this addon, but I did use it to see how they did melee code so I could make my own, since facepunch is ded
-	
-		Clavus: http://steamcommunity.com/profiles/76561197970953315
-	- Creation of the immensely handy SWEP construction kit, which is of course supported by this base.
-	
-		Vioxtar: http://steamcommunity.com/profiles/76561197986874627
-	- Created vFire flamethrower which allowed me to integrate vFire flamethrower systems into the base.
-	
+It contains all of the settings, explanations on how to use them, tutorials, helpful links, etc.
+
 --]]
 
-if ( SERVER ) then
-	util.AddNetworkString( "LightOn" )
-	util.AddNetworkString( "LightOff" )
-end
-
-SWEP.Gun				= "draconic_base"
-
-if ( CLIENT ) then
-	SWEP.WepSelectIcon = surface.GetTextureID( "vgui/entities/drc_default" )
-end
-
 SWEP.HoldType			= "default"
-SWEP.CrouchHoldType		= "default"
-SWEP.IdleSequence		= "idle"
-SWEP.WalkSequence		= "idle"
+SWEP.CrouchHoldType		= nil
+SWEP.Contact			= "Steam: Vuthakral \nDiscord: Vuthakral#9761 "
+SWEP.Purpose			= ""
+SWEP.Instructions		= ""
+SWEP.WepSelectIcon 		= "vgui/entities/drc_default"
+
 SWEP.Category			= "Draconic"
 SWEP.PrintName			= "Draconic Base"
-SWEP.Auhtor				= "Vuthakral"
-SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
-SWEP.Purpose			= "SWEP Base"
-SWEP.Instructions		= "open rectum & insert"
+SWEP.Author				= "Vuthakral"
+SWEP.InfoName			= nil
+SWEP.Manufacturer		= nil
+SWEP.InfoDescription	= nil
+SWEP.HasSerial			= false
 
 SWEP.Spawnable			= false
 SWEP.AdminSpawnable		= false
@@ -53,6 +32,15 @@ SWEP.Weight				= 1
 SWEP.Slot				= 0
 SWEP.SlotPos			= 0
 
+SWEP.CrosshairColor		= Color(255, 255, 255, 255)
+SWEP.CrosshairShadow	= false
+SWEP.CrosshairStatic	= nil
+SWEP.CrosshairDynamic	= nil
+SWEP.CrosshairCorrectX	= 1
+SWEP.CrosshairCorrectY	= 1
+SWEP.CrosshairSizeMul	= 1
+SWEP.CrosshairNoIronFade = false
+
 SWEP.ViewModelFOV		= 54
 SWEP.ViewModelFlip		= false
 SWEP.DrawAmmo			= true
@@ -60,75 +48,69 @@ SWEP.DrawAmmo			= true
 SWEP.WallHax	= false
 SWEP.InfAmmo	= false
 
-SWEP.EmitsLight = false
-SWEP.LightSSide = false
-SWEP.LightColR = 40
-SWEP.LightColG = 40
-SWEP.LightColB = 40
-
 SWEP.UseHands			= true
+SWEP.DoesPassiveSprint	= false
 SWEP.ViewModel			= ""
 SWEP.WorldModel			= ""
 SWEP.VMPos = Vector(0, 0, 0)
 SWEP.VMAng = Vector(0, 0, 0)
+SWEP.VMPosCrouch = Vector(0, 0, 0)
+SWEP.VMAngCrouch = Vector(0, 0, 0)
+SWEP.LoweredVMPos = Vector(0, 0, 0)
+SWEP.LoweredVMAng = Vector(0, 0, 0)
 SWEP.IronSightsPos = Vector(0, 0, 0)
 SWEP.IronSightsAng = Vector(0, 0, 0)
 SWEP.PassivePos = Vector(5, 0, 3)
 SWEP.PassiveAng = Vector(-15, 25, 0)
-SWEP.SS = 0
+SWEP.InspectPos = Vector(3, 2, -2.5)
+SWEP.InspectAng = Vector(15, 15, 0)
+SWEP.SprintPos = Vector(5, 0, 3)
+SWEP.SprintAng = Vector(-15, 25, 0)
+SWEP.CurPos = Vector(0, 0, 0) -- overwrites itself, do not use
+SWEP.CurAng = Vector(0, 0, 0) -- overwrites itself, do not use
+SWEP.SS = 1
 SWEP.BS = 1
 SWEP.InspectDelay = 0.5
+
+SWEP.Thirdperson = false
 
 SWEP.IdleActivity = ACT_VM_IDLE
 SWEP.CrouchIdleActivity = ACT_VM_IDLE
 
 SWEP.FireModes_SwitchSound = Sound("Weapon_AR2.Empty")
 
-SWEP.Secondary.CanBlock				= false
-SWEP.Secondary.CanBlockCrouched		= false
-SWEP.Secondary.BlockKeyInput		= IN_USE
-SWEP.Secondary.BlockHoldType		= "melee2"
-SWEP.Secondary.BlockHoldTypeCrouch	= "melee2"
-SWEP.Secondary.BlockActivity		= ACT_VM_IDLE_EMPTY_LEFT
-SWEP.Secondary.DamageBlockMult		= 0.5
-SWEP.Secondary.BlockBreakDelay		= 0.72
-SWEP.Secondary.BlockingWalkSpeed	= 170
-SWEP.Secondary.BlockingSprintSpeed	= 170
+-- CHARGE SETTINGS
+SWEP.Primary.UsesCharge = false
+SWEP.Secondary.UsesCharge = false
 
--- Recognized block types: 1: passthrough (none), 2: reduce (SWEP.Secondary.DamageBlockMult), 3: block (negates all damage), 4: breakblock (forces player out of block)
-SWEP.BlockType_DMG_GENERIC		= 3
-SWEP.BlockType_DMG_CRUSH		= 2
-SWEP.BlockType_DMG_BULLET		= 1
-SWEP.BlockType_DMG_SLASH		= 2
-SWEP.BlockType_DMG_BURN			= 1
-SWEP.BlockType_DMG_VEHICLE		= 4
-SWEP.BlockType_DMG_FALL			= 4
-SWEP.BlockType_DMG_BLAST		= 4
-SWEP.BlockType_DMG_CLUB			= 2
-SWEP.BlockType_DMG_SHOCK		= 1
-SWEP.BlockType_DMG_SONIC		= 1
-SWEP.BlockType_DMG_ENERGYBEAM	= 1
-SWEP.BlockType_DMG_PREVENT_PHYSICS_FORCE = 2
-SWEP.BlockType_DMG_NEVERGIB		= 2
-SWEP.BlockType_DMG_ALWAYSGIB	= 4
-SWEP.BlockType_DMG_DROWN		= 1
-SWEP.BlockType_DMG_PARALYZE		= 1
-SWEP.BlockType_DMG_NERVEGAS		= 1
-SWEP.BlockType_DMG_POISON		= 1
-SWEP.BlockType_DMG_RADIATION	= 1
-SWEP.BlockType_DMG_DROWNRECOVER	= 1
-SWEP.BlockType_DMG_ACID			= 1
-SWEP.BlockType_DMG_SLOWBURN		= 1
-SWEP.BlockType_DMG_REMOVENORAGDOLL = 4
-SWEP.BlockType_DMG_PHYSGUN 		= 4
-SWEP.BlockType_DMG_PLASMA 		= 1
-SWEP.BlockType_DMG_AIRBOAT 		= 4
-SWEP.BlockType_DMG_DISSOLVE 	= 4
-SWEP.BlockType_DMG_BLAST_SURFACE = 4
-SWEP.BlockType_DMG_BLAST_DIRECT = 1
-SWEP.BlockType_DMG_BUCKSHOT 	= 4
-SWEP.BlockType_DMG_SNIPER 		= 1
-SWEP.BlockType_DMG_MISSILEDEFENSE = 4
+SWEP.ChargeRate		= 10
+SWEP.ChargeHoldDrain = 0.25
+
+SWEP.ChargeType = "dualheld"
+
+SWEP.ChargeSound = Sound("draconic.ChargeGeneric")
+
+SWEP.OCNumShots 		= 1
+SWEP.OCSpread			= 0
+SWEP.OCSpreadDiv		= 200
+SWEP.OCKick				= 0.36
+SWEP.OCRecoilUp			= 0.06
+SWEP.OCRecoilDown		= 0.03
+SWEP.OCRecoilHoriz		= 8
+SWEP.OCIronRecoilMul	= 1
+SWEP.OCForce			= 9
+SWEP.OCDamage			= 12
+SWEP.OCAPS				= 1
+SWEP.OCHPS				= 100
+SWEP.OCHealthPerShot	= 0
+SWEP.OCArmourPerShot	= 0
+SWEP.OCTracer			= "4"
+SWEP.OCSound 			= Sound("")
+SWEP.OCDistSound 		= Sound("")
+SWEP.OCSoundDist 		= 3500
+SWEP.OCNPCSound 		= nil
+SWEP.OCProjectile = nil
+SWEP.OCProjSpeed = 500
 
 SWEP.SprintSoundStand		= Sound( "" )
 SWEP.DoSSStandFwd			= false
@@ -148,51 +130,53 @@ SWEP.DoSJCrouchSBack		= false
 SWEP.DoSJCrouchLeft			= false
 SWEP.DoSJCrouchhRight		= false
 
-SWEP.SpeedStandForward		= 0
-SWEP.SpeedStandBack			= 0
-SWEP.SpeedStandLeft			= 0
-SWEP.SpeedStandRight		= 0
+SWEP.SpeedStandForward		= nil
+SWEP.SpeedStandBack			= nil
+SWEP.SpeedStandLeft			= nil
+SWEP.SpeedStandRight		= nil
 
-SWEP.SpeedCrouchForward		= 0
-SWEP.SpeedCrouchBack		= 0
-SWEP.SpeedCrouchLeft		= 0
-SWEP.SpeedCrouchRight		= 0
+SWEP.SpeedCrouchForward		= nil
+SWEP.SpeedCrouchBack		= nil
+SWEP.SpeedCrouchLeft		= nil
+SWEP.SpeedCrouchRight		= nil
 
-SWEP.SpeedSprintStandForward	= 0
-SWEP.SpeedSprintStandBack		= 0
-SWEP.SpeedSprintStandLeft		= 0
-SWEP.SpeedSprintStandRight		= 0
+SWEP.SpeedSprintStandForward	= nil
+SWEP.SpeedSprintStandBack		= nil
+SWEP.SpeedSprintStandLeft		= nil
+SWEP.SpeedSprintStandRight		= nil
 
-SWEP.SpeedSprintCrouchForward	= 0
-SWEP.SpeedSprintCrouchBack		= 0
-SWEP.SpeedSprintCrouchLeft		= 0
-SWEP.SpeedSprintCrouchRight		= 0
+SWEP.SpeedSprintCrouchForward	= nil
+SWEP.SpeedSprintCrouchBack		= nil
+SWEP.SpeedSprintCrouchLeft		= nil
+SWEP.SpeedSprintCrouchRight		= nil
 
-SWEP.StandingJumpHeightFront			= 0
-SWEP.StandingJumpHeightBack				= 0
-SWEP.StandingJumpHeightLeft				= 0
-SWEP.StandingJumpHeightRight			= 0
+SWEP.StandingJumpHeightFront			= nil
+SWEP.StandingJumpHeightBack				= nil
+SWEP.StandingJumpHeightLeft				= nil
+SWEP.StandingJumpHeightRight			= nil
 
-SWEP.CrouchingJumpHeightFront			= 0
-SWEP.CrouchingJumpHeightBack			= 0
-SWEP.CrouchingJumpHeightLeft			= 0
-SWEP.CrouchingJumpHeightRight			= 0
+SWEP.CrouchingJumpHeightFront			= nil
+SWEP.CrouchingJumpHeightBack			= nil
+SWEP.CrouchingJumpHeightLeft			= nil
+SWEP.CrouchingJumpHeightRight			= nil
 
-SWEP.StandingSprintJumpHeightFront		= 0
-SWEP.StandingSprintJumpHeightBack		= 0
-SWEP.StandingSprintJumpHeightLeft		= 0
-SWEP.StandingSprintJumpHeightRight		= 0
+SWEP.StandingSprintJumpHeightFront		= nil
+SWEP.StandingSprintJumpHeightBack		= nil
+SWEP.StandingSprintJumpHeightLeft		= nil
+SWEP.StandingSprintJumpHeightRight		= nil
 
-SWEP.CrouchingSprintJumpHeightFront		= 0
-SWEP.CrouchingSprintJumpHeightBack		= 0
-SWEP.CrouchingSprintJumpHeightLeft		= 0
-SWEP.CrouchingSprintJumpHeightRight		= 0
+SWEP.CrouchingSprintJumpHeightFront		= nil
+SWEP.CrouchingSprintJumpHeightBack		= nil
+SWEP.CrouchingSprintJumpHeightLeft		= nil
+SWEP.CrouchingSprintJumpHeightRight		= nil
 
 SWEP.Idle = 0
 SWEP.IdleTimer = CurTime()
 SWEP.IsTaunting = 0
 SWEP.TauntCooldown = 1
 SWEP.PassiveHealing			= ""
+SWEP.BreathCycle			= ""
+SWEP.AmmoRegen				= ""
 SWEP.FallDamage				= true
 SWEP.NoFallDamageCrouchOnly = true
 SWEP.HealthRegen 			= false
@@ -200,40 +184,41 @@ SWEP.HealAmount				= 1
 SWEP.HealInterval			= 1
 SWEP.WeaponIdleLoopSound 	= ("")
 SWEP.FireMode	= "none"
+SWEP.OwnerActivity = "standidle"
 
-SWEP.BlockType_DMG_GENERIC		= 3
-SWEP.BlockType_DMG_CRUSH		= 2
-SWEP.BlockType_DMG_BULLET		= 1
-SWEP.BlockType_DMG_SLASH		= 2
-SWEP.BlockType_DMG_BURN			= 1
-SWEP.BlockType_DMG_VEHICLE		= 4
-SWEP.BlockType_DMG_FALL			= 4
-SWEP.BlockType_DMG_BLAST		= 4
-SWEP.BlockType_DMG_CLUB			= 2
-SWEP.BlockType_DMG_SHOCK		= 1
-SWEP.BlockType_DMG_SONIC		= 1
-SWEP.BlockType_DMG_ENERGYBEAM	= 1
-SWEP.BlockType_DMG_PREVENT_PHYSICS_FORCE = 2
-SWEP.BlockType_DMG_NEVERGIB		= 2
-SWEP.BlockType_DMG_ALWAYSGIB	= 4
-SWEP.BlockType_DMG_DROWN		= 1
-SWEP.BlockType_DMG_PARALYZE		= 1
-SWEP.BlockType_DMG_NERVEGAS		= 1
-SWEP.BlockType_DMG_POISON		= 1
-SWEP.BlockType_DMG_RADIATION	= 1
-SWEP.BlockType_DMG_DROWNRECOVER	= 1
-SWEP.BlockType_DMG_ACID			= 1
-SWEP.BlockType_DMG_SLOWBURN		= 1
-SWEP.BlockType_DMG_REMOVENORAGDOLL = 4
-SWEP.BlockType_DMG_PHYSGUN 		= 4
-SWEP.BlockType_DMG_PLASMA 		= 1
-SWEP.BlockType_DMG_AIRBOAT 		= 4
-SWEP.BlockType_DMG_DISSOLVE 	= 4
-SWEP.BlockType_DMG_BLAST_SURFACE = 4
-SWEP.BlockType_DMG_BLAST_DIRECT = 1
-SWEP.BlockType_DMG_BUCKSHOT 	= 4
-SWEP.BlockType_DMG_SNIPER 		= 1
-SWEP.BlockType_DMG_MISSILEDEFENSE = 4
+SWEP.Primary.LightColor 		= Color(255, 255, 30)
+SWEP.Primary.LightBrightness	= 1
+SWEP.Primary.LightSize			= 50
+SWEP.Primary.LightDecayTime		= 1000
+
+SWEP.Secondary.LightColor 		= Color(255, 255, 30)
+SWEP.Secondary.LightBrightness	= 1
+SWEP.Secondary.LightSize		= 50
+SWEP.Secondary.LightDecayTime	= 1000
+
+SWEP.OCLightColor 		= Color(255, 255, 30)
+SWEP.OCLightBrightness	= 1
+SWEP.OCLightSize		= 50
+SWEP.OCLightDecayTime	= 1000
+
+SWEP.Glow			= false
+SWEP.GlowColor		= Color(255, 255, 255)
+SWEP.GlowBrightness	= 1
+SWEP.GlowDecay		= 1000
+SWEP.GlowSize		= 150
+SWEP.GlowStyle		= 0
+
+SWEP.Secondary.ScopeMat	= "overlays/draconic_scope"
+SWEP.Secondary.Q2Mat	= nil
+SWEP.Secondary.Q3Mat	= nil
+SWEP.Secondary.Q4Mat	= nil
+SWEP.Secondary.ScopeBlur = false
+SWEP.Secondary.ScopeBGCol = Color(0, 0, 0, 255)
+SWEP.Secondary.ScopeScale	= 1
+SWEP.Secondary.ScopeWidth	= 1
+SWEP.Secondary.ScopeHeight	= 1
+
+SWEP.Secondary.Disabled = false
 
 -- ADDON COMPATIBILITY
 
@@ -249,33 +234,45 @@ SWEP.vFireStopSound = Sound("draconic.vFireStopGeneric")
 SWEP.Primary.isvFire = false
 SWEP.Secondary.isvFire = false
 
--- Everything past this is code for DSB
+-- Everything past this is code for DSB. DO NOT TOUCH IN YOUR WEAPONS.
 
 SWEP.Draconic = true
+SWEP.IsOverheated = false
+SWEP.SightsDown = false
+SWEP.BloomValue = 0
+SWEP.PrevBS = 0
+SWEP.VariablePos = Vector(0, 0, 0)
+SWEP.CRPo = Vector(0, 0, 0)
+SWEP.PRPos = Vector(0, 0, 0)
+SWEP.SPRPos = Vector(0, 0, 0)
+SWEP.IRPos = Vector(0, 0, 0)
+SWEP.VARPos = Vector(0, 0, 0)
+SWEP.VariableAng = Vector(0, 0, 0)
+SWEP.CRPo = Vector(0, 0, 0)
+SWEP.PRAng = Vector(0, 0, 0)
+SWEP.SPRAng = Vector(0, 0, 0)
+SWEP.IRAng = Vector(0, 0, 0)
+SWEP.VARAng = Vector(0, 0, 0)
+SWEP.Sound = Sound("")
+SWEP.DistSound = Sound("")
+SWEP.Passive = false
+SWEP.Inspecting = false
+SWEP.Idle = 0
+SWEP.Loading = false
+SWEP.ManuallyReloading = false
+SWEP.PistolSlide = 1
+SWEP.NPCBursting = false
+SWEP.NPCCharging = false
 
 function SWEP:DoDrawCrosshair( x, y )
-	surface.SetDrawColor( 0, 0, 0, 0 )
---	surface.DrawOutlinedRect( x -32, y -32, 64, 64 )
 	return true
 end
 
-function SWEP:Initialize()
-	local ply = self:GetOwner()
-		if ply:EntIndex() == 0 then
-			self:SetHoldType(self.HoldType)
-		elseif ply:IsPlayer() then
-			self:SetHoldType(self.HoldType)
-		elseif ply:IsNPC() then
-			self:SetHoldType(self.HoldType)
-		else end
-	
-	self:DoCustomInitialize()
-	self:SetNWInt("Heat", 0)
-	self:GetNWString("DebugSpread", 0)
-	self:SetNWBool("Passive", false)
-	self.Passive = false
-	
-	
+function SWEP:DrawWorldModelTranslucent()
+	self:DrawModel()
+end
+
+function SWEP:InitialFireMode()
 	if self.Primary.Automatic == false then
 		self.Weapon:SetNWString("FireMode", "Semi")
 	elseif self.Primary.Automatic == true && self.FireModes_CanAuto == true then
@@ -289,17 +286,70 @@ function SWEP:Initialize()
 	else 
 		self.Weapon:SetNWString("FireMode", "Semi")
 	end
+end
+
+function SWEP:Initialize()
+	local ply = self:GetOwner()
+	if !game.SinglePlayer() then self:CallOnClient("Initialize") end
+	
+	self:SetHoldType(self.HoldType)
+	self:SetNWBool("Passive", false)
+	self:SetNWBool("Inspecting", false)
+	
+	if self.Primary.Ammo != nil && self:GetOwner():IsNPC() && !self.IsMelee then
+		if self.Primary.Ammo != "CombineHeavyCannon" then
+			self.NPCBurstShots = self.Primary.ClipSize * (60 / self.Primary.RPM)
+		else
+			self.NPCBurstShots = (100 / self.BatteryConsumPerShot) * (60 / self.Primary.RPM)
+			print((100 / self.BatteryConsumPerShot) * (60 / self.Primary.RPM))
+		end
+	end
+	
+	-- Ivan's Nextbot compatiblity, DO NOT TOUCH OR USE.
+	if self.Primary.Ammo != nil && self:GetOwner():IsNextBot() then
+		self.Weapon.HoldType_Aim = self.HoldType
+		self.Weapon.Primary.Delay = 60 / self.Primary.RPM
+		if self.Primary.Ammo != "CombineHeavyCannon" then
+			self.BurstLength = self.Primary.ClipSize * (60 / self.Primary.RPM)
+			self.NPCBurstShots = self.Primary.ClipSize * (60 / self.Primary.RPM)
+		else
+			self.BurstLength = (100 / self.BatteryConsumPerShot) * (60 / self.Primary.RPM)
+			self.NPCBurstShots = (100 / self.BatteryConsumPerShot) * (60 / self.Primary.RPM)
+		end
+	end
+	-- end
+
+	if ply:IsPlayer() then
+		local vm = ply:GetViewModel()
+		if not vm:IsValid() then return end
+		vm:SetPlaybackRate( 1 )
+	end
+	
+	-- VJ NPC Compatibility
+	if (ply.IsVJBaseSNPC == true or ply.IsVJBaseSNPC_Human == true) then
+		if ply.IsVJBaseSNPC != nil then
+			self:SetupVJSupport()
+		end
+	end
+	
+	self:DoCustomInitialize()
+	self:InitialFireMode()
+	
+	if self.LoopFireSound == nil && self.Primary.LoopingFireSound != nil then
+		self.LoopFireSound = CreateSound(self, self.Primary.LoopingFireSound)
+	end
 	
 	if self.Primary.Ammo != nil then
-		self.Weapon:SetNWInt("LoadedAmmo", self.Primary.DefaultClip)
+		self.Weapon:SetNWInt("LoadedAmmo", self.Weapon:Clip1() )
+		
+	--	if game.SinglePlayer() && CLIENT && self.Primary.TracerEffect != nil then
+	--		DRCNotify(self, "hint", "warning", "This weapon uses scripted effects. These do not work in singleplayer. \nPlay your game as a local server to avoid this error.", NOTIFY_ERROR, 10, "buttons/button16.wav")
+	--		timer.Simple(10, function() DRCNotify(self, "hint", "notification", "Disable error hints at any time from ''Draconic Base'' in your context menu.", nil, 10) end)
+	--	end
 	else end
 	
-	if SERVER then
-		self:SetShooting(false)
-	end
-
 	-- SCK Stuff
-	if CLIENT && self:GetOwner():IsPlayer() then
+	if CLIENT && ply then
 	
 		-- Create a new table for every weapon instance
 		self.VElements = table.FullCopy( self.VElements )
@@ -308,8 +358,7 @@ function SWEP:Initialize()
 		self:CreateModels(self.VElements) // create viewmodels
 		self:CreateModels(self.WElements) // create worldmodels
 		
-		-- init view model bone build function
-		if IsValid(self.Owner) then
+		if IsValid(ply) && ply:IsPlayer() then
 			local vm = self.Owner:GetViewModel()
 			if IsValid(vm) then
 				self:ResetBonePositions(vm)
@@ -333,174 +382,105 @@ end
 function SWEP:DoCustomInitialize()
 end
 
+FireTime = CurTime()
 function SWEP:Think()
-local ply = self:GetOwner()
-local cv = ply:Crouching()
-local vm = ply:GetViewModel()
+	local ply = self:GetOwner()
+	local cv = ply:Crouching()
+	local vm = ply:GetViewModel()
+	local hands = ply:GetHands()
 
-self:DoCustomThink()
+	self:DoCustomThink()
 
-	if GetConVar("sv_drc_movement"):GetString() == "1" then
-		self:UpdateMovement()
-	else end
+	if self.Loading == false && self.ManuallyReloading == false && self.Inspecting == false && self.IsOverheated == false then
+		self:ManageAnims()
+	end
 
-self.ScopeHookID = "DRC_Scope_" .. ply:Name() .. ""
-
-if CLIENT or SERVER then
-	if ply:IsNPC() then
-		self:SetHoldType( self.HoldType )
-	else end
-else end
+	if CLIENT then
+		local wl = ply:WaterLevel()
+		local oa = self.OwnerActivity
+		
+		if (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && cv == false && wl <= 2 then
+			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "sprinting"
+			else self.OwnerActivity = "running" end
+		elseif (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && cv == true && wl <= 2 then
+			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "crouchsprinting"
+			else self.OwnerActivity = "crouchrunning" end
+		elseif (!ply:KeyDown(IN_MOVELEFT) or !ply:KeyDown(IN_MOVERIGHT) or !ply:KeyDown(IN_BACK) or !ply:KeyDown(IN_FORWARD)) && cv == false && wl <= 2 then
+			self.OwnerActivity = "standidle"
+		elseif (!ply:KeyDown(IN_MOVELEFT) or !ply:KeyDown(IN_MOVERIGHT) or !ply:KeyDown(IN_BACK) or !ply:KeyDown(IN_FORWARD)) && cv == true && wl <= 2 then
+			self.OwnerActivity = "crouchidle"
+		elseif (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_JUMP)) && wl > 2 then
+			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "fastswimming"
+			else self.OwnerActivity = "swimming" end
+		elseif (!ply:KeyDown(IN_MOVELEFT) or !ply:KeyDown(IN_MOVERIGHT) or !ply:KeyDown(IN_BACK) or !ply:KeyDown(IN_FORWARD)) && wl > 2 then
+			self.OwnerActivity = "swimidle"
+		end
+	end
 	
-if CLIENT or SERVER then
-	if self.Secondary.Ironsights == true && self.IronCD == false && !ply:KeyDown(self.Secondary.BlockKeyInput) then
-		if ply:KeyPressed(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == false && self.IronCD == false && self.Passive == false then
+	if self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
+		--if ply:KeyPressed(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == false && self.Weapon:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
+		if ply:KeyPressed(IN_ATTACK2) == true && self.SightsDown == false && self.Weapon:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
 			self:SetIronsights(true, self.Owner)
-			ply:SetFOV(self.Secondary.IronFOV, self.Secondary.ScopeZoomTime)
+			ply:SetFOV(ply:GetFOV() * (self.Secondary.IronFOV / 100), self.Secondary.ScopeZoomTime)
 			self:AdjustMouseSensitivity()
-			self.Weapon:SetNWBool("ironsights", true )
 			self:IronCoolDown()
 			ply:EmitSound("draconic.IronInGeneric")
-		elseif ply:KeyReleased(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == true && self.IronCD == false then
-			self.Weapon:SetNWBool("ironsights", false )
+			if CLIENT && self.Secondary.IronInFP != nil then
+				surface.PlaySound(Sound(self.Secondary.IronInFP))
+			else end
+		--elseif ply:KeyReleased(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == true && self.IronCD == false && !ply:KeyDown(IN_USE) then
+		elseif ply:KeyReleased(IN_ATTACK2) == true && self.SightsDown == true && self.IronCD == false && !ply:KeyDown(IN_USE) then
 			self:SetIronsights(false, self.Owner)
 			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
 			ply:EmitSound("draconic.IronOutGeneric")
+			if CLIENT && self.Secondary.IronOutFP != nil then
+				surface.PlaySound(Sound(self.Secondary.IronOutFP))
+			else end
 		end
-	elseif self.Secondary.Ironsights == false or self.IronCD == true then
+	elseif self:CanUseSights() && self.Secondary.Ironsights == false or self.IronCD == true or self.Loading == true then
 		self:SetIronsights(false, self.Owner)
 	end
 	
-	if CLIENT && self.Weapon:GetNWBool("ironsights") == false then
-		hook.Remove("HUDPaint", self.ScopeHookID)
-	else end
-	
-	if CLIENT && self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true then
+	if CLIENT && self.ScopeUp == false && self.Secondary.Scoped == true then
 		self.ScopeUp = true
-		hook.Add("HUDPaint", self.ScopeHookID, function()
-		local scrH = surface.ScreenHeight()
-		local scrW = surface.ScreenWidth()
-		local scopeWidth = ( 4 / 3 ) * scrH
-		
-		surface.SetDrawColor( 255, 255, 255, 255 )
-		surface.SetTexture( surface.GetTextureID(self.Secondary.ScopeMat))
-		surface.DrawTexturedRect( 0, 0, scrW, scrH  )
-		end )
-	elseif CLIENT && self.Weapon:GetNWBool("ironsights") == false then
-		hook.Remove("HUDPaint", self.ScopeHookID)
+	elseif CLIENT && self.ScopeUp == true then
 		self.ScopeUp = false
 	end
-end
 	
-		if ply:GetVelocity():Length() > 0 && ply:OnGround() then
-		self.Idle = 0
-		elseif ply:GetVelocity():Length() < 1 or !ply:OnGround() then
-		self.Idle = 1
-		end
-		
-	if self.IdleTimer <= CurTime() && self.Loading == false && self.ManuallyReloading == false && self.Inspecting == 0 then
-		
-			local curSeq = vm:GetSequence()
-			local seqInfo = vm:GetSequenceInfo(curSeq)
-			local walkSeq = vm:LookupSequence(self.WalkSequence)
-			local idleSeq = vm:LookupSequence(self.IdleSequence)
-			local walkSeqDur = vm:SequenceDuration(walkSeq)
-			local idleSeqDur = vm:SequenceDuration(idleSeq)
-		
-		if seqInfo.label == idle01 && ply:GetVelocity():Length() > 0 && ply:OnGround() then
-			vm:SendViewModelMatchingSequence(walkSeq)
-		elseif seqInfo.label == walk && ply:GetVelocity():Length() < 1 && ply:OnGround() then
-			vm:SendViewModelMatchingSequence(idleSeq)
-		elseif seqInfo.label == walk && ply:GetVelocity():Length() >= 1 && ply:OnGround() then
-		end
-			
-		if ply:GetVelocity():Length() < 1 && ply:OnGround() then
-			self.IdleTimer = CurTime() + idleSeqDur
-			vm:SendViewModelMatchingSequence(idleSeq)
-		elseif ply:GetVelocity():Length() > 0 && ply:OnGround() then
-			self.IdleTimer = CurTime() + walkSeqDur
-			vm:SendViewModelMatchingSequence(walkSeq)
-		end
-	end 
-	
-	if self.IsBlocking == 1 && ply:GetNWBool("IsAttacking") == false then
-			if cv == false then
-				if CLIENT or SERVER then
-	--			self:SetHoldType( self.Secondary.BlockHoldType )
-				self.Weapon:SendWeaponAnim( self.Secondary.BlockActivity )
-				end
-			elseif cv == true then
-				if CLIENT or SERVER then
-				self:SetHoldType( self.Secondary.BlockHoldTypeCrouch )
-				self.Weapon:SendWeaponAnim( self.Secondary.BlockActivity )
-				end
-			end
-		ply:SetNWBool( "IsBlocking", true )
-	elseif self.IsBlocking == 0 && ply:GetNWBool("IsAttacking") == false then
-			if cv == false then
-				if CLIENT or SERVER then
-	--			self:SetHoldType( self.HoldType )
-				end
-			elseif cv == true then
-				if CLIENT or SERVER then
-	--			self:SetHoldType( self.CrouchHoldType )
-				end
-			end
-		ply:SetNWBool( "IsBlocking", false )
-	elseif self.IsBlocking == 0 && !ply:GetNWBool("IsAttacking") == false then
-	end
-	
-	--					if ply:GetNWBool("IsBlocking") == true then
-	--						ply:ChatPrint("Blocking")
-	--					elseif ply:GetNWBool("IsBlocking") == false then
-	--						ply:ChatPrint("Not Blocking")
-	--					end
-	
-	if CLIENT then
-		if self.WallHax == true then
-		self:PlayerHalos()
-		elseif self.WallHax == false then
-		end
-	end
-	
-	if CLIENT or SERVER then
-	local ply = self:GetOwner()
-		if ply:Health() < 1 then
---			hook.Remove( "Move",self.Weapon.HookUID_1 )
---			hook.Remove( "Move",self.Weapon.HookUID_2 )
---			hook.Remove( "Move",self.Weapon.HookUID_3 )
---			hook.Remove( "Move",self.Weapon.HookUID_4 )
---			hook.Remove( "Think",self.Weapon.HookUID_5 )
-			hook.Remove( "EntityTakeDamage",self.Weapon.HookUID_6 )
-		else
-		end
-	end
-	
-		if self.Secondary.CanBlock == true then
-			if ply:KeyReleased(self.Secondary.BlockKeyInput) then
-				self.IsBlocking = 0
-				ply:SetNWBool("IsBlocking", false)
-			elseif ply:KeyDown(self.Secondary.BlockKeyInput) && ply:KeyDown(IN_ATTACK2) && cv == false then
-				if CLIENT or SERVER then
-				self.Weapon:SendWeaponAnim( self.Secondary.BlockActivity )
-				self:SetHoldType( self.Secondary.HoldType )
-				end
-				self:DoBlock()
-			elseif ply:KeyDown(self.Secondary.BlockKeyInput) && ply:KeyDown(IN_ATTACK2) && cv == true && self.Secondary.CanBlockCrouched == false then
-				self.IsBlocking = 0
-				ply:SetNWBool("IsBlocking", false)
-			elseif ply:KeyDown(self.Secondary.BlockKeyInput) && ply:KeyDown(IN_ATTACK2) && cv == true && self.Secondary.CanBlockCrouched == true then
-				if CLIENT or SERVER then
-				self.Weapon:SendWeaponAnim( self.Secondary.BlockActivity )
-				self:SetHoldType( self.Secondary.HoldType )
-				end
-				self:DoBlock()
-			end
-		elseif self.Secondary.CanBlock == false then
-		end
+--	if self.SightsDown == true && self.Secondary.Scoped == true then
+--		vm:SetMaterial("models/vuthakral/nodraw")
+--		hands:SetMaterial("models/vuthakral/nodraw")
+--	else
+--		vm:SetMaterial("")
+--		hands:SetMaterial("")
+--	end
 
-	if self:GetNextSecondaryFire() > CurTime() then return end
-	
+	if self.Primary.UsesCharge == true then
+		local m1p = ply:KeyPressed(IN_ATTACK)
+		local m1d = ply:KeyDown(IN_ATTACK)
+		local m1r = ply:KeyReleased(IN_ATTACK)
+		local charge = self.Weapon:GetNWInt("Charge")
+		local ukd = ply:KeyDown(IN_USE)
+			
+		if (SERVER or !game.IsDedicated()) && ply:IsPlayer() then
+			if game.SinglePlayer() && !IsFirstTimePredicted() then return end
+			if self.ChargeType == "dualheld" then
+				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then -- I've learned to stop questioning why shit doesn't work when it should. Namely because when I ask others why I get brushed off or bereated.
+					if FireTime < CurTime() then FireTime = CurTime() + 60 / self.Primary.RPM self:CallShoot("primary") end
+				elseif m1r && self:CanOvercharge() && self:CanPrimaryAttack() then self:CallShoot("overcharge") end
+			elseif self.ChargeType == "dualaction" then
+				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then self:CallShoot("primary") end
+			elseif self.ChargeType == "discharge" then
+				if m1d && self:CanPrimaryAttack() == true && self:CanOvercharge() && !ukd then
+					self:CallShoot("overcharge")
+				end
+			elseif self.ChargeType == "held" then
+				if m1r && self:CanOvercharge() then self:CallShoot("overcharge") end
+			elseif self.ChargeType == "default" then
+			end
+		end
+	end
+
 	if self.Weapon:GetNWBool("Passive") == true then
 		if self.LoopingFireSound != nil then
 			self.LoopingFireSound:Stop()
@@ -510,17 +490,46 @@ end
 		end
 	end
 	
-	if self.LoopingFireSound != nil then
+	if !game.IsDedicated() then
+		local oh = self.Weapon:GetNWBool("Overheated")
+	
+		if self.Primary.UsesCharge == true then
+			if ply:KeyPressed(IN_ATTACK) && self.Weapon:GetNWBool("Passive") == false && !ply:KeyDown(IN_USE) && self:CanPrimaryAttack() then
+				self:EmitSound(self.ChargeSound)
+			elseif !ply:KeyDown(IN_ATTACK) or oh == true then
+				self:StopSound(self.ChargeSound)
+			else end
+		end
+	
+		if self.Primary.LoopingFireSound != nil then
+			if ply:KeyPressed(IN_ATTACK) && self.Weapon:GetNWBool("Passive") == false && !ply:KeyDown(IN_USE) && oh == false && self.Weapon:Clip1() > 0 then
+				self:EmitSound(self.Primary.LoopingFireSoundIn)
+				-- self:EmitSound(self.Primary.LoopingFireSound)
+				self.LoopFireSound:Play()
+			else end
+			
+			if !ply:KeyDown(IN_ATTACK) or oh == true or ply:KeyPressed(IN_USE) then
+				--self:StopSound(self.Primary.LoopingFireSound)
+				self.LoopFireSound:Stop()
+			end
+
+			if self.Weapon:Clip1() > 0 then
+			if (ply:KeyReleased(IN_ATTACK) && !ply:KeyDown(IN_USE) && oh == false) or (ply:KeyDown(IN_ATTACK) && oh == false && ply:KeyPressed(IN_USE)) then
+				self:EmitSound(self.Primary.LoopingFireSoundOut)
+			end end
+		end
+	end
+	
+	if self.LoopingFireSound != nil && (self.Primary.isvFire == true or self.Secondary.isvFire == true) then
 		if (self.Owner:KeyReleased(IN_ATTACK) && self.Weapon:GetNWBool("Passive") == false || (!self.Owner:KeyDown(IN_ATTACK) && self.LoopingFireSound)) then
 			if self:CanPrimaryAttack() == true then
 				if (self.LoopingFireSound) then
-					self.LoopingFireSound:Stop()
+					self.LoopFireSound:Stop()
 					self.LoopingFireSound = nil
 					self:PlayCloseSound()
 					if (!game.SinglePlayer()) then self:CallOnClient("PlayCloseSound", "") end
 				end
 			else self.LoopingFireSound:Stop() end
-			self:SetShooting(false)
 		end
 	end
 	
@@ -534,550 +543,604 @@ end
 					if (!game.SinglePlayer()) then self:CallOnClient("PlayCloseSound", "") end
 				end
 			else self.LoopingFireSoundSecondary:Stop() end
-			self:SetShooting(false)
 		end
+	end
+		
+	if self:CanGunMelee() == true then
+		local ht = self:GetHoldType()
+		local usekey = ply:KeyDown(IN_USE)
+		local attackkey = ply:KeyPressed(IN_ATTACK)
+
+		if usekey && attackkey then
+			if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
+				self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND, true)
+			elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
+				self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE, true)
+			end
+		end
+	else end
+	
+	if self.Glow == true && CLIENT then
+		local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
+		self.glowlight = DynamicLight(self, false)
+		if self.glowlight then
+			if ply then
+				if RightHand != nil then
+					self.glowlight.pos = ply:GetBonePosition(RightHand)
+				else
+					self.glowlight.pos = ply:LocalToWorld(ply:OBBCenter() + Vector(15, -15, 0))
+				end
+			else
+				self.glowlight.pos = self:GetPos()
+			end
+			self.glowlight.r = self.GlowColor.r
+			self.glowlight.g = self.GlowColor.g
+			self.glowlight.b = self.GlowColor.b
+			self.glowlight.Brightness = self.GlowBrightness
+			self.glowlight.Decay = self.GlowDecay
+			self.glowlight.Size = self.GlowSize
+			self.glowlight.Style = self.GlowStyle
+			self.glowlight.DieTime = CurTime()
+		end
+		
+		self.entlight = DynamicLight(self, true)
+		if self.entlight then
+			if ply then
+				if RightHand != nil then
+					self.entlight.pos = ply:GetBonePosition(RightHand)
+				else
+					self.entlight.pos = ply:LocalToWorld(ply:OBBCenter() + Vector(15, -15, 0))
+				end
+			else
+				self.entlight.pos = self:GetPos()
+			end
+			self.entlight.r = self.GlowColor.r
+			self.entlight.g = self.GlowColor.g
+			self.entlight.b = self.GlowColor.b
+			self.entlight.Brightness = math.abs(self.GlowBrightness / (self.GlowBrightness / 2))
+			self.entlight.Decay = self.GlowDecay
+			self.entlight.Size = self.GlowSize / 16
+			self.entlight.Style = self.GlowStyle
+			self.entlight.DieTime = CurTime() + 0.1
+		end
+	end
+
+	if !game.SinglePlayer() then return end -- I have to set viewmodel poseparameters in here because they're controlled by the server in isngleplayer for some reason, and PreDrawViewModel is client only. Epic.
+	if CLIENT then return end
+	
+	local wep = self
+	local slide = self.PistolSlide
+	local ammo = wep:Clip1()
+	local charge = self.Weapon:GetNWInt("Charge")
+	local heat = self:GetNWInt("Heat")
+	local health = ply:Health()
+
+	self.AmmoCL = Lerp(FrameTime() * 25, self.AmmoCL or ammo, ammo)
+	self.ChargeCL = Lerp(FrameTime() * 9, self.ChargeCL or charge, charge)
+	self.HeatCL = Lerp(FrameTime() * 9, self.HeatCL or heat, heat)
+	self.HealthCL = Lerp(FrameTime() * 9, self.HealthCL or health, health)
+		
+	if slide <= 0 then
+		self.EmptyMagCL = Lerp(FrameTime() * 50, self.EmptyMagCL or slide, 0)
+	else
+		self.EmptyMagCL = Lerp(FrameTime() * 50, self.EmptyMagCL or slide, 1)
+	end
+	if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_ammo") != nil then
+		vm:SetPoseParameter("drc_ammo", self.AmmoCL / self.Primary.ClipSize)
+	end
+		
+	if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_emptymag") != nil then
+		vm:SetPoseParameter("drc_emptymag", self.EmptyMagCL)
+	end
+		
+	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_heat") != nil then
+		vm:SetPoseParameter("drc_heat", self.HeatCL / 100)
+	end
+		
+	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_battery") != nil then
+		vm:SetPoseParameter("drc_battery", self.AmmoCL / 100)
 	end
 	
-if self:CanGunMelee() == true then
-	local ht = self:GetHoldType()
-	local usekey = ply:KeyDown(IN_USE)
-	local attackkey = ply:KeyPressed(IN_ATTACK)
-
-	if usekey && attackkey then
-		if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
-			self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND, true)
-		elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
-			self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE, true)
-		end
+	if vm:GetPoseParameter("drc_health") != nil then
+		vm:SetPoseParameter("drc_health", (self.HealthCL / ply:GetMaxHealth()) / 100)
 	end
-else end
+	
+	if vm:GetPoseParameter("drc_charge") != nil then			
+		vm:SetPoseParameter("drc_charge", self.ChargeCL / 100)
+	end
 end
 
 function SWEP:CanGunMelee()
 	local ply = self:GetOwner()
-	local sights = self.Weapon:GetNWBool("ironsights")
+	--local sights = self.Weapon:GetNWBool("ironsights")
+	local sights = self.SightsDown
 	local passive = self.Weapon:GetNWBool("Passive")
 	
 	if self.Primary.CanMelee == false then return false end
 	
 	if sights == false && passive == false then return true else return false end
+end
+
+function SWEP:ManageAnims()
+	if !IsFirstTimePredicted() then return end
+	local ply = self:GetOwner()
+	local vm = ply:GetViewModel()
+	local oa = self.OwnerActivity
+	local cv = ply:Crouching()
+	local slowvar = ply:Crouching() or ply:KeyDown(IN_WALK)
+	local walking = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK)) && !ply:KeyDown(IN_SPEED)
+	local sprinting = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK)) && ply:KeyDown(IN_SPEED)
 	
+		if self.ManuallyReloading == true or self.Loading == true or self.Idle == 0 then return end
+	
+		local idleanim = vm:SelectWeightedSequence( ACT_VM_IDLE )
+		local walkanim = vm:SelectWeightedSequence( ACT_WALK )
+		local sprintanim = vm:SelectWeightedSequence( ACT_RUN )
+		local swimidleanim = vm:SelectWeightedSequence( ACT_SWIM_IDLE )
+		local swimminganim = vm:SelectWeightedSequence( ACT_SWIM )
+		
+		local reloadanim = vm:SelectWeightedSequence( ACT_VM_RELOAD )
+		local walkanim = vm:SelectWeightedSequence( ACT_WALK )
+		
+		local anim = vm:GetSequence()
+		local animdata = vm:GetSequenceInfo(anim)
+		
+		if self.SightsDown then
+			vm:SendViewModelMatchingSequence(idleanim)
+		return end
+		
+		if slowvar then self.FPAnimMul = 0.5 else self.FPAnimMul = 1 end
+		
+		if !walking && !sprinting then
+			self.AnimToPlay = idleanim
+		elseif walking then
+			vm:SetPlaybackRate(self.FPAnimMul)
+			if walkanim == -1 then
+				self.AnimToPlay = idleanim
+			else
+				self.AnimToPlay = walkanim
+			end
+		elseif sprinting && !cv then
+			if sprintanim == -1 then
+				self.AnimToPlay = idleanim
+			else
+				self.AnimToPlay = sprintanim
+			end
+		end
+		
+		if walking then
+			if animdata.activityname == "ACT_VM_IDLE" or animdata.activityname == "ACT_RUN" then self.IdleTimer = CurTime() end
+		elseif sprinting then
+			if animdata.activityname == "ACT_WALK" or animdata.activityname == "ACT_VM_IDLE" then self.IdleTimer = CurTime() end
+		elseif !walking or !sprinting then
+			if animdata.activityname == "ACT_WALK" or animdata.activityname == "ACT_RUN" then self.IdleTimer = CurTime() end
+		end
+		
+		if self.IdleTimer <= CurTime() then
+			vm:SendViewModelMatchingSequence(self.AnimToPlay)
+			if self.AnimToPlay == walkanim then
+				if slowvar then
+					self.IdleTimer = CurTime() + (vm:SequenceDuration(self.AnimToPlay) * 2)
+				else
+					self.IdleTimer = CurTime() + vm:SequenceDuration(self.AnimToPlay)
+				end
+			else
+				self.IdleTimer = CurTime() + vm:SequenceDuration(self.AnimToPlay)
+			end
+		end
+
+	if self.IdleTimer <= CurTime() then
+		vm:ResetSequence(idleanim)
+		vm:ResetSequence(reloadanim)
+		vm:ResetSequence(walkanim)
+	end
 end
 
 function SWEP:DoCustomThink()
 end
 
-function SWEP:UpdateMovement()
-		local ply = self:GetOwner()
-		local cv = ply:Crouching()
-		local forwkey = ply:KeyDown(IN_FORWARD)
-		local backkey = ply:KeyDown(IN_BACK)
-		local leftkey = ply:KeyDown(IN_MOVELEFT)
-		local rightkey = ply:KeyDown(IN_MOVERIGHT)
-		local sprintkey = ply:KeyDown(IN_SPEED)
-		local swimming = ply:WaterLevel() > 1
-		local dry = ply:WaterLevel() < 1
+SWEP.MulI = 0
+SWEP.MulIns = 0
+function SWEP:GetViewModelPosition( pos, ang )
+	if SERVER then return end
+	
+	local ply = self:GetOwner()
+	
+	if ply:IsWorld() then return end
+	
+	local vm = ply:GetViewModel()
+	local eyeangforward = ply:EyeAngles()
+	local passive = self.Weapon:GetNWBool("Passive")
+	--local sd = self.Weapon:GetNWBool("ironsights")
+	local sd = self.SightsDown
+	local cv = ply:Crouching()
+	local oa = self.OwnerActivity
+	local sk = ply:KeyDown(IN_SPEED)
+	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
+	local issprinting = sk && mk
+	local diff = Angle(0, 0, 0)
+	local OGAng = vm:GetAngles()
+
+	--local ironBool = self.Weapon:GetNWBool( "Ironsights" )
+	local ironBool = self.SightsDown
+	local passiveBool = self.Weapon:GetNWBool( "Passive" )
+	local inspectBool = self.Weapon:GetNWBool( "Inspecting" )
+	
+	if ironBool == true or (ply:GetCanZoom() == true && ply:KeyDown(IN_ZOOM)) then
+		self.LoweredCrossHairMod = Lerp(FrameTime() * 25, self.LoweredCrossHairMod or 1, 0)
+	else
+		self.LoweredCrossHairMod = Lerp(FrameTime() * 25, self.LoweredCrossHairMod or 0, 1)
+	end
+	
+	if (ironBool != self.lastIron) then
+		self.lastIron = ironBool 
+		self.fIronTime = CurTime()
+	end
+	
+	if (passiveBool != self.lastPassive) then
+		self.lastPassive = passiveBool 
+		self.fPassiveTime = CurTime()
+	end
+	
+	if (inspectBool != self.LastInspect) then
+		self.LastInspect = inspectBool 
+		self.fInspectTime = CurTime()
+	end
+	
+	if (cv != self.lastCV) then
+		self.lastCV = cv
+		self.fCrouchOffSTime = CurTime()
+	end
+	
+	if (issprinting != self.lastSK) then
+		self.lastSK = issprinting
+		self.SprintOffSTime = CurTime()
+	end
+	
+	local fIronTime = self.fIronTime or 0	
+	local fPassiveTime = self.fPassiveTime or 0
+	local fInspectTime = self.fInspectTime or 0
+	local fCrouchOffSTime = self.fCrouchOffSTime or 0
+	local SprintOffSTime = self.SprintOffSTime or 0
+	
+	self.MulI = math.Clamp((CurTime() - fIronTime) / 0.35, 0, 1)
+	local MulP = math.Clamp((CurTime() - fPassiveTime) / 0.325, 0, 1)
+	self.MulIns = math.Clamp((CurTime() - fInspectTime) / 0.325, 0, 1)
+	local MulC = math.Clamp((CurTime() - fCrouchOffSTime) / 0.265, 0, 1)
+	local MulS = math.Clamp((CurTime() - SprintOffSTime) / 0.23, 0, 1)
+	local MulSFade = math.Clamp((CurTime() - SprintOffSTime) / 0.5, 0, 1)
+	
+	local MulCx = math.Clamp((CurTime() - fCrouchOffSTime) / 0.3, 0, 1)
+	local MulCy = math.Clamp((CurTime() - fCrouchOffSTime) / 0.32, 0, 1)
+	local MulCz = math.Clamp((CurTime() - fCrouchOffSTime) / 0.265, 0, 1)
+	
+		--[[ PERSPECTIVE OFFSETS ]]--
+			--if self.Weapon:GetNWBool("ironsights") == false then
+			if self.SightsDown == false then
+				local POX = (eyeangforward.x /135)
+				local POY = (eyeangforward.x /100 * 5)
+				local POZ = (eyeangforward.x / -45)
+				local AOX = (eyeangforward.x /30)
+				
+				self.VAPos = Vector(POX, POY, POZ)
+				self.VAAng = Vector(AOX, 0, 0)
+
+				self.VARPos = LerpVector(self.MulI, -self.VMPos + self.IronSightsPos / 255, self.VAPos )
+				self.VARAng = LerpVector(self.MulI, Vector(0, 0, 0), self.VAAng )
+			else
+			
+			end
+			
+			DynaPosLerp = Lerp(FrameTime() * 10, DynaPosLerp or self.VAPos, self.VAPos)
+			DynaAngLerp = Lerp(FrameTime() * 10, DynaAngLerp or self.VAAng, self.VAAng)
+	
+		--[[ CROUCH OFFSETS ]]--
+			if cv == true then
+				local x = Lerp( MulCx, self.VMPos.x, self.VMPosCrouch.x + self.VMPos.x)
+				local y = Lerp( MulCy, self.VMPos.y, self.VMPosCrouch.y + self.VMPos.y)
+				local z = Lerp( MulCz, self.VMPos.z, self.VMPosCrouch.z + self.VMPos.z)
+				
+				self.CPos  = Vector(x,y,z)
+				self.CRPos = LerpVector( MulC, self.VMPos, self.CPos)
+			else
+				local x = Lerp( MulCx, self.VMPosCrouch.x + self.VMPos.x, self.VMPos.x)
+				local y = Lerp( MulCy, self.VMPosCrouch.y + self.VMPos.y, self.VMPos.y)
+				local z = Lerp( MulCz, self.VMPosCrouch.z + self.VMPos.z, self.VMPos.z)
+				
+				self.CPos  = Vector(x,y,z)
+				self.CRPos = LerpVector( MulC, self.CPos, self.VMPos)
+			end
+			
+			self.CPosLerp = LerpVector(MulC, self.CRPos, self.CPos)
 		
 			if cv == true then
-				if swimming then
+				local x = Lerp( MulCx, self.VMAng.x, self.VMAngCrouch.x + self.VMAng.x)
+				local y = Lerp( MulCy, self.VMAng.y, self.VMAngCrouch.y + self.VMAng.y)
+				local z = Lerp( MulCz, self.VMAng.z, self.VMAngCrouch.z + self.VMAng.z)
 				
-				elseif dry then
-					if forwkey && !sprintkey then
-						if self.SpeedCrouchForward > 0 then
-							ply:SetWalkSpeed( self.SpeedCrouchForward )
-							ply:SetRunSpeed( self.SpeedCrouchForward )
-								if self.CrouchingJumpHeightFront > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightFront )
-								elseif self.CrouchingJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchForward == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingJumpHeightFront > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightFront )
-								elseif self.CrouchingJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif backkey && !sprintkey then
-						if self.SpeedCrouchBack > 0 then
-							ply:SetWalkSpeed( self.SpeedCrouchBack )
-							ply:SetRunSpeed( self.SpeedCrouchBack )
-								if self.CrouchingJumpHeightBack > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightBack )
-								elseif self.CrouchingJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchBack == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingJumpHeightBack > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightBack )
-								elseif self.CrouchingJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif leftkey && !sprintkey then
-						if self.SpeedCrouchLeft > 0 then
-							ply:SetWalkSpeed( self.SpeedCrouchLeft )
-							ply:SetRunSpeed( self.SpeedCrouchLeft )
-								if self.CrouchingJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightLeft )
-								elseif self.CrouchingJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchLeft == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightLeft )
-								elseif self.CrouchingJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif rightkey && !sprintkey then
-						if self.SpeedCrouchRight > 0 then
-							ply:SetWalkSpeed( self.SpeedCrouchRight )
-							ply:SetRunSpeed( self.SpeedCrouchRight )
-								if self.CrouchingJumpHeightRight > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightRight )
-								elseif self.CrouchingJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchRight == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingJumpHeightRight > 0 then
-									ply:SetJumpPower( self.CrouchingJumpHeightRight )
-								elseif self.CrouchingJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif forwkey && sprintkey then
-						if self.SpeedSprintCrouchForward > 0 then
-							ply:SetWalkSpeed( self.SpeedSprintCrouchForward )
-							ply:SetRunSpeed( self.SpeedSprintCrouchForward )
-								if self.StandingSprintJumpHeightFront > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightFront )
-								elseif self.StandingSprintJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchForward == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-							ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								if self.StandingSprintJumpHeightFront > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightFront )
-								elseif self.StandingSprintJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-						end
-					elseif backkey && sprintkey then
-						if self.SpeedSprintCrouchBack > 0 then
-							ply:SetWalkSpeed( self.SpeedSprintCrouchBack )
-							ply:SetRunSpeed( self.SpeedSprintCrouchBack )
-								if self.CrouchingSprintJumpHeightBack > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightBack )
-								elseif self.CrouchingSprintJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchBack == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingSprintJumpHeightBack > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightBack )
-								elseif self.CrouchingSprintJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif leftkey && sprintkey then
-						if self.SpeedSprintCrouchLeft > 0 then
-							ply:SetWalkSpeed( self.SpeedSprintCrouchLeft )
-							ply:SetRunSpeed( self.SpeedSprintCrouchLeft )
-								if self.CrouchingSprintJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightLeft )
-								elseif self.CrouchingSprintJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchLeft == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingSprintJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightLeft )
-								elseif self.CrouchingSprintJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif rightkey && sprintkey then
-						if self.SpeedSprintCrouchRight > 0 then
-							ply:SetWalkSpeed( self.SpeedSprintCrouchRight )
-							ply:SetRunSpeed( self.SpeedSprintCrouchRight )
-								if self.CrouchingSprintJumpHeightRight > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightRight )
-								elseif self.CrouchingSprintJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedCrouchRight == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.CrouchingSprintJumpHeightRight > 0 then
-									ply:SetJumpPower( self.CrouchingSprintJumpHeightRight )
-								elseif self.CrouchingSprintJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					end
-				end
-			elseif cv == false then
-				if swimming then
+				self.CAng = Vector(x,y,z)
+				self.CRAng = LerpVector( MulC, self.VMAng, self.CAng)
+			else
+				local x = Lerp( MulCx, self.VMAngCrouch.x + self.VMAng.x, self.VMAng.x)
+				local y = Lerp( MulCy, self.VMAngCrouch.y + self.VMAng.y, self.VMAng.y)
+				local z = Lerp( MulCz, self.VMAngCrouch.z + self.VMAng.z, self.VMAng.z)
 				
-				elseif dry then
-					if forwkey && !sprintkey then
-						if self.SpeedStandForward > 0 then
-							ply:SetWalkSpeed( self.SpeedStandForward )
-							ply:SetRunSpeed( self.SpeedStandForward )
-								if self.StandingJumpHeightFront > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightFront )
-								elseif self.StandingJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedStandForward == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingJumpHeightFront > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightFront )
-								elseif self.StandingJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif backkey && !sprintkey then
-						if self.SpeedStandBack > 0 then
-							ply:SetWalkSpeed( self.SpeedStandBack )
-							ply:SetRunSpeed( self.SpeedStandBack )
-								if self.StandingJumpHeightBack > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightBack )
-								elseif self.StandingJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedStandBack == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingJumpHeightBack > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightBack )
-								elseif self.StandingJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif leftkey && !sprintkey then
-						if self.SpeedStandLeft > 0 then
-							ply:SetWalkSpeed( self.SpeedStandLeft )
-							ply:SetRunSpeed( self.SpeedStandLeft )
-								if self.StandingJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightLeft )
-								elseif self.StandingJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedStandLeft == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightLeft )
-								elseif self.StandingJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif rightkey && !sprintkey then
-						if self.SpeedStandRight > 0 then
-							ply:SetWalkSpeed( self.SpeedStandRight )
-							ply:SetRunSpeed( self.SpeedStandRight )
-								if self.StandingJumpHeightRight > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightRight )
-								elseif self.StandingJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedStandRight == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingJumpHeightRight > 0 then
-									ply:SetJumpPower( self.StandingJumpHeightRight )
-								elseif self.StandingJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif forwkey && sprintkey then
-						if self.SpeedSprintStandForward > 0 then
-							ply:SetWalkSpeed( self.SpeedStandForward )
-							ply:SetRunSpeed( self.SpeedSprintStandForward )
-								if self.StandingSprintJumpHeightFront > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightFront )
-								elseif self.StandingSprintJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedSprintStandForward == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingSprintJumpHeightFront > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightFront )
-								elseif self.StandingSprintJumpHeightFront == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif backkey && sprintkey then
-						if self.SpeedSprintStandBack > 0 then
-							ply:SetWalkSpeed( self.SpeedStandBack )
-							ply:SetRunSpeed( self.SpeedSprintStandBack )
-								if self.StandingSprintJumpHeightBack > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightBack )
-								elseif self.StandingSprintJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedSprintStandBack == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingSprintJumpHeightBack > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightBack )
-								elseif self.StandingSprintJumpHeightBack == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif leftkey && sprintkey then
-						if self.SpeedSprintStandLeft > 0 then
-							ply:SetWalkSpeed( self.SpeedStandLeft )
-							ply:SetRunSpeed( self.SpeedSprintStandLeft )
-								if self.StandingSprintJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightLeft )
-								elseif self.StandingSprintJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedSprintStandLeft == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingSprintJumpHeightLeft > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightLeft )
-								elseif self.StandingSprintJumpHeightLeft == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					elseif rightkey && sprintkey then
-						if self.SpeedSprintStandRight > 0 then
-							ply:SetWalkSpeed( self.SpeedStandRight )
-							ply:SetRunSpeed( self.SpeedSprintStandRight )
-								if self.StandingSprintJumpHeightRight > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightRight )
-								elseif self.StandingSprintJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed ( 1 )
-						elseif self.SpeedSprintStandRight == 0 then
-							ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-							ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-								if self.StandingSprintJumpHeightRight > 0 then
-									ply:SetJumpPower( self.StandingSprintJumpHeightRight )
-								elseif self.StandingSprintJumpHeightRight == 0 then
-									ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-								end
-							ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-						end
-					end
-				end
+				self.CAng = Vector(x,y,z)
+				self.CRAng = LerpVector( MulC, self.CAng, self.VMAng)
 			end
 			
-	if GetConVar("sv_drc_movesounds"):GetString() == "1" then
-		if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_SPEED) && self.DoSSCrouchFwd == true then
-		-- crouch sprint sound forward
-			ply:EmitSound( self.SprintSoundCrouch )
-		elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_BACK) && ply:KeyPressed(IN_SPEED) && self.DoSSCrouchBack == true then
-		-- crouch sprint sound back
-			ply:EmitSound( self.SprintSoundCrouch )
-		elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVELEFT) && ply:KeyPressed(IN_SPEED) && self.DoSSCrouchLeft == true then
-		-- crouch sprint sound left
-			ply:EmitSound( self.SprintSoundCrouch )
-		elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVERIGHT) && ply:KeyPressed(IN_SPEED) && self.DoSSCrouchRight == true then
-		-- crouch sprint sound right
-			ply:EmitSound( self.SprintSoundCrouch )
-		end
+			self.CAngLerp = LerpVector(MulC, self.CRAng, self.CAng)
 			
-		if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && self.DoSJCrouchSFwd == true then
-		-- Crouch Sprint Jump Sound Front
-			ply:EmitSound( self.SJumpCrouchSound )
-		elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_BACK) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && self.DoSJCrouchSBack == true then
-		-- Crouch Sprint Jump Sound Front
-			ply:EmitSound( self.SJumpCrouchSound )
-		elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVELEFT) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && self.DoSJCrouchLeft == true then
-		-- Crouch Sprint Jump Sound Front
-			ply:EmitSound( self.SJumpCrouchSound )
-		elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVERIGHT) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && self.DoSJCrouchRight == true then
-		-- Crouch Sprint Jump Sound Front
-			ply:EmitSound( self.SJumpCrouchSound )
-		end
-	else end		
-			if self.FallDamage == false && self.NoFallDamageCrouchOnly == true then
-				if cv == true then
-					self.Owner.ShouldReduceFallDamage = true
-				elseif  cv == false then
-					self.Owner.ShouldReduceFallDamage = false
-				end
-			elseif self.FallDamage == false && self.NoFallDamageCrouchOnly == false then
-				self.Owner.ShouldReduceFallDamage = true
-			elseif self.FallDamage == true then
-				self.Owner.ShouldReduceFallDamage = false
+		--[[ PASSIVE OFFSETS ]]--
+			if passiveBool == true then
+				self.PPos = LerpVector( MulP, self.VMPos, self.PassivePos + self.VMPos)
+				self.PRPos = LerpVector( MulP, self.VMPos, -self.PassivePos + self.VMPos)
+			else
+				self.PPos = LerpVector( MulP, -self.PassivePos + self.VMPos, self.VMPos)
+				self.PRPos = LerpVector( MulP, -self.PassivePos + self.VMPos, self.VMPos)
 			end
+			
+			self.PRPosLerp = LerpVector( MulP, self.PPos, self.PRPos)
+		
+			if passiveBool == true then
+				self.PAng = LerpVector( MulP, self.VMAng, self.PassiveAng + self.VMAng)
+				self.PRAng = LerpVector( MulP, self.VMAng, -self.PassiveAng + self.VMAng)
+			else
+				self.PAng = LerpVector( MulP, -self.PassiveAng + self.VMAng, self.VMAng)
+				self.PRAng = LerpVector( MulP, -self.PassiveAng - self.VMAng, self.VMAng )
+			end
+			
+			self.PRAngLerp = LerpVector(MulP, self.PAng, self.PRAng)
+			
+			--[[ INSPECT OFFSETS ]]--
+			if inspectBool == true then
+				self.InsPos = LerpVector( self.MulIns, self.VMPos, self.InspectPos + self.VMPos)
+				self.InsRPos = LerpVector( self.MulIns, self.VMPos, -self.InspectPos + self.VMPos)
+			else
+				self.InsPos = LerpVector( self.MulIns, -self.InspectPos + self.VMPos, self.VMPos)
+				self.InsRPos = LerpVector( self.MulIns, -self.InspectPos + self.VMPos, self.VMPos)
+			end
+			
+			self.InsRPosLerp = LerpVector( self.MulIns, self.InsPos, self.InsRPos)
+		
+			if inspectBool == true then
+				self.InsAng = LerpVector( self.MulIns, self.VMAng, self.InspectAng + self.VMAng)
+				self.InsRAng = LerpVector( self.MulIns, self.VMAng, -self.InspectAng + self.VMAng)
+			else
+				self.InsAng = LerpVector( self.MulIns, -self.InspectAng + self.VMAng, self.VMAng)
+				self.InsRAng = LerpVector( self.MulIns, -self.InspectAng - self.VMAng, self.VMAng )
+			end
+			
+			self.InsRAngLerp = LerpVector(self.MulIns, self.InsAng, self.InsRAng)
+			
+		--[[ SIGHT OFFSETS ]]--
+			if sd == true then
+				self.IPos = LerpVector( self.MulI, self.VMPos, self.IronSightsPos + self.VMPos)
+				self.IRPos = LerpVector( self.MulI, self.VMPos, -self.IronSightsPos + self.VMPos)
+			else
+				self.IPos = LerpVector( self.MulI, -self.IronSightsPos + self.VMPos, self.VMPos)
+				self.IRPos = LerpVector( self.MulI, -self.IronSightsPos - self.VMPos, self.VMPos )
+			end
+			
+			self.IRPosLerp = LerpVector(self.MulI, self.IPos, self.IRPos)
+		
+			if sd == true then
+				self.IAng = LerpVector( self.MulI, self.VMAng, self.IronSightsAng + self.VMAng)
+				self.IRAng = LerpVector( self.MulI, self.VMAng, -self.IronSightsAng + self.VMAng)
+			else
+				self.IAng = LerpVector( self.MulI, -self.IronSightsAng + self.VMAng, self.VMAng)
+				self.IRAng = LerpVector( self.MulI, -self.IronSightsAng - self.VMAng, self.VMAng )
+			end
+			
+			self.IRAngLerp = LerpVector(self.MulI, self.IAng, self.IRAng)
+			
+			--[[ SPRINT OFFSETS ]]--
+			if issprinting == true then
+				self.SPos = LerpVector( MulS, self.VMPos, self.SprintPos + self.VMPos )
+				self.SRPos = LerpVector( MulS, self.VMPos, -self.SprintPos + self.VMPos )
+			else
+				self.SPos = LerpVector( MulS, -self.SprintPos + self.VMPos, self.VMPos )
+				self.SRPos = LerpVector( MulS, -self.SprintPos - self.VMPos, self.VMPos )
+			end
+			
+			self.SRPosLerp = LerpVector( MulS, self.SPos, self.SRPos )
+		
+			if issprinting == true then
+				self.Sang = LerpVector( MulS, -self.VMAng, self.SprintAng + self.VMAng )
+				self.SRAng = LerpVector( MulS, -self.VMAng, - self.SprintAng + self.VMAng )
+			else
+				self.Sang = LerpVector( MulS, -self.SprintAng + self.VMAng, self.VMAng )
+				self.SRAng = LerpVector( MulS, -self.SprintAng - self.VMAng, self.VMAng )
+			end
+			
+			self.SRAngLerp = LerpVector( MulS, self.Sang, self.SRAng)
+	
+	if oa == "standidle" or oa == "running" or oa == "swimidle" or oa == "swimming" then -- STANDING | Controls final interp mixes
+		if self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1" then
+			if passive == true then
+				self:DoPassiveHoldtype()
+			elseif inspectBool == true then
+				self:DoInspectHoldtype()
+				
+			else
+				if self.Weapon:GetNWBool("Overheated") == true then -- fucking glua wont let me just call either self.Overheated or self.IsOverheated within this function AAAAAAAA
+					self:SetHoldType(self.OverheatHoldType)
+				elseif self.Weapon:GetNWBool("Venting") == true then
+					self:SetHoldType(self.VentingHoldType)
+				else
+					self:SetHoldType(self.HoldType)
+				end
+			end
+		else
+		end
+	elseif (oa == "sprinting" or oa =="fastswimming") then
+		if self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1" then
+			self:DoPassiveHoldtype()
+		end
+	end
+	
+		self.IronPosLerp = Lerp(FrameTime() * 10, self.IronPosLerp or self.IRPosLerp, self.IRPosLerp)
+		self.IronAngLerp = Lerp(FrameTime() * 10, self.IronAngLerp or self.IRAngLerp, self.IRAngLerp)
+	
+		self.PassivePosLerp = Lerp(FrameTime() * 10, self.PassivePosLerp or self.PRPosLerp, self.PRPosLerp)
+		self.PassiveAngLerp = Lerp(FrameTime() * 10, self.PassiveAngLerp or self.PRAngLerp, self.PRAngLerp)
+		
+		self.InspectPosLerp = Lerp(FrameTime() * 10, self.InspectPosLerp or self.InsRPosLerp, self.InsRPosLerp)
+		self.InspectAngLerp = Lerp(FrameTime() * 10, self.InspectAngLerp or self.InsRAngLerp, self.InsRAngLerp)
+	
+		self.CrouchPosLerp = Lerp(FrameTime() * 10, self.CrouchPosLerp or self.CRPos, self.CRPos)
+		self.CrouchAngLerp = Lerp(FrameTime() * 10, self.CrouchAngLerp or self.CRAng, self.CRAng)
+	
+		self.SprintPosLerp = Lerp(FrameTime() * 10, self.SprintPosLerp or self.SRPosLerp, self.SRPosLerp)
+		self.SprintAngLerp = Lerp(FrameTime() * 10, self.SprintAngLerp or self.SRAngLerp, self.SRAngLerp)
+		
+		local DrcGlobalVMOffset = Vector(GetConVar("cl_drc_vmoffset_x"):GetFloat(), GetConVar("cl_drc_vmoffset_y"):GetFloat(), GetConVar("cl_drc_vmoffset_z"):GetFloat())
+	
+	if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") then
+		self.VariablePos=( self.VMPos - (self.VMPos - self.CrouchPosLerp) + (self.VMPos - self.PassivePosLerp) + (self.VMPos - self.InspectPosLerp) + (self.VMPos - self.SprintPosLerp) + (self.VMPos - self.IronPosLerp) ) + self.VARPos + DrcGlobalVMOffset
+		self.VariableAng=( self.VMAng - (self.VMAng - self.CrouchAngLerp) + (self.VMAng - self.PassiveAngLerp) + (self.VMAng - self.InspectAngLerp) + (self.VMAng - self.SprintAngLerp) + (self.VMAng - self.IronAngLerp) ) + self.VARAng
+	else
+		self.VariablePos=( self.VMPos - (self.VMPos - self.CrouchPosLerp) + (self.VMPos - self.PassivePosLerp) + (self.VMPos - self.InspectPosLerp) + (self.VMPos - self.IronPosLerp) ) + self.VARPos + DrcGlobalVMOffset
+		self.VariableAng=( self.VMAng - (self.VMAng - self.CrouchAngLerp) + (self.VMAng - self.PassiveAngLerp) + (self.VMAng - self.InspectAngLerp) + (self.VMAng - self.IronAngLerp) ) + self.VARAng
+	end
+	
+		VariablePosLerp = Lerp(FrameTime() * 10, VariablePosLerp or self.VariablePos, self.VariablePos)
+		VariableAngLerp = Lerp(FrameTime() * 10, VariableAngLerp or self.VariableAng, self.VariableAng)
+
+	--if self.Weapon:GetNWBool("Passive") == false && self.Weapon:GetNWBool("ironsights") == false then
+	if self.Weapon:GetNWBool("Passive") == false && self.SightsDown == false then
+		self.CurPos = self.VariablePos
+		self.CurAng = self.VariableAng
+		self.Action = "idle"
+
+		pos = pos + (ang:Right() * self.CurPos.x)
+		pos = pos + (ang:Forward() * self.CurPos.y)
+		pos = pos + (ang:Up() * self.CurPos.z)
+		ang:RotateAroundAxis(ang:Right(), self.CurAng.x)
+		ang:RotateAroundAxis(ang:Up(), self.CurAng.y)
+		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
+
+		self.SwayScale = self.SS
+		self.BobScale = self.BS
+	--elseif self.Weapon:GetNWBool("Passive") == true && self.Weapon:GetNWBool("ironsights") == false then
+	elseif self.Weapon:GetNWBool("Passive") == true && self.SightsDown == false then
+		self.CurPos = self.VariablePos
+		self.CurAng = self.VariableAng
+		self.Action = "passive"
+	
+		pos = pos + (ang:Right() * self.CurPos.x)
+		pos = pos + (ang:Forward() * self.CurPos.y)
+		pos = pos + (ang:Up() * self.CurPos.z)
+		ang:RotateAroundAxis(ang:Right(), self.CurAng.x)
+		ang:RotateAroundAxis(ang:Up(), self.CurAng.y)
+		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
+		
+		self.SwayScale = self.SS
+		self.BobScale = self.BS
+	--elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == false && self.Weapon:GetNWBool("Passive") == false then
+	elseif self.SightsDown == true && self.Secondary.Scoped == false && self.Weapon:GetNWBool("Passive") == false then
+		self.CurPos = LerpVector( self.MulI, self.VariablePos, self.IronSightsPos)
+		self.CurAng = LerpVector( self.MulI, self.VariableAng, self.IronSightsAng)
+		self.Action = "ironsight"
+
+		ang:RotateAroundAxis(ang:Right(), self.CurAng.x)
+		ang:RotateAroundAxis(ang:Up(), self.CurAng.y)
+		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
+		pos = pos + (self.CurPos.x) * ang:Right()
+		pos = pos + (self.CurPos.y) * ang:Forward()
+		pos = pos + (self.CurPos.z) * ang:Up()
+	
+		self.SwayScale 	= 0.3
+		self.BobScale 	= 0.1
+	--elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true && self.Weapon:GetNWBool("Passive") == false then
+	elseif self.SightsDown == true && self.Secondary.Scoped == true && self.Weapon:GetNWBool("Passive") == false then
+		self.CurPos = LerpVector( self.MulI, self.VariablePos, self.IronSightsPos)
+		self.CurAng = LerpVector( self.MulI, self.VariableAng, self.IronSightsAng)
+		self.Action = "ironsight"
+
+		ang:RotateAroundAxis(ang:Right(), self.CurAng.x)
+		ang:RotateAroundAxis(ang:Up(), self.CurAng.y)
+		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
+		pos = pos + (self.CurPos.x) * ang:Right()
+		pos = pos + (self.CurPos.y) * ang:Forward()
+		pos = pos + (self.CurPos.z) * ang:Up()
+	
+		self.SwayScale 	= 0
+		self.BobScale 	= 0
+	end
+
+	self.InfoLastPos = pos
+	self.InfoLastAng = ang
+	
+	if GetConVar("cl_drc_lowered_crosshair"):GetFloat() == 1 then
+		return (pos + Vector(0, 0, 0.5) * self.LoweredCrossHairMod) + self.LoweredVMPos, (ang + Angle(-5, 0, 0) * self.LoweredCrossHairMod) + Angle(self.LoweredVMAng.x, self.LoweredVMAng.y, self.LoweredVMAng.z)
+	else
+		return pos, ang
+	end
 end
 
 function SWEP:Reload()
 end
 
 function SWEP:Deploy()
-local ply = self:GetOwner()
-local cv = ply:Crouching()
-		if self.Passive == true then
-		self:DoPassiveHoldtype()
-		else
-		self:SetHoldType( self.HoldType )
-		end
-
-	if CLIENT then
-	hook.Remove( "HUDPaint", self.ScopeHookID )
-	else end
+	local ply = self:GetOwner()
+	local cv = ply:Crouching()
+	local vm = ply:GetViewModel()
+	local drawanim = vm:SelectWeightedSequence( ACT_VM_DRAW )
+	local drawanimdur = vm:SequenceDuration(drawanim)
+	vm:SetPlaybackRate( 1 )
+	self:SetIronsights(false)
+	self.SightsDown = false
 	
-	self.ScopeHookID = "DRC_Scope_" .. ply:Name() .. ""
 	self.DManip_PlyID = "DRC_DManip_" ..ply:Name().. ""
 	
-	hook.Add("DManipPlayerSwitchFlashlight", self.DManip_PlyID, function( ply, b )
-		if self.DManip_AllowFL == true or self.DManip_AllowFL == nil then
-			return true
-		else
-			return false
-		end
-	end)
-
-	self.Weapon:SetNWBool( "Ironsights", false )
-	
-	self.IsBlocking = 0
+	self.Idle = 0
 	self.IsTaunting = 0
+	self.Inspecting = false
+	self.EmptyReload = 0
+	self.ManuallyReloading 	= false
+	self.Loading			= false
 	
-	ply:SetNWBool( "IsAttacking", false )
-	ply:SetNWBool( "IsBlocking", false )
+	timer.Simple(drawanimdur, function() self.Idle = 1 end)
 	
-	ply:SetNWFloat( "PlayerOGSpeed", ply:GetRunSpeed() )
-	ply:SetNWFloat( "PlayerOGWalk", ply:GetWalkSpeed() )
-	ply:SetNWFloat( "PlayerOGJump", ply:GetJumpPower() )
-	ply:SetNWFloat( "PlayerOGCrouch", ply:GetCrouchedWalkSpeed() )
-	
-	ply:SetNWFloat( "block_dmg_generic", self.BlockType_DMG_GENERIC )
-	ply:SetNWFloat( "block_dmg_crush", self.BlockType_DMG_CRUSH )
-
+	self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
 	ply:StartLoopingSound(self.WeaponIdleLoopSound)
+	self.IdleTimer = CurTime() + drawanimdur
+
+	if self.Passive == true then
+		self:DoPassiveHoldtype()
+	else
+		self:SetHoldType( self.HoldType )
+	end
+
+--	self.Weapon:SetNWBool( "Ironsights", false )
+	self.Weapon:SetNWInt( "Charge", 0 )
 	
-	if self.Passive == true then else
-		self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
+	if not IsValid(self) or not IsValid(ply) or not ply:Alive() then else
+		self:GetMovementValues()
 	end
-self.Idle = 0
-self.IsBlocking = 0
-self.Inspecting = 0
-self.EmptyReload = 0
-self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-self.ManuallyReloading 	= false
-self.Loading			= false
-
-if self.EmitsLight == true then
-	if ( SERVER ) then
-	local ply = self:GetOwner()
-		net.Start( "LightOn" )
-		net.WriteEntity( ply )
-		net.Send( ply )
-	end
-else end
-
-	local vm = self.Owner:GetViewModel()
-	if self.Passive == true then else
-		vm:SendViewModelMatchingSequence( vm:SelectWeightedSequence( ACT_VM_DRAW ) )
-	end
-	vm:SetPlaybackRate( 1 )
-
-	self:SetNextPrimaryFire( CurTime() + vm:SequenceDuration())
-	self:SetNextSecondaryFire( CurTime() + vm:SequenceDuration())
 	
-self:RegeneratingHealth(ply)
+	if self.Primary.Ammo != nil then
+		self.Weapon:SetNWInt("LoadedAmmo", self.Weapon:Clip1() )
+	else end
+
+	self:SetNextPrimaryFire( CurTime() + drawanimdur)
+	self:SetNextSecondaryFire( CurTime() + drawanimdur)
+	
+	if self.HealthRegen == true then self:RegeneratingHealth(ply) end
+	if self.RegenAmmo == true then self:RegeneratingAmmo(self) end
+	if self.SpecialScripted != true then
+		self:BloomScore()
+		if game.SinglePlayer() then self:CallOnClient( "BloomScore") end
+	end
 
 	if self.Primary.Ammo == "CombineHeavyCannon" then
-	self.Weapon:SetNWFloat("HeatDispersePower", 1)
+		self.Weapon:SetNWFloat("HeatDispersePower", 1)
 		self:DisperseHeat()
 	else end
 	
-	if self.Primary.Ammo != nil then
-		
-	else end
-
---	self.Weapon.HookUID_1 = "Draconic_HOOK_UID_"..ply:Name().."_Movement"
---	print(self.Weapon.HookUID_1)
-	
---	self.Weapon.HookUID_2 = "Draconic_HOOK_UID_"..ply:Name().."_CrouchSprint"
---	print(self.Weapon.HookUID_2)
-	
---	self.Weapon.HookUID_3 = "Draconic_HOOK_UID_"..ply:Name().."_SprintJumpCrouch"
---	print(self.Weapon.HookUID_3)
-	
---	self.Weapon.HookUID_4 = "Draconic_HOOK_UID_"..ply:Name().."_FallDamage"
---	print(self.Weapon.HookUID_4)
-	
---	self.Weapon.HookUID_5 = "Draconic_HOOK_UID_"..math.random(69, 999999999).."_"..ply:Name().."_Blocking"
---	print(self.Weapon.HookUID_5)
-
---	self.Weapon.HookUID_6 = "Draconic_HOOK_UID_"..ply:Name().."_BlockingTakeDamage"
---	print(self.Weapon.HookUID_6)
-	
-	if ( SERVER ) && ply:IsPlayer() then
-	local ply = self:GetOwner()
-			
---[[		hook.Add("Move", self.Weapon.HookUID_1, function(ply,mv)
-
-		end)
-		
---		hook.Add("Move", self.Weapon.HookUID_2, function(ply,mv)
-		local cv = ply:Crouching()
-
-		end)
-		
---		hook.Add("Move", self.Weapon.HookUID_3, function(ply,mv)
-		local cv = ply:Crouching()
-
-		end)
-		
---		hook.Add("Move", self.Weapon.HookUID_4, function(ply,mv)
-
-		end)
-		hook.Add("EntityTakeDamage", self.Weapon.HookUID_6, ReduceFallDamage) --]]
+	if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
+		self:DisperseCharge()
 	else end
 
 	self:DoCustomDeploy()
@@ -1088,44 +1151,44 @@ function SWEP:DoCustomDeploy()
 end
 
 function SWEP:OnRemove()
-self.Idle = 0
-self.IdleTimer = CurTime()
-self.Owner.ShouldReduceFallDamage = false
+	local ply = self:GetOwner()
+	self.IdleTimer = CurTime()
+	self.Owner.ShouldReduceFallDamage = false
 
 	self:DoCustomRemove()
 
 	if ( SERVER ) then
-	local ply = self:GetOwner()
 	if ply:IsPlayer() then
 --		hook.Remove( "Move", self.Weapon.HookUID_1 )
 --		hook.Remove( "Move", self.Weapon.HookUID_2 )
 --		hook.Remove( "Move", self.Weapon.HookUID_3 )
 --		hook.Remove( "Move", self.Weapon.HookUID_4 )
-		hook.Remove( "EntityTakeDamage","BlockingTakeDamage" )
 		hook.Remove( "DManipPlayerSwitchFlashlight","DManip_PlyID" )
 		
 		timer.Remove( self.PassiveHealing )
+		timer.Remove( self.BreathCycle )
+		timer.Remove( self.AmmoRegen )
+		if self.BloomScoreName != nil then
+			timer.Remove( self.BloomScoreName )
+		else end
 		if self.Primary.Ammo == "CombineHeavyCannon" then
-		timer.Remove( self.HeatDisperseTimer )
+			timer.Remove( self.HeatDisperseTimer )
+		else end
+		if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
+			timer.Remove( self.ChargeDisperseTimer )
 		else end
 		
-		ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-		ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-		ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-		ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
+		if self.ChargeSound != nil then self:StopSound(self.ChargeSound) end
+		if self.Primary.LoopingFireSound != nil then self:StopSound(self.Primary.LoopingFireSound) end
+		if self.LoopFireSound != nil then self.LoopFireSound:Stop() end
+		
+		self:RestoreMovement()
 	else end
-	elseif CLIENT && self:IsValid() && self.ScopeUp == true then
-		hook.Remove( "HUDPaint", self.ScopeHookID )
 	end
 	
-	if self.EmitsLight == true then
-		if ( SERVER ) then
-		local ply = self:GetOwner()
-			net.Start( "LightOff" )
-			net.WriteEntity( ply )
-			net.Send( ply )
-		end
-	else end
+	if ply.IsVJBaseSNPC then
+		hook.Remove("Think", self)
+	end
 	
 	if self.Primary.Ammo == "CombineHeavyCannon" then
 		local ventingsound = self.VentingSound
@@ -1140,12 +1203,13 @@ function SWEP:DoCustomRemove()
 end
 
 function SWEP:Holster()
-self.Idle = 0
 self.IdleTimer = CurTime()
 self.Owner.ShouldReduceFallDamage = false
 
 	self:DoCustomHolster()
-
+	--self.Weapon:SetNWBool("Ironsights", false )
+	self.SightsDown = false
+	
 	if ( SERVER ) then
 	local ply = self:GetOwner()
 	if ply:IsPlayer() then
@@ -1154,33 +1218,29 @@ self.Owner.ShouldReduceFallDamage = false
 --		hook.Remove( "Move", self.Weapon.HookUID_2 )
 --		hook.Remove( "Move", self.Weapon.HookUID_3 )
 --		hook.Remove( "Move", self.Weapon.HookUID_4 )
-		hook.Remove( "EntityTakeDamage","BlockingTakeDamage" )
 		hook.Remove( "DManipPlayerSwitchFlashlight","DManip_PlyID" )
 		
 		timer.Remove( self.PassiveHealing )
+		timer.Remove( self.BreathCycle )
+		timer.Remove( self.AmmoRegen )
+		if self.BloomScoreName != nil then
+			timer.Remove( self.BloomScoreName )
+		else end
 		if self.Primary.Ammo == "CombineHeavyCannon" then
-		timer.Remove( self.HeatDisperseTimer )
+			timer.Remove( self.HeatDisperseTimer )
+		else end
+		if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
+			timer.Remove( self.ChargeDisperseTimer )
 		else end
 		
-			
-		ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-		ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-		ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-		ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-	elseif CLIENT && self:IsValid() && self.ScopeUp == true then
-		hook.Remove( "HUDPaint", self.ScopeHookID )
+		if self.ChargeSound != nil then self:StopSound(self.ChargeSound) end
+		if self.Primary.LoopingFireSound != nil then self:StopSound(self.Primary.LoopingFireSound) end
+		if self.LoopFireSound != nil then self.LoopFireSound:Stop() end
+		
+		self:RestoreMovement()
 	else end
 	end
-	
-	if self.EmitsLight == true then
-		if ( SERVER ) then
-		local ply = self:GetOwner()
-			net.Start( "LightOff" )
-			net.WriteEntity( ply )
-			net.Send( ply )
-		end
-	else end
-	
+
 	if self.Primary.Ammo == "CombineHeavyCannon" then
 		local ventingsound = self.VentingSound
 		self.Weapon:StopSound(ventingsound)
@@ -1197,21 +1257,28 @@ self.Owner.ShouldReduceFallDamage = false
 return true
 end
 
+function SWEP:RestoreMovement()
+	if GetConVar("sv_drc_movement"):GetString() == "0" then return end
+	local ply = self:GetOwner()
+
+		local ogs = ply:GetNWFloat("PlayerOGSpeed")
+		local ogw = ply:GetNWFloat("PlayerOGWalk")
+		local ogj = ply:GetNWFloat("PlayerOGJump")
+		local ogc = ply:GetNWFloat("PlayerOGCrouch")
+		
+		if ogs == nil or ogs == 0 then return end
+		if ogw == nil or ogw == 0 then return end
+		if ogj == nil or ogj == 0 then return end
+		if ogc == nil or ogc == 0 then return end
+		
+		ply:SetWalkSpeed( ogw )
+		ply:SetRunSpeed( ogs )
+		ply:SetJumpPower( ogj )
+		ply:SetCrouchedWalkSpeed( ogc )
+end
+
 function SWEP:DoCustomHolster()
 end
-
-function SWEP:DoBlock()
-	self.IsBlocking = 1
-end
-
-function SWEP:BreakBlock()
-local ply = self:GetOwner()
-	self.IsBlocking = 0
-	ply:SetNWBool( "IsBlocking", false )
-	self.Secondary.CanBlock = false
-	timer.Simple( self.Secondary.BlockBreakDelay, function() self:BlockResurrect() end)
-end
-
 
 local function ReduceFallDamage(ent, dmginfo)
 	if ent:IsPlayer() and ent.ShouldReduceFallDamage and dmginfo:IsFallDamage() then
@@ -1219,475 +1286,21 @@ local function ReduceFallDamage(ent, dmginfo)
 	end
 end
 
-local IRONSIGHT_TIME = 0.25
-
-function SWEP:GetViewModelPosition ( pos, ang )
-local ply = self:GetOwner()
-	local eyeangforward = ply:EyeAngles()
-	local cv = ply:Crouching()
-	
-	self.CurPos = Vector(0, 0, 0)
-	self.CurAng = Vector(0, 0, 0)
---	self.LastPos = Vector(0, 0, 0)
---	self.LastAng = Vector(0, 0, 0)
-
-	local ironBool = self.Weapon:GetNetworkedBool( "Ironsights" )
-	local passiveBool = self.Weapon:GetNetworkedBool( "Passive" )
-	
-	if (ironBool != self.lastIron) then
-		self.lastIron = ironBool 
-		self.fIronTime = CurTime()
-	end
-	if (passiveBool != self.lastPassive) then
-		self.lastPassive = passiveBool 
-		self.fPassiveTime = CurTime()
-	end
-	
-	local fIronTime = self.fIronTime or 0	
-	local fPassiveTime = self.fPassiveTime or 0
-	
-	local MulI = math.Clamp((CurTime() - fIronTime) / IRONSIGHT_TIME, 0, 1)
-	local MulP = math.Clamp((CurTime() - fPassiveTime) / IRONSIGHT_TIME, 0, 1)
-
-	if self.Weapon:GetNWBool("Passive") == false && self.Weapon:GetNWBool("ironsights") == false then
-		if self.Action == "passive" then
-			self.CurPos = Lerp( MulP, self.PassivePos, self.VMPos)
-			self.CurAng = Lerp( MulP, self.PassiveAng, self.VMAng)
-		elseif self.Action == "ironsight" then
-			self.CurPos = Lerp( MulI, self.IronSightsPos, self.VMPos)
-			self.CurAng = Lerp( MulI, self.IronSightsAng, self.VMAng)
-		else
-			self.CurPos = Lerp( MulI, self.IronSightsPos, self.VMPos)
-			self.CurAng = Lerp( MulI, self.IronSightsAng, self.VMAng)
-		end
-		self.Action = "idle"
-
-		pos = pos + (ang:Right() * self.CurPos.x + ang:Right() * (eyeangforward.x /135))
-		pos = pos + (ang:Forward() * self.CurPos.y + ang:Forward() * (eyeangforward.x /100 * 5))
-		pos = pos + (ang:Up() * self.CurPos.z + ang:Up() * (eyeangforward.x / -45))
-		ang:RotateAroundAxis(ang:Right() * (eyeangforward.x /30), self.CurAng.x)
-		ang:RotateAroundAxis(ang:Up(), self.CurAng.y)
-		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
-		
-		self.SwayScale = self.SS
-		self.BobScale = self.BS
-	elseif self.Weapon:GetNWBool("Passive") == true && self.Weapon:GetNWBool("ironsights") == false then
-		if self.Action == "idle" then
-			self.CurPos = Lerp( MulP, self.VMPos, self.PassivePos)
-			self.CurAng = Lerp( MulP, self.VMAng, self.PassiveAng)
-		elseif self.Action == "ironsight" then
-			self.CurPos = Lerp( MulP, self.IronSightsPos, self.PassivePos)
-			self.CurAng = Lerp( MulP, self.IronSightsAng, self.PassiveAng)
-		else
-			self.CurPos = Lerp( MulP, self.VMPos, self.PassivePos)
-			self.CurAng = Lerp( MulP, self.VMAng, self.PassiveAng)
-		end
-		self.Action = "passive"
-	
-		pos = pos + (ang:Right() * self.CurPos.x + ang:Right() * (eyeangforward.x /90))
-		pos = pos + (ang:Forward() * self.CurPos.y + ang:Forward() * (eyeangforward.x /100 * 5))
-		pos = pos + (ang:Up() * (self.CurPos.z - 6) + ang:Up() * (eyeangforward.x / 45))
-		ang:RotateAroundAxis(ang:Right() * (eyeangforward.x /125), self.CurAng.x)
-		ang:RotateAroundAxis(ang:Up(), self.CurAng.y)
-		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
-		
-		self.SwayScale = self.SS
-		self.BobScale = self.BS
-	elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == false && self.Weapon:GetNWBool("Passive") == false then
-		self.CurPos = Lerp( MulI, self.CurPos, self.IronSightsPos)
-		self.CurAng = Lerp( MulI, self.CurAng, self.IronSightsAng)
-		self.Action = "ironsight"
-		
-		ang:RotateAroundAxis(ang:Right(), 	self.CurAng.x)
-		ang:RotateAroundAxis(ang:Up(), 	self.CurAng.y)
-		ang:RotateAroundAxis(ang:Forward(), self.CurAng.z)
-		pos = pos + (self.CurPos.x) * ang:Right()
-		pos = pos + (self.CurPos.y) * ang:Forward()
-		pos = pos + (self.CurPos.z) * ang:Up()
-	
-		self.SwayScale 	= 0.3
-		self.BobScale 	= 0.1
-	elseif self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true && self.Weapon:GetNWBool("Passive") == false then
-		ang:RotateAroundAxis(ang:Right(), 	self.IronSightsAng.x * MulI)
-		ang:RotateAroundAxis(ang:Up(), 	self.IronSightsAng.y * MulI)
-		ang:RotateAroundAxis(ang:Forward(), self.IronSightsAng.z * MulI)
-		pos = pos + self.IronSightsPos.x * ang:Right() * MulI
-		pos = pos + (self.IronSightsPos.y - 255) * ang:Forward() * MulI
-		pos = pos + self.IronSightsPos.z * ang:Up() * MulI
-	
-		self.SwayScale 	= 0
-		self.BobScale 	= 0
-	end
-	return pos, ang
-end
-
-function SWEP:PlayerHalos()
-	if CLIENT then
-		local ply = self:GetOwner()
-		local players = player.GetAll()
-		local entities = ents.FindInSphere( ply:GetPos(), 500 )
-		if self.WallHax == true then 
-		halo.Add(ents.FindByClass( "npc*" ), Color(70, 0, 0 ), 5, 5, 0, true, true )
-		halo.Add(players, Color(30, 0, 0 ), 5, 5, 0, true, true )
-		end
-	end
-end
-
-function IsBlocking( target, dmginfo )
-	if (  target:IsPlayer() and target:GetNWBool("IsBlocking") == true and target:Alive()  ) then
-	local wpn = target:GetActiveWeapon()
-		if ( dmginfo:GetDamageType() == DMG_GENERIC ) then
-		ply:ChatPrint("Generic")
-			if wpn.BlockType_DMG_GENERIC == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_GENERIC != 1 && wpn.BlockType_DMG_GENERIC == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_GENERIC == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_GENERIC == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_CRUSH ) then
-		ply:ChatPrint("Crushed")
-			if wpn.BlockType_DMG_CRUSH == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_CRUSH != 1 && wpn.BlockType_DMG_CRUSH == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_CRUSH == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_CRUSH == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_BULLET ) then
-		ply:ChatPrint("Shot")
-			if wpn.BlockType_DMG_BULLET == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_BULLET != 1 && wpn.BlockType_DMG_BULLET == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_BULLET == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_BULLET == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_SLASH ) then
-			if wpn.BlockType_DMG_SLASH == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_SLASH != 1 && wpn.BlockType_DMG_SLASH == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_SLASH == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_SLASH == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_BURN ) then
-			if wpn.BlockType_DMG_BURN == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_BURN != 1 && wpn.BlockType_DMG_BURN == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_BURN == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_BURN == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_VEHICLE ) then
-			if wpn.BlockType_DMG_VEHICLE == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_VEHICLE != 1 && wpn.BlockType_DMG_VEHICLE == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_VEHICLE == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_VEHICLE == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_FALL ) then
-			if wpn.BlockType_DMG_FALL == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_FALL != 1 && wpn.BlockType_DMG_FALL == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_FALL == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_FALL == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_BLAST ) then
-			if wpn.BlockType_DMG_BLAST == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_BLAST != 1 && wpn.BlockType_DMG_BLAST == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_BLAST == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_BLAST == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_CLUB ) then
-			if wpn.BlockType_DMG_CLUB == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_CLUB != 1 && wpn.BlockType_DMG_CLUB == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_CLUB == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_CLUB == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_SHOCK ) then
-			if wpn.BlockType_DMG_SHOCK == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_SHOCK != 1 && wpn.BlockType_DMG_SHOCK == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_SHOCK == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_SHOCK == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_SONIC ) then
-			if wpn.BlockType_DMG_SONIC == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_SONIC != 1 && wpn.BlockType_DMG_SONIC == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_SONIC == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_SONIC == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_ENERGYBEAM ) then
-			if wpn.BlockType_DMG_ENERGYBEAM == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_ENERGYBEAM != 1 && wpn.BlockType_DMG_ENERGYBEAM == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_ENERGYBEAM == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_ENERGYBEAM == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_PREVENT_PHYSICS_FORCE ) then
-			if wpn.BlockType_DMG_PREVENT_PHYSICS_FORCE == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_PREVENT_PHYSICS_FORCE != 1 && wpn.BlockType_DMG_PREVENT_PHYSICS_FORCE == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_PREVENT_PHYSICS_FORCE == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_PREVENT_PHYSICS_FORCE == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_NEVERGIB ) then
-			if wpn.BlockType_DMG_NEVERGIB == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_NEVERGIB != 1 && wpn.BlockType_DMG_NEVERGIB == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_NEVERGIB == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_NEVERGIB == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_ALWAYSGIB ) then
-			if wpn.BlockType_DMG_ALWAYSGIB == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_ALWAYSGIB != 1 && wpn.BlockType_DMG_ALWAYSGIB == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_ALWAYSGIB == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_ALWAYSGIB == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_DROWN ) then
-			if wpn.BlockType_DMG_DROWN == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_DROWN != 1 && wpn.BlockType_DMG_DROWN == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_DROWN == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_DROWN == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_PARALYZE ) then
-			if wpn.BlockType_DMG_PARALYZE == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_PARALYZE != 1 && wpn.BlockType_DMG_PARALYZE == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_PARALYZE == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_PARALYZE == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_NERVEGAS ) then
-			if wpn.BlockType_DMG_NERVEGAS == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_NERVEGAS != 1 && wpn.BlockType_DMG_NERVEGAS == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_NERVEGAS == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_NERVEGAS == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_POISON ) then
-			if wpn.BlockType_DMG_POISON == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_POISON != 1 && wpn.BlockType_DMG_POISON == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_POISON == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_POISON == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_RADIATION ) then
-			if wpn.BlockType_DMG_RADIATION == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_RADIATION != 1 && wpn.BlockType_DMG_RADIATION == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_RADIATION == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_RADIATION == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_DROWNRECOVER ) then
-			if wpn.BlockType_DMG_DROWNRECOVER == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_DROWNRECOVER != 1 && wpn.BlockType_DMG_DROWNRECOVER == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_DROWNRECOVER == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_DROWNRECOVER == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_ACID ) then
-			if wpn.BlockType_DMG_ACID == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_ACID != 1 && wpn.BlockType_DMG_ACID == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_ACID == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_ACID == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_SLOWBURN ) then
-			if wpn.BlockType_DMG_SLOWBURN == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_SLOWBURN != 1 && wpn.BlockType_DMG_SLOWBURN == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_SLOWBURN == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_SLOWBURN == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_REMOVENORAGDOLL ) then
-			if wpn.BlockType_DMG_REMOVENORAGDOLL == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_REMOVENORAGDOLL != 1 && wpn.BlockType_DMG_REMOVENORAGDOLL == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_REMOVENORAGDOLL == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_REMOVENORAGDOLL == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_PHYSGUN ) then
-			if wpn.BlockType_DMG_PHYSGUN == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_PHYSGUN != 1 && wpn.BlockType_DMG_PHYSGUN == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_PHYSGUN == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_PHYSGUN == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_PLASMA ) then
-			if wpn.BlockType_DMG_PLASMA == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_PLASMA != 1 && wpn.BlockType_DMG_PLASMA == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_PLASMA == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_PLASMA == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_AIRBOAT ) then
-			if wpn.BlockType_DMG_AIRBOAT == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_AIRBOAT != 1 && wpn.BlockType_DMG_AIRBOAT == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_AIRBOAT == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_AIRBOAT == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_DISSOLVE ) then
-			if wpn.BlockType_DMG_DISSOLVE == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_DISSOLVE != 1 && wpn.BlockType_DMG_DISSOLVE == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_DISSOLVE == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_DISSOLVE == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_BLAST_SURFACE ) then
-			if wpn.BlockType_DMG_BLAST_SURFACE == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_BLAST_SURFACE != 1 && wpn.BlockType_DMG_BLAST_SURFACE == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_BLAST_SURFACE == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_BLAST_SURFACE == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_BLAST_DIRECT ) then
-			if wpn.BlockType_DMG_BLAST_DIRECT == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_BLAST_DIRECT != 1 && wpn.BlockType_DMG_BLAST_DIRECT == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_BLAST_DIRECT == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_BLAST_DIRECT == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_BUCKSHOT ) then
-			if wpn.BlockType_DMG_BUCKSHOT == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_BUCKSHOT != 1 && wpn.BlockType_DMG_BUCKSHOT == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_BUCKSHOT == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_BUCKSHOT == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_SNIPER ) then
-			if wpn.BlockType_DMG_SNIPER == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_SNIPER != 1 && wpn.BlockType_DMG_SNIPER == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_SNIPER == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_SNIPER == 4 then
-				wpn:BreakBlock()
-			end
-		elseif ( dmginfo:GetDamageType() == DMG_MISSILEDEFENSE ) then
-			if wpn.BlockType_DMG_MISSILEDEFENSE == 1 then
-				dmginfo:ScaleDamage(1)
-			elseif wpn.BlockType_DMG_MISSILEDEFENSE != 1 && wpn.BlockType_DMG_MISSILEDEFENSE == 3 then
-				dmginfo:ScaleDamage(0)
-			elseif wpn.BlockType_DMG_MISSILEDEFENSE == 2 then
-				dmginfo:ScaleDamage(wpn.Secondary.DamageBlockMult)
-			elseif wpn.BlockType_DMG_MISSILEDEFENSE == 4 then
-				wpn:BreakBlock()
-			end
-		end
-	end
-end
-hook.Add("EntityTakeDamage", "BlockingTakeDamage",  IsBlocking )
-
-function SWEP:BlockResurrect()
-	self.IsBlocking = 0
-	self.Secondary.CanBlock = true
-end
-
 function SWEP:Inspect()
-	self.Inspecting = 1
-	self.Weapon:SendWeaponAnim( ACT_VM_FIDGET )
+	self.Inspecting = true
+	if game.SinglePlayer() && !IsFirstTimePredicted() then return end
+	local inspectanim = self:SelectWeightedSequence(ACT_VM_FIDGET)
+	local inspectdur = self:SequenceDuration(inspectanim)
 	
-timer.Simple( self.InspectDelay, function() self:EnableInspection() end)
+	self.Weapon:SendWeaponAnim(ACT_VM_FIDGET)
+	
+	self.IdleTimer = CurTime() + inspectdur
+	
+	timer.Simple( inspectdur, function() self:EnableInspection() end)
 end
 
 function SWEP:EnableInspection()
-	self.Inspecting = 0
+	self.Inspecting = false
 end
 
 function SWEP:Taunt()
@@ -1705,95 +1318,83 @@ function SWEP:TauntReady()
 	self.IsTaunting = 0
 end
 
+function SWEP:IdleCheck()
+	local ply = self:GetOwner()
+	
+	if self.Loading == true then return false
+	elseif self.ManuallyReloading == true then return false
+	elseif ply:GetVelocity():Length() > 0 then return false else return true end
+end
+
 function SWEP:DrawWeaponSelection( x, y, wide, tall, alpha )
-	// Set us up the texture
+
+	if isnumber(self.WepSelectIcon) then
+		surface.SetTexture( self.WepSelectIcon )
+	elseif isstring(self.WepSelectIcon) then
+		surface.SetTexture( surface.GetTextureID( self.WepSelectIcon ) )
+	end
 	surface.SetDrawColor( 255, 255, 255, alpha )
-	surface.SetTexture( self.WepSelectIcon )
-	
-	// Lets get a sin wave to make it bounce
-	local fsin = 0
-	
---	if ( self.BounceWeaponIcon == true ) then
---		fsin = math.sin( CurTime() * 10 ) * 5
---	end
+
 
 	alpha = 150
-	surface.DrawTexturedRect( x + (wide/4), y + (tall / 16),  (wide*0.5)-fsin*2 , ( wide / 2 ) + (fsin) )
+	surface.DrawTexturedRect( x + (wide/4), y + (tall / 16),  (wide*0.5) , ( wide / 2 ) )
 	
-	self:PrintWeaponInfo( x + wide, y + tall, alpha )
+	self:PrintWeaponInfo( x + wide, y, alpha )
 end
 
-function SWEP:RegeneratingHealth(ply)
-	local ply = self:GetOwner()
-	local hp, maxhp
+function SWEP:PrintWeaponInfo( x, y, alpha )
 
-	self.PassiveHealing = "HealthRegen_".. ply:Name()
+	if ( self.DrawWeaponInfoBox == false ) then return end
 	
-	if self.HealthRegen == true then
-	timer.Create(self.PassiveHealing , self.HealInterval, 0, function() 
-		if !SERVER or !self:IsValid()  or !timer.Exists( self.PassiveHealing ) then return end
+	if (self.InfoMarkup == nil ) then
+		local str
+		local title_color = "<color=0,200,255,255>"
+		local text_color = "<color=150,150,150,255>"
 		
-		hp = ply:Health()
-		maxhp = (ply:GetMaxHealth())
-		if maxhp < hp then return end
-		ply:SetHealth(math.Clamp( hp + self.HealAmount, 0, maxhp ))
-	end)
-	else
+		str = "<font=HudSelectionText>"
+		if ( self.Author != "" ) then str = str .. title_color .. "Author:</color>\t\n"..text_color..self.Author.."</color>\n" end
+		if ( self.Contact != "" ) then str = str .. title_color .. "Contact:</color>\t\n"..text_color..self.Contact.."</color>\n\n" end
+		if ( self.Purpose != "" ) then str = str .. title_color .. "Purpose:</color>\t\n"..text_color..self.Purpose.."</color>\n\n" end
+		if ( self.Instructions != "" ) then str = str .. title_color .. "Instructions:</color>\t\n"..text_color..self.Instructions.."</color>\n" end
+		str = str .. "</font>"
+		
+		self.InfoMarkup = markup.Parse( str, 250 )
 	end
-end
-
-function SWEP:DisperseHeat()
-	local ply = self:GetOwner()
-	local CurHeat
-	local AmmoName = self.Primary.Ammo
-
-	self.HeatDisperseTimer = "HeatDisperseTimer_".. ply:Name()
 	
-	if self.DisperseHeatPassively == true then
-	timer.Create(self.HeatDisperseTimer , self.HeatLossInterval, 0, function() 
-		if !SERVER or !self:IsValid()  or !timer.Exists( self.HeatDisperseTimer ) then return end
-		
-		CurHeat = self:GetNWInt("Heat")
-		if ply:GetAmmoCount( AmmoName ) >= 101 then
-			self:SetNWInt("Heat", 100)
-			ply:SetAmmo(self:GetNWInt("Heat"), AmmoName)
-	--	ply:ChatPrint(self:GetNWInt("Heat"))
-	--	ply:ChatPrint(self.Weapon:GetNWFloat("HeatDispersePower"))
-		elseif ply:GetAmmoCount( AmmoName ) >= 0 then
-			if self.Weapon:GetNWFloat("HeatDispersePower") == 0 then
-			else
-				self:SetNWInt("Heat", math.Clamp( (self:GetNWInt("Heat") - (self.HeatLossPerInterval * self.Weapon:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
-				ply:SetAmmo(self:GetNWInt("Heat"), AmmoName )
-			end
-	--	ply:ChatPrint(self:GetNWInt("Heat"))
-	--	ply:ChatPrint(self.Weapon:GetNWFloat("HeatDispersePower"))
-		end
-		
-		if ply:GetAmmoCount( AmmoName ) >= 100 then
-			if self.CanOverheat == true then
-				self:Overheat()
-			else end
-		else end
-		
-		if ply:GetAmmoCount( AmmoName ) >= (100 - (100 * self.OverHeatFinishPercent)) then
-		else
-			self.IsOverheated = false
-		end
-		
-		if self.IsOverheated == true && self.DoOverheatDamage == true then
-			ply:TakeDamage( self.OverheatDamagePerInt )
-		else end
-	end)
-	else
-	end
+--	y = y - self.InfoMarkup:GetHeight()
+	
+	surface.SetDrawColor( 60, 60, 60, alpha )
+	surface.SetTexture( self.SpeechBubbleLid )
+	
+--	surface.DrawTexturedRect( x, y - 64, 128, 64 ) 
+
+	draw.RoundedBox( 8, x, y, 250, self.InfoMarkup:GetHeight(), Color( 0, 0, 0, 50 ) )
+	draw.RoundedBox( 0, x - 2, y, 2, self.InfoMarkup:GetHeight(), Color( 0, 200, 255, 255 ) )
+	
+	self.InfoMarkup:Draw( x+5, y, nil, nil, alpha )
+	
 end
 
 function SWEP:AdjustMouseSensitivity()
-	if self.Weapon:GetNWBool("ironsights") == true then
+	--if self.Weapon:GetNWBool("ironsights") == true then
+	if self.SightsDown == true then
 		return self:GetOwner():GetFOV() / 100
-	elseif self.Weapon:GetNWBool("ironsights") == false then
+	--elseif self.Weapon:GetNWBool("ironsights") == false then
+	elseif self.SightsDown == false then
 		return 1
 	end
+end
+
+function SWEP:CanUseSights()
+	local oh = self.Weapon:GetNWBool("Overheated")
+	
+	if self.Loading == true then self:SetIronsights(false) return end
+	
+	if (oh or self.Loading == true or self.ManuallyReloading == true) && self.LoadAfterShot == false then 
+		self.SightsDown = false
+		self:SetIronsights(false)
+		return false
+	else return true end
 end
 
 function SWEP:IronCoolDown()
@@ -1802,13 +1403,24 @@ function SWEP:IronCoolDown()
 end
 
 function SWEP:SetIronsights(b)
+local ply = self:GetOwner()
+
 if self.IronCD == false then
-	self.Weapon:SetNWBool("Ironsights", b)
-		if self.Weapon:GetNWBool( "Ironsights") then
-			self.IronSightsPos = self.IronSightsPos
-			self.IronSightsAng = self.IronSightsAng
-		else end
+--	self.Weapon:SetNWBool("Ironsights", b )
+--	self.Weapon:SetNWBool("ironsights", b )
+	self.SightsDown = b
+	
+	if self.SightsDown then
+		self.IronSightsPos = self.IronSightsPos
+		self.IronSightsAng = self.IronSightsAng
+	else end
 else end
+
+	if b == true then
+		ply:ViewPunch(Angle(0.15, 0, 0))
+		self.SightsDown = b
+	else
+	end
 end
 
 function SWEP:DoPassiveHoldtype()
@@ -1819,8 +1431,16 @@ function SWEP:DoPassiveHoldtype()
 	end
 end
 
+function SWEP:DoInspectHoldtype()
+	self:SetHoldType("slam")
+end
+
 function SWEP:PlayCloseSound()
-	self:EmitSound(self.vFireStopSound, 80, math.random(90, 110))
+	if self.Primary.isvFire == true or self.Secondary.isvFire == true then
+		self:EmitSound(self.vFireStopSound, 80, math.random(90, 110))
+	else
+		self:EmitSound(self.LoopFireStopSound)
+	end
 end
 
 function SWEP:GetShootPosition()
@@ -1871,10 +1491,6 @@ function SWEP:GetShootPosition()
 end
 
 function SWEP:ShootFire()
-	if !self:GetShooting() then
-		self:SetShooting(true)
-	end
-
 	if SERVER then
 		local life = math.Rand(2, 4) * self.vFireLife
 		local owner = self:GetOwner()
@@ -1901,11 +1517,307 @@ function SWEP:ShootFire()
 end
 
 function SWEP:SetupDataTables()
-	self:NetworkVar("Bool", 0, "Shooting")
+	self:SetNWInt("Heat", 0)
+	self:SetNWInt("Charge", 0)
+	self:SetNWBool("Passive", false)
+	self:SetNWBool("Inspecting", false)
+	
+	self.PrimaryStats = {
+		Damage = self.Primary.Damage,
+		Projectile = self.Primary.Projectile,
+		ProjSpeed = self.Primary.ProjSpeed,
+		ProjInheritVelocity = self.Primary.ProjInheritVelocity,
+		NumShots = self.Primary.NumShots,
+		IronRecoilMul = self.Primary.IronRecoilMul,
+		Spread = self.Primary.Spread,
+		SpreadDiv = self.Primary.SpreadDiv,
+		Kick = self.Primary.Kick,
+		KickHoriz = self.Primary.KickHoriz,
+		RecoilUp = self.Primary.RecoilUp,
+		RecoilDown = self.Primary.RecoilDown,
+		RecoilHoriz = self.Primary.RecoilHoriz,
+		Force = self.Primary.Force,
+		Ammo = self.Primary.Ammo,
+		Automatic = self.Primary.Automatic,
+		CanFireUnderwater = self.Primary.CanFireUnderwater,
+		RPM = self.Primary.RPM,
+		ClipSize = self.Primary.ClipSize,
+		DefaultClip = self.Primary.DefaultClip,
+		DropMagReload = self.Primary.DropMagReload,
+		APS = self.Primary.APS,
+		HealthPerShot = self.Primary.HealthPerShot,
+		ArmourPerShot = self.Primary.ArmourPerShot,
+		Tracer = self.Primary.Tracer,
+		TracerEffect = self.Primary.TracerEffect,
+		EmptySound = self.Primary.EmptySound,
+		SoundIsLooped = self.Primary.SoundIsLooped,
+		Sound = self.Primary.Sound,
+		StartSound = self.Primary.StartSound,
+		EndSound = self.Primary.EndSound,
+		NPCSound = self.Primary.NPCSound,
+		DistSound = self.Primary.DistSound,
+		SoundDistance = self.Primary.SoundDistance
+	}
+	
+	self.SecondaryStats = {
+		Damage = self.Secondary.Damage,
+		Projectile = self.Secondary.Projectile,
+		ProjSpeed = self.Secondary.ProjSpeed,
+		ProjInheritVelocity = self.Secondary.ProjInheritVelocity,
+		NumShots = self.Secondary.NumShots,
+		IronRecoilMul = self.Secondary.IronRecoilMul,
+		Spread = self.Secondary.Spread,
+		SpreadDiv = self.Secondary.SpreadDiv,
+		Kick = self.Secondary.Kick,
+		KickHoriz = self.Secondary.KickHoriz,
+		RecoilUp = self.Secondary.RecoilUp,
+		RecoilDown = self.Secondary.RecoilDown,
+		RecoilHoriz = self.Secondary.RecoilHoriz,
+		Force = self.Secondary.Force,
+		Ammo = self.Secondary.Ammo,
+		Automatic = self.Secondary.Automatic,
+		CanFireUnderwater = self.Secondary.CanFireUnderwater,
+		RPM = self.Secondary.RPM,
+		ClipSize = self.Secondary.ClipSize,
+		DefaultClip = self.Secondary.DefaultClip,
+		DropMagReload = self.Secondary.DropMagReload,
+		APS = self.Secondary.APS,
+		HealthPerShot = self.Secondary.HealthPerShot,
+		ArmourPerShot = self.Secondary.ArmourPerShot,
+		Tracer = self.Secondary.Tracer,
+		TracerEffect = self.Secondary.TracerEffect,
+		EmptySound = self.Secondary.EmptySound,
+		SoundIsLooped = self.Secondary.SoundIsLooped,
+		Sound = self.Secondary.Sound,
+		StartSound = self.Secondary.StartSound,
+		EndSound = self.Secondary.EndSound,
+		NPCSound = self.Secondary.NPCSound,
+		DistSound = self.Secondary.DistSound,
+		SoundDistance = self.Secondary.SoundDistance
+	}
+	
+self.OCStats = {
+		Damage = self.OCDamage,
+		Projectile = self.OCProjectile,
+		ProjSpeed = self.OCProjSpeed,
+		ProjInheritVelocity = self.OCProjInheritVelocity,
+		NumShots = self.OCNumShots,
+		IronRecoilMul = self.OCIronRecoilMul,
+		Spread = self.OCSpread,
+		SpreadDiv = self.OCSpreadDiv,
+		Kick = self.OCKick,
+		KickHoriz = self.OCKickHoriz,
+		RecoilUp = self.OCRecoilUp,
+		RecoilDown = self.OCRecoilDown,
+		RecoilHoriz = self.OCRecoilHoriz,
+		Force = self.OCForce,
+		Ammo = self.OCAmmo,
+		Automatic = self.OCAutomatic,
+		CanFireUnderwater = self.OCCanFireUnderwater,
+		RPM = self.OCRPM,
+		ClipSize = self.OCClipSize,
+		DefaultClip = self.OCDefaultClip,
+		DropMagReload = self.OCDropMagReload,
+		APS = self.OCAPS,
+		HealthPerShot = self.OCHealthPerShot,
+		ArmourPerShot = self.OCArmourPerShot,
+		Tracer = self.OCTracer,
+		TracerEffect = self.OCTracerEffect,
+		EmptySound = self.OCEmptySound,
+		SoundIsLooped = self.OCSoundIsLooped,
+		Sound = self.OCSound,
+		StartSound = self.OCStartSound,
+		EndSound = self.OCEndSound,
+		NPCSound = self.OCNPCSound,
+		DistSound = self.OCDistSound,
+		SoundDistance = self.OCSoundDistance
+	}
+	
+	self.InfoStats = {
+		Name = self.PrintName,
+		InfoName = self.InfoName,
+		Manufacturer = self.Manufacturer,
+		Description = self.InfoDescription
+	}
+	
+	if self.IsBatteryBased == nil or self.IsBatteryBased == false then return end
+	self.BatteryStats = {
+		HPS = self.HPS,
+		OCHPS = self.OCHPS,
+		OverHeatFinishPercent = self.OverHeatFinishPercent,
+		DisperseHeatPassively = self.DisperseHeatPassively,
+		HeatLossInterval = self.HeatLossInterval,
+		HeatLossPerInterval = self.HeatLossPerInterval,
+		DoOverheatDamage = self.DoOverheatDamage,
+		OverheatDamagePerInt = self.OverheatDamagePerInt,
+		OverheatHoldType = self.OverheatHoldType,
+		OverheatStrength = self.OverheatStrength,
+		VentingHoldType = self.VentingHoldType,
+		VentingStrength = self.VentingStrength,
+		CanOverheat = self.CanOverheat,
+		CanVent = self.CanVent,
+		LowerRPMWithHeat = self.LowerRPMWithHeat,
+		HeatRPMmin = self.HeatRPMmin,
+		AlterTheshold = self.HeatRPMAlterThreshold,
+		AlterThesholdMax = self.HeatRPMAlterThresholdMax,
+		DoOverheatAnimation = self.DoOverheatAnimation,
+		DoVentingAnimation = self.DoVentingAnimation,
+		DoOverheatSound = self.DoOverheatSound,
+		DoVentingSound = self.DoVentingSound,
+		OverheatSound = self.OverheatSound,
+		VentingSound = self.VentingSound,
+		VentingStartSound = self.VentingStartSound,
+		VentingStopSound = self.VentingStopSound,
+		BatteryConsumPerShot = self.BatteryConsumPerShot,
+		OCBatteryConsumPerShot = self.OCBatteryConsumPerShot
+	}
+end
+
+function SWEP:GetNPCBurstSettings()
+	local ply = self:GetOwner()
+	if self.IsMelee then return end
+--	if ply.IsVJBaseSNPC != nil then return end
+	if self.NPCBursting == true then return end
+	
+	if ply:IsPlayer() then return end
+	
+	local burst = self.NPCBurstShots
+	local rpm = self.Primary.RPM
+	local fm = self.Weapon:GetNWString("FireMode")
+	
+	if (ply:IsNPC() or ply:IsNextBot()) && self.FireModes_CanBurst == true then
+		self.Weapon:SetNWString("FireMode", "Burst")
+	end
+	
+	local mini, maxi, delay = nil, nil, nil
+	
+	if fm == "Semi" then
+		mini = 1
+		maxi = 1
+		delay = (60 / rpm)
+	elseif fm == "Auto" then
+		mini = math.Rand(1, burst)
+		maxi = burst * 3
+		delay = (60 / rpm)
+	elseif fm == "Burst" then
+		mini = self.FireModes_BurstShots
+		maxi = self.FireModes_BurstShots
+		delay = (60 / rpm)
+	elseif self.LoadAfterShot == true then
+		mini = 1
+		maxi = 1
+		delay = (self.Primary.Spread / self.Primary.SpreadDiv) * self.Primary.Kick
+	end
+	
+	local burstlength = (math.Rand(mini, maxi))
+	
+--	print("Min: ".. math.Round(mini) .." | Max: ".. math.Round(maxi) .." | Delay: ".. delay .." | RNG'd Burst Length: ".. burstlength .."")
+	
+	return mini, maxi, delay, burstlength
+end
+
+function SWEP:GetNPCBulletSpread()
+	return math.Rand(0, 3)
 end
 
 function SWEP:GetIronSights()
-	if self.Weapon:GetNWBool("ironsights") == true && self.CanTFALean == true then return true else return false end
+	if self.SightsDown == true && self.CanTFALean == true then return true else return false end
+end
+
+function SWEP:DrawCustom2DScopeElements()
+end
+
+function SWEP:DrawCustomCrosshairElements()
+end
+
+function SWEP:DrawHUD()
+	if not CLIENT then return end
+	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
+	self:DrawCustomCrosshairElements()
+	--if not self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true then return end
+	if not self.SightsDown == true && self.Secondary.Scoped == true then return end
+	self:DrawCustom2DScopeElements()
+end
+
+function SWEP:PreDrawViewModel(vm, wep, ply)
+	if game.SinglePlayer() then return end -- Find the singleplayer compatible version inside of Think() because why.
+	 -- Thank you Yurie holy fuck why are lerps so mean to me
+	
+	local ammo = wep:Clip1()
+	local slide = self.PistolSlide
+	local charge = self.Weapon:GetNWInt("Charge")
+	local heat = self:GetNWInt("Heat")
+	local health = ply:Health()
+	
+	if ply != LocalPlayer() then return end
+
+	self.AmmoCL = Lerp(FrameTime() * 25, self.AmmoCL or ammo, ammo)
+	self.ChargeCL = Lerp(FrameTime() * 9, self.ChargeCL or charge, charge)
+	self.HeatCL = Lerp(FrameTime() * 9, self.HeatCL or heat, heat)
+	self.HealthCL = Lerp(FrameTime() * 9, self.HealthCL or health, health)
+	
+	if slide <= 0 then
+		self.EmptyMagCL = Lerp(FrameTime() * 50, self.EmptyMagCL or slide, 0)
+	else
+		self.EmptyMagCL = Lerp(FrameTime() * 50, self.EmptyMagCL or slide, 1)
+	end
+	
+	if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_ammo") != nil then
+		vm:SetPoseParameter("drc_ammo", self.AmmoCL / self.Primary.ClipSize)
+	end
+	
+	if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_emptymag") != nil then
+		vm:SetPoseParameter("drc_emptymag", self.EmptyMagCL)
+	end
+	
+	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_heat") != nil then
+		vm:SetPoseParameter("drc_heat", self.HeatCL / 100)
+	end
+	
+	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_battery") != nil then
+		vm:SetPoseParameter("drc_battery", self.AmmoCL / 100)
+	end
+	
+	if vm:GetPoseParameter("drc_health") != nil then
+		vm:SetPoseParameter("drc_health", (self.HealthCL / ply:GetMaxHealth()) / 100)
+	end
+	
+	if vm:GetPoseParameter("drc_charge") != nil then			
+		vm:SetPoseParameter("drc_charge", self.ChargeCL / 100)
+	end
+
+	return false
+end
+
+function SWEP:OnReloadad()
+	self:SetHoldType(self.HoldType)
+end
+
+function SWEP:ShootEffects()
+end
+
+-- VJ Base Compatibility
+
+function SWEP:SetupVJSupport()
+	local ply = self:GetOwner()
+	self.WorldModel_UseCustomPosition = true -- yeah no, I'll worry about this another time.
+	self.IsVJBaseWeapon = true
+
+	if self.IsMelee == true then
+		self.IsMeleeWeapon = true
+	else
+		self.IsMeleeWeapon = false
+	end
+
+	-- NPC
+	self.NPC_NextPrimaryFire = 0.1
+	self.NPC_StandingOnly = false
+	self.NPC_FiringDistanceScale = 1
+	self.NPC_BeforeFireSound = {}
+	self.NPC_BeforeFireSoundLevel = 70
+	self.NPC_BeforeFireSoundPitch = VJ_Set(90, 100)
+	
+	hook.Add("Think", self, self.NPC_ServerNextFire)
 end
 
 -- SCK
@@ -2014,9 +1926,59 @@ if CLIENT then
 	SWEP.wRenderOrder = nil
 	function SWEP:DrawWorldModel()
 		
+		local ply = self:GetOwner()
+		local ent = self:EntIndex()
+		
+		if self:EntIndex() != ent then return end
+		
+		if ply:IsPlayer() or ply:IsNPC() && self.Owner == ply then
+			if self.Owner != ply then return end
+			local ammo = Entity(ent):Clip1()
+			local slide = self.PistolSlide
+			local charge = self:GetNWInt("Charge")
+			local heat = Entity(ent):GetNWInt("Heat")
+			local health = ply:Health()
+
+			self.AmmoCL_TP = Lerp(FrameTime() * 5, self.AmmoCL_TP or ammo, ammo)
+			self.ChargeCL_TP = Lerp(FrameTime() * 9, self.ChargeCL_TP or charge, charge)
+			self.HeatCL_TP = Lerp(FrameTime() * 9, self.HeatCL_TP or heat, heat)
+			self.HealthCL_TP = Lerp(FrameTime() * 9, self.HealthCL_TP or health, health)
+			
+			if slide <= 0 then
+				self.EmptyMagCL_TP = Lerp(FrameTime() * 50, self.EmptyMagCL or slide, 0)
+			else
+				self.EmptyMagCL_TP = Lerp(FrameTime() * 50, self.EmptyMagCL or slide, 1)
+			end
+			
+			if self.Primary.Ammo != nil && self:GetPoseParameter("drc_ammo") != nil then
+				self:SetPoseParameter("drc_ammo", self.AmmoCL_TP / self.Primary.ClipSize)
+			end
+			
+			if self.Primary.Ammo != nil && self:GetPoseParameter("drc_emptymag") != nil then
+				self:SetPoseParameter("drc_emptymag", self.EmptyMagCL_TP)
+			end
+			
+			if self.Primary.Ammo == "CombineHeavyCannon" && self:GetPoseParameter("drc_heat") != nil then
+				self:SetPoseParameter("drc_heat", self.HeatCL_TP / 100)
+			end
+			
+			if self.Primary.Ammo == "CombineHeavyCannon" && self:GetPoseParameter("drc_battery") != nil then
+				self:SetPoseParameter("drc_battery", self.AmmoCL_TP / 100)
+			end
+			
+			if self:GetPoseParameter("drc_health") != nil then
+				self:SetPoseParameter("drc_health", (self.HealthCL_TP / ply:GetMaxHealth()) / 100)
+			end
+			
+			if self:GetPoseParameter("drc_charge") != nil then			
+				self:SetPoseParameter("drc_charge", self.ChargeCL_TP / 100)
+			end
+		end
+			
 		if (self.ShowWorldModel == nil or self.ShowWorldModel) then
 			self:DrawModel()
 		end
+		
 		
 		if (!self.WElements) then return end
 		
@@ -2310,32 +2272,20 @@ if CLIENT then
 	
 end
 
-if( CLIENT or game.SinglePlayer() ) then
-	net.Receive( "LightOn", function ( len, ply )
-		local ply = net.ReadEntity()
-		WeaponLight = DynamicLight( 0 )
-		if ( WeaponLight ) then
-			WeaponLight.Pos = ply:GetPos()
-			WeaponLight.r = 0
-			WeaponLight.g = 0
-			WeaponLight.b = 0
-			WeaponLight.Brightness = 0
-			WeaponLight.Size = 0
-			WeaponLight.DieTime = CurTime()+100000
-			WeaponLight.Style = 0
-		end
-		timer.Create( "LightTimer", 0.01, 0, function()
-			WeaponLight.Pos = ply:GetShootPos()
-		end)
-	end)
-	net.Receive( "LightOff", function ( len, ply )
-		local ply = net.ReadEntity()
-		timer.Destroy( "LightTimer" )
-		if WeaponLight then
-			WeaponLight.DieTime = CurTime()+0.1
-		end
-	end)
+function SWEP:Precache()	
 end
 
-function SWEP:Precache()	
+-- ADDON COMPATIBILITY ZONE
+-- You really should never call any of these functions from within a SWEP, as they exist merely to make the weapon base compatible with othr addons!
+
+function SWEP:ClearSchedule()
+	self:GetOwner():ClearSchedule()
+end
+
+function SWEP:ShootBullets() -- Iv04 Nextbot "taunt enemy corpse with weapon" compat
+	self:DoShoot("Primary")
+end
+
+function SWEP:FiringEffects() -- Iv04 Nextbot "taunt enemy corpse with weapon" compat
+	self:DoEffects("Primary")
 end

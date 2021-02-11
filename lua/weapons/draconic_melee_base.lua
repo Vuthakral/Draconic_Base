@@ -1,5 +1,13 @@
 SWEP.Base				= "draconic_base"
-SWEP.Gun				= "draconic_melee_base"
+
+--[[     I M P O R T A N T
+
+Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.
+https://github.com/Vuthakral/Draconic_Base/wiki
+
+It contains all of the settings, explanations on how to use them, tutorials, helpful links, etc.
+
+--]]
 
 SWEP.HoldType			= "melee" -- https://wiki.garrysmod.com/page/Hold_Types
 SWEP.HoldTypeCrouch		= "melee" -- https://wiki.garrysmod.com/page/Hold_Types
@@ -17,14 +25,11 @@ SWEP.Slot				= 0
 SWEP.SlotPos			= 0
 SWEP.DrawAmmo		= false
 
-SWEP.IdleActivity = ACT_VM_IDLE
-SWEP.CrouchIdleActivity = ACT_VM_IDLE_LOWERED
-
 SWEP.PassivePos = Vector(0, -25, -25)
 SWEP.PassiveAng = Vector(0, 0, 0)
 
 SWEP.ViewModelFlip  = false
-SWEP.ShowWorldModel = false
+SWEP.ShowWorldModel = true
 
 SWEP.Primary.SwingSound		= Sound( "" )
 SWEP.Primary.HitSoundWorld 	= Sound( "" )
@@ -41,15 +46,20 @@ SWEP.Primary.Force			= 5
 SWEP.Primary.DelayMiss		= 0.42
 SWEP.Primary.DelayHit 		= 0.54
 SWEP.Primary.CanAttackCrouched = false
-SWEP.Primary.HitActivity	= ACT_VM_PRIMARYATTACK
-SWEP.Primary.CrouchHitActivity	= ACT_VM_PRIMARYATTACK
+SWEP.Primary.HitActivity	= nil
+SWEP.Primary.CrouchHitActivity	= nil
 SWEP.Primary.MissActivity	= ACT_VM_PRIMARYATTACK 
 SWEP.Primary.CrouchMissActivity	= ACT_VM_PRIMARYATTACK 
 SWEP.Primary.HitDelay		= 0.07
+SWEP.Primary.StartX			= 20
+SWEP.Primary.StartY			= 10
+SWEP.Primary.EndX			= -20
+SWEP.Primary.EndY			= -10
+SWEP.Primary.ShakeMul		= 1
 
 SWEP.Primary.CanLunge			= false
 SWEP.Primary.LungeAutomatic		= false
-SWEP.Primary.LungeKeyInput		= IN_USE
+SWEP.Primary.LungeRequiresTarget= true
 SWEP.Primary.LungeVelocity		= 1000
 SWEP.Primary.LungeMaxDist		= 250
 SWEP.Primary.LungeSwingSound	= Sound( "" )
@@ -59,7 +69,7 @@ SWEP.Primary.LungeHitSoundEnt	= Sound( "" )
 SWEP.LungeHoldType				= "melee"
 SWEP.LungeHoldTypeCrouch		= "melee"
 SWEP.Primary.LungeImpactDecal 	= ""
-SWEP.Primary.LungeHitAct		= ACT_VM_PRIMARYATTACK
+SWEP.Primary.LungeHitAct		= nil
 SWEP.Primary.LungeMissAct		= ACT_VM_PRIMARYATTACK
 SWEP.Primary.LungeDelayMiss		= 1.3
 SWEP.Primary.LungeDelayHit		= 0.7
@@ -68,6 +78,11 @@ SWEP.Primary.LungeDamage		= 72
 SWEP.Primary.LungeDamageType	= DMG_ALWAYSGIB
 SWEP.Primary.LungeRange			= 25
 SWEP.Primary.LungeForce			= 20
+SWEP.Primary.LungeStartX			= 7
+SWEP.Primary.LungeStartY			= -3
+SWEP.Primary.LungeEndX			= -7
+SWEP.Primary.LungeEndY			= 3
+SWEP.Primary.LungeShakeMul		= 1
 
 SWEP.Primary.Ammo = nil
 SWEP.Secondary.Ammo = nil
@@ -93,38 +108,45 @@ SWEP.Secondary.MissActivity	= ACT_VM_MISSCENTER
 SWEP.Secondary.CrouchMissActivity	= ACT_VM_MISSCENTER2
 SWEP.Secondary.HitDelay		= 0.23
 SWEP.Secondary.Velocity		= Vector(0, 0, 0)
+SWEP.Secondary.HitDelay		= 0.07
+SWEP.Secondary.StartX			= 20
+SWEP.Secondary.StartY			= 0
+SWEP.Secondary.EndX			= -20
+SWEP.Secondary.EndY			= 0
+SWEP.Secondary.ShakeMul		= 1
 
 SWEP.FireModes_SwitchSound = Sound("draconic.IronOutGeneric")
 
 -- DO NOT TOUCH
 SWEP.Primary.Ammo = ""
 SWEP.Secondary.Ammo = ""
+SWEP.IsMelee = true
 -- end DNT
 
 function SWEP:PrimaryAttack()
 if not IsValid(self) or not IsValid(self.Owner) then return end
+	if self.Weapon:GetNWBool("Inspecting") == true then return end
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()
 	local CanCrouchAttack = self.Primary.CanAttackCrouched
 	local et = ply:GetEyeTrace()
 	local res = et.Entity
 	
-if ply:GetNWBool("IsBlocking") == false then
+	local moving = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && sprintkey
+	if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && moving then return end
+	
 	if self.Primary.CanLunge == true then
 		if self.Primary.LungeAutomatic == true then
 			if (IsValid( res ) and res:IsNPC() or res:IsPlayer() ) then
 				if(ply:GetPos():Distance(res:GetPos()) < self.Primary.LungeMaxDist) then
 					if cv == false && self.Weapon:GetNWBool("Passive") == false then
-						ply:SetNWBool( "IsAttacking", true )
 						self:DoPrimaryLunge()
 						elseif cv == true && CanCrouchAttack == true then
-						ply:SetNWBool( "IsAttacking", true )
 						self:DoPrimaryLunge()
 					elseif cv == true && CanCrouchAttack == false then
 					end
 				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
 					if cv == false then
-						ply:SetNWBool( "IsAttacking", true )
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -137,7 +159,6 @@ if ply:GetNWBool("IsBlocking") == false then
 								end
 							end
 						elseif cv == true && CanCrouchAttack == true then
-						ply:SetNWBool( "IsAttacking", true )
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -154,7 +175,6 @@ if ply:GetNWBool("IsBlocking") == false then
 				end
 			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
 				if cv == false then
-					ply:SetNWBool( "IsAttacking", true )
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -167,7 +187,6 @@ if ply:GetNWBool("IsBlocking") == false then
 								end
 							end
 					elseif cv == true && CanCrouchAttack == true then
-					ply:SetNWBool( "IsAttacking", true )
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -183,13 +202,12 @@ if ply:GetNWBool("IsBlocking") == false then
 				end
 			end
 		elseif self.Primary.LungeAutomatic == false then
+			if self.Primary.LungeRequiresTarget == false && ply:KeyDown(IN_USE) then self:DoPrimaryLunge() return end
 			if (IsValid( res ) and res:IsNPC() or res:IsPlayer() ) then
 				if(ply:GetPos():Distance(res:GetPos()) < self.Primary.LungeMaxDist) then
-					if ply:KeyDown(self.Primary.LungeKeyInput) then
-						ply:SetNWBool( "IsAttacking", true )
+					if ply:KeyDown(IN_USE) then
 						self:DoPrimaryLunge()
-					elseif !ply:KeyDown(self.Primary.LungeKeyInput) then
-						ply:SetNWBool( "IsAttacking", true )
+					elseif !ply:KeyDown(IN_USE) then
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -203,7 +221,6 @@ if ply:GetNWBool("IsBlocking") == false then
 							end
 					end
 				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
-					ply:SetNWBool( "IsAttacking", true )
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -217,7 +234,6 @@ if ply:GetNWBool("IsBlocking") == false then
 							end
 				end
 			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
-				ply:SetNWBool( "IsAttacking", true )
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -260,8 +276,6 @@ if ply:GetNWBool("IsBlocking") == false then
 			elseif cv == true && CanCrouchAttack == false then
 		end
 	end
-elseif ply:GetNWBool("IsBlocking") == true then
-end
 end
 
 function SWEP:DoPrimaryLunge()
@@ -282,103 +296,30 @@ local respos = res:GetPos()
 		self:SetHoldType( self.LungeHoldTypeCrouch )
 		end
 	end
-self:EmitSound(Sound(self.Primary.LungeSwingSound))
-ply:SetVelocity(ply:GetForward() * 8 * plypos:Distance(respos) )
+	
+	self:EmitSound(Sound(self.Primary.LungeSwingSound))
+	if IsValid(res) then ply:SetVelocity(ply:GetForward() * 8 * plypos:Distance(respos) ) end
 
-local tr = util.TraceLine( {
-	start = self.Owner:GetShootPos(),
-	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.LungeRange*4,
-	filter = self.Owner,
-	mask = MASK_SHOT_HULL,
-} )
-if !IsValid( tr.Entity ) then
-	tr = util.TraceHull( {
-	start = self.Owner:GetShootPos(),
-	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.LungeRange*4,
-	filter = self.Owner,
-	mins = Vector( -16, -16, 0 ),
-	maxs = Vector( 16, 16, 0 ),
-	mask = MASK_SHOT_HULL,
-} )
-end
-
-timer.Simple( self.Primary.LungeHitDelay, function() self:PrimaryLungeImpact() end)
-
-if !tr.Hit then
-	self.Weapon:SendWeaponAnim( self.Primary.LungeMissAct )
-	self:SetNextPrimaryFire( CurTime() + self.Primary.LungeDelayMiss )
-	timer.Simple( self.Primary.LungeDelayMiss, function() self:EndAttack() end)
-end
-if tr.Hit then
-	self.Weapon:SendWeaponAnim( self.Primary.LungeHitAct )
-	self:SetNextPrimaryFire( CurTime() + self.Primary.LungeDelayHit )
-	timer.Simple( self.Primary.LungeDelayMiss, function() self:EndAttack() end)
-end
-	self.Idle = 0
-	self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-	self:SendAttackAnim()
-end
-
-function SWEP:PrimaryLungeImpact()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-	local tr = util.TraceLine( {
-		start = self.Owner:GetShootPos(),
-		endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.LungeRange*4,
-		filter = self.Owner,
-		mask = MASK_SHOT_HULL,
-} )
-
-if ( tr.Hit ) then
-	util.Decal(self.Primary.LungeImpactDecal, tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal)  
-end
-
-local bullet = {}
-	bullet.Num = 1
-	bullet.Src = self.Owner:GetShootPos()
-	bullet.Dir = self.Owner:GetAimVector()
-	bullet.Distance = self.Primary.LungeDistance
-	bullet.Spread = Vector( 0, 0, 0 )
-	bullet.Tracer = 0
-	bullet.Force = self.Primary.Force
-	bullet.Damage = 0
-	bullet.AmmoType = "none"
-
-if SERVER then
-	if IsValid( tr.Entity ) then
-		local dmg = DamageInfo()
-		local attacker = self.Owner
-		if !IsValid( attacker ) then
-			attacker = self
-		end
-			dmg:SetAttacker( attacker )
-			dmg:SetInflictor( self )
-			dmg:SetDamage( self.Primary.LungeDamage )
-			dmg:SetDamageForce( self.Owner:GetForward() * self.Primary.LungeForce )
-			dmg:SetDamageType( self.Primary.LungeDamageType )
-			tr.Entity:TakeDamageInfo( dmg )
-end
-end
-
-	if ( tr.Hit ) then
-			if tr.Entity:IsPlayer() or string.find(tr.Entity:GetClass(),"npc") or string.find(tr.Entity:GetClass(),"prop_ragdoll") or string.find(tr.Entity:GetClass(),"prop_physics") then
-				if string.find(tr.Entity:GetClass(),"prop_physics") then
-			self:EmitSound(Sound(self.Primary.LungeHitSoundEnt))
-			else
-			self:EmitSound(Sound(self.Primary.LungeHitSoundFlesh))
-			end
-			self.Owner:FireBullets(bullet)	
-			else
-			self:EmitSound(Sound(self.Primary.LungeHitSoundWorld))
-			end
-	end
-end
-
-function SWEP:DoPrimaryAttack()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-local ply = self:GetOwner()
-local cv = ply:Crouching()
-
-ply:SetNWBool( "IsAttacking", true )
+	local ply = self:GetOwner()
+	local vm = ply:GetViewModel()
+	local eyeang = ply:EyeAngles()
+	local eyepos = ply:EyePos()
+	local cv = ply:Crouching()
+	
+	local x1 = self.Primary.LungeStartX
+	local x2 = self.Primary.LungeEndX
+	local y1 = self.Primary.LungeStartY
+	local y2 = self.Primary.LungeEndY
+	
+	local x1m = math.Rand(x1 * 0.9, x1 * 1.1)
+	local x2m = math.Rand(x2 * 0.9, x2 * 1.1)
+	local y1m = math.Rand(y1 * 0.9, y1 * 1.1)
+	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
+	
+	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
+	timer.Simple(self.Primary.LungeHitDelay, function()
+		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
+	end)
 
 	if cv == false then
 		if CLIENT or SERVER then
@@ -390,107 +331,78 @@ ply:SetNWBool( "IsAttacking", true )
 		end
 	end
 
-self:EmitSound(Sound(self.Primary.SwingSound))
+	self:EmitSound(Sound(self.Primary.LungeSwingSound))
+	self.Weapon:SendWeaponAnim( self.Primary.LungeMissAct )
+	self:SetNextPrimaryFire( CurTime() + self.Primary.LungeDelayMiss )
+	self.IdleTimer = CurTime() + vm:SequenceDuration()
+	
+	self.Owner:SetAnimation( PLAYER_ATTACK1 )
 
-local tr = util.TraceLine( {
-	start = self.Owner:GetShootPos(),
-	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.Range*4,
-	filter = self.Owner,
-	mask = MASK_SHOT_HULL,
-} )
-if !IsValid( tr.Entity ) then
-	tr = util.TraceHull( {
-	start = self.Owner:GetShootPos(),
-	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.Range*4,
-	filter = self.Owner,
-	mins = Vector( -16, -16, 0 ),
-	maxs = Vector( 16, 16, 0 ),
-	mask = MASK_SHOT_HULL,
-} )
-end
-
-timer.Simple( self.Primary.HitDelay, function() self:PrimaryImpact() end)
-
-if !tr.Hit then
-	if cv == false then
-		self.Weapon:SendWeaponAnim( self.Primary.MissActivity )
-	elseif cv == true then
-		self.Weapon:SendWeaponAnim( self.Primary.CrouchMissActivity )
+	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
+		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.LungeHitDelay * 100) / 60 * i / 60, 3), 1, function()
+			self:MeleeImpact(self.Primary.LungeRange, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "lungeprimary")
+		end)
 	end
-	self:SetNextPrimaryFire( CurTime() + self.Primary.DelayMiss )
-	timer.Simple( self.Primary.DelayMiss, function() self:EndAttack() end)
 end
-if tr.Hit then
+
+function SWEP:DoPrimaryAttack()
+	if not IsValid(self) or not IsValid(self.Owner) then return end
+	local ply = self:GetOwner()
+	local vm = ply:GetViewModel()
+	local eyeang = ply:EyeAngles()
+	local eyepos = ply:EyePos()
+	local cv = ply:Crouching()
+	
+	local x1 = self.Primary.StartX
+	local x2 = self.Primary.EndX
+	local y1 = self.Primary.StartY
+	local y2 = self.Primary.EndY
+	
+	local x1m = math.Rand(x1 * 0.9, x1 * 1.1)
+	local x2m = math.Rand(x2 * 0.9, x2 * 1.1)
+	local y1m = math.Rand(y1 * 0.9, y1 * 1.1)
+	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
+	
+	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
+	timer.Simple(self.Primary.HitDelay, function()
+		if not self:GetOwner():IsValid() then return end
+		if not self:IsValid() then return end
+		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
+	end)
+	
+--	ply:ChatPrint("".. x1m .." | ".. x2m .." | " .. y1m .. " | ".. y2m .. "")
+
 	if cv == false then
-		self.Weapon:SendWeaponAnim( self.Primary.HitActivity )
-	elseif cv == true then
-		self.Weapon:SendWeaponAnim( self.Primary.CrouchHitActivity )
-	end
-	self:SetNextPrimaryFire( CurTime() + self.Primary.DelayHit )
-	timer.Simple( self.Primary.DelayHit, function() self:EndAttack() end)
-end
-	self.Idle = 0
-	self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-	self:SendAttackAnim()
-end
-
-function SWEP:PrimaryImpact()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-	local tr = util.TraceLine( {
-		start = self.Owner:GetShootPos(),
-		endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Primary.Range*4,
-		filter = self.Owner,
-		mask = MASK_SHOT_HULL,
-} )
-
-if ( tr.Hit ) then
-	util.Decal(self.Primary.ImpactDecal, tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal)  
-end
-
-local bullet = {}
-	bullet.Num = 1
-	bullet.Src = self.Owner:GetShootPos()
-	bullet.Dir = self.Owner:GetAimVector()
-	bullet.Distance = self.Primary.Distance
-	bullet.Spread = Vector( 0, 0, 0 )
-	bullet.Tracer = 0
-	bullet.Force = self.Primary.Force
-	bullet.Damage = 0
-	bullet.AmmoType = "none"
-
-if SERVER then
-	if IsValid( tr.Entity ) then
-		local dmg = DamageInfo()
-		local attacker = self.Owner
-		if !IsValid( attacker ) then
-			attacker = self
+		if CLIENT or SERVER then
+		self:SetHoldType( self.Primary.HoldType )
 		end
-			dmg:SetAttacker( attacker )
-			dmg:SetInflictor( self )
-			dmg:SetDamage( self.Primary.Damage )
-			dmg:SetDamageForce( self.Owner:GetForward() * self.Primary.Force )
-			dmg:SetDamageType( self.Primary.DamageType )
-			tr.Entity:TakeDamageInfo( dmg )
-end
-end
+	elseif cv == true then
+		if CLIENT or SERVER then
+		self:SetHoldType( self.Primary.HoldTypeCrouch )
+		end
+	end
 
-	if ( tr.Hit ) then
-			if tr.Entity:IsPlayer() or string.find(tr.Entity:GetClass(),"npc") or string.find(tr.Entity:GetClass(),"prop_ragdoll") or string.find(tr.Entity:GetClass(),"prop_physics") then
-				if string.find(tr.Entity:GetClass(),"prop_physics") then
-			self:EmitSound(Sound(self.Primary.HitSoundEnt))
-			else
-			self:EmitSound(Sound(self.Primary.HitSoundFlesh))
-			end
-			self.Owner:FireBullets(bullet)	
-			else
-			self:EmitSound(Sound(self.Primary.HitSoundWorld))
-			end
+	self:EmitSound(Sound(self.Primary.SwingSound))
+	self.Weapon:SendWeaponAnim( self.Primary.MissActivity )
+	self:SetNextPrimaryFire( CurTime() + self.Primary.DelayMiss )
+	self.IdleTimer = CurTime() + vm:SequenceDuration()
+
+	self.Owner:SetAnimation( PLAYER_ATTACK1 )
+	
+	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
+		if not self:GetOwner():IsValid() then return end
+		if not self:IsValid() then return end
+		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
+			if not self:GetOwner():IsValid() then return end
+			if not self:IsValid() then return end
+			self:MeleeImpact(self.Primary.Range, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "primary")
+		end)
 	end
 end
-
 
 function SWEP:SecondaryAttack()
 if not IsValid(self) or not IsValid(self.Owner) then return end
+	if self.Weapon:GetNWBool("Inspecting") == true then return end
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()
 	local usekey = ply:KeyDown(IN_USE)
@@ -499,19 +411,9 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 	local attackkey = ply:KeyPressed(IN_ATTACK2)
 	local CanCrouchAttack = self.Secondary.CanAttackCrouched
 	
-	if self.Secondary.CanBlock == true then
-		if ply:KeyDown(self.Secondary.BlockKeyInput) then
-		elseif !ply:KeyDown(self.Secondary.BlockKeyInput) then
-			if cv == false && self.Weapon:GetNWBool("Passive") == false then
-				self:DoSecondaryAttack()
-			elseif cv == true && self.Weapon:GetNWBool("Passive") == false && CanCrouchAttack == true then
-				self:DoSecondaryAttack()
-			elseif cv == true && CanCrouchAttack == false then
-			end
-		elseif sprintkey && usekey && attackkey then
-		self:TogglePassive()
-		end
-	elseif self.Secondary.CanBlock == false then
+	local moving = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && sprintkey
+	if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && moving then return end
+	
 		if cv == false then
 			if self.Secondary.isvFire == false then
 				if sprintkey && usekey && attackkey then
@@ -542,13 +444,32 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 			end
 		elseif cv == true && CanCrouchAttack == false then
 		end
-	end
 end
 
 function SWEP:DoSecondaryAttack()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-local ply = self:GetOwner()
-local cv = ply:Crouching()
+	if not IsValid(self) or not IsValid(self.Owner) then return end
+	local ply = self:GetOwner()
+	local vm = ply:GetViewModel()
+	local eyeang = ply:EyeAngles()
+	local eyepos = ply:EyePos()
+	local cv = ply:Crouching()
+	
+	local x1 = self.Secondary.StartX
+	local x2 = self.Secondary.EndX
+	local y1 = self.Secondary.StartY
+	local y2 = self.Secondary.EndY
+	
+	local x1m = math.Rand(x1 * 0.9, x1 * 1.1)
+	local x2m = math.Rand(x2 * 0.9, x2 * 1.1)
+	local y1m = math.Rand(y1 * 0.9, y1 * 1.1)
+	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
+	
+	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
+	timer.Simple(self.Secondary.HitDelay, function()
+		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
+	end)
+	
+--	ply:ChatPrint("".. x1m .." | ".. x2m .." | " .. y1m .. " | ".. y2m .. "")
 
 	if cv == false then
 		if CLIENT or SERVER then
@@ -560,51 +481,18 @@ local cv = ply:Crouching()
 		end
 	end
 
-ply:SetNWBool( "IsAttacking", true )
-self:EmitSound(Sound(self.Secondary.SwingSound))
-
-local tr = util.TraceLine( {
-	start = self.Owner:GetShootPos(),
-	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Secondary.Range*4,
-	filter = self.Owner,
-	mask = MASK_SHOT_HULL,
-} )
-if !IsValid( tr.Entity ) then
-	tr = util.TraceHull( {
-	start = self.Owner:GetShootPos(),
-	endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * self.Secondary.Range*4,
-	filter = self.Owner,
-	mins = Vector( -16, -16, 0 ),
-	maxs = Vector( 16, 16, 0 ),
-	mask = MASK_SHOT_HULL,
-} )
-end
-
-timer.Simple( self.Secondary.HitDelay, function() self:SecondaryImpact() end)
-
-if !tr.Hit then
-	if cv == false then
-		self.Weapon:SendWeaponAnim( self.Secondary.MissActivity )
-	elseif cv == true then
-		self.Weapon:SendWeaponAnim( self.Secondary.CrouchMissActivity )
-	end
-	self:SetNextPrimaryFire( CurTime() + self.Secondary.DelayMiss )
+	self:EmitSound(Sound(self.Secondary.SwingSound))
+	self.Weapon:SendWeaponAnim( self.Secondary.MissActivity )
 	self:SetNextSecondaryFire( CurTime() + self.Secondary.DelayMiss )
-	timer.Simple( self.Secondary.DelayMiss, function() self:EndAttack() end)
-end
-if tr.Hit then
-	if cv == false then
-		self.Weapon:SendWeaponAnim( self.Secondary.HitActivity )
-	elseif cv == true then
-		self.Weapon:SendWeaponAnim( self.Secondary.CrouchHitActivity )
+	self.IdleTimer = CurTime() + vm:SequenceDuration()
+
+	self.Owner:SetAnimation( PLAYER_ATTACK1 )
+	
+	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
+		timer.Create( "SwingImpact".. i .."", math.Round((self.Secondary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
+			self:MeleeImpact(self.Secondary.Range, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "secondary")
+		end)
 	end
-	self:SetNextPrimaryFire( CurTime() + self.Secondary.DelayHit )
-	self:SetNextSecondaryFire( CurTime() + self.Secondary.DelayHit )
-	timer.Simple( self.Secondary.DelayHit, function() self:EndAttack() end)
-end
-	self.Idle = 0
-	self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-	self:SendAttackAnim()
 end
 
 function SWEP:SecondaryImpact()
@@ -666,13 +554,20 @@ local ply = self:GetOwner()
 local usekey = ply:KeyDown(IN_USE)
 local reloadkey = ply:KeyDown(IN_RELOAD)
 local walkkey = ply:KeyDown(IN_WALK)
+local sprintkey = ply:KeyDown(IN_SPEED)
 
-	if usekey && reloadkey then
-		if self.Inspecting == 0 then
+local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
+
+	if usekey && reloadkeypressed then
+		if sprintkey then
+			self:ToggleInspectMode()
+		else
+		if self.Inspecting == false then
 			self.Idle = 0
 			self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
 			self:Inspect()
-		elseif self.Inspect == 1 then end
+		elseif self.Inspect == true then end
+		end
 	elseif reloadkey && self.IsTaunting == 0 then
 		self:Taunt()
 		elseif reloadkey && self.IsTaunting == 1 then
@@ -685,34 +580,64 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 	self.Owner:SetAnimation( PLAYER_ATTACK1 )
 end
 
-function SWEP:EndAttack()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-	local ply = self:GetOwner()
-	ply:SetNWBool( "IsAttacking", false )
-end
-
 function SWEP:TogglePassive()
 	local ply = self:GetOwner()
-	local loopseq = self:SelectWeightedSequence( ACT_VM_DRAW )
-	local looptime = self:SequenceDuration( loopseq )
 	self.Weapon:EmitSound(self.FireModes_SwitchSound)
 	
+	if GetConVar("sv_drc_passives"):GetString() == "0" then return end
+	
 	if self.Passive == false then
-		self.Weapon:SendWeaponAnim( ACT_VM_IDLE )
 		self.Passive = true
 		self:DoPassiveHoldtype()
 		self.Weapon:SetNWBool("Passive", true)
+		if self.Weapon:GetNWBool("ironsights") == true then 
+			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
+			self.Weapon:SetNWBool("ironsights", false)
+		else end
 		ply:EmitSound("draconic.IronOutGeneric")
+		if self.Weapon:GetNWBool("Inspecting") == true then
+			self:ToggleInspectMode()
+		end
 	else
 		self.Loading = true
 		self.Idle = 0
-		self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
+	--	self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
 		self.Weapon:SetNWBool("Passive", false)
 		ply:EmitSound("draconic.IronInGeneric")
-		timer.Simple(looptime, function()
+		timer.Simple(0.42, function()
 			self.Loading = false 
+			self.Idle = 1
+		end)
+	end
+end
+
+function SWEP:ToggleInspectMode()
+	local ply = self:GetOwner()
+	
+	if GetConVar("sv_drc_inspections"):GetString() == "0" then return end
+	
+	if self.Weapon:GetNWBool("Inspecting") == false then
+		self.Inspecting = true
+		self:DoPassiveHoldtype()
+		self.Weapon:SetNWBool("Inspecting", true)
+		if self.Weapon:GetNWBool("ironsights") == true then 
+			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
+			self.Weapon:SetNWBool("ironsights", false)
+		else end
+		ply:EmitSound("draconic.IronOutGeneric")
+		if self.Weapon:GetNWBool("Passive") == true then
+			self:TogglePassive()
+		end
+	else
+		self.Idle = 0
+		self:SetHoldType(self.HoldType)
+		self.Inspecting = false
+		self.Weapon:SetNWBool("Inspecting", false)
+		ply:EmitSound("draconic.IronInGeneric")
+		timer.Simple(0.42, function()
+			self.Inspecting = false 
 			self.Idle = 1
 		end)
 	end

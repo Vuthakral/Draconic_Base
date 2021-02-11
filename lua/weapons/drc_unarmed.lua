@@ -25,7 +25,7 @@ SWEP.ViewModelFOV   = 70
 SWEP.VMPos 			= Vector(0, 0, 0)
 SWEP.VMAng 			= Vector(0, 0, 0)
 SWEP.SS 			= 1
-SWEP.BS 			= 2
+SWEP.BS 			= 1
 
 SWEP.IdleActivity = ACT_VM_IDLE
 SWEP.CrouchIdleActivity = ACT_VM_IDLE

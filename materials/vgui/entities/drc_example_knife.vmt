@@ -1,7 +1,0 @@
-"UnlitGeneric" 
-{ 
-	"$basetexture"		"vgui/entities/draconic/ex_knife"
-	"$vertexcolor" 		1 
-	"$vertexalpha" 		1 
-	"$nolod" 			1 
-}

@@ -108,7 +108,7 @@ ENT.EMP			= false
 ENT.EMPTime		= 5
 ENT.EMPSound	= nil
 
-ENT.TimerFrequency	= 0.5
+ENT.TimerFrequency	= 1
 
 ENT.GravitySpherePower	= 0
 
@@ -116,6 +116,7 @@ ENT.GravitySpherePower	= 0
 ENT.ENear	= nil
 ENT.EFar	= nil
 ENT.Triggered = false
+ENT.Draconic = true
 
 function ENT:Think()
 	local vel = self:GetVelocity()
@@ -325,6 +326,7 @@ end
 function ENT:DoCustomDraw()
 end
 
+local cooldown = 0
 function ENT:PhysicsCollide( data, phys )
 local type = self.ProjectileType
 local tgt = data.HitEntity
@@ -413,6 +415,15 @@ local SCC = "sc_".. self:GetClass() ..""
 		elseif type == "FuseAfterFirstBounce" then
 			if self.FirstBounce == false then self.FirstBounce = true end
 			if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
+		elseif type == "fire" then
+			
+			if CurTime() > cooldown then
+			--	print("attempting decal")
+				local startpos = self:GetPos()
+				local endpos = self:GetVelocity():Angle():Forward() * 25
+				util.Decal("Scorch", startpos, endpos, {self})
+				cooldown = CurTime() + 0.05
+			end
 		end
 	end
 end

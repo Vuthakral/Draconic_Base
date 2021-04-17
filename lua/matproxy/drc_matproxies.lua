@@ -13,11 +13,22 @@ local HDR = render.GetHDREnabled()
 local curmap = game.GetMap()
 local LMCorrection = 1
 local MapAmbient = render.GetAmbientLightColor()
+local MapAmbientAvg = (MapAmbient.x + MapAmbient.y + MapAmbient.z) / 3
+
+local SF2Scalar = 1
+if CLIENT then
+	hook.Add("Think", "Draconic_Base_Matproxy_Clientside_Think_Please_Just_Trust_Me_It_Isnt_Laggy", function()
+		if StormFox2 then
+		--	local tempSF2Scalar = math.Clamp((StormFox2.Map.GetLight() * 1.25) / 100, 0.1, 1)
+		--	SF2Scalar = Lerp(FrameTime() * 2.5, tempSF2Scalar, tempSF2Scalar)
+		end
+	end)
+end
 
 local drc_badlightmaps = { -- The only maps that get added to this list are old maps which will not see an update/fix from their authors. This is not meant as a mark of shame. It is used in the Draconic menu to inform developers the map they are using has incorrectly compiled lighting, and as a result their content using the Draconic base visually might be slightly off.
 	"gm_blackmesa_sigma",
 	"gm_bigcity_improved",
-	"gm_bigcity_improved_lite"
+	"gm_bigcity_improved_lite",
 }
 
 local drc_verifiedlightmaps = { -- (most) Base game maps & ones I know for sure are done correctly.
@@ -27,15 +38,27 @@ local drc_verifiedlightmaps = { -- (most) Base game maps & ones I know for sure 
 	"gm_emp_streetsoffire"
 }
 
+local drc_singlecubemaps = {
+	"mu_volcano"
+}
+
+local drc_fullbrightcubemaps = {
+	"gm_reactionsew"
+}
+
 drc_authorpassedlightmaps = { -- Use " table.insert(drc_authorpassedlightmaps, "your_map_name") " in an autorun script as part of your map to tell the base your map should be labelled as "Author Pass".
 }
 
-if CTFK(drc_badlightmaps, curmap) then
+if CTFK(drc_badlightmaps, curmap) or CTFK(drc_singlecubemaps, curmap) or CTFK(drc_fullbrightcubemaps, curmap) then
 	drc_mapfailed_lightamsp = true
 	if curmap == "gm_blackmesa_sigma" then
 		LMCorrection = 0.1
 	elseif curmap == "gm_bigcity_improved" or curmap == "gm_bigcity_improved_lite" then
 		LMCorrection = 0.25
+	elseif curmap == "mu_volcano" then
+		LMCorrection = MapAmbientAvg * 3
+	else
+		LMCorrection = 0.1
 	end
 else
 	drc_mapfailed_lightamsp = false
@@ -298,9 +321,17 @@ matproxy.Add( {
 		local wepn = owner:GetActiveWeapon()
 		if ( !IsValid( wepn ) or !wepn:IsWeapon() ) then return end
 		if wepn == nil then return end
-		if wepn.Weapon == nil then return end
-		if wepn.Weapon:GetNWInt("Heat") == nil then return end
-		local heat = wepn.Weapon:GetNWInt("Heat")
+		
+		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
+		if self.MaxVec == nil then self.MaxVec = Vector(0, 0, 0) end
+		if self.MulInt == nil then self.MulInt = 1 end
+		
+		local heat = nil
+		if wepn.Draconic != nil then
+			heat = wepn.Weapon:GetNWInt("Heat")
+		elseif wepn.ArcCW == true then
+			heat = wepn:GetHeatLevel() * 100
+		end
 		
 		if heat == nil then return end
 		
@@ -342,15 +373,19 @@ matproxy.Add( {
 	name = "drc_Compass",
 	init = function( self, mat, values )
 		self.ResultTo = values.resultvar
+		self.SnapDegree = mat:GetFloat("$compassSnap")
 	end,
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
-		local world = game.GetWorld
 		local ang = owner:EyeAngles()
-		local angmath = ang
+		
+		if self.SnapDegree == nil then self.SnapDegree = 0.01 end
+		local antistupidity = math.Clamp(self.SnapDegree, 0.01, 360)
+		
+		local angmath = ang:SnapTo("y", antistupidity)
 
 		mat:SetVector( self.ResultTo, Vector(-angmath.y, 0, 0) )
 	end
@@ -376,7 +411,7 @@ matproxy.Add( {
 		
 		local val = self.PowerFloat * median
 		
-		local final = Lerp(FrameTime() * 2.5, mat:GetFloat(self.ResultTo), val)
+		local final = Lerp(FrameTime() * 2.5, mat:GetFloat(self.ResultTo), val) * SF2Scalar
 		mat:SetFloat( self.ResultTo, final )
 	end
 } )
@@ -487,7 +522,9 @@ matproxy.Add( {
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
 		local final = Vector(finalx, finaly, finalz) * LMCorrection
 		
-		mat:SetVector( self.ResultTo, ( final * self.PowerFloat ) * ( self.TintVector * self.PowerFloat) )
+		local val = (( final * self.PowerFloat ) * ( (self.TintVector) * self.PowerFloat)) * SF2Scalar
+--		LocalPlayer():ChatPrint(tostring(val))
+		mat:SetVector( self.ResultTo, val )
 	end
 } )
 
@@ -546,9 +583,9 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection
+		local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 		
-		print(final)
+	--	print(final)
 
 		mat:SetVector( self.ResultTo, ( final * self.PowerFloat ) * ( self.TintVector * self.PowerFloat) )
 	end
@@ -608,7 +645,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection
+			local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 			
 			mat:SetVector( self.ResultTo, (final * self.PowerFloat) + (self.TintVector * self.PowerFloat) * final )
 		return end
@@ -640,7 +677,7 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection
+		local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 		
 		mat:SetVector( self.ResultTo, (final * self.PowerFloat) + (self.TintVector * self.PowerFloat) * final )
 	end
@@ -699,7 +736,7 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection
+		local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 		
 		mat:SetVector( self.ResultTo, (final * self.PowerFloat) + (self.TintVector * self.PowerFloat) * final )
 	end
@@ -758,7 +795,7 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection
+		local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 		
 		mat:SetVector( self.ResultTo, (final * self.PowerFloat) + (self.TintVector * self.PowerFloat) * final )
 	end
@@ -817,7 +854,7 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection
+		local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 		
 		mat:SetVector( self.ResultTo, (final * self.PowerFloat) + (self.TintVector * self.PowerFloat) * final )
 	end
@@ -876,7 +913,7 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection
+		local final = Vector(finalx, finaly, finalz) * LMCorrection * SF2Scalar
 		
 		mat:SetVector( self.ResultTo, (final * self.PowerFloat) + (self.TintVector * self.PowerFloat) * final )
 	end
@@ -896,8 +933,73 @@ matproxy.Add( {
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
-		local mag = wpn.Weapon:Clip1()
-		local maxmag = wpn.Primary.ClipSize
+		
+		local mag = nil
+		local maxmag = nil
+		if wpn.Draconic != nil then
+			mag = wpn.Weapon:Clip1()
+			maxmag = wpn.Primary.ClipSize
+		elseif (wpn.ArcCW == true && wep.ArcCW_Halo_Battery == true) then
+			mag = wpn:GetBatteryLevel() * 10
+			maxmag = 100
+		else
+			mag = wpn.Weapon:Clip1()
+			maxmag = wpn.Primary.ClipSize
+		end
+		
+		if mag == nil or maxmag == nil then return end
+
+		
+		if self.LerpPower == nil then self.LerpPower = 1 end
+		
+		if self.FlipVar == 0 then
+			local magmath = (mag / maxmag) / 2 * self.VarMult
+			self.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_scrollmaglerp or magmath, magmath)
+			mat:SetVector( self.ResultTo, Vector(self.drc_scrollmaglerp, 0, 0) )
+		else
+			local magmath = (mag / maxmag) / 2 * self.VarMult
+			self.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_scrollmaglerp or magmath, magmath)
+			mat:SetVector( self.ResultTo, Vector(-self.drc_scrollmaglerp, 0, 0) )
+		end
+	end
+} )
+
+matproxy.Add( {
+	name = "drc_ScrollHeat",
+	init = function( self, mat, values )
+		self.ResultTo = values.resultvar
+		self.FlipVar = mat:GetFloat("$flipscroll")
+		self.VarMult = mat:GetFloat("$scrollmult")
+		self.LerpPower = mat:GetFloat("$scroll_ls")
+	end,
+
+	bind = function( self, mat, ent )
+		if ( !IsValid( ent )) then return end
+		local owner = ent:GetOwner()
+		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
+		local wpn = owner:GetActiveWeapon()
+		if ( !IsValid( wpn ) ) then return end
+		if !IsValid(wpn.Weapon) then return end
+		
+		if self.FlipVar == nil then self.FlipVar = 0 end
+		if self.VarMult == nil then self.VarMult = 1 end
+		if self.LerpPower == nil then self.LerpPower = 1 end
+		
+		local mag = nil
+		local maxmag = nil
+		if wpn.Draconic != nil then
+			mag = wpn:GetNWInt("Heat")
+			maxmag = 100
+		elseif (wpn.ArcCW == true && wep.ArcCW_Halo_Battery == true) then
+			mag = wepn:GetHeatLevel() * 100
+			maxmag = 100
+		else
+			mag = wpn.Weapon:Clip1()
+			maxmag = wpn.Primary.ClipSize
+		end
+		
+		if mag == nil or maxmag == nil then return end
+
 		
 		if self.LerpPower == nil then self.LerpPower = 1 end
 		
@@ -933,9 +1035,21 @@ matproxy.Add( {
 		if self.RadVar == nil then self.RadVar = 360 end
 		if self.LerpPower == nil then self.LerpPower = 1 end
 		
-		local mag = wpn.Weapon:Clip1()
-		local maxmag = wpn.Primary.ClipSize
+		local mag = nil
+		local maxmag = nil
+		if wpn.Draconic != nil then
+			mag = wpn.Weapon:Clip1()
+			maxmag = wpn.Primary.ClipSize
+		elseif (wpn.ArcCW == true && wep.ArcCW_Halo_Battery == true) then
+			mag = wpn:GetBatteryLevel() * 10
+			maxmag = 100
+		else
+			mag = wpn.Weapon:Clip1()
+			maxmag = wpn.Primary.ClipSize
+		end
+		
 		local magmath = (mag / maxmag) * self.RadVar
+		
 		self.drc_rotatemaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
 
 		mat:SetVector( self.ResultTo, Vector(self.drc_rotatemaglerp, 0, 0) )

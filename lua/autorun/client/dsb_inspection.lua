@@ -2,6 +2,7 @@ if SERVER then return end
 
 local function drc_Inspect()
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
+	if GetConVar("sv_drc_inspect_hideHUD"):GetFloat() == 1 then return end
 	
 	local ply = LocalPlayer() 
 	local curswep = ply:GetActiveWeapon()
@@ -9,7 +10,6 @@ local function drc_Inspect()
 	if curswep.MulIns == nil then return end
 	
 	local bool = curswep:GetNWBool("Inspecting")
-	
 	
 	local w = ScrW()
 	local h = ScrH()
@@ -119,9 +119,23 @@ local function drc_Inspect()
 			inspecttextpos = inspecttextpos + 30
 		end
 		
-		if curswep.PrimaryStats.Ammo != nil then
+		if curswep.PrimaryStats.Ammo != nil or curswep.ActiveAttachments.Ammunition != nil then
 			if curswep.Base == "draconic_gun_base" then
-				draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. curswep:GetMaxClip1() .." (".. curswep.PrimaryStats.Ammo ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+				if curswep.ActiveAttachments.Ammunition != nil then
+					local AT = curswep.ActiveAttachments.Ammunition.t
+					local BT = curswep.ActiveAttachments.Ammunition.t.BulletTable
+					if GetConVarNumber("sv_drc_forcebasegameammo") == 0 then
+						if AT.InfoName == "Standard ammunition" then
+							draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. curswep:GetMaxClip1() .." (".. AT.InfoName ..", ".. curswep.Primary.Ammo ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+						else
+							draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. (curswep:GetMaxClip1() * BT.ClipSizeMul ) .." (".. AT.InfoName ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+						end
+					else
+						draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. curswep:GetMaxClip1() .." (".. curswep.Primary.Ammo ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+					end
+				else
+					draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. curswep:GetMaxClip1() .." (".. curswep.Primary.Ammo ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+				end
 			else
 				draw.DrawText("> Battery: ".. curswep:Clip1() .."%", "ApercuStats", 40, inspecttextpos + 30, TextCol)
 			end

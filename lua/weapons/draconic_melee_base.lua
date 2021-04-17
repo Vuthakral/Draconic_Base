@@ -121,7 +121,6 @@ SWEP.FireModes_SwitchSound = Sound("draconic.IronOutGeneric")
 SWEP.Primary.Ammo = ""
 SWEP.Secondary.Ammo = ""
 SWEP.IsMelee = true
--- end DNT
 
 function SWEP:PrimaryAttack()
 if not IsValid(self) or not IsValid(self.Owner) then return end
@@ -286,16 +285,6 @@ local et = ply:GetEyeTrace()
 local res = et.Entity
 local plypos = ply:GetPos()
 local respos = res:GetPos()
-
-	if cv == false then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.LungeHoldType )
-		end
-	elseif cv == true then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.LungeHoldTypeCrouch )
-		end
-	end
 	
 	self:EmitSound(Sound(self.Primary.LungeSwingSound))
 	if IsValid(res) then ply:SetVelocity(ply:GetForward() * 8 * plypos:Distance(respos) ) end
@@ -322,21 +311,26 @@ local respos = res:GetPos()
 	end)
 
 	if cv == false then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.Primary.HoldType )
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.LungeMeleeAct)
 		end
 	elseif cv == true then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.Primary.HoldTypeCrouch )
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.LungeMeleeActCrouch)
 		end
 	end
 
+	local anim = self:SelectWeightedSequence( self.Primary.LungeMissAct )
+	local animdur = self:SequenceDuration( anim )
+	self.IsDoingMelee = true
+	timer.Simple(animdur, function() self.IsDoingMelee = false end)
+	
 	self:EmitSound(Sound(self.Primary.LungeSwingSound))
 	self.Weapon:SendWeaponAnim( self.Primary.LungeMissAct )
 	self:SetNextPrimaryFire( CurTime() + self.Primary.LungeDelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 	
-	self.Owner:SetAnimation( PLAYER_ATTACK1 )
+	--self.Owner:SetAnimation( PLAYER_ATTACK1 )
 
 	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.LungeHitDelay * 100) / 60 * i / 60, 3), 1, function()
@@ -352,6 +346,16 @@ function SWEP:DoPrimaryAttack()
 	local eyeang = ply:EyeAngles()
 	local eyepos = ply:EyePos()
 	local cv = ply:Crouching()
+	
+	if cv == false then
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeAct)
+		end
+	elseif cv == true then
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeActCrouch)
+		end
+	end
 	
 	local x1 = self.Primary.StartX
 	local x2 = self.Primary.EndX
@@ -372,22 +376,17 @@ function SWEP:DoPrimaryAttack()
 	
 --	ply:ChatPrint("".. x1m .." | ".. x2m .." | " .. y1m .. " | ".. y2m .. "")
 
-	if cv == false then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.Primary.HoldType )
-		end
-	elseif cv == true then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.Primary.HoldTypeCrouch )
-		end
-	end
-
+	local anim = self:SelectWeightedSequence( self.Primary.MissActivity )
+	local animdur = self:SequenceDuration( anim )
+	self.IsDoingMelee = true
+	timer.Simple(animdur, function() self.IsDoingMelee = false end)
+	
 	self:EmitSound(Sound(self.Primary.SwingSound))
 	self.Weapon:SendWeaponAnim( self.Primary.MissActivity )
 	self:SetNextPrimaryFire( CurTime() + self.Primary.DelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 
-	self.Owner:SetAnimation( PLAYER_ATTACK1 )
+	--self.Owner:SetAnimation( PLAYER_ATTACK1 )
 	
 	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		if not self:GetOwner():IsValid() then return end
@@ -472,21 +471,26 @@ function SWEP:DoSecondaryAttack()
 --	ply:ChatPrint("".. x1m .." | ".. x2m .." | " .. y1m .. " | ".. y2m .. "")
 
 	if cv == false then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.Secondary.HoldType )
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.MeleeAct)
 		end
 	elseif cv == true then
-		if CLIENT or SERVER then
-		self:SetHoldType( self.Secondary.HoldTypeCrouch )
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.MeleeActCrouch)
 		end
 	end
 
+	local anim = self:SelectWeightedSequence( self.Secondary.MissActivity )
+	local animdur = self:SequenceDuration( anim )
+	self.IsDoingMelee = true
+	timer.Simple(animdur, function() self.IsDoingMelee = false end)
+	
 	self:EmitSound(Sound(self.Secondary.SwingSound))
 	self.Weapon:SendWeaponAnim( self.Secondary.MissActivity )
 	self:SetNextSecondaryFire( CurTime() + self.Secondary.DelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 
-	self.Owner:SetAnimation( PLAYER_ATTACK1 )
+	--self.Owner:SetAnimation( PLAYER_ATTACK1 )
 	
 	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		timer.Create( "SwingImpact".. i .."", math.Round((self.Secondary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
@@ -573,11 +577,6 @@ local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
 		elseif reloadkey && self.IsTaunting == 1 then
 	end
 	
-end
-
-function SWEP:SendAttackAnim()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-	self.Owner:SetAnimation( PLAYER_ATTACK1 )
 end
 
 function SWEP:TogglePassive()

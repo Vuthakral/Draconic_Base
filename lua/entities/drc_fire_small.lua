@@ -10,7 +10,6 @@ It contains all of the settings, explanations on how to use them, tutorials, hel
 --]]
 
 ENT.Base	= "draconic_projectile_base"
-ENT.Entity	= "drc_fire_small"
 
 ENT.PrintName		= "Fire (small)"
 ENT.Author			= "Vuthakral"
@@ -18,7 +17,7 @@ ENT.Author			= "Vuthakral"
 ENT.Model = "models/squad/sf_plates/sf_plate1x1.mdl"
 ENT.HideModel	= true
 
-ENT.Damage			 	= 15
+ENT.Damage			 	= 45
 ENT.DamageType			= DMG_BURN
 ENT.Mass				= 5
 ENT.Force				= 0

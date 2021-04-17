@@ -4,6 +4,8 @@ if SERVER then
 	resource.AddFile ( 'materials/overlays/draconic_scope.vmt' )
 	util.AddNetworkString("DRCSound")
 	util.AddNetworkString("OtherPlayerWeaponSwitch")
+	util.AddNetworkString("DRCPlayerMelee")
+	util.AddNetworkString("DRCNetworkGesture")
 else end
 
 net.Receive("DRCSound", function(len, ply)
@@ -42,6 +44,13 @@ end)
 function CTFK(tab, value)
 	for i,v in ipairs(tab) do
 		if v == value then return true end
+	end
+	return false
+end
+
+function CTFKV(tab, value)
+	for i,v in ipairs(tab) do
+		if i == value then return true end
 	end
 	return false
 end
@@ -93,6 +102,39 @@ function DRCSound(source, near, far, distance, listener)
 	net.Broadcast()
 end
 
+function DRCPlayGesture(ply, slot, gesture, b)
+	if ply:IsValid() then ply:AnimRestartGesture(slot, gesture, b) end
+end
+
+net.Receive("DRCNetworkGesture", function(len, ply)
+	local tbl = net.ReadTable()
+	
+	local plyr = tbl.Player
+	local slot = tbl.Slot
+	local act = tbl.Activity
+	local akill = tbl.Autokill
+
+	DRCPlayGesture(plyr, slot, act, akill)
+end)
+
+function DRCCallGesture(ply, slot, act, akill)
+	if !SERVER then return end
+	if !IsValid(ply) or ply == nil then return end
+	if !slot or slot == "" or slot == nil then slot = GESTURE_SLOT_CUSTOM end
+	if !act then return end
+	if !akill or akill == "" or akill == nil then akill = true end
+	
+	local nt = {}
+	nt.Player = ply
+	nt.Slot = slot
+	nt.Activity = act
+	nt.Autokill = akill
+	
+	net.Start("DRCNetworkGesture")
+	net.WriteTable(nt)
+	net.Broadcast()
+end
+
 list.Set( "DesktopWindows", "Draconic Menu", {
 	title = "Draconic Base",
 	icon = "icon64/draconic_base.png",
@@ -136,7 +178,11 @@ if GetConVar("sv_drc_disable_distgunfire") == nil then
 end
 
 if GetConVar("sv_drc_inspections") == nil then
-	CreateConVar("sv_drc_inspections", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the ability to access the inspection menu which shows weapon stats.", 0, 1)
+	CreateConVar("sv_drc_inspections", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the ability to access the inspection mode, which shows weapon stats & puts the viewmodel in an alternate view.", 0, 1)
+end
+
+if GetConVar("sv_drc_inspect_hideHUD") == nil then
+	CreateConVar("sv_drc_inspect_hideHUD", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the ability to see the inspection menu which shows weapon stats.", 0, 1)
 end
 
 if GetConVar("sv_drc_passives") == nil then
@@ -151,8 +197,20 @@ if GetConVar("sv_drc_allowdebug") == nil then
 	CreateConVar("sv_drc_allowdebug", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DEMO}, "Allows all players to access the debug menu of the Draconic Base.", 0, 1)
 end
 
+if GetConVar("sv_drc_disable_crosshairs") == nil then
+	CreateConVar("sv_drc_disable_crosshairs", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enable/Disable SWEP base crosshairs for all clients. Clients can still disable them on their own, but this can prevent them from using them.", 0, 1)
+end
+
+if GetConVar("sv_drc_forcebasegameammo") == nil then
+	CreateConVar("sv_drc_forcebasegameammo", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Force Draconic weaapons to use standard base-game ammunition. (Requires weapon respawn on toggle)", 0, 1)
+end
+
 if GetConVar("cl_drc_disable_errorhints") == nil then
 	CreateConVar("cl_drc_disable_errorhints", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disables error hints from displaying.", 0, 1)	
+end
+
+if GetConVar("sv_drc_disable_attachmentmodifying") == nil then
+	CreateConVar("sv_drc_disable_attachmentmodifying", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disallow players from modifying weapon attachments.", 0, 1)	
 end
 
 if GetConVar("cl_drc_debugmode") == nil then
@@ -977,8 +1035,7 @@ function DRCMenu( player )
 				<h4>Programmming</h4>
 					<p class="ultitle">Vuthakral</p>
 					<ul>
-					<!--	<li>Base's original creator.</li>  I cut this because it sounds egotistical. -->
-			<li>Everything except for the following individuals' contributions / code:</li>
+						<li>Everything not listed below this credit</li>
 					</ul>
 					<br>
 					<p class="ultitle">Clavus</p>
@@ -986,7 +1043,19 @@ function DRCMenu( player )
 						<li>SWEP Construction Kit code</li>
 					</ul>
 					<br>
+				<h4>Bug testing</h4>
+					<p class="ultitle">Valkyries733</p>
+					<ul>
+						<li>Consistent help in bug testing issues with many different aspects of the Draconic Base</li>
+					</ul>
+					<br>
 				<h4>Special Thanks</h4>
+					<p class="ultitle">All of the people who have supported me through working on all of my projects</p>
+					<ul>
+						<li>My girlfriend, who has always been there for me even when things are at their worst. If you're reading this, I love you very much.</li>
+						<li>My father, who has always been there for me with doing what I do, and putting up with my ramblings about all of it even if he doesn't understand them.</li>
+					</ul>
+					<br>
 					<p class="ultitle">The people in TFA's Discord</p>
 					<ul>
 						<li>Tons of help when I ran into walls with code I was trying to do. Very helpful people.</li>
@@ -1108,11 +1177,11 @@ function DRCMenu( player )
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
 	DebugInfo:SetPos(15, 140)
 	DebugInfo:SetSize(200, 20)
-	DebugInfo:SetText("Lightmaps: ")
+	DebugInfo:SetText("Cubemaps / Lightmap: ")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(80, 140)
+	DebugInfo:SetPos(130, 140)
 	DebugInfo:SetSize(200, 20)
 	DebugInfo:SetText(text)
 	if text == "Fail" then
@@ -1804,6 +1873,9 @@ local function PlayReadyAnim(ply, anim)
 	if !IsValid(ply) then 
 		DRCNotify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
 	return end
+	
+	if wOS then return end -- temp
+	
 	local seq = ply:SelectWeightedSequence(anim)
 	local dur = ply:SequenceDuration(seq)
 	
@@ -1811,18 +1883,16 @@ local function PlayReadyAnim(ply, anim)
 	
 	if ply.DrcLastWeaponSwitch == nil then ply.DrcLastWeaponSwitch = CurTime() end
 	
-	ply:AnimRestartGesture(GESTURE_SLOT_CUSTOM, anim, true)
-	if CurTime() > ply.DrcLastWeaponSwitch then 
-		timer.Simple(dur, function() if wpn != ply:GetActiveWeapon() then return end ply:AnimRestartGesture(GESTURE_SLOT_CUSTOM, ACT_RESET, true) end)
-	end
-	
-	ply.DrcLastWeaponSwitch = CurTime() + dur
-	
-	if SERVER then
-		net.Start("OtherPlayerWeaponSwitch")
-		net.WriteEntity(ply)
-		net.WriteString(anim)
-		net.Broadcast()
+	if IsValid(ply) then
+		DRCCallGesture(ply, GESTURE_SLOT_CUSTOM, anim, true)
+		ply.DrcLastWeaponSwitch = CurTime() + dur
+		
+		if SERVER then
+			net.Start("OtherPlayerWeaponSwitch")
+			net.WriteEntity(ply)
+			net.WriteString(anim)
+			net.Broadcast()
+		end
 	end
 end
 
@@ -1873,7 +1943,7 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 		end
 	else
 		local onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine" }
-		local twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera" }
+		local twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
 		local lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
 		local hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
 		local meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
@@ -1895,6 +1965,21 @@ net.Receive("OtherPlayerWeaponSwitch", function(len, ply)
 	PlayReadyAnim(ply, anim)
 end)
 
+net.Receive("DRCPlayerMelee", function(len, ply)
+	local ply = net.ReadEntity()
+	local wpn = ply:GetActiveWeapon()
+	local ht = wpn:GetHoldType()
+	
+	if !wpn.Draconic then return end
+	if !wpn:CanGunMelee() then return end
+	
+	if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
+		ply:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2, true)
+	elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
+		ply:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_GRENADE, true)
+	end
+end)
+
 hook.Add("Tick", "drc_PlayerSpeak", function()
 	if SERVER then return end 	
 	for k,v in pairs(player.GetAll()) do
@@ -1911,6 +1996,145 @@ hook.Add("Tick", "drc_PlayerSpeak", function()
 		local finallerp = Lerp(FrameTime() / 5, drc_lerpedspeak or 0, 0) * 3
 		
 		ply:SetPoseParameter("drc_speaking", finallerp)
+	end
+end)
+
+DraconicAmmoTypes = {}
+
+function DRCAddAmmoType(tbl)
+	table.Add(DraconicAmmoTypes, tbl)
+end
+
+local batteryammo = {{
+	Name = "ammo_drc_battery",
+	Text = "Don't give yourself this ammo. It will only break your weapons.",
+	DMG = DMG_BULLET,
+	DamagePlayer = 0,
+	DamageNPC = 0,
+	Tracer = TRACER_LINE_AND_WHIZ,
+	Force = 500,
+	SplashMin = 5,
+	SplashMax = 10,
+	MaxCarry = 100,
+}}
+DRCAddAmmoType(batteryammo)
+
+hook.Add( "Initialize", "drc_SetupAmmoTypes", function()
+	for k,v in pairs(DraconicAmmoTypes) do
+		if CLIENT then
+			language.Add("" ..v.Name .."_ammo", v.Text)
+		end
+
+		game.AddAmmoType({
+		name = v.Name,
+		dmgtype = v.DMG,
+		tracer = v.Tracer,
+		plydmg = v.DamagePlayer,
+		npcdmg = v.DamageNPC,
+		force = v.Force,
+		minsplash = v.SplashMin,
+		maxsplash = v.SplashMax,
+		maxcarry = v.MaxCarry
+		})
+	end
+end )
+
+local function Fuckyougmod(str)
+	local prefix = "MAT_"
+	local newstring = "".. prefix .."".. string.upper(str) ..""
+	return newstring
+end
+
+local fuckedupmodels = {
+	"models/combine_dropship.mdl"
+}
+
+hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
+	if !IsValid(tgt) then return end
+	local inflictor = dmg:GetInflictor()
+	local attacker = dmg:GetAttacker()
+	if !inflictor:IsWeapon() then return end
+	local attacker = dmg:GetAttacker()
+	if inflictor.Draconic == nil then return end
+	if inflictor.IsMelee == true then return end
+	local mat = nil
+	if CTFK(fuckedupmodels, tgt:GetModel()) then
+		mat = "MAT_DEFAULT"
+	else
+		mat = Fuckyougmod(tgt:GetBoneSurfaceProp(0))
+	end
+
+	local damagevalue = dmg:GetDamage()
+	local BT = inflictor.ActiveAttachments.Ammunition.t.BulletTable
+	local DT = inflictor.ActiveAttachments.Ammunition.t.BulletTable.MaterialDamageMuls
+	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
+	local BaseBT = BaseProfile.t.BulletTable
+	local BaseDT = BaseBT.MaterialDamageMuls
+	
+	local scalar = 0
+	if DT == nil or DT[mat] == nil then
+		if BaseDT[mat] == nil && mat != "MAT_" then
+			print("You've found an undefined material type in the Draconic Base, pretty please report this to me so I can remove this annoying console message! The material is: ".. mat .."")
+			mat = "MAT_DEFAULT"
+			scalar = BaseDT[mat]
+		elseif mat == "MAT_" then
+			mat = "MAT_DEFAULT"
+			scalar = BaseDT[mat]
+		else
+			scalar = BaseDT[mat]
+		end
+	else
+		scalar = DT[mat]
+	end
+	
+	if attacker:IsPlayer() && tgt:IsNPC() then
+		damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "PvEDamageMul")
+	elseif attacker:IsPlayer() && tgt:IsPlayer() then
+		damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "PvPDamageMul")
+	elseif attacker:IsNPC() && tgt:IsPlayer() then
+		damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "EvPDamageMul")
+	elseif attacker:IsNPC() && tgt:IsNPC() then
+		damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "EvEDamageMul")
+	else
+		damagevalue = (damagevalue * scalar)
+	end
+	
+	
+	if inflictor:GetAttachmentValue("Ammunition", "EvPUseHL2Scale") == true && (!attacker:IsPlayer() && tgt:IsPlayer()) then
+		local hl2diff = nil
+		if GetConVarNumber("skill") == 1 then
+			hl2diff = GetConVarNumber("sk_dmg_take_scale1")
+		elseif GetConVarNumber("skill") == 2 then
+			hl2diff = GetConVarNumber("sk_dmg_take_scale2")
+		elseif GetConVarNumber("skill") == 3 then
+			hl2diff = GetConVarNumber("sk_dmg_take_scale3")
+		end
+		
+		damagevalue = (damagevalue * 0.3) * hl2diff
+	end
+	
+	if inflictor:GetAttachmentValue("Ammunition", "PvEUseHL2Scale") == true && (attacker:IsPlayer() && (tgt:IsNPC() or tgt:IsNextBot())) then
+		local hl2diff = nil
+		if GetConVarNumber("skill") == 1 then
+			hl2diff = GetConVarNumber("sk_dmg_inflict_scale1")
+		elseif GetConVarNumber("skill") == 2 then
+			hl2diff = GetConVarNumber("sk_dmg_inflict_scale2")
+		elseif GetConVarNumber("skill") == 3 then
+			hl2diff = GetConVarNumber("sk_dmg_inflict_scale3")
+		end
+		
+		damagevalue = damagevalue * hl2diff
+	end
+	
+	dmg:SetDamage(damagevalue)
+end)
+
+hook.Add("PlayerAmmoChanged", "drc_StopImpulse101FromBreakingBatteries", function(ply, id, old, new)
+	local batteryammo = game.GetAmmoID("ammo_drc_battery")
+	if id == batteryammo && new > 110 then
+		if CLIENT then DRCNotify(nil, "hint", "critical", "Don't give yourself this ammo type! You'll only break your battery-based weapon!", NOTIFY_HINT, 5) end
+		ply:SetAmmo(old, batteryammo)
+		timer.Simple(0.2, function() ply:SetAmmo(old, batteryammo) end)
 	end
 end)
 

@@ -2,6 +2,7 @@ AddCSLuaFile()
 
 function SWEP:RegeneratingHealth(ply)
 	local ply = self:GetOwner()
+	if not ply:IsPlayer() then return end
 	local hp, maxhp
 	if self.HealthRegen == false or self.HealthRegen == nil then return end
 
@@ -19,6 +20,7 @@ end
 
 function SWEP:RegeneratingAmmo(self)
 	local ply = self:GetOwner()
+	if not ply:IsPlayer() then return end
 	local ammo, maxammo
 	if self.RegenAmmo == false or self.RegenAmmo == nil then return end
 
@@ -28,7 +30,7 @@ function SWEP:RegeneratingAmmo(self)
 			if !SERVER or !self:IsValid()  or !timer.Exists( self.AmmoRegen ) then return end
 			
 			ammo = self.Weapon:Clip1()
-			maxammo = (self.Primary.ClipSize)
+			maxammo = (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 			if maxammo < ammo then return end
 			if self.Loading == false then
 				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
@@ -39,6 +41,7 @@ end
 
 function SWEP:DisperseHeat()
 	local ply = self:GetOwner()
+	if not ply:IsPlayer() then return end
 	local CurHeat = self:GetNWInt("Heat")
 	local AmmoName = self.Primary.Ammo
 
@@ -80,56 +83,57 @@ function SWEP:DisperseHeat()
 	end
 end
 
-function SWEP:BloomScore(ply)
-if self.Base != "draconic_melee_base" then
-	local ply = self:GetOwner()
-	local cv = ply:Crouching()
-	local sk = ply:KeyDown(IN_SPEED)
-	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
-	local plidle = (!mk && !sk && !cv)
-	local issprinting = sk && mk
+function SWEP:BloomScore()
+	if self.Base != "draconic_melee_base" then
+		local ply = self:GetOwner()
+		local cv = ply:Crouching()
+		local sk = ply:KeyDown(IN_SPEED)
+		local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
+		local plidle = (!mk && !sk && !cv)
+		local issprinting = sk && mk
 
-	self.BloomScoreName = "BloomScore_".. ply:Name()
-	
-	timer.Create(self.BloomScoreName, (60 / self.Primary.RPM) * 2, 0, function() 
-		if !self:IsValid()  or !timer.Exists( self.BloomScoreName ) then return end
-		if self.BloomValue == 0 then return end
-
-		-- if CLIENT then ply:ChatPrint(self.BloomValue) end
+		self.BloomScoreName = "BloomScore_".. ply:Name()
 		
-		local bs = self.BloomValue
-		local pbs = self.PrevBS
-		if self.SightsDown == false then
-			if plidle then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - self.Primary.Kick, 0, 1)
-			elseif cv then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - self.Primary.Kick /2, 0, 1)
-			elseif mk then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - self.Primary.Kick +0.1, 0, 1.3)
-			elseif issprinting then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - self.Primary.Kick +0.3, 0, 1.7)
+		timer.Create(self.BloomScoreName, (60 / self.Primary.RPM) * 2, 0, function() 
+			if !self:IsValid() then return end
+			if self.BloomValue == 0 then return end
+			
+			local bs = self.BloomValue
+			local pbs = self.PrevBS
+			if self.SightsDown == false then
+				if plidle then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick, 0, 1)
+				elseif cv then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick /2, 0, 1)
+				elseif mk then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick +0.1, 0, 1.3)
+				elseif issprinting then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick +0.3, 0, 1.7)
+				end
+			else
+				if plidle then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick /2, 0, 1)
+				elseif cv then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - (self.Primary.Kick /2) /2, 0, 1)
+				elseif mk then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.1) /2, 0, 1)
+				elseif issprinting then
+					self.PrevBS = math.Clamp( bs, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.3) /2, 0, 1)
+				end
 			end
-		else
-			if plidle then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - self.Primary.Kick /2, 0, 1)
-			elseif cv then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - (self.Primary.Kick /2) /2, 0, 1)
-			elseif mk then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.1) /2, 0, 1)
-			elseif issprinting then
-				self.PrevBS = math.Clamp( bs, 0, 1.7)
-				self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.3) /2, 0, 1)
-			end
-		end
-	end)
-else end
+		--	print(self.BloomValue)
+		end)
+		
+	repeat until timer.Exists(self.BloomScoreName)
+	end
 end
 
 function SWEP:DisperseCharge()
@@ -137,7 +141,7 @@ function SWEP:DisperseCharge()
 	local m1d = ply:KeyDown(IN_ATTACK)
 	local m2d = ply:KeyDown(IN_ATTACK2)
 	
-	if ply:IsNPC() or ply:IsNextBot() then return end
+	if !ply:IsPlayer() then return end
 	
 	self.ChargeDisperseTimer = "ChargeDisperseTimer_".. ply:Name()
 
@@ -177,6 +181,7 @@ end
 
 function SWEP:UpdateBloom(mode)
 	local ply = self:GetOwner()
+	if !ply:IsPlayer() then return end
 	local cv = ply:Crouching()
 	local sk = ply:KeyDown(IN_SPEED)
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
@@ -371,10 +376,20 @@ function SWEP:TakeSecondaryAmmo( num )
 	self.Weapon:SetClip2( self.Weapon:Clip2() - num )
 end
 
+function SWEP:DoCustomBulletImpact(pos, normal, dmg)
+end
+
 function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
+	local ply = self:GetOwner()
 	local fm = self:GetNWString("FireMode")
-	
 	if fm == "Burst" && !IsFirstTimePredicted() then return end
+	
+	
+	force = self.Primary.Force * self:GetAttachmentValue("Ammunition", "Force")
+	
+	if self.Primary.Tracer == nil then
+		tracer = self:GetAttachmentValue("Ammunition", "Tracer")
+	end
 
 	local bullet = {}
 	bullet.Num = num
@@ -388,7 +403,31 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 		if IsValid(self) then
 			takedamageinfo:SetAttacker(self:GetOwner())
 			takedamageinfo:SetInflictor(self)
+			takedamageinfo:SetDamageType( self:GetAttachmentValue("Ammunition", "DamageType") )
 			self.LastHitPos = tr.HitPos
+			
+			if self:GetAttachmentValue("Ammunition", "SplashRadius") != nil then
+				local dinfo = DamageInfo()
+				dinfo:SetInflictor(self)
+				dinfo:SetAttacker(ply)
+				dinfo:SetDamageType( self:GetAttachmentValue("Ammunition", "DamageType") )
+				
+				for k,v in pairs(ents.FindInSphere(tr.HitPos, self:GetAttachmentValue("Ammunition", "SplashRadius"))) do
+					if (v:IsValid() or !v:IsWorld()) && SERVER then
+						local dinfo = DamageInfo()
+						dinfo:SetInflictor(self)
+						dinfo:SetAttacker(ply)
+						dinfo:SetDamage( (bullet.Damage * self:GetAttachmentValue("Ammunition", "SplashDamageMul")) / (v:EyePos():DistToSqr(tr.HitPos) / 50) )
+						v:TakeDamageInfo(dinfo)
+					end
+				end
+			end
+
+			if self:GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
+				util.Decal( self:GetAttachmentValue("Ammunition", "ImpactDecal"), tr.StartPos, tr.HitPos, {self, ply})
+			end
+			
+			self:DoCustomBulletImpact(tr.HitPos, tr.Normal, takedamageinfo)
 		end
 	end
 	
@@ -399,19 +438,21 @@ function SWEP:CalculateSpread()
 	local ply = self:GetOwner()
 	local stats = self.StatsToPull
 	
+	local calc = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv")))
+	
 	if ply:IsPlayer() then
 		if GetConVar("sv_drc_callofdutyspread"):GetString() == "1" then
 			--if self.Weapon:GetNWBool("ironsights") == false then
 			if self.SightsDown == false then
-				return Vector( stats.Spread / stats.SpreadDiv, stats.Spread / stats.SpreadDiv, 0 ) * self.BloomValue
+				return Vector( calc, calc, 0 ) * self.BloomValue
 			else
-				return Vector( self.Secondary.SpreadRecoilMul * (stats.Spread / stats.SpreadDiv), self.Secondary.SpreadRecoilMul * (stats.Spread / stats.SpreadDiv), 0 ) * self.BloomValue
+				return Vector( calc, calc, 0) * self.BloomValue
 			end
 		else
-			return Vector( stats.Spread / stats.SpreadDiv, stats.Spread / stats.SpreadDiv, 0 ) * self.BloomValue
+			return Vector( calc, calc, 0 ) * self.BloomValue
 		end
 	elseif ply:IsNPC() or ply:IsNextBot() then
-		return Vector(stats.Spread / stats.SpreadDiv, stats.Spread / stats.SpreadDiv, stats.Spread / stats.SpreadDiv)
+		return Vector(calc, calc, calc)
 	end
 end
 
@@ -419,6 +460,7 @@ function SWEP:DoShoot(mode)
 	local stats = self.StatsToPull
 	local batstats = self.BatteryStats
 	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
 	local eyeang = ply:EyeAngles()
 	local tr = util.GetPlayerTrace(ply)
 	local trace = util.TraceLine( tr )
@@ -450,9 +492,9 @@ function SWEP:DoShoot(mode)
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, self.Primary.ClipSize))
+				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
@@ -476,11 +518,13 @@ function SWEP:DoShoot(mode)
 			if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "overcharge") end
 		end
 		
+		self:SetNWInt("Charge", 0)
+		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
@@ -540,7 +584,8 @@ function SWEP:DoShoot(mode)
 			if heat > batstats.AlterThesholdMax then
 				self:SetNextPrimaryFire( CurTime() + 60 / batstats.HeatRPMmin)
 			elseif heat > batstats.AlterTheshold then
-				self:SetNextPrimaryFire( CurTime() + Lerp(((heat + batstats.AlterThesholdMax ) - batstats.AlterThesholdMax) / 60, (60 / stats.RPM), (60 / batstats.HeatRPMmin)) )
+				local meth = Lerp((heat - batstats.AlterTheshold) / heat, (60 / stats.RPM), (60 / batstats.HeatRPMmin))
+				self:SetNextPrimaryFire( CurTime() + meth )
 			elseif heat < batstats.AlterTheshold then
 				self:SetNextPrimaryFire( CurTime() + 60 / stats.RPM)
 			end
@@ -662,7 +707,7 @@ function SWEP:DoShoot(mode)
 			if !IsValid(self) or !IsValid(ply) then return end
 			if ply:GetActivity() == ACT_RELOAD then
 				self:DoCustomReloadStartEvents()
-				self.Weapon:SetNWInt("LoadedAmmo", self.Primary.ClipSize)
+				self.Weapon:SetNWInt("LoadedAmmo", (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
 			end
 		end)
 	end
@@ -712,6 +757,7 @@ function SWEP:DoEffects(mode)
 	local muzzle = self:LookupAttachment("muzzle")
 	
 	if self.StatsToPull.Projectile == nil && self.vFire == false then
+		if self.LastHitPos == nil then self.LastHitPos = Vector(0, 0, 0) end
 		effectdata:SetOrigin( self.LastHitPos )
 	else
 		effectdata:SetOrigin( self.Owner:GetShootPos() )
@@ -818,26 +864,26 @@ function SWEP:DoRecoil(mode)
 	local issprinting = sk && mk
 
 	if mode == "primary" then
-		self.RecoilDown = self.Primary.RecoilDown
-		self.RecoilUp = self.Primary.RecoilUp
-		self.RecoilHoriz = self.Primary.RecoilHoriz
-		self.Kick = self.Primary.Kick
-		self.KickHoriz = self.Primary.KickHoriz
-		self.IronRecoilMul = self.Primary.IronRecoilMul
+		self.RecoilDown = (self.Primary.RecoilDown * self:GetAttachmentValue("Ammunition", "RecoilDown"))
+		self.RecoilUp = (self.Primary.RecoilUp * self:GetAttachmentValue("Ammunition", "RecoilUp"))
+		self.RecoilHoriz = (self.Primary.RecoilHoriz * self:GetAttachmentValue("Ammunition", "RecoilHoriz"))
+		self.Kick = (self.Primary.Kick * self:GetAttachmentValue("Ammunition", "Kick"))
+		self.KickHoriz = (self.Primary.KickHoriz * self:GetAttachmentValue("Ammunition", "KickHoriz"))
+		self.IronRecoilMul = (self.Primary.IronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
 	elseif mode == "secondary" then
-		self.RecoilDown = self.Secondary.RecoilDown
-		self.RecoilUp = self.Secondary.RecoilUp
-		self.RecoilHoriz = self.Secondary.RecoilHoriz
-		self.Kick = self.Secondary.Kick
-		self.KickHoriz = self.Secondary.KickHoriz
-		self.IronRecoilMul = self.Secondary.IronRecoilMul
+		self.RecoilDown = (self.Secondary.RecoilDown * self:GetAttachmentValue("Ammunition", "RecoilDown"))
+		self.RecoilUp = (self.Secondary.RecoilUp * self:GetAttachmentValue("Ammunition", "RecoilUp"))
+		self.RecoilHoriz = (self.Secondary.RecoilHoriz * self:GetAttachmentValue("Ammunition", "RecoilHoriz"))
+		self.Kick = (self.Secondary.Kick * self:GetAttachmentValue("Ammunition", "Kick"))
+		self.KickHoriz = (self.Secondary.KickHoriz * self:GetAttachmentValue("Ammunition", "KickHoriz"))
+		self.IronRecoilMul = (self.Secondary.IronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
 	elseif mode == "overcharge" then
-		self.RecoilDown = self.OCRecoilDown
-		self.RecoilUp = self.OCRecoilUp
-		self.RecoilHoriz = self.OCRecoilHoriz
-		self.Kick = self.OCKick
-		self.KickHoriz = self.OCKickHoriz
-		self.IronRecoilMul = self.OCIronRecoilMul
+		self.RecoilDown = (self.OCRecoilDown * self:GetAttachmentValue("Ammunition", "RecoilDown"))
+		self.RecoilUp = (self.OCRecoilUp * self:GetAttachmentValue("Ammunition", "RecoilUp"))
+		self.RecoilHoriz = (self.OCRecoilHoriz * self:GetAttachmentValue("Ammunition", "RecoilHoriz"))
+		self.Kick = (self.OCKick * self:GetAttachmentValue("Ammunition", "Kick"))
+		self.KickHoriz = (self.OCKickHoriz * self:GetAttachmentValue("Ammunition", "KickHoriz"))
+		self.IronRecoilMul = (self.OCIronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
 	end
 		
 	--if self.Weapon:GetNWBool("ironsights") == false && cv == false then
@@ -948,4 +994,24 @@ function SWEP:ValveBipedCheck()
 end
 
 function SWEP:DoCustomMeleeImpact(att)
+end
+
+function SWEP:GetAttachmentValue(att, val)
+	local AA = self.ActiveAttachments
+	local base = scripted_ents.GetStored("drc_att_bprofile_generic")
+	local BT = base.t.BulletTable
+	local tab = nil
+	
+	if att == "Ammunition" then
+		tab = AA.Ammunition.t.BulletTable
+		
+		local foundval = tab[val]
+		if foundval == nil then
+			foundval = base.t.BulletTable[val]
+			if GetConVar("cl_drc_debugmode"):GetFloat() > 0 && foundval != nil then print("Failed to find value (".. tostring(att) .." - " .. tostring(val) .."), pulling base instead: ".. foundval .."") end
+		else
+			if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then print("Found value (".. tostring(att) .." - " .. tostring(val) .."): ".. foundval .."") end
+		end
+		return foundval
+	end
 end

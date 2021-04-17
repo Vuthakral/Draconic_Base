@@ -286,6 +286,10 @@ function SWEP:InitialFireMode()
 	else 
 		self.Weapon:SetNWString("FireMode", "Semi")
 	end
+	
+	if self.FireModes_CanBurst == true && self.FireModes_CanAuto == false && self.FireModes_CanSemi == false then
+		self.Weapon:SetNWString("FireMode", "Burst")
+	end
 end
 
 function SWEP:Initialize()
@@ -296,8 +300,13 @@ function SWEP:Initialize()
 	self:SetNWBool("Passive", false)
 	self:SetNWBool("Inspecting", false)
 	
+	if !self.IsMelee then
+		self.DefaultPimaryClipSize = self.Primary.ClipSize
+		self:SetupAttachments("drc_att_bprofile_generic", "ammo", false, true)
+	end
+	
 	if self.Primary.Ammo != nil && self:GetOwner():IsNPC() && !self.IsMelee then
-		if self.Primary.Ammo != "CombineHeavyCannon" then
+		if self.Primary.Ammo != "ammo_drc_battery" then
 			self.NPCBurstShots = self.Primary.ClipSize * (60 / self.Primary.RPM)
 		else
 			self.NPCBurstShots = (100 / self.BatteryConsumPerShot) * (60 / self.Primary.RPM)
@@ -309,7 +318,7 @@ function SWEP:Initialize()
 	if self.Primary.Ammo != nil && self:GetOwner():IsNextBot() then
 		self.Weapon.HoldType_Aim = self.HoldType
 		self.Weapon.Primary.Delay = 60 / self.Primary.RPM
-		if self.Primary.Ammo != "CombineHeavyCannon" then
+		if self.Primary.Ammo != "ammo_drc_battery" then
 			self.BurstLength = self.Primary.ClipSize * (60 / self.Primary.RPM)
 			self.NPCBurstShots = self.Primary.ClipSize * (60 / self.Primary.RPM)
 		else
@@ -329,6 +338,196 @@ function SWEP:Initialize()
 	if (ply.IsVJBaseSNPC == true or ply.IsVJBaseSNPC_Human == true) then
 		if ply.IsVJBaseSNPC != nil then
 			self:SetupVJSupport()
+		end
+	end
+	
+	-- Stupidity protection
+	if self.Primary.ReloadAct == nil && !self.IsMelee then
+		if self.Primary.ReloadHoldType == nil then
+			local ht = self:GetHoldType()
+			if ht == "pistol" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PISTOL
+			elseif ht == "smg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SMG1
+			elseif ht == "grenade" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RELOAD
+			elseif ht == "ar2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_AR2
+			elseif ht == "shotgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SHOTGUN
+			elseif ht == "rpg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RPG
+			elseif ht == "physgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PHYSGUN
+			elseif ht == "crossbow" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CROSSBOW
+			elseif ht == "melee" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE
+			elseif ht == "slam" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SLAM
+			elseif ht == "normal" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
+			elseif ht == "fist" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_FIST
+			elseif ht == "melee2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE2
+			elseif ht == "passive" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
+			elseif ht == "knife" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_KNIFE
+			elseif ht == "duel" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_DUEL
+			elseif ht == "camera" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CAMERA
+			elseif ht == "magic" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MAGIC
+			elseif ht == "revolver" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_REVOLVER
+			end
+		else
+			local ht = self.Primary.ReloadHoldType
+			if ht == "pistol" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PISTOL
+			elseif ht == "smg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SMG1
+			elseif ht == "grenade" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RELOAD
+			elseif ht == "ar2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_AR2
+			elseif ht == "shotgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SHOTGUN
+			elseif ht == "rpg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RPG
+			elseif ht == "physgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PHYSGUN
+			elseif ht == "crossbow" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CROSSBOW
+			elseif ht == "melee" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE
+			elseif ht == "slam" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SLAM
+			elseif ht == "normal" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
+			elseif ht == "fist" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_FIST
+			elseif ht == "melee2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE2
+			elseif ht == "passive" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
+			elseif ht == "knife" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_KNIFE
+			elseif ht == "duel" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_DUEL
+			elseif ht == "camera" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CAMERA
+			elseif ht == "magic" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MAGIC
+			elseif ht == "revolver" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_REVOLVER
+			end
+		end
+	end
+	
+	if self.IsMelee == true then
+		if self.Primary.MeleeAct == nil then
+			local ht = self.Primary.HoldType
+			if ht == "pistol" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
+			elseif ht == "smg" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
+			elseif ht == "grenade" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
+			elseif ht == "ar2" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
+			elseif ht == "shotgun" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
+			elseif ht == "rpg" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
+			elseif ht == "physgun" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
+			elseif ht == "crossbow" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+			elseif ht == "melee" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
+			elseif ht == "slam" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
+			elseif ht == "normal" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "fist" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
+			elseif ht == "melee2" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
+			elseif ht == "passive" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "knife" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
+			elseif ht == "duel" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
+			elseif ht == "camera" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
+			elseif ht == "magic" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
+			elseif ht == "revolver" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
+			end
+		end
+		if self.Primary.MeleeActCrouch == nil then
+			local ht = self.Primary.HoldTypeCrouch
+			if ht == "pistol" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
+			elseif ht == "smg" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
+			elseif ht == "grenade" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
+			elseif ht == "ar2" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
+			elseif ht == "shotgun" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
+			elseif ht == "rpg" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
+			elseif ht == "physgun" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
+			elseif ht == "crossbow" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+			elseif ht == "melee" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
+			elseif ht == "slam" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
+			elseif ht == "normal" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "fist" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
+			elseif ht == "melee2" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
+			elseif ht == "passive" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "knife" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
+			elseif ht == "duel" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
+			elseif ht == "camera" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
+			elseif ht == "magic" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
+			elseif ht == "revolver" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
+			end
+		end
+		if self.Secondary.MeleeAct == nil then
+			local ht = self.Secondary.HoldType
+			if ht == "pistol" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
+			elseif ht == "smg" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
+			elseif ht == "grenade" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
+			elseif ht == "ar2" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
+			elseif ht == "shotgun" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
+			elseif ht == "rpg" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
+			elseif ht == "physgun" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
+			elseif ht == "crossbow" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+			elseif ht == "melee" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
+			elseif ht == "slam" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
+			elseif ht == "normal" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "fist" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
+			elseif ht == "melee2" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
+			elseif ht == "passive" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "knife" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
+			elseif ht == "duel" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
+			elseif ht == "camera" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
+			elseif ht == "magic" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
+			elseif ht == "revolver" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
+			end
+		end
+		if self.Secondary.MeleeActCrouch == nil then
+			local ht = self.Secondary.HoldTypeCrouch
+			if ht == "pistol" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
+			elseif ht == "smg" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
+			elseif ht == "grenade" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
+			elseif ht == "ar2" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
+			elseif ht == "shotgun" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
+			elseif ht == "rpg" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
+			elseif ht == "physgun" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
+			elseif ht == "crossbow" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+			elseif ht == "melee" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
+			elseif ht == "slam" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
+			elseif ht == "normal" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "fist" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
+			elseif ht == "melee2" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
+			elseif ht == "passive" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "knife" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
+			elseif ht == "duel" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
+			elseif ht == "camera" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
+			elseif ht == "magic" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
+			elseif ht == "revolver" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
+			end
+		end
+		if self.Primary.LungeMeleeAct == nil then
+			local ht = self.LungeHoldType
+			if ht == "pistol" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
+			elseif ht == "smg" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
+			elseif ht == "grenade" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
+			elseif ht == "ar2" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
+			elseif ht == "shotgun" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
+			elseif ht == "rpg" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
+			elseif ht == "physgun" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
+			elseif ht == "crossbow" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+			elseif ht == "melee" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
+			elseif ht == "slam" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
+			elseif ht == "normal" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "fist" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
+			elseif ht == "melee2" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
+			elseif ht == "passive" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "knife" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
+			elseif ht == "duel" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
+			elseif ht == "camera" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
+			elseif ht == "magic" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
+			elseif ht == "revolver" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
+			end
+		end
+		if self.Primary.LungeMeleeActCrouch == nil then
+			local ht = self.LungeHoldTypeCrouch
+			if ht == "pistol" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
+			elseif ht == "smg" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
+			elseif ht == "grenade" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
+			elseif ht == "ar2" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
+			elseif ht == "shotgun" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
+			elseif ht == "rpg" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
+			elseif ht == "physgun" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
+			elseif ht == "crossbow" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+			elseif ht == "melee" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
+			elseif ht == "slam" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
+			elseif ht == "normal" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "fist" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
+			elseif ht == "melee2" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
+			elseif ht == "passive" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
+			elseif ht == "knife" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
+			elseif ht == "duel" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
+			elseif ht == "camera" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
+			elseif ht == "magic" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
+			elseif ht == "revolver" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
+			end
 		end
 	end
 	
@@ -469,6 +668,7 @@ function SWEP:Think()
 					if FireTime < CurTime() then FireTime = CurTime() + 60 / self.Primary.RPM self:CallShoot("primary") end
 				elseif m1r && self:CanOvercharge() && self:CanPrimaryAttack() then self:CallShoot("overcharge") end
 			elseif self.ChargeType == "dualaction" then
+				if m1d && self:CanPrimaryAttack() && self:CanOvercharge() then self:CallShoot("overcharge") end
 				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then self:CallShoot("primary") end
 			elseif self.ChargeType == "discharge" then
 				if m1d && self:CanPrimaryAttack() == true && self:CanOvercharge() && !ukd then
@@ -545,20 +745,6 @@ function SWEP:Think()
 			else self.LoopingFireSoundSecondary:Stop() end
 		end
 	end
-		
-	if self:CanGunMelee() == true then
-		local ht = self:GetHoldType()
-		local usekey = ply:KeyDown(IN_USE)
-		local attackkey = ply:KeyPressed(IN_ATTACK)
-
-		if usekey && attackkey then
-			if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
-				self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND, true)
-			elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
-				self.Owner:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE, true)
-			end
-		end
-	else end
 	
 	if self.Glow == true && CLIENT then
 		local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
@@ -633,11 +819,11 @@ function SWEP:Think()
 		vm:SetPoseParameter("drc_emptymag", self.EmptyMagCL)
 	end
 		
-	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_heat") != nil then
+	if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_heat") != nil then
 		vm:SetPoseParameter("drc_heat", self.HeatCL / 100)
 	end
 		
-	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_battery") != nil then
+	if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_battery") != nil then
 		vm:SetPoseParameter("drc_battery", self.AmmoCL / 100)
 	end
 	
@@ -655,9 +841,10 @@ function SWEP:CanGunMelee()
 	--local sights = self.Weapon:GetNWBool("ironsights")
 	local sights = self.SightsDown
 	local passive = self.Weapon:GetNWBool("Passive")
+	local inspection = self.Weapon:GetNWBool("Inspecting")
 	
 	if self.Primary.CanMelee == false then return false end
-	
+	if inspection == true then return false end
 	if sights == false && passive == false then return true else return false end
 end
 
@@ -689,7 +876,15 @@ function SWEP:ManageAnims()
 			vm:SendViewModelMatchingSequence(idleanim)
 		return end
 		
-		if slowvar then self.FPAnimMul = 0.5 else self.FPAnimMul = 1 end
+		if self.IsDoingMelee == true then 
+			self.FPAnimMul = 1
+		else
+			if slowvar then
+				self.FPAnimMul = 0.5
+			else
+				self.FPAnimMul = 1
+			end
+		end
 		
 		if !walking && !sprinting then
 			self.AnimToPlay = idleanim
@@ -717,6 +912,7 @@ function SWEP:ManageAnims()
 		end
 		
 		if self.IdleTimer <= CurTime() then
+			if idleanim == -1 then return end
 			vm:SendViewModelMatchingSequence(self.AnimToPlay)
 			if self.AnimToPlay == walkanim then
 				if slowvar then
@@ -961,7 +1157,6 @@ function SWEP:GetViewModelPosition( pos, ang )
 				self:DoPassiveHoldtype()
 			elseif inspectBool == true then
 				self:DoInspectHoldtype()
-				
 			else
 				if self.Weapon:GetNWBool("Overheated") == true then -- fucking glua wont let me just call either self.Overheated or self.IsOverheated within this function AAAAAAAA
 					self:SetHoldType(self.OverheatHoldType)
@@ -972,6 +1167,11 @@ function SWEP:GetViewModelPosition( pos, ang )
 				end
 			end
 		else
+			if passive == true then
+				self:DoPassiveHoldtype()
+			elseif inspectBool == true then
+				self:DoInspectHoldtype()
+			end
 		end
 	elseif (oa == "sprinting" or oa =="fastswimming") then
 		if self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1" then
@@ -1084,6 +1284,7 @@ end
 
 function SWEP:Deploy()
 	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
 	local cv = ply:Crouching()
 	local vm = ply:GetViewModel()
 	local drawanim = vm:SelectWeightedSequence( ACT_VM_DRAW )
@@ -1091,19 +1292,19 @@ function SWEP:Deploy()
 	vm:SetPlaybackRate( 1 )
 	self:SetIronsights(false)
 	self.SightsDown = false
-	
-	self.DManip_PlyID = "DRC_DManip_" ..ply:Name().. ""
-	
-	self.Idle = 0
+	self.Idle = 1
 	self.IsTaunting = 0
 	self.Inspecting = false
 	self.EmptyReload = 0
 	self.ManuallyReloading 	= false
 	self.Loading			= false
 	
-	timer.Simple(drawanimdur, function() self.Idle = 1 end)
-	
-	self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
+	if ply:IsPlayer() then
+		self.DManip_PlyID = "DRC_DManip_" ..ply:Name().. ""
+		self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
+		self.Idle = 0
+		timer.Simple(drawanimdur, function() self.Idle = 1 end)
+	end
 	ply:StartLoopingSound(self.WeaponIdleLoopSound)
 	self.IdleTimer = CurTime() + drawanimdur
 
@@ -1112,8 +1313,7 @@ function SWEP:Deploy()
 	else
 		self:SetHoldType( self.HoldType )
 	end
-
---	self.Weapon:SetNWBool( "Ironsights", false )
+	
 	self.Weapon:SetNWInt( "Charge", 0 )
 	
 	if not IsValid(self) or not IsValid(ply) or not ply:Alive() then else
@@ -1127,21 +1327,23 @@ function SWEP:Deploy()
 	self:SetNextPrimaryFire( CurTime() + drawanimdur)
 	self:SetNextSecondaryFire( CurTime() + drawanimdur)
 	
-	if self.HealthRegen == true then self:RegeneratingHealth(ply) end
-	if self.RegenAmmo == true then self:RegeneratingAmmo(self) end
+	if ply:IsPlayer() && self.HealthRegen == true then self:RegeneratingHealth(ply) end
+	if ply:IsPlayer() && self.RegenAmmo == true then self:RegeneratingAmmo(self) end
 	if self.SpecialScripted != true then
-		self:BloomScore()
-		if game.SinglePlayer() then self:CallOnClient( "BloomScore") end
+		if ply:IsPlayer() then
+			self:BloomScore()
+			timer.Simple(0.1, function() self:CallOnClient( "BloomScore" ) end)
+		end
 	end
 
-	if self.Primary.Ammo == "CombineHeavyCannon" then
+	if self.Primary.Ammo == "ammo_drc_battery" then
 		self.Weapon:SetNWFloat("HeatDispersePower", 1)
 		self:DisperseHeat()
-	else end
+	end
 	
 	if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
 		self:DisperseCharge()
-	else end
+	end
 
 	self:DoCustomDeploy()
 return true
@@ -1171,10 +1373,12 @@ function SWEP:OnRemove()
 		if self.BloomScoreName != nil then
 			timer.Remove( self.BloomScoreName )
 		else end
-		if self.Primary.Ammo == "CombineHeavyCannon" then
+		if self.Primary.Ammo == "ammo_drc_battery" then
+			if !timer.Exists(self.HeatDisperseTimer) then return end
 			timer.Remove( self.HeatDisperseTimer )
 		else end
 		if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
+			if !timer.Exists(self.ChargeDisperseTimer) then return end
 			timer.Remove( self.ChargeDisperseTimer )
 		else end
 		
@@ -1190,7 +1394,7 @@ function SWEP:OnRemove()
 		hook.Remove("Think", self)
 	end
 	
-	if self.Primary.Ammo == "CombineHeavyCannon" then
+	if self.Primary.Ammo == "ammo_drc_battery" then
 		local ventingsound = self.VentingSound
 		self.Weapon:StopSound(ventingsound)
 	end
@@ -1226,7 +1430,7 @@ self.Owner.ShouldReduceFallDamage = false
 		if self.BloomScoreName != nil then
 			timer.Remove( self.BloomScoreName )
 		else end
-		if self.Primary.Ammo == "CombineHeavyCannon" then
+		if self.Primary.Ammo == "ammo_drc_battery" then
 			timer.Remove( self.HeatDisperseTimer )
 		else end
 		if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
@@ -1241,7 +1445,7 @@ self.Owner.ShouldReduceFallDamage = false
 	else end
 	end
 
-	if self.Primary.Ammo == "CombineHeavyCannon" then
+	if self.Primary.Ammo == "ammo_drc_battery" then
 		local ventingsound = self.VentingSound
 		self.Weapon:StopSound(ventingsound)
 	else end
@@ -1424,10 +1628,12 @@ else end
 end
 
 function SWEP:DoPassiveHoldtype()
-	if self.HoldType == "pistol" or self.HoldType == "revolver" or self.HoldType == "magic" or self.HoldType == "knife" or self.HoldType == "melee" or self.HoldType == "melee2" or self.HoldType == "slam" or self.HoldType == "fist" or self.HoldType == "grenade" or self.HoldType == "duel" then
+	if self.HoldType == "pistol" or self.HoldType == "revolver" or self.HoldType == "knife" or self.HoldType == "melee" or self.HoldType == "slam" or self.HoldType == "fist" or self.HoldType == "grenade" or self.HoldType == "duel" then
 		self:SetHoldType("normal")
 	elseif self.HoldType == "smg" or self.HoldType == "ar2" or self.HoldType == "rpg" or self.HoldType == "crossbow" or self.HoldType == "shotgun" or self.HoldType == "physgun" then
 		self:SetHoldType("passive")
+	elseif self.HoldType == "magic" or self.HoldType == "melee2" then
+		self:SetHoldType("knife")
 	end
 end
 
@@ -1516,6 +1722,67 @@ function SWEP:ShootFire()
 	end
 end
 
+local BaseGameAmmoTypes = {
+	"AR2",
+	"AR2AltFire",
+	"Pistol",
+	"SMG1",
+	"357",
+	"XBowBolt",
+	"Buckshot",
+	"RPG_Round",
+	"SMG1_Grenade",
+	"Grenade",
+	"slam",
+	"AlyxGun",
+	"SniperRound",
+	"SniperPenetrateRound",
+	"Thumper",
+	"Gravity",
+	"Battery",
+	"GaussEnergy",
+	"CombineCannon",
+	"AirboatGun",
+	"StriderMinigun",
+	"HelicopterGun",
+	"9mmRound",
+	"MP5_Grenade",
+	"Hornet",
+	"StriderMinigunDirect",
+	"CombineHeavyCannon",
+}
+
+function SWEP:SetupAttachments(att, slot, emptymag, initializing)
+	if att == nil then initializing = true end
+	if initializing == true && slot == "ammo" then
+		ammo = scripted_ents.GetStored(self.AttachmentTable.AmmunitionTypes[1])
+		local ammotype = ammo.t.BulletTable.AmmoType
+		local basegameammotype = ammo.t.BulletTable.FallbackBaseAmmoType
+		if GetConVarNumber("sv_drc_forcebasegameammo") == 0 then
+			if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = ammotype end
+		else
+			if !CTFK(BaseGameAmmoTypes, basegameammotype) then
+				if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = "Pistol" end
+			else
+				if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = basegameammotype end
+			end
+		end
+	elseif !initializing && slot == "ammo" then
+		ammo = scripted_ents.GetStored(att)
+	end
+		
+	self.ActiveAttachments = {
+		Ammunition = ammo,
+		Clipazine = nil,
+		Optic = nil,
+		Foregrip = nil,
+		Barrel = nil,
+		Stock = nil,
+		Internal = nil,
+		Charm = nil
+	}
+end
+
 function SWEP:SetupDataTables()
 	self:SetNWInt("Heat", 0)
 	self:SetNWInt("Charge", 0)
@@ -1556,7 +1823,7 @@ function SWEP:SetupDataTables()
 		EndSound = self.Primary.EndSound,
 		NPCSound = self.Primary.NPCSound,
 		DistSound = self.Primary.DistSound,
-		SoundDistance = self.Primary.SoundDistance
+		SoundDistance = self.Primary.SoundDistance,
 	}
 	
 	self.SecondaryStats = {
@@ -1593,10 +1860,10 @@ function SWEP:SetupDataTables()
 		EndSound = self.Secondary.EndSound,
 		NPCSound = self.Secondary.NPCSound,
 		DistSound = self.Secondary.DistSound,
-		SoundDistance = self.Secondary.SoundDistance
+		SoundDistance = self.Secondary.SoundDistance,
 	}
 	
-self.OCStats = {
+	self.OCStats = {
 		Damage = self.OCDamage,
 		Projectile = self.OCProjectile,
 		ProjSpeed = self.OCProjSpeed,
@@ -1770,11 +2037,11 @@ function SWEP:PreDrawViewModel(vm, wep, ply)
 		vm:SetPoseParameter("drc_emptymag", self.EmptyMagCL)
 	end
 	
-	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_heat") != nil then
+	if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_heat") != nil then
 		vm:SetPoseParameter("drc_heat", self.HeatCL / 100)
 	end
 	
-	if self.Primary.Ammo == "CombineHeavyCannon" && vm:GetPoseParameter("drc_battery") != nil then
+	if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_battery") != nil then
 		vm:SetPoseParameter("drc_battery", self.AmmoCL / 100)
 	end
 	
@@ -1789,8 +2056,29 @@ function SWEP:PreDrawViewModel(vm, wep, ply)
 	return false
 end
 
-function SWEP:OnReloadad()
-	self:SetHoldType(self.HoldType)
+function SWEP:OnReloaded()
+	if SERVER then self:CallOnClient("OnReloaded") end
+	local ply = self:GetOwner()
+	local class = self:GetClass()
+	local ammostat = weapons.GetStored(class).Primary.Ammo
+	
+	self:DoPassiveHoldtype()
+	if self.IsBatteryBased == true then
+		self.Primary.Ammo = "ammo_drc_battery"
+	elseif !self.IsBatteryBased && !self.IsMelee then
+		if ammostat == nil then
+			if GetConVarNumber("sv_drc_forcebasegameammo") == 0 then
+				self.Primary.Ammo = self:GetAttachmentValue("Ammunition", "AmmoType")
+			else
+				self.Primary.Ammo = self:GetAttachmentValue("Ammunition", "BaseGameAmmoType")
+			end
+		end
+	end
+end
+
+function SWEP:OnRestore()
+	self:Initialize()
+	timer.Simple(0.1, function() self:Deploy() end)
 end
 
 function SWEP:ShootEffects()
@@ -1958,11 +2246,11 @@ if CLIENT then
 				self:SetPoseParameter("drc_emptymag", self.EmptyMagCL_TP)
 			end
 			
-			if self.Primary.Ammo == "CombineHeavyCannon" && self:GetPoseParameter("drc_heat") != nil then
+			if self.Primary.Ammo == "ammo_drc_battery" && self:GetPoseParameter("drc_heat") != nil then
 				self:SetPoseParameter("drc_heat", self.HeatCL_TP / 100)
 			end
 			
-			if self.Primary.Ammo == "CombineHeavyCannon" && self:GetPoseParameter("drc_battery") != nil then
+			if self.Primary.Ammo == "ammo_drc_battery" && self:GetPoseParameter("drc_battery") != nil then
 				self:SetPoseParameter("drc_battery", self.AmmoCL_TP / 100)
 			end
 			

@@ -106,7 +106,7 @@ SWEP.NPCBurstShots = 0
 SWEP.JackalSniper = false
 
 -- the DO NOT TOUCH zone
-SWEP.Primary.Ammo 			= "CombineHeavyCannon"
+SWEP.Primary.Ammo 			= "ammo_drc_battery"
 SWEP.Primary.ClipSize		= 100
 SWEP.Primary.DefaultClip	= 100
 SWEP.VentHeld 				= false
@@ -149,6 +149,16 @@ local wl = ply:WaterLevel()
 	elseif self.Weapon:GetNWInt("LoadedAmmo") <= 0.01 && self.InfAmmo == true && self.Loading == false && self.ManuallyReloading == false then
 		self:SetNextPrimaryFire (( CurTime() + 0.3 ))
 		return true
+	end
+	
+	if self.Weapon:GetNWBool("Inspecting") == true then
+		return false
+	end
+	
+	if self.Weapon:GetNWBool("Passive") == true then
+		self:TogglePassive()
+		self:SetNextPrimaryFire(CurTime() + 0.3)
+		return false
 	end
 	
 	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self.Weapon:GetNWBool("Passive") == true or self.Weapon:GetNWBool("Inspecting") or ((self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) or (self.Overheated == true or self.IsOverheated == true) then
@@ -249,7 +259,7 @@ local ply = self:GetOwner()
 		self:SendWeaponAnim(ACT_VM_RELOAD)
 	else end
 	if self:Clip1() <= self.Primary.ClipSize then
-		if ply:KeyDown(IN_RELOAD) && ply:GetAmmoCount("CombineHeavyCannon") > 0 then
+		if ply:KeyDown(IN_RELOAD) && ply:GetAmmoCount("ammo_drc_battery") > 0 then
 			self:Vent()
 			self:DoCustomVentHoldEvents()
 		else
@@ -264,6 +274,8 @@ function SWEP:FinishVent()
 	local looptime = self:SequenceDuration( loopseq )
 	local ventingsound = self.VentingSound
 	local ventingend = self.VentingStopSound
+	
+	if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end
 	
 	self:SetHoldType( self.HoldType )
 	self.Weapon:StopSound(ventingsound)
@@ -284,6 +296,7 @@ function SWEP:FinishVent()
 	self.Weapon:SetNWFloat("HeatDispersePower", 1)
 	
 	timer.Simple( looptime, function()
+		if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end
 		self.Idle = 1
 		self.ManuallyReloading = false
 		self.IsOverheated = false
@@ -291,7 +304,7 @@ function SWEP:FinishVent()
 		self.Weapon:SetNWBool("Overheated", false)
 		self.Weapon:SetNWBool("Venting", false)
 	end)
-	timer.Simple( looptime, function() self:ManuallyLoadAfterReload() end)
+	timer.Simple( looptime, function() if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end self:ManuallyLoadAfterReload() end)
 	self.IdleTimer = CurTime() + looptime
 end
 
@@ -392,7 +405,7 @@ local AmmoName = self.Primary.Ammo
 			if SERVER then self.Weapon:SetNWBool("NPCLoading", true) end
 		end
 	else 
-		timer.Simple(1, function() self:FinishVent() end)
+		timer.Simple(1, function() if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end self:FinishVent() end)
 		if SERVER then self.Weapon:SetNWBool("NPCLoading", true) end
 	end
 end

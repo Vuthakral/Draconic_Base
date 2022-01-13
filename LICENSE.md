@@ -1,4 +1,4 @@
-<b>Draconic Base (c) 2021 Vuthakral. All Rights Reserved.</b>
+<b>Draconic Base (c) 2022 Vuthakral. All Rights Reserved.</b>
 
 https://twitter.com/Vuthakral/ <br>
 https://steamcommunity.com/id/Vuthakral/ <br>

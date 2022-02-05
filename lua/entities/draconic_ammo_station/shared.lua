@@ -40,8 +40,15 @@ ENT.RequiredEntRange = 50
 ENT.Destroyable	= false
 ENT.SpawnHealth	= 100
 ENT.BreakEffect	= ""
-ENT.BreakSound	= nil
+ENT.BreakSound	= ""
 ENT.DamageDelay	= 0
+ENT.ExplodeLight = false
+ENT.ExplodeLightColor = Color(255, 255, 255, 255)
+ENT.ExplodeLightType = 0
+ENT.ExplodeLightSize = 250
+ENT.ExplodeLightDecay = 250
+ENT.ExplodeLightBrightness = 0.1
+ENT.ExplodeLightLifeTime = 3
 
 ENT.ExplodeDamage 	= 0
 ENT.ExplodePressure	= 0
@@ -87,6 +94,30 @@ function ENT:OnTakeDamage(dmginfo)
 	end)
 end
 
+ENT.PhysDamageCD = 0
+function ENT:PhysicsCollide(data, col)
+	
+	if self.Destroyable == true then
+		if CurTime() > self.PhysDamageCD then
+		--	print("Speed: ", data.Speed)
+			self.PhysDamageCD = CurTime() + 0.5
+			
+			local damage = data.Speed / 20
+			damage = math.Round(math.pow(damage, data.Speed / 1000))
+			if damage < 3 then damage = 0 end
+		--	print("Damage:", damage)
+		--	print("Health Remain:", self:Health())
+			if damage > 25 or (self:Health() - damage <= 0) then
+				self:EmitSound("MetalGrate.ImpactHard")
+			elseif damage < 25 && damage > 2 then
+				self:EmitSound("MetalGrate.ImpactSoft")
+			end
+			
+			self:TakeDamage(damage, col:GetEntity(), col)
+		end
+	end
+end
+
 function ENT:DoCustomBreak()
 end
 
@@ -116,6 +147,7 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 		dmg2:SetDamageForce(self:EyeAngles():Forward())
 		dmg2:SetDamagePosition(self:GetPos())
 		dmg2:SetDamageType(dt)
+		if !IsValid(self.Killer) then self.Killer = self end
 		dmg2:SetAttacker(self.Killer)
 	
 		if v:GetClass() == self:GetClass() then
@@ -139,6 +171,7 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 			local ed3 = EffectData()
 			ed3:SetOrigin(pos)
 			util.Effect(effe, ed3)
+			DRC_ParticleExplosion(self:GetPos(), ep * 30, ep * 20)
 		end
 	end
 		
@@ -156,13 +189,28 @@ function ENT:Think()
 		if self.Dead == false && self:Health() <= 0 then
 			self.Dead = true
 			self:LuaExplode(self.BreakEffect, self.ExplodeDamage, self.DamageType, self.ExplodePressure, self.AffectRadius)
+			
+			if CLIENT && self.ExplodeLight != false then
+				local dlight = DynamicLight(self:EntIndex())
+				if (dlight) then
+					dlight.Pos 			= self:GetPos()
+					dlight.Size 		= self.ExplodeLightSize
+					dlight.Brightness 	= self.ExplodeLightBrightness
+					dlight.Style		= self.ExplodeLightType
+					dlight.r 			= self.ExplodeLightColor.r
+					dlight.g 			= self.ExplodeLightColor.g
+					dlight.b 			= self.ExplodeLightColor.b
+					dlight.Decay 		= self.ExplodeLightDecay
+					dlight.DieTime 		= CurTime() + self.ExplodeLightLifeTime
+				end
+			end
 		end
 	end
 end
 
 function ENT:GetRequiredEnt()
 	local EntsInRange = ents.FindByClass( self.RequiredEnt )
-		
+		if table.IsEmpty(EntsInRange) then return false end
 	for k,v in ipairs(EntsInRange) do
 		local pos = self:GetPos()
 		local epos = v:GetPos()
@@ -170,11 +218,13 @@ function ENT:GetRequiredEnt()
 		local dist =  pos:Distance(epos)
 		
 		if dist < self.RequiredEntRange then 
-			return true
+			self.RequiredEntInRange = true
 		else
-			return false
+			self.RequiredEntInRange = false
 		end
 	end
+	
+	if self.RequiredEntInRange == true then return true else return false end
 end
 
 function ENT:Use(_, ply)

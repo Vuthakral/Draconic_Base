@@ -5,14 +5,28 @@ local function drc_Crosshair()
 	if GetConVar("sv_drc_disable_crosshairs"):GetFloat() == 1 then return end
 	
 	local ply = LocalPlayer()
+	if !IsValid(ply) or !ply:Alive() then return end
 	local curswep = ply:GetActiveWeapon()
+	if !IsValid(curswep) then return end
+	if !curswep.Draconic then return end
 	
-	local centercrosshair = ply:GetEyeTrace()
-	local pos = centercrosshair.HitPos:ToScreen()
+	local etr = util.TraceLine({
+		start = LocalPlayer():GetShootPos(),
+		endpos = LocalPlayer():GetShootPos() + LocalPlayer():EyeAngles():Forward() * 10000,
+		filter = function(ent) if ent != LocalPlayer() then return true end end
+	})
 	
-	if curswep.SightsDown == false then
-		widthpos = math.Round(pos.x)
-		heightpos = math.Round(pos.y)
+	DRC.CalcView.HitPos = etr.HitPos
+	DRC.CalcView.ToScreen = DRC.CalcView.HitPos:ToScreen()
+	local pos = DRC.CalcView.ToScreen
+	
+	local widthpos, heightpos = nil, nil
+	widthpos = pos.x
+	heightpos = pos.y
+	
+	if curswep.SightsDown == false or curswep.Secondary.ScopePitch != 0 then
+	--	widthpos = ScrW()/2
+	--	heightpos = ScrH()/2
 	elseif curswep.SightsDown == true then
 		widthpos = ScrW()/2
 		heightpos = ScrH()/2
@@ -35,7 +49,7 @@ local function drc_Crosshair()
 	if curswep.Draconic == nil then return end
 	
 	local bool1 = curswep.Weapon:GetNWBool("Inspecting")
-	local bool2 = curswep.Weapon:GetNWBool("Passive")
+	local bool2 = curswep:GetNWBool("Passive")
 	--local bool3 = curswep.Weapon:GetNWBool("Ironsights")
 	local bool3 = curswep.SightsDown
 	
@@ -61,19 +75,24 @@ local function drc_Crosshair()
 		modspreaddiv = curswep:GetAttachmentValue("Ammunition", "SpreadDiv")
 	end
 	
+	local ccol = curswep.CrosshairColor
+--	local target = curswep:GetConeTarget()
+--	if target then ccol = Color(255, 0, 0) else ccol = curswep.CrosshairColor end
+	
 		if curswep.Base == "draconic_melee_base" then
-			local et = ply:GetEyeTrace()
-			local hit = et.Entity
+			local target = curswep:GetConeTarget()
+			local dist = 696969
+			if target then dist = ply:GetPos():Distance(target:GetPos()) end
 		
 			if curswep.CrosshairStatic != nil then
 				if curswep.CrosshairShadow == true then
-					surface.SetDrawColor( curswep.CrosshairColor.r/2, curswep.CrosshairColor.g/2, curswep.CrosshairColor.b/2, alphalerpch*1.5 )
+					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch*1.5 )
 					surface.SetMaterial( Material(curswep.CrosshairStatic) )
 					surface.DrawTexturedRect(widthpos, heightpos, artificial, artificial)
 					surface.DrawTexturedRect(widthpos, heightpos, artificial, artificial)
 				end
 		
-			if (hit:IsPlayer() or hit:IsNPC()) && (ply:GetPos():Distance(hit:GetPos()) < curswep.Primary.LungeMaxDist) then
+			if target && (dist < curswep.Primary.LungeMaxDist) then
 				surface.SetDrawColor( Color(255, 0, 0, alphalerpch) )
 			else
 				surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphalerpch )
@@ -120,9 +139,9 @@ local function drc_Crosshair()
 	if curswep.CrosshairStatic != nil then
 		if curswep.CrosshairShadow == true then
 			if curswep.CrosshairNoIronFade == false then
-				surface.SetDrawColor( curswep.CrosshairColor.r/2, curswep.CrosshairColor.g/2, curswep.CrosshairColor.b/2, alphalerpch * 1.5 )
+				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch * 1.5 )
 			else
-				surface.SetDrawColor( curswep.CrosshairColor.r/2, curswep.CrosshairColor.g/2, curswep.CrosshairColor.b/2, 150 )
+				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 			end
 			surface.SetMaterial( Material(curswep.CrosshairStatic) )
 			surface.DrawTexturedRect(widthpos - smathoffset * 3.3775 * artificial * cx, heightpos - smathoffset * 3.3775 * artificial * cy, smathoffset * 6.75 * artificial, smathoffset * 6.75 * artificial)
@@ -130,9 +149,9 @@ local function drc_Crosshair()
 		end
 	
 		if curswep.CrosshairNoIronFade == false then
-			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphalerpch )
+			surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphalerpch )
 		else
-			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, 255 )
+			surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 		end
 		surface.SetMaterial( Material(curswep.CrosshairStatic) )
 		surface.DrawTexturedRect(widthpos - smathoffset * 3.25 * artificial * cx, heightpos - smathoffset * 3.25 * artificial * cy, smathoffset * 6.5 * artificial, smathoffset * 6.5 * artificial)
@@ -141,9 +160,9 @@ local function drc_Crosshair()
 	if curswep.CrosshairDynamic != nil then
 		if curswep.CrosshairShadow == true then
 			if curswep.CrosshairNoIronFade == false then
-				surface.SetDrawColor( curswep.CrosshairColor.r/2, curswep.CrosshairColor.g/2, curswep.CrosshairColor.b/2, alphalerpch * 1.5 )
+				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch * 1.5 )
 			else
-				surface.SetDrawColor( curswep.CrosshairColor.r/2, curswep.CrosshairColor.g/2, curswep.CrosshairColor.b/2, 150 )
+				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 			end
 			surface.SetMaterial( Material(curswep.CrosshairDynamic) )
 			surface.DrawTexturedRect(widthpos - smathoffset * 3.1275 * artificial - LerpC / 2 * cx, heightpos - smathoffset * 3.1275 * artificial - LerpC / 2 * cy, smathoffset * 6.25 * artificial + LerpC, smathoffset * 6.25 * artificial + LerpC)
@@ -151,9 +170,9 @@ local function drc_Crosshair()
 		end
 	
 		if curswep.CrosshairNoIronFade == false then
-			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphalerpch )
+			surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphalerpch )
 		else
-			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, 255 )
+			surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 		end
 		surface.SetMaterial( Material(curswep.CrosshairDynamic) )
 		surface.DrawTexturedRect(widthpos - smathoffset * 3.25 * artificial - LerpC / 2 * cx, heightpos - smathoffset * 3.25 * artificial - LerpC / 2 * cy, smathoffset * 6.5 * artificial + LerpC, smathoffset * 6.5 * artificial + LerpC)

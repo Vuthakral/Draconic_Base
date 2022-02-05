@@ -101,8 +101,8 @@ local function drc_Inspect()
 		
 		if curswep.PrimaryStats.Projectile != nil then
 		local projectile = scripted_ents.GetStored(curswep.PrimaryStats.Projectile)
-			draw.DrawText("> Affect Radius: ".. math.Round((projectile.t.AffectRadius / 16 * 0.3048), 2) .."m", "ApercuStats", 40, inspecttextpos + 30, TextCol)
-			inspecttextpos = inspecttextpos + 30
+			if projectile.t.AffectRadius != nil then draw.DrawText("> Affect Radius: ".. math.Round((projectile.t.AffectRadius / 16 * 0.3048), 2) .."m", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+			inspecttextpos = inspecttextpos + 30 else end
 		end
 		
 		if curswep.PrimaryStats.Damage != nil then
@@ -114,7 +114,11 @@ local function drc_Inspect()
 					draw.DrawText("> Damage: ".. projectile.t.Damage .."", "ApercuStats", 40, inspecttextpos + 30, TextCol)
 				end
 			else
-				draw.DrawText("> Damage: ".. curswep.PrimaryStats.Damage .."", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+				if curswep:GetAttachmentValue("Ammunition", "NumShots") == 1 then
+					draw.DrawText("> Damage: ".. curswep.PrimaryStats.Damage .."", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+				else
+					draw.DrawText("> Damage: ".. curswep.PrimaryStats.Damage .."x".. curswep:GetAttachmentValue("Ammunition", "NumShots") .."", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+				end
 			end
 			inspecttextpos = inspecttextpos + 30
 		end
@@ -128,7 +132,7 @@ local function drc_Inspect()
 						if AT.InfoName == "Standard ammunition" then
 							draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. curswep:GetMaxClip1() .." (".. AT.InfoName ..", ".. curswep.Primary.Ammo ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
 						else
-							draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. (curswep:GetMaxClip1() * BT.ClipSizeMul ) .." (".. AT.InfoName ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
+							draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. (curswep:GetMaxClip1() * curswep:GetAttachmentValue("Ammunition", "ClipSizeMul") ) .." (".. AT.InfoName ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)
 						end
 					else
 						draw.DrawText("> Ammo: ".. curswep:Clip1() .." / ".. curswep:GetMaxClip1() .." (".. curswep.Primary.Ammo ..")", "ApercuStats", 40, inspecttextpos + 30, TextCol)

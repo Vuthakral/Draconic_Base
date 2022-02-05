@@ -46,7 +46,7 @@ ENT.CD 			= false
 ENT.Draconic 	= true
 ENT.Dead		= false
 ENT.LastInflictor = nil
-ENT.Powered		= true
+ENT.Powered		= false
 ENT.Active		= false
 
 function ENT:Initialize()
@@ -168,10 +168,8 @@ end
 function ENT:Use(_, ply)
 	local curswep = ply:GetActiveWeapon()
 	if not IsValid(curswep) then return end
-	
-	self:DoCustomUse(ply, curswep)
 		
-	if self.RequiredEnt != nil && self.PickupType != "stationrequirement" then
+	if self.RequiredEnt != nil then
 	self.Powered = false
 		if self:GetRequiredEnt() == true then
 			self.Powered = true

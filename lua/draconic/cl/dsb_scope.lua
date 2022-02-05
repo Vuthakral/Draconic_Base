@@ -27,21 +27,28 @@ local function drc_Scope()
 	local Q2Mat = curswep.Secondary.Q2Mat
 	local Q3Mat = curswep.Secondary.Q3Mat
 	local Q4Mat = curswep.Secondary.Q4Mat
-
+	
+	local YOffset = -curswep.Secondary.ScopeYOffset
+	
 	surface.SetDrawColor( curswep.Secondary.ScopeBGCol )
 	
-	surface.DrawRect( 0, h/2 - hi * sh, w/2 - hi / 2 * sw * 2, hi * 2 )
-	surface.DrawRect( w/2 + hi * sw, h/2 - hi * sh, w/2 + wi * sw, hi * 2 )
+	surface.DrawRect( 0, (h/2 - hi * sh) * YOffset, w/2 - hi / 2 * sw * 2, hi * 2 )
+	surface.DrawRect( w/2 + hi * sw, (h/2 - hi * sh) * YOffset, w/2 + wi * sw, hi * 2 )
 	surface.DrawRect( 0, 0, w * ss, h / 2 - hi * sh )
-	surface.DrawRect( 0, h/2 + hi * sh, w * ss, h / 1.99 - hi * sh )
+	surface.DrawRect( 0, (h/2 + hi * sh) * YOffset, w * ss, h / 1.99 - hi * sh )
 	
-	surface.SetDrawColor( 0, 0, 0, 255)
+	if curswep.Secondary.ScopeCol != nil then
+		surface.SetDrawColor( curswep.Secondary.ScopeCol )
+	else
+		surface.SetDrawColor( Color(0, 0, 0, 255) )
+	end
+	
 	if Q1Mat == nil then
 		surface.SetMaterial(Material("sprites/scope_arc"))
 	else 
 		surface.SetMaterial(Material(Q1Mat))
 	end
-	surface.DrawTexturedRectUV( w/2 - hi / 2 * sw * 2, h/2 - hi, hi * sw, hi * sh, 1, 1, 0, 0 )
+	surface.DrawTexturedRectUV( w/2 - hi / 2 * sw * 2, (h/2 - hi) * YOffset, hi * sw, hi * sh, 1, 1, 0, 0 )
 	
 	if Q2Mat == nil then
 		if Q1Mat == nil then
@@ -52,7 +59,7 @@ local function drc_Scope()
 	else 
 		surface.SetMaterial(Material(Q2Mat))
 	end
-	surface.DrawTexturedRectUV( w / 2, h/2 - hi, hi * sw, hi * sh, 0, 1, 1, 0 )
+	surface.DrawTexturedRectUV( w / 2, (h/2 - hi) * YOffset, hi * sw, hi * sh, 0, 1, 1, 0 )
 	
 	if Q3Mat == nil then
 		if Q1Mat == nil then

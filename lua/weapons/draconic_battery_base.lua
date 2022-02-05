@@ -65,7 +65,7 @@ SWEP.BatteryToVec		= Vector(255, 10, 0)
 SWEP.LoadAfterShot 			= false
 SWEP.LoadAfterReloadEmpty	= false
 SWEP.ManualReload			= false
-SWEP.Primary.NumShots 		= 1
+
 SWEP.Primary.IronRecoilMul	= 0.5
 SWEP.Primary.Spread			= 1
 SWEP.Primary.SpreadDiv		= 90
@@ -86,9 +86,9 @@ SWEP.Secondary.NumShots 		= 1
 SWEP.Secondary.Spread			= 3.5
 SWEP.Secondary.SpreadDiv		= 100
 SWEP.Secondary.Kick				= 0.5
-SWEP.Secondary.RecoilUp			= 1
-SWEP.Secondary.RecoilDown		= 1
-SWEP.Secondary.RecoilHoriz		= 1
+SWEP.Secondary.RecoilUp			= 0
+SWEP.Secondary.RecoilDown		= 0
+SWEP.Secondary.RecoilHoriz		= 0
 SWEP.Secondary.Force			= 0.2
 SWEP.Secondary.Damage			= 12
 SWEP.Secondary.Ammo				= "none"
@@ -112,6 +112,7 @@ SWEP.Primary.DefaultClip	= 100
 SWEP.VentHeld 				= false
 SWEP.IsOverheated			= false
 SWEP.IsBatteryBased			= true
+SWEP.IsMelee = false
 
 function SWEP:CanPrimaryAttack()
 local ply = self:GetOwner()
@@ -292,7 +293,7 @@ function SWEP:FinishVent()
 			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
 		end
 	else end
-	self.BloomValue = 1
+	self.BloomValue = 0.25
 	self.Weapon:SetNWFloat("HeatDispersePower", 1)
 	
 	timer.Simple( looptime, function()

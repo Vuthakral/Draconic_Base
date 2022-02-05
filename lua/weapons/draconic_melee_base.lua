@@ -129,24 +129,25 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 	local cv = ply:Crouching()
 	local CanCrouchAttack = self.Primary.CanAttackCrouched
 	local et = ply:GetEyeTrace()
-	local res = et.Entity
+	local target = self:GetConeTarget()
 	
 	local moving = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && sprintkey
 	if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && moving then return end
 	
 	if self.Primary.CanLunge == true then
 		if self.Primary.LungeAutomatic == true then
-			if (IsValid( res ) and res:IsNPC() or res:IsPlayer() ) then
-				if(ply:GetPos():Distance(res:GetPos()) < self.Primary.LungeMaxDist) then
+			if IsValid(target) && (target:IsNPC() or target:IsPlayer() or target:IsNextBot()) then
+				if(ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist) then
 					if cv == false && self.Weapon:GetNWBool("Passive") == false then
 						self:DoPrimaryLunge()
 						elseif cv == true && CanCrouchAttack == true then
 						self:DoPrimaryLunge()
 					elseif cv == true && CanCrouchAttack == false then
 					end
-				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
+				elseif(ply:GetPos():Distance(target:GetPos()) > self.Primary.LungeMaxDist) then
 					if cv == false then
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
+								print("AA")
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
 							self:ShootFire()
@@ -172,7 +173,7 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 						elseif cv == true && CanCrouchAttack == false then
 					end
 				end
-			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
+			elseif !IsValid(target) then
 				if cv == false then
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
@@ -201,9 +202,15 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 				end
 			end
 		elseif self.Primary.LungeAutomatic == false then
-			if self.Primary.LungeRequiresTarget == false && ply:KeyDown(IN_USE) then self:DoPrimaryLunge() return end
-			if (IsValid( res ) and res:IsNPC() or res:IsPlayer() ) then
-				if(ply:GetPos():Distance(res:GetPos()) < self.Primary.LungeMaxDist) then
+			if self.Primary.LungeRequiresTarget == false then 
+				if ply:KeyDown(IN_USE) then 
+					self:DoPrimaryLunge()
+				else
+					self:DoPrimaryAttack()
+				end
+			return end
+			if IsValid(target) && (target:IsNPC() or target:IsPlayer() or target:IsNextBot()) then
+				if(ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist) then
 					if ply:KeyDown(IN_USE) then
 						self:DoPrimaryLunge()
 					elseif !ply:KeyDown(IN_USE) then
@@ -219,7 +226,7 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 								end
 							end
 					end
-				elseif(ply:GetPos():Distance(res:GetPos()) > self.Primary.LungeMaxDist) then
+				elseif(ply:GetPos():Distance(target:GetPos()) > self.Primary.LungeMaxDist) then
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -232,7 +239,7 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 								end
 							end
 				end
-			elseif (IsValid( res ) and !res:IsNPC() or !res:IsPlayer() ) then
+			elseif IsValid( target ) then
 							if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
 								self:DoPrimaryAttack()
 							elseif self.Weapon:GetNWBool("Passive") == false then
@@ -244,6 +251,18 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 								if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
 								end
 							end
+			else
+				if self.Primary.isvFire == false && self.Weapon:GetNWBool("Passive") == false then
+					self:DoPrimaryAttack()
+				elseif self.Weapon:GetNWBool("Passive") == false then
+					self:ShootFire()
+				if SERVER then
+					if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
+						self.LoopingFireSound = CreateSound(self.Owner, self.Secondary.SwingSound)
+					end
+					if (self.LoopingFireSound) then self.LoopingFireSound:Play() end
+						end
+				end
 			end
 		end
 
@@ -278,16 +297,24 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 end
 
 function SWEP:DoPrimaryLunge()
-if not IsValid(self) or not IsValid(self.Owner) then return end
-local ply = self:GetOwner()
-local cv = ply:Crouching()
-local et = ply:GetEyeTrace()
-local res = et.Entity
-local plypos = ply:GetPos()
-local respos = res:GetPos()
+	if not IsValid(self) or not IsValid(self.Owner) then return end
+
+	self:DoCustomLunge()
+
+	local ply = self:GetOwner()
+	local cv = ply:Crouching()
+	local et = ply:GetEyeTrace()
+	local target = self:GetConeTarget()
+	local plypos = ply:GetPos()
 	
 	self:EmitSound(Sound(self.Primary.LungeSwingSound))
-	if IsValid(res) then ply:SetVelocity(ply:GetForward() * 8 * plypos:Distance(respos) ) end
+	
+	if target then
+		if plypos:Distance(target:GetPos()) < self.Primary.LungeMaxDist then
+			ply:SetVelocity(ply:GetForward() * 8 * plypos:Distance(target:GetPos()))
+		end
+	end
+
 
 	local ply = self:GetOwner()
 	local vm = ply:GetViewModel()
@@ -334,6 +361,7 @@ local respos = res:GetPos()
 
 	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.LungeHitDelay * 100) / 60 * i / 60, 3), 1, function()
+			if !IsValid(self) or !self:GetOwner():Alive() then return end
 			self:MeleeImpact(self.Primary.LungeRange, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "lungeprimary")
 		end)
 	end
@@ -341,6 +369,9 @@ end
 
 function SWEP:DoPrimaryAttack()
 	if not IsValid(self) or not IsValid(self.Owner) then return end
+	
+	self:DoCustomPrimaryAttack()
+	
 	local ply = self:GetOwner()
 	local vm = ply:GetViewModel()
 	local eyeang = ply:EyeAngles()
@@ -447,6 +478,9 @@ end
 
 function SWEP:DoSecondaryAttack()
 	if not IsValid(self) or not IsValid(self.Owner) then return end
+	
+	self:DoCustomSecondaryAttack()
+	
 	local ply = self:GetOwner()
 	local vm = ply:GetViewModel()
 	local eyeang = ply:EyeAngles()
@@ -465,6 +499,7 @@ function SWEP:DoSecondaryAttack()
 	
 	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
 	timer.Simple(self.Secondary.HitDelay, function()
+		if !IsValid(self) then return end
 		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
 	end)
 	
@@ -494,6 +529,7 @@ function SWEP:DoSecondaryAttack()
 	
 	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		timer.Create( "SwingImpact".. i .."", math.Round((self.Secondary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
+			if !IsValid(self) or !self:GetOwner():Alive() then return end
 			self:MeleeImpact(self.Secondary.Range, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "secondary")
 		end)
 	end
@@ -640,4 +676,13 @@ function SWEP:ToggleInspectMode()
 			self.Idle = 1
 		end)
 	end
+end
+
+function SWEP:DoCustomPrimaryAttack()
+end
+
+function SWEP:DoCustomSecondaryAttack()
+end
+
+function SWEP:DoCustomLunge()
 end

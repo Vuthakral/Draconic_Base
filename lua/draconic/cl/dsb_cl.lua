@@ -1,5 +1,3 @@
-AddCSLuaFile()
-
 local blur = Material( "pp/blurscreen" )
 local function drawBlur( x, y, w, h, layers, density, alpha )
 	surface.SetDrawColor( 255, 255, 255, alpha )
@@ -18,6 +16,65 @@ end
 
 local GCT = CurTime()
 local GNT = GCT + 1
+
+local bool, alpha, alphalerp, SwapCD = true, 0, 0, 0
+local function drc_IText()
+	local ply = LocalPlayer()
+	local center = { ScrW()/2, ScrH()/2 }
+	local curswep = ply:GetActiveWeapon()
+	
+	if !IsValid(ply.ViableWeapons) then ply.ViableWeapons = {} end
+	if !IsValid(ply.PickupWeapons) then ply.PickupWeapons = {} end
+	if !ViableWeaponCheck(ply) then return end
+	
+	ViableWeaponCheck(ply)
+
+	if table.IsEmpty(ply.ViableWeapons) then b1 = false else b1 = true end
+	if table.IsEmpty(ply.PickupWeapons) then b2 = false else b2 = true end
+	
+	if b1 or b2 == true then
+		alpha = 255
+	else
+		alpha = 0
+	end
+	alphalerp = Lerp(FrameTime() * 25, alphalerp or alpha, alpha)
+	
+	local wpc = ply:GetNWVector("EnergyTintVec")
+	wpc.r = math.Clamp(wpc.r, 0.1, 1)
+	wpc.g = math.Clamp(wpc.g, 0.1, 1)
+	wpc.b = math.Clamp(wpc.b, 0.1, 1)
+	wpc = wpc * 255
+	local TextCol = Color(wpc.r, wpc.g, wpc.b, alphalerp)
+	
+	surface.SetDrawColor(TextCol)
+	
+	local src, text = nil, nil
+	if b2 then
+		src = ply.PickupWeapons[1]
+		text = "pick up"
+	end
+	if b1 then
+		src = ply.ViableWeapons[1]
+		text = "swap for"
+	end
+	if b1 && b2 then text = "swap for" end
+	
+	if b1 or b2 then
+		if src.WepSelectIcon != nil then
+			if isnumber(src.WepSelectIcon) then
+				surface.SetTexture( src.WepSelectIcon )
+			elseif isstring(src.WepSelectIcon) then
+				surface.SetTexture( surface.GetTextureID( src.WepSelectIcon ) )
+			end
+			surface.DrawTexturedRect(center[1] * 1.1, center[2] * 1.4, ScrH() / 8, ScrH() / 8)
+			draw.DrawText("Press ".. string.upper(ReturnKey("+use")) .." to ".. text .." ", "ApercuStatsTitle", center[1] * 0.81, center[2] * 1.5, TextCol)
+		else
+			draw.DrawText("Press ".. string.upper(ReturnKey("+use")) .." to ".. text .." ".. src.PrintName .."", "ApercuStatsTitle", center[1] * 0.81, center[2] * 1.5, TextCol)
+		end
+	end
+end
+hook.Add("HUDPaint", "drc_interactiontext", drc_IText)
+
 local function GetLastSecondFramerate(ct)
 	if CurTime() > GNT then
 		GNT = CurTime() + 1
@@ -55,7 +112,6 @@ local function drc_Debug()
 					local prevbs = curswep.PrevBS * (spread / spreaddiv) * 20
 					local smoothbs = 1.5
 					local dyn = Lerp(FrameTime() * 10, curswep.PrevBS, curswep.BloomValue)
-				--	ply:ChatPrint("bs: ".. bs .." | pbs: ".. prevbs .." | dyn: ".. dyn .."")
 					local hl = LerpVector(heat / 175, Vector(255, 255, 255), Vector(255, 0, 0))
 					
 					
@@ -438,8 +494,37 @@ local function DrawVMAttachments(att, ent)
 	render.DrawSphere( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Up() * 2.5, 0.125, 16, 16, Color(0, 0, 255, 100))
 end
 
+--[[
+hook.Add( "PostDrawOpaqueRenderables", "DRC_VisualizeAimAssist", function()
+	if !IsValid(LocalPlayer()) then return end
+	local curswep = LocalPlayer():GetActiveWeapon()
+	if !curswep.Draconic then return end
+	local mat = Material( "models/shiny" )
+	mat:SetFloat( "$alpha", 0.25 )
+	
+	local dir = LocalPlayer():GetAimVector()
+	local angle = math.cos( curswep.SpreadCone ) -- 15 degrees
+	local startPos = LocalPlayer():EyePos()
+
+	local entities = DRC:EyeCone(LocalPlayer(), 1500, angle)
+
+	-- draw the outer box
+	local mins = Vector( -1500, -1500, -1500 )
+	local maxs = Vector( 1500, 1500, 1500 )
+
+	render.SetMaterial(mat)
+	render.DrawWireframeBox( startPos, Angle( 0, 0, 0 ), mins, maxs, color_white, true )
+	render.DrawBox( startPos, Angle( 0, 0, 0 ), -mins, -maxs, color_white )
+
+	-- draw the lines
+	for id, ent in ipairs( entities ) do
+		render.DrawLine( ent:WorldSpaceCenter() + dir * ( ent:WorldSpaceCenter()-startPos ):Length(), ent:WorldSpaceCenter(), Color( 255, 0, 0 ) )
+	end
+end ) --]]
+
 hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 	if not CLIENT then return end -- fuck singleplayer
+	
 	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
 	if wpn.Draconic == nil then return end
 	local attachment = vm:LookupAttachment("muzzle")
@@ -479,6 +564,19 @@ hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 	end
 end)
 
+hook.Add("PreDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
+	if ply:GetActiveWeapon().Draconic == true && ply:GetActiveWeapon().Secondary.ScopeHideVM == true && ply:GetActiveWeapon().SightsDown == true then return true end
+	if ply:GetNWBool("Interacting") == true then return true end
+end)
+hook.Add("PostDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
+	if ply:GetActiveWeapon().Draconic == true && ply:GetActiveWeapon().Secondary.ScopeHideVM == true && ply:GetActiveWeapon().SightsDown == true then return true end
+	if ply:GetNWBool("Interacting") == true then return true end
+end)
+hook.Add("PostDrawViewHands", "drc_interact_hidevm", function(vm, ply, wep)
+	if ply:GetActiveWeapon().Draconic == true && ply:GetActiveWeapon().SightsDown == true then return true end
+	if ply:GetNWBool("Interacting") == true then return true end
+end)
+
 hook.Add("HUDPaint", "DrcLerp_Debug_Visualizer2D", function()
 	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetString() != "1" then return end
@@ -510,6 +608,7 @@ function ThirdPersonModEnabled(ply)
 	drctpcheck1 = false
 	drctpcheck2 = false
 	drctpcheck3 = false
+	drctpcheck4 = false
 
 	if GetConVar("simple_thirdperson_enabled") != nil then
 		if GetConVar("simple_thirdperson_enabled"):GetBool() == true then drctpcheck1 = true else drctpcheck1 = false end
@@ -521,10 +620,18 @@ function ThirdPersonModEnabled(ply)
 		if GetConVar("thirdperson_etp"):GetString() == "1" then drctpcheck3 = true else drctpcheck3 = false end
 	end
 	
-	if drctpcheck1 == true or drctpcheck2 == true or drctpcheck3 == true then return true else return false end
+	if GetConVar("cl_view_ext_tps") != nil then
+		if GetConVar("cl_view_ext_tps"):GetString() != "0" then drctpcheck4 = true else drctpcheck4 = false end
+	end
+	
+	if drctpcheck1 == true or drctpcheck2 == true or drctpcheck3 == true or drctpcheck4 == true then return true else return false end
 end
 
-hook.Add("CalcView", "DrcLerp", function(ply, origin, ang, fov, zn, zf)
+-- hypothetically, since lua runs linearly & reads alphabetically, having my hook name start with an exclamation mark should have it run before any others.
+-- This should, again hypothetically, prevent the five million shitty """""viewbobbing""""" scripts from breaking this. It might also help shitty thirdperson mod that don't know how to overwrite CalcView hooks.
+hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
+	if !IsValid(ply) then return end
+	if ThirdPersonModEnabled(ply) then return end
 	if not !game.IsDedicated() then return end
 	if GetConVar("sv_drc_viewdrag"):GetString() != "1" then return end
 	if ply:GetViewEntity() ~= ply then return end
@@ -541,9 +648,9 @@ hook.Add("CalcView", "DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	local oang = drc_vmaangle
 	
 	if GetConVar("cl_drc_lowered_crosshair"):GetFloat() == 1 then
-		drc_lower_anglemod = Angle(-8, 0, 0)
+		DRC.CrosshairAngMod = Angle(-8, 0, 0)
 	else
-		drc_lower_anglemod = Angle(0, 0, 0)
+		DRC.CrosshairAngMod = Angle(0, 0, 0)
 	end
 	
 	if sights == true or (ply:GetCanZoom() == true && ply:KeyDown(IN_ZOOM)) then
@@ -551,6 +658,14 @@ hook.Add("CalcView", "DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	else
 		drc_vm_sightpow = Lerp(FrameTime() * 25, drc_vm_sightpow or 0, 1)
 	end
+	
+	if sights == true then
+		drc_vm_sightpow_inv = Lerp(FrameTime() * 25, drc_vm_sightpow_inv or 0, 1)
+	else
+		drc_vm_sightpow_inv = Lerp(FrameTime() * 25, drc_vm_sightpow_inv or 1, 0)
+	end
+	
+	drc_crosshair_pitchmod = Angle(wpn.Secondary.ScopePitch, 0, 0) * drc_vm_sightpow_inv
 	
 	if wpn.Loading == false && wpn.Inspecting == false then
 		drc_vm_lerpang = Angle(oang.x, oang.y, Lerp(FrameTime() * drc_vm_angmedian, drc_vm_lerpang.z or 0, 0))
@@ -602,20 +717,21 @@ hook.Add("CalcView", "DrcLerp", function(ply, origin, ang, fov, zn, zf)
 		drc_calcview_tfaang = ply:EyeAngles()
 	end
 	
-	
-	if ThirdPersonModEnabled(ply) then return end
-	
 	if ply:GetNW2Int("TFALean", 1337) != 1337 then
+		DRC.CalcView.Pos = drc_vm_lerppos / drc_vm_lerpdiv - ( origin - drc_calcview_tfapos)
+		DRC.CalcView.Ang = drc_vm_lerpang_final / drc_vm_lerpdiv - ( ang - drc_calcview_tfaang) + DRC.CrosshairAngMod * drc_vm_sightpow
 		local view = {
 			origin = origin - drc_vm_lerppos / drc_vm_lerpdiv - ( origin - drc_calcview_tfapos),
-			angles = ang - drc_vm_lerpang_final / drc_vm_lerpdiv - ( ang - drc_calcview_tfaang) + drc_lower_anglemod * drc_vm_sightpow,
+			angles = ang - drc_vm_lerpang_final / drc_vm_lerpdiv - ( ang - drc_calcview_tfaang) + DRC.CrosshairAngMod * drc_vm_sightpow,
 			fov = fov
 		}
 		return view
 	else
+		DRC.CalcView.Pos = drc_vm_lerppos / drc_vm_lerpdiv
+		DRC.CalcView.Ang = drc_crosshair_pitchmod - drc_vm_lerpang_final / drc_vm_lerpdiv + DRC.CrosshairAngMod * drc_vm_sightpow
 		local view = {
 			origin = origin - drc_vm_lerppos / drc_vm_lerpdiv,	
-			angles = ang - drc_vm_lerpang_final / drc_vm_lerpdiv + drc_lower_anglemod * drc_vm_sightpow,
+			angles = ang + drc_crosshair_pitchmod - drc_vm_lerpang_final / drc_vm_lerpdiv + DRC.CrosshairAngMod * drc_vm_sightpow,
 			fov = fov
 		}
 		return view

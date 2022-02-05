@@ -43,7 +43,6 @@ function SWEP:DisperseHeat()
 	local ply = self:GetOwner()
 	if not ply:IsPlayer() then return end
 	local CurHeat = self:GetNWInt("Heat")
-	local AmmoName = self.Primary.Ammo
 
 	self.HeatDisperseTimer = "HeatDisperseTimer_".. ply:Name()
 	
@@ -53,24 +52,24 @@ function SWEP:DisperseHeat()
 		if self:GetNWInt("Heat") == 0 then return end
 		
 		CurHeat = self:GetNWInt("Heat")
-		if ply:GetAmmoCount( AmmoName ) >= 101 then
+		if ply:GetAmmoCount( "ammo_drc_battery" ) >= 101 then
 			self:SetNWInt("Heat", 100)
-			ply:SetAmmo(self:GetNWInt("Heat"), AmmoName)
-		elseif ply:GetAmmoCount( AmmoName ) >= 0 then
+			ply:SetAmmo(self:GetNWInt("Heat"), "ammo_drc_battery")
+		elseif ply:GetAmmoCount( "ammo_drc_battery" ) >= 0 then
 			if self.Weapon:GetNWFloat("HeatDispersePower") == 0 then
 			else
 				self:SetNWInt("Heat", math.Clamp( (self:GetNWInt("Heat") - (self.HeatLossPerInterval * self.Weapon:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
-				ply:SetAmmo(self:GetNWInt("Heat"), AmmoName )
+				ply:SetAmmo(self:GetNWInt("Heat"), "ammo_drc_battery" )
 			end
 		end
 		
-		if ply:GetAmmoCount( AmmoName ) >= 100 then
+		if ply:GetAmmoCount( "ammo_drc_battery" ) >= 100 then
 			if self.CanOverheat == true then
 				self:Overheat()
 			else end
 		else end
 		
-		if ply:GetAmmoCount( AmmoName ) >= (100 - (100 * self.OverHeatFinishPercent)) then
+		if ply:GetAmmoCount( "ammo_drc_battery" ) >= (100 - (100 * self.OverHeatFinishPercent)) then
 		else
 			self.IsOverheated = false
 		end
@@ -94,7 +93,7 @@ function SWEP:BloomScore()
 
 		self.BloomScoreName = "BloomScore_".. ply:Name()
 		
-		timer.Create(self.BloomScoreName, (60 / self.Primary.RPM) * 2, 0, function() 
+		timer.Create(self.BloomScoreName, (60 / self.Primary.RPM) * 3, 0, function() 
 			if !self:IsValid() then return end
 			if self.BloomValue == 0 then return end
 			
@@ -103,24 +102,24 @@ function SWEP:BloomScore()
 			if self.SightsDown == false then
 				if plidle then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick, 0, 1)
+					self.BloomValue = math.Clamp( bs - (self.Primary.Kick * 1.5), 0, 1)
 				elseif cv then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick /2, 0, 1)
+					self.BloomValue = math.Clamp( bs - (self.Primary.Kick * 1.75), 0, 1)
 				elseif mk then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick +0.1, 0, 1.3)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick * 2 +0.1, 0, 1.3)
 				elseif issprinting then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick +0.3, 0, 1.7)
+					self.BloomValue = math.Clamp( bs - self.Primary.Kick * 2 +0.3, 0, 1.7)
 				end
 			else
 				if plidle then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick /2, 0, 1)
+					self.BloomValue = math.Clamp( bs - ((self.Primary.Kick * 2) / 1.5), 0, 1)
 				elseif cv then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - (self.Primary.Kick /2) /2, 0, 1)
+					self.BloomValue = math.Clamp( bs - ((self.Primary.Kick * 2) / 3), 0, 1)
 				elseif mk then
 					self.PrevBS = math.Clamp( bs, 0, 1.7)
 					self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.1) /2, 0, 1)
@@ -206,7 +205,7 @@ function SWEP:UpdateBloom(mode)
 			self.BloomValue = math.Clamp( self.BloomValue + self.Kick, 0, 1)
 		elseif cv then
 			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + self.Kick /2, 0, 1)
+			self.BloomValue = math.Clamp( self.BloomValue + self.Kick / 1.25, 0, 1)
 		elseif mk then
 			self.PrevBS = math.Clamp( bs, 0, 1.7)
 			self.BloomValue = math.Clamp( self.BloomValue + self.Kick +0.1, 0, 1.3)
@@ -220,7 +219,7 @@ function SWEP:UpdateBloom(mode)
 			self.BloomValue = math.Clamp( self.BloomValue + self.Primary.Kick /2, 0, 1)
 		elseif cv then
 			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + (self.Primary.Kick /2) /2, 0, 1)
+			self.BloomValue = math.Clamp( self.BloomValue + (self.Primary.Kick /1.25) /2, 0, 1)
 		elseif mk then
 			self.PrevBS = math.Clamp( bs, 0, 1.7)
 			self.BloomValue = math.Clamp( self.BloomValue + (self.Primary.Kick +0.1) /2, 0, 1)
@@ -346,7 +345,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	end
 
 	if ( swingtrace.Hit ) then
-		self:DoCustomMeleeImpact(att)
+		self:DoCustomMeleeImpact(att, swingtrace)
 			if swingtrace.Entity:IsPlayer() or string.find(swingtrace.Entity:GetClass(),"npc") or string.find(swingtrace.Entity:GetClass(),"prop_ragdoll") or string.find(swingtrace.Entity:GetClass(),"prop_physics") then
 				if string.find(swingtrace.Entity:GetClass(),"prop_physics") then
 			self:EmitSound(Sound(self.HSE))
@@ -379,22 +378,47 @@ end
 function SWEP:DoCustomBulletImpact(pos, normal, dmg)
 end
 
+function SWEP:GetConeTarget()
+	local ply = self:GetOwner()
+	if !ply or !ply:IsPlayer() then return end
+	local coneents = DRC:EyeCone(ply, 500, self.SpreadCone)
+	local targets = {}
+	for k,v in pairs(coneents) do
+		if (v:IsPlayer() && v != ply) or v:IsNPC() or v:IsNextBot() then table.insert(targets, v) end
+	end
+	local closesttarget = nil
+	for k,v in pairs(targets) do
+		local dist = v:EyePos():DistToSqr(ply:EyePos())
+		if k == 1 then
+			closesttarget = {v, dist}
+		else
+			if dist < closesttarget[2] then closesttarget = {v, dist} end
+		end
+	end
+	if !closesttarget then return nil end
+	
+	local target, dist = closesttarget[1], closesttarget[2]
+	return target, dist
+end
+
 function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	local ply = self:GetOwner()
 	local fm = self:GetNWString("FireMode")
 	if fm == "Burst" && !IsFirstTimePredicted() then return end
-	
 	
 	force = self.Primary.Force * self:GetAttachmentValue("Ammunition", "Force")
 	
 	if self.Primary.Tracer == nil then
 		tracer = self:GetAttachmentValue("Ammunition", "Tracer")
 	end
+	
+--	local tgt = self:GetConeTarget()
+--	print(tgt)
 
 	local bullet = {}
 	bullet.Num = num
-	bullet.Src = self.Owner:GetShootPos()
-	bullet.Dir = self.Owner:GetAimVector()
+	bullet.Src = ply:GetShootPos()
+	bullet.Dir = ply:GetAimVector()
 	bullet.Tracer = tracer
 	bullet.Force = force
 	bullet.Damage = damage
@@ -404,7 +428,9 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 			takedamageinfo:SetAttacker(self:GetOwner())
 			takedamageinfo:SetInflictor(self)
 			takedamageinfo:SetDamageType( self:GetAttachmentValue("Ammunition", "DamageType") )
+			
 			self.LastHitPos = tr.HitPos
+			if self:GetAttachmentValue("Ammunition", "NumShots") > 1 then self:DoEffects(mode, true, true) end
 			
 			if self:GetAttachmentValue("Ammunition", "SplashRadius") != nil then
 				local dinfo = DamageInfo()
@@ -418,7 +444,9 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 						dinfo:SetInflictor(self)
 						dinfo:SetAttacker(ply)
 						dinfo:SetDamage( (bullet.Damage * self:GetAttachmentValue("Ammunition", "SplashDamageMul")) / (v:EyePos():DistToSqr(tr.HitPos) / 50) )
-						v:TakeDamageInfo(dinfo)
+						if v:IsValid() then
+							v:TakeDamageInfo(dinfo)
+						end
 					end
 				end
 			end
@@ -434,25 +462,29 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	self:FireBullets(bullet)
 end
 
-function SWEP:CalculateSpread()
+function SWEP:CalculateSpread(isprojectile)
+	if !IsValid(self) then return end
+	if isprojectile == nil then isprojectile = false end
 	local ply = self:GetOwner()
 	local stats = self.StatsToPull
-	
 	local calc = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv")))
 	
-	if ply:IsPlayer() then
-		if GetConVar("sv_drc_callofdutyspread"):GetString() == "1" then
-			--if self.Weapon:GetNWBool("ironsights") == false then
-			if self.SightsDown == false then
-				return Vector( calc, calc, 0 ) * self.BloomValue
+	if isprojectile == false then
+		if ply:IsPlayer() then
+			if GetConVar("sv_drc_callofdutyspread"):GetString() == "1" then
+				if self.SightsDown == false then
+					return Vector( calc, calc, 0 ) * self.BloomValue
+				else
+					return Vector( calc, calc, 0) * self.BloomValue
+				end
 			else
-				return Vector( calc, calc, 0) * self.BloomValue
+				return Vector( calc, calc, 0 ) * self.BloomValue
 			end
-		else
-			return Vector( calc, calc, 0 ) * self.BloomValue
+		elseif ply:IsNPC() or ply:IsNextBot() then
+			return Vector(calc, calc, calc)
 		end
-	elseif ply:IsNPC() or ply:IsNextBot() then
-		return Vector(calc, calc, calc)
+	else
+		return Vector( calc, calc, 0 ) * self.BloomValue / 2 -- This isn't perfectly accurate to the spread cone but what the fuck ever, it's close enough.
 	end
 end
 
@@ -462,7 +494,12 @@ function SWEP:DoShoot(mode)
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
 	local eyeang = ply:EyeAngles()
-	local tr = util.GetPlayerTrace(ply)
+	local tr = nil
+	if ply:IsNPC() && ply.Draconic == true then
+		tr = ply:GetEyeTrace()
+	else
+		tr = util.GetPlayerTrace(ply)
+	end
 	local trace = util.TraceLine( tr )
 	local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
 	local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
@@ -477,13 +514,17 @@ function SWEP:DoShoot(mode)
 	local firetime = 0
 	local fireseq = self:SelectWeightedSequence(ACT_VM_PRIMARYATTACK)
 	local fireseq2 = self:SelectWeightedSequence(ACT_VM_SECONDARYATTACK)
-	if mode == "primary" or mode == "overcharge" then
+	local fireseq3 = self:SelectWeightedSequence(ACT_SPECIAL_ATTACK1)
+	if mode == "primary" then
 		firetime = self:SequenceDuration(fireseq)
 	elseif mode == "secondary" then
 		firetime = self:SequenceDuration(fireseq2)
+	elseif mode == "overcharge" then
+		firetime = self:SequenceDuration(fireseq3)
 	end
 	self.IdleTimer = CurTime() + firetime
 	
+	local shotnum = self:GetAttachmentValue("Ammunition", "NumShots")
 	if mode == "primary" then
 		if ply:IsPlayer() then
 			self:UpdateBloom("primary")
@@ -519,6 +560,7 @@ function SWEP:DoShoot(mode)
 		end
 		
 		self:SetNWInt("Charge", 0)
+		shotnum = self:GetAttachmentValue("Ammunition", "NumShots_OC")
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
@@ -560,13 +602,23 @@ function SWEP:DoShoot(mode)
 	end
 	
 	if self.Loading == false && self.ManuallyReloading == false && ply:IsPlayer() then
-		--if self.Weapon:GetNWBool("Ironsights") == true && self.Secondary.SightsSuppressAnim == true then else
 		if self.SightsDown == true && self.Secondary.SightsSuppressAnim == true then else
 			local vm = ply:GetViewModel()
-			if mode == "primary" or mode == "overcharge" then
+			if mode == "primary" then
 				vm:SendViewModelMatchingSequence(fireseq)
-			else
+				self:SetCycle(0)
+				self:ResetSequence(fireseq)
+			elseif mode == "secondary" then
 				vm:SendViewModelMatchingSequence(fireseq2)
+				self:ResetSequence(fireseq2)
+			elseif mode == "overcharge" then
+				if fireseq3 == -1 then
+					vm:SendViewModelMatchingSequence(fireseq)
+					self:ResetSequence(fireseq)
+				else
+					vm:SendViewModelMatchingSequence(fireseq3)
+					self:ResetSequence(fireseq3)
+				end
 			end
 		end
 		ply:SetAnimation( PLAYER_ATTACK1 ) 
@@ -599,13 +651,13 @@ function SWEP:DoShoot(mode)
 	if self.Primary.isvFire == true then
 		self:ShootFire() 
 	return end
-		
+	
 	if stats.Projectile == nil then
 		if CLIENT then self:CalculateSpread() end
 		if ply:IsNextBot() then self:CalculateSpread() end
 		if self.PreventAllBullets == true then return end
 		if ply:IsPlayer() then ply:LagCompensation(true) end
-		if self.PreventAllBullets == false then self:ShootBullet(stats.Damage, stats.NumShots, self:CalculateSpread(), stats.Ammo, stats.Force, stats.Tracer) end
+		if self.PreventAllBullets == false then self:ShootBullet(stats.Damage, shotnum, self:CalculateSpread(), stats.Ammo, stats.Force, stats.Tracer) end
 		if ply:IsPlayer() then ply:LagCompensation(false) end
 	elseif mode == "secondary" && self.Projectile == "scripted" then
 		timer.Simple(self.Secondary.ProjectileSpawnDelay, function()
@@ -619,16 +671,14 @@ function SWEP:DoShoot(mode)
 			local muzzleattachment = self:LookupAttachment("muzzle")
 			local muzzle = self.Weapon:GetAttachment(muzzleattachment)
 			
-		--	local aimdir2 = ply:LocalToWorldAngles(GetAngleBTP(ply:GetShootPos(), ply.Enemy:OBBCenter(), ply, MASK_SHOT))
-		--	print(aimdir2)
-			
-			for i=1,stats.NumShots do
+			for i=1,shotnum do
 				local proj = ents.Create(stats.Projectile)
 				if !proj:IsValid() then return false end
-				proj:SetAngles(self:GetOwner():GetAimVector():Angle())
-				--if self:ValveBipedCheck() == false or self.Weapon:GetNWBool("ironsights") == true then
+				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
+				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
+				local projang = ply:GetAimVector():Angle() + Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue
+				proj:SetAngles(projang)
 				if ply:IsPlayer() && (self:ValveBipedCheck() == false or self.SightsDown == true) then
-					--if self.Weapon:GetNWBool("ironsights") == true && self.Secondary.Scoped == true then
 					if self.SightsDown == true && self.Secondary.Scoped == true then
 						proj:SetPos( ply:EyePos() )
 					else
@@ -647,11 +697,16 @@ function SWEP:DoShoot(mode)
 				proj:Spawn()
 				proj.Owner = self.Owner
 				proj:Activate()
+				
+				if !self.PTable then self.PTable = {} end
+				if proj.Draconic == true then table.insert(self.PTable, proj) end
+				
 				local phys = proj:GetPhysicsObject()
+				local sped = phys:GetAngles():Forward() * (stats.ProjSpeed)
 				if stats.ProjInheritVelocity == true then
-					phys:SetVelocity((phys:GetAngles():Forward() * stats.ProjSpeed) + ply:GetVelocity())
+					phys:SetVelocity(sped + ply:GetVelocity())
 				else
-					phys:SetVelocity(phys:GetAngles():Forward() * stats.ProjSpeed)
+					phys:SetVelocity(sped)
 				end
 			end
 		end
@@ -721,17 +776,26 @@ function SWEP:DoShoot(mode)
 	end
 end
 
-function SWEP:DoEffects(mode)
+function SWEP:DoEffects(mode, nosound, multishot)
 	local ply = self:GetOwner()
 	local muzzleattachment = self:LookupAttachment("muzzle")
 	local muzzle = self.Weapon:GetAttachment(muzzleattachment)
+	local fm = self:GetNWString("FireMode")
 		
 		if mode == "primary" then
 			self.vFire = self.Primary.isvFire
-			self.Sound = self.Primary.Sound
-			self.DistSound = self.Primary.DistSound
 			self.Projectile = self.Primary.Projectile
 			self.TracerEffect = self.Primary.TracerEffect
+			
+			if fm == "Semi" or fm == "Auto" then
+				self.Sound = self.Primary.SoundTable.Semiauto.Near
+				self.DistSound = self.Primary.SoundTable.Semiauto.Far
+				self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
+			else
+				self.Sound = self.Primary.SoundTable.Burst.Near
+				self.DistSound = self.Primary.SoundTable.Burst.Far
+				self.SoundDistance = self.Primary.SoundTable.Burst.FarDistance
+			end
 			
 			self.LastHitPos = self.LastHitPos
 		elseif mode == "secondary" then
@@ -759,6 +823,7 @@ function SWEP:DoEffects(mode)
 	if self.StatsToPull.Projectile == nil && self.vFire == false then
 		if self.LastHitPos == nil then self.LastHitPos = Vector(0, 0, 0) end
 		effectdata:SetOrigin( self.LastHitPos )
+	--	DRC_ParticleExplosion(self.LastHitPos, self.StatsToPull.Force * 75, 10)
 	else
 		effectdata:SetOrigin( self.Owner:GetShootPos() )
 	end
@@ -781,18 +846,37 @@ function SWEP:DoEffects(mode)
 		if self.OCTracerEffect != nil then util.Effect( self.OCTracerEffect, effectdata ) end
 	end
 	
-	if not IsFirstTimePredicted() then return end
-	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
-		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() < 1 then
-			self.Weapon:EmitSound(self.Sound)
+	if not IsFirstTimePredicted() or nosound == true or self.BurstSound == true then return end
+	if mode == "primary" && fm == "Burst" && self.Primary.SoundTable.Burst.Single == false then
+		self.BurstSound = true
+		timer.Simple(CurTime() - self:GetNextPrimaryFire() + 0.2, function() self.BurstSound = false end)
+	end
+	
+	local roomsize = DRC:RoomSize(ply)
+	local RoomType = DRC:GetRoomSizeName(roomsize)
+--	print("1", RoomType)
+	
+	if RoomType == "Valley" && !self.Primary.SoundTable.Envs["Valley"] then RoomType = "Outdoors" end
+	if RoomType == "Outdoors" && !self.Primary.SoundTable.Envs["Outdoors"] then RoomType = "Large" end
+	if RoomType == "Vent" && !self.Primary.SoundTable.Envs["Vent"] then RoomType = "Small" end
+--	print("2", RoomType)
+	
+	if mode == "primary" && self.Primary.SoundTable.Envs[RoomType] then
+		if fm == "Semi" or fm == "Auto" then
+			self.Sound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Near
+			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Far
+		else
+			self.Sound = self.Primary.SoundTable.Envs[RoomType].Burst.Near
+			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Burst.Far
 		end
-	else
-		self.Weapon:EmitSound(self.Sound)
 	end
-	if self.DistSound != nil then
-		if GetConVar("sv_drc_disable_distgunfire"):GetString() != "0" then return end
-		DRCSound(self, nil, self.DistSound, self.SoundDistance)
-	end
+	--print(self.Sound)
+	
+--	self:EmitSound(self.Sound)
+	DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, listener)
+	
+--	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
+--		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() < 1 then
 end
 
 function SWEP:DoMuzzleLight(mode)
@@ -855,6 +939,7 @@ function SWEP:DoMuzzleLight(mode)
 end
 
 function SWEP:DoRecoil(mode)
+	if !game.SinglePlayer() && !IsFirstTimePredicted() then return end
 	local ply = self:GetOwner()
 	local eyeang = ply:EyeAngles()
 	local cv = ply:Crouching()
@@ -919,12 +1004,27 @@ function SWEP:DoRecoil(mode)
 	if CLIENT then ply:SetEyeAngles(Angle(0, 0, 0) + Angle(eyeang.pitch, eyeang.yaw, nil)) end
 end
 
-function SWEP:CallShoot(mode) -- This function acts more as a "sequence of triggers" to cause a myriad of functions / effects, but splits to multiple functions for SWEP authors to be able to call any of them independently.	
+function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as a "sequence of triggers" to cause a myriad of functions / effects, but splits to multiple functions for SWEP authors to be able to call any of them independently.	
 	local ply = self:GetOwner()
+	if ignoreimpossibility == nil then ignoreimpossibility = false end
 	
 	if mode == "primary" then
-		if ply:IsPlayer() and not self:CanPrimaryAttack() then return end
-		if ply:IsNPC() and not self:CanPrimaryAttackNPC() then return end
+		if ply:IsPlayer() then
+			if ignoreimpossibility != true && !self:CanPrimaryAttack() then return end
+		end
+		if ply:IsNPC() then
+			if ignoreimpossibility != true && !self:CanPrimaryAttackNPC() then return end
+		end
+		
+		if ignoreimpossibility && self:GetNWString("FireMode") == "Burst" then
+			if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
+			if self:GetNWInt("LoadedAmmo") <= 0 then
+				if CurTime() > self:GetNextPrimaryFire() then self:EmitSound (self.Primary.EmptySound) end
+				self:SetNextPrimaryFire(CurTime() + (60/self.Primary.RPM * 2)) return
+			elseif self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true then
+			return end
+		end
+		
 		self.StatsToPull = self.PrimaryStats
 		self:DoShoot("primary")
 		self:DoEffects("primary")
@@ -939,23 +1039,28 @@ function SWEP:CallShoot(mode) -- This function acts more as a "sequence of trigg
 			end
 		end
 		
-		self:DoCustomPrimaryAttackEvents()
+		if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomPrimaryAttackEvents() end
 	elseif mode == "secondary" then
-		if mode == "secondary" && not self:CanSecondaryAttack() then return end
+		if ignoreimpossibility != true && !self:CanSecondaryAttack() then return end
 		self.StatsToPull = self.SecondaryStats
 		self:DoShoot("secondary")
 		self:DoEffects("secondary")
 		
 		if ply:IsPlayer() then self:DoRecoil("secondary") end
 		
-		self:DoCustomSecondaryAttackEvents()
+		if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomSecondaryAttackEvents() end
 	elseif mode == "overcharge" then
-		if mode == "primary" && not self:CanPrimaryAttack() then return end
+		if ply:IsPlayer() then
+			if ignoreimpossibility != true && !self:CanPrimaryAttack() then return end
+		else
+			if ignoreimpossibility != true && !self:CanPrimaryAttackNPC() then return end
+		end
 		self.StatsToPull = self.OCStats
 		self:DoShoot("overcharge")
 		self:DoEffects("overcharge")
 		
 		if ply:IsPlayer() then self:DoRecoil("overcharge") end
+		if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomOverchargeAttackEvents() end
 	end
 end
 
@@ -993,7 +1098,7 @@ function SWEP:ValveBipedCheck()
 	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh then return false else return true end
 end
 
-function SWEP:DoCustomMeleeImpact(att)
+function SWEP:DoCustomMeleeImpact(att, tr)
 end
 
 function SWEP:GetAttachmentValue(att, val)
@@ -1008,10 +1113,13 @@ function SWEP:GetAttachmentValue(att, val)
 		local foundval = tab[val]
 		if foundval == nil then
 			foundval = base.t.BulletTable[val]
-			if GetConVar("cl_drc_debugmode"):GetFloat() > 0 && foundval != nil then print("Failed to find value (".. tostring(att) .." - " .. tostring(val) .."), pulling base instead: ".. foundval .."") end
+			if GetConVar("cl_drc_debugmode"):GetFloat() > 1 && foundval != nil then print("Failed to find value (".. tostring(att) .." - " .. tostring(val) .."), pulling base instead: ".. foundval .."") end
 		else
-			if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then print("Found value (".. tostring(att) .." - " .. tostring(val) .."): ".. foundval .."") end
+			if GetConVar("cl_drc_debugmode"):GetFloat() > 1 then print("Found value (".. tostring(att) .." - " .. tostring(val) .."): ".. foundval .."") end
 		end
 		return foundval
 	end
+end
+
+function SWEP:DoCustomOverchargeAttackEvents()
 end

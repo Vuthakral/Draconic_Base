@@ -1,0 +1,8 @@
+resource.AddFile ( 'materials/overlays/draconic_scope.vmt' )
+util.AddNetworkString("DRCSound")
+util.AddNetworkString("OtherPlayerWeaponSwitch")
+util.AddNetworkString("DRCPlayerMelee")
+util.AddNetworkString("DRCNetworkGesture")
+util.AddNetworkString("DRCNetworkedAddText")
+util.AddNetworkString("DRC_SyncSpray")
+util.AddNetworkString("DRC_RequestSprayInfo")

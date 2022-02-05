@@ -38,6 +38,7 @@ ENT.BulletTable = {
 	PvEDamageMul = 1,
 	EvPDamageMul = 1,
 	EvEDamageMul = 1,
+	VehicleDamageMul = 1,
 	DamageType = DMG_BULLET,
 	MaterialDamageMuls = {
 		MAT_ANTLION = 1,
@@ -57,6 +58,7 @@ ENT.BulletTable = {
 		MAT_VENT = 1,
 		MAT_GRENADE = 1,
 		MAT_WEAPON = 1,
+		MAT_GUNSHIP = 1,
 		MAT_METAL = 1,
 		MAT_COMBINE_METAL = 1,
 		MAT_SOLIDMETAL = 1,
@@ -87,8 +89,11 @@ ENT.BulletTable = {
 		MAT_WARPSHIELD = 1,
 		MAT_ITEM = 1
 	},
+	SplashRadius = nil,
+	SplashDamageMul = 1,
 	AmmoType = "Pistol",
 	FallbackHL2AmmoType = "Pistol",
+	NumShots = 1,
 	Force = 1,
 	Kick = 1,
 	KickHoriz = 1,
@@ -103,19 +108,9 @@ ENT.BulletTable = {
 
 ENT.AttachTable = {
 	WeaponWhitelist = {},
-	Spread 			= 1,
-	SpreadDiv 		= 1,
-	Kick 			= 1,
-	KickHoriz 		= 1,
-	RecoilUp		= 1,
-	RecoilDown		= 1,
-	RecoilHoriz		= 1,
-	MagSizeNum		= nil
 }
 
 function ENT:Initialize()
-local type = self.ProjectileType
-
 	self.SpawnTime = CurTime()
 	self:SetModel(self.Model)
 	self:PhysicsInit(SOLID_VPHYSICS)

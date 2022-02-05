@@ -3,6 +3,7 @@
 https://twitter.com/Vuthakral/ <br>
 https://steamcommunity.com/id/Vuthakral/ <br>
 http://www.vuthakral.com/ <br>
+https://discord.gg/feThY5n8vH <br>
 
 <h2>USAGE AGREEMENT</h2>
 <h3>Summary</h3>

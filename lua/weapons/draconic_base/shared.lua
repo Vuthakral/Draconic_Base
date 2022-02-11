@@ -1070,9 +1070,9 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local inspectBool = self.Weapon:GetNWBool( "Inspecting" )
 	
 	if ironBool == true or (ply:GetCanZoom() == true && ply:KeyDown(IN_ZOOM)) then
-		self.LoweredCrossHairMod = Lerp(0.05, self.LoweredCrossHairMod or 1, 0)
+		self.LoweredCrossHairMod = Lerp(RealFrameTime() * 10, self.LoweredCrossHairMod or 1, 0)
 	else
-		self.LoweredCrossHairMod = Lerp(0.05, self.LoweredCrossHairMod or 0, 1)
+		self.LoweredCrossHairMod = Lerp(RealFrameTime() * 10, self.LoweredCrossHairMod or 0, 1)
 	end
 	
 	if (ironBool != self.lastIron) then
@@ -1173,7 +1173,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 				local hiv = math.Round(ply:EyePos():Distance(aids))
 				hiv = math.Clamp(hiv, 0, 50) / 50
 				hiv = 1 - hiv
-				self.walllerpval = Lerp(0.008 * heft, self.walllerpval or hiv, hiv)
+				self.walllerpval = Lerp((0.008) * heft, self.walllerpval or hiv, hiv)
 				local wallpos = Lerp(self.walllerpval, Vector(), walloffset[1])
 				local wallang = Lerp(self.walllerpval, Vector(), walloffset[2])
 				
@@ -1364,25 +1364,25 @@ function SWEP:GetViewModelPosition( pos, ang )
 			self.SwayScale = self.SS
 		end
 	
-		self.IronPosLerp = Lerp(0.05, self.IronPosLerp or self.IRPosLerp, self.IRPosLerp)
-		self.IronAngLerp = Lerp(0.05, self.IronAngLerp or self.IRAngLerp, self.IRAngLerp)
+		self.IronPosLerp = Lerp(RealFrameTime() * 10, self.IronPosLerp or self.IRPosLerp, self.IRPosLerp)
+		self.IronAngLerp = Lerp(RealFrameTime() * 10, self.IronAngLerp or self.IRAngLerp, self.IRAngLerp)
 	
 		if issprinting == false then 
-			self.PassivePosLerp = Lerp(0.05, self.PassivePosLerp or self.PRPosLerp, self.PRPosLerp)
-			self.PassiveAngLerp = Lerp(0.05, self.PassiveAngLerp or self.PRAngLerp, self.PRAngLerp)
+			self.PassivePosLerp = Lerp(RealFrameTime() * 10, self.PassivePosLerp or self.PRPosLerp, self.PRPosLerp)
+			self.PassiveAngLerp = Lerp(RealFrameTime() * 10, self.PassiveAngLerp or self.PRAngLerp, self.PRAngLerp)
 		else
-			self.PassivePosLerp = Lerp(0.05, self.PassivePosLerp or Vector(), Vector())
-			self.PassiveAngLerp = Lerp(0.05, self.PassiveAngLerp or Vector(), Vector())
+			self.PassivePosLerp = Lerp(RealFrameTime() * 10, self.PassivePosLerp or Vector(), Vector())
+			self.PassiveAngLerp = Lerp(RealFrameTime() * 10, self.PassiveAngLerp or Vector(), Vector())
 		end
 
-		self.InspectPosLerp = Lerp(0.05, self.InspectPosLerp or self.InsRPosLerp, self.InsRPosLerp)
-		self.InspectAngLerp = Lerp(0.05, self.InspectAngLerp or self.InsRAngLerp, self.InsRAngLerp)
+		self.InspectPosLerp = Lerp(RealFrameTime() * 10, self.InspectPosLerp or self.InsRPosLerp, self.InsRPosLerp)
+		self.InspectAngLerp = Lerp(RealFrameTime() * 10, self.InspectAngLerp or self.InsRAngLerp, self.InsRAngLerp)
 	
-		self.CrouchPosLerp = Lerp(0.05, self.CrouchPosLerp or self.CRPos, self.CRPos)
-		self.CrouchAngLerp = Lerp(0.05, self.CrouchAngLerp or self.CRAng, self.CRAng)
+		self.CrouchPosLerp = Lerp(RealFrameTime() * 10, self.CrouchPosLerp or self.CRPos, self.CRPos)
+		self.CrouchAngLerp = Lerp(RealFrameTime() * 10, self.CrouchAngLerp or self.CRAng, self.CRAng)
 	
-		self.SprintPosLerp = Lerp(0.05, self.SprintPosLerp or self.SRPosLerp, self.SRPosLerp)
-		self.SprintAngLerp = Lerp(0.05, self.SprintAngLerp or self.SRAngLerp, self.SRAngLerp)
+		self.SprintPosLerp = Lerp(RealFrameTime() * 10, self.SprintPosLerp or self.SRPosLerp, self.SRPosLerp)
+		self.SprintAngLerp = Lerp(RealFrameTime() * 10, self.SprintAngLerp or self.SRAngLerp, self.SRAngLerp)
 		
 		local DrcGlobalVMOffset = Vector(GetConVar("cl_drc_vmoffset_x"):GetFloat(), GetConVar("cl_drc_vmoffset_y"):GetFloat(), GetConVar("cl_drc_vmoffset_z"):GetFloat())
 		

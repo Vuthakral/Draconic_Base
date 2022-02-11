@@ -18,12 +18,12 @@ surface.CreateFont("ApercuStatsTitle", {
 	outline	= true
 })
 
-if GetConVar("cl_drc_sell_soul") == nil then
+	if GetConVar("cl_drc_sell_soul") == nil then
 		CreateClientConVar("cl_drc_sell_soul", 1, {FCVAR_DEMO, FCVAR_USERINFO}, "Give unto the dragon.", 0, 1)
 	end
 	
 	if GetConVar("cl_drc_disable_crosshairs") == nil then
-		CreateClientConVar("cl_drc_disable_crosshairs", 0, true, true, "Hides all DSB related crosshairs (except for debug mode)", 0, 1)
+		CreateClientConVar("cl_drc_disable_crosshairs", 0, true, true, "Hides all DRC related crosshairs (except for debug mode)", 0, 1)
 	end
 
 	if GetConVar("cl_drc_eyecolour_r") == nil then

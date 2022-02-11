@@ -82,6 +82,7 @@ SWEP.Primary.MeleeHitSoundWorld = Sound( "" )
 SWEP.Primary.MeleeHitSoundFlesh = Sound( "" )
 SWEP.Primary.MeleeHitSoundEnt 	= Sound( "" )
 SWEP.Primary.MeleeImpactDecal 	= ""
+SWEP.Primary.MeleeBurnDecal 	= ""
 SWEP.Primary.MeleeDamage		= 12
 SWEP.Primary.MeleeDamageType	= DMG_CLUB
 SWEP.Primary.MeleeRange			= 16.5

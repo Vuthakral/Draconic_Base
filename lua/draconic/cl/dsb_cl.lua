@@ -14,6 +14,57 @@ local function drawBlur( x, y, w, h, layers, density, alpha )
 	end
 end
 
+hook.Add("Think", "drc_GetTraceData", function()
+	local etr = util.TraceLine({
+		start = LocalPlayer():GetShootPos(),
+		endpos = LocalPlayer():GetShootPos() + LocalPlayer():EyeAngles():Forward() * 10000,
+		filter = function(ent) if ent != LocalPlayer() then return true end end
+	})
+	
+	DRC.CalcView.Trace = etr
+	DRC.CalcView.HitPos = etr.HitPos
+	DRC.CalcView.ToScreen = DRC.CalcView.HitPos:ToScreen()
+end)
+
+local function drc_TraceInfo()
+	if GetConVar("cl_drc_debug_traceinfo"):GetFloat() == 0 then return end
+	local pos = DRC.CalcView.ToScreen
+	local data = DRC.CalcView.Trace
+	local ent = data.Entity
+	if !IsValid(ent) then return end
+	local hp = nil
+	if !ent:IsWorld() then hp = ent:Health() end
+	
+	local col = Color(255, 255, 255)
+	
+	surface.SetFont("DermaLarge")
+	surface.SetTextColor(col)
+	surface.SetTextPos(pos.x - pos.x/2, pos.y)
+	surface.DrawText(tostring(ent))
+	
+	pos.y = pos.y + 32
+	
+	if hp then 
+	surface.SetTextPos(pos.x - pos.x/2, pos.y)
+	surface.DrawText(tostring("".. hp .." / ".. ent:GetMaxHealth() ..""))
+	end
+	
+	pos.y = pos.y + 32
+	
+	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
+	local BaseBT = BaseProfile.t.BulletTable
+	local BaseDT = BaseBT.MaterialDamageMuls
+	local enum = DRC:SurfacePropToEnum(ent:GetBoneSurfaceProp(0))
+	
+	if BaseDT[enum] && enum != "MAT_" == nil then
+		col = Color(255, 0, 0)
+	end
+	surface.SetTextColor(col)
+	surface.SetTextPos(pos.x - pos.x/2, pos.y)
+	if enum != "MAT_" then surface.DrawText(tostring(enum)) end
+end
+hook.Add("HUDPaint", "drc_TraceInfo", drc_TraceInfo)
+
 local GCT = CurTime()
 local GNT = GCT + 1
 
@@ -23,9 +74,10 @@ local function drc_IText()
 	local center = { ScrW()/2, ScrH()/2 }
 	local curswep = ply:GetActiveWeapon()
 	
+	
 	if !IsValid(ply.ViableWeapons) then ply.ViableWeapons = {} end
 	if !IsValid(ply.PickupWeapons) then ply.PickupWeapons = {} end
-	if !ViableWeaponCheck(ply) then return end
+--	if !ViableWeaponCheck(ply) then return end
 	
 	ViableWeaponCheck(ply)
 
@@ -253,13 +305,13 @@ local function drc_Debug()
 				end
 				
 				if curswep.Base == "draconic_battery_base" then
-					if curswep.Weapon:GetNWBool("ironsights") == true then
+					if curswep.SightsDown then
 						sights = "True"
 					else
 						sights = "False"
 					end
 				elseif curswep.Base == "draconic_gun_base" then
-					if curswep.Weapon:GetNWBool("ironsights") == true then
+					if curswep.SightsDown == true then
 						sights = "True"
 					else
 						sights = "False"

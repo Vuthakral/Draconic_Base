@@ -10,17 +10,17 @@ It contains all of the settings, explanations on how to use them, tutorials, hel
 local HDR = render.GetHDREnabled()
 local curmap = game.GetMap()
 local LMCorrection = 1
-DRC.LightingInfo.MapAmbient = render.GetAmbientLightColor()
-DRC.LightingInfo.MapAmbientAvg = (DRC.LightingInfo.MapAmbient.x + DRC.LightingInfo.MapAmbient.y + DRC.LightingInfo.MapAmbient.z) / 3
+DRC.MapInfo.MapAmbient = render.GetAmbientLightColor()
+DRC.MapInfo.MapAmbientAvg = (DRC.MapInfo.MapAmbient.x + DRC.MapInfo.MapAmbient.y + DRC.MapInfo.MapAmbient.z) / 3
 
 if CLIENT then
 	hook.Add("Think", "Draconic_Base_Matproxy_Clientside_Think_Please_Just_Trust_Me_It_Isnt_Laggy", function()
 		if StormFox2 then
-			DRC.WeathermodScalar = Lerp(FrameTime() * 2.5, GetSF2LightLevel(0.05), GetSF2LightLevel(0.05))
+			DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, GetSF2LightLevel(0.05), GetSF2LightLevel(0.05))
 			DRC.WeathermodScalar = Vector(DRC.WeathermodScalar, DRC.WeathermodScalar, DRC.WeathermodScalar)
 		elseif SW then
 			if IsValid(DRC:GetSWLightMod()) then
-				DRC.WeathermodScalar = Lerp(FrameTime() * 2.5, DRC:GetSWLightMod(), DRC:GetSWLightMod())
+				DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, DRC:GetSWLightMod(), DRC:GetSWLightMod())
 			else
 				DRC.WeathermodScalar = Vector(1,1,1)
 			end
@@ -28,8 +28,8 @@ if CLIENT then
 			DRC.WeathermodScalar = Vector(1,1,1)
 		end
 		
-		if !DRC.LightingInfo.MapAmbient then DRC.LightingInfo.MapAmbient = render.GetAmbientLightColor() end
-		if !DRC.LightingInfo.MapAmbientAvg then DRC.LightingInfo.MapAmbientAvg = (DRC.LightingInfo.MapAmbient.x + DRC.LightingInfo.MapAmbient.y + DRC.LightingInfo.MapAmbient.z) / 3 end
+		if !DRC.MapInfo.MapAmbient then DRC.MapInfo.MapAmbient = render.GetAmbientLightColor() end
+		if !DRC.MapInfo.MapAmbientAvg then DRC.MapInfo.MapAmbientAvg = (DRC.MapInfo.MapAmbient.x + DRC.MapInfo.MapAmbient.y + DRC.MapInfo.MapAmbient.z) / 3 end
 	end)
 end
 
@@ -72,7 +72,7 @@ if CTFK(drc_badlightmaps, curmap) or CTFK(drc_singlecubemaps, curmap) or CTFK(dr
 	elseif curmap == "gm_bigcity_improved" or curmap == "gm_bigcity_improved_lite" then
 		LMCorrection = 0.25
 	elseif curmap == "mu_volcano" then
-		LMCorrection = DRC.LightingInfo.MapAmbientAvg * 3
+		LMCorrection = DRC.MapInfo.MapAmbientAvg * 3
 	elseif curmap == "gm_cultist_outpost" then
 		LMCorrection = 0.25
 	elseif curmap == "gm_emp_chain" then
@@ -449,7 +449,7 @@ matproxy.Add( {
 		local charge = wepn.Weapon.BloomValue
 		charge = math.Clamp(charge, 0, 1)
 		
-		self.chargelerp = Lerp(FrameTime() * 2.5, self.chargelerp or charge, charge)
+		self.chargelerp = Lerp(RealFrameTime() * 2.5, self.chargelerp or charge, charge)
 		
 		if charge == nil then return end
 		
@@ -494,7 +494,7 @@ matproxy.Add( {
 			end
 		end
 		
-		self.loadinglerp = Lerp(FrameTime() * self.LerpSpeed, self.loadinglerp or val, val)
+		self.loadinglerp = Lerp(RealFrameTime() * self.LerpSpeed, self.loadinglerp or val, val)
 		
 		local blendvec = LerpVector(self.loadinglerp, self.MinVec, self.MaxVec) * self.MulInt / 100
 		
@@ -537,7 +537,7 @@ matproxy.Add( {
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if ent.Preview == true then
-			mat:SetFloat("$rimlightboost", self.PowerFloat * DRC.LightingInfo.MapAmbientAvg)
+			mat:SetFloat("$rimlightboost", self.PowerFloat * DRC.MapInfo.MapAmbientAvg)
 		else
 			local lightlevel = render.GetLightColor(ent:GetPos())
 			local median = (lightlevel.x + lightlevel.y + lightlevel.z) / 3
@@ -545,10 +545,10 @@ matproxy.Add( {
 			if self.PowerFloat == nil then self.PowerFloat = 1 end
 			if self.LerpPower == nil then self.LerpPower = 1 end
 			
-			ent.val = self.PowerFloat * median * DRC.LightingInfo.MapAmbientAvg
+			ent.val = self.PowerFloat * median * DRC.MapInfo.MapAmbientAvg
 			if HDR then ent.val = ent.val else ent.val = ent.val * 0.117 end
 			
-			ent.final = Lerp(FrameTime() * 2.5, mat:GetFloat("$rimlightboost"), ent.val) * ((DRC.WeathermodScalar.x + DRC.WeathermodScalar.y + DRC.WeathermodScalar.z) /3)
+			ent.final = Lerp(RealFrameTime() * 2.5, mat:GetFloat("$rimlightboost"), ent.val) * ((DRC.WeathermodScalar.x + DRC.WeathermodScalar.y + DRC.WeathermodScalar.z) /3)
 			mat:SetFloat( "$rimlightboost", ent.final )
 			
 
@@ -585,7 +585,7 @@ matproxy.Add( {
 		local blendvec = LerpVector(median, self.MinVec, self.MaxVec)
 		local val = blendvec
 		
-		self.drc_locallightlerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_locallightlerp or val, val)
+		self.drc_locallightlerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_locallightlerp or val, val)
 		local interp = self.drc_locallightlerp
 		mat:SetVector( self.ResultTo, interp )
 	end
@@ -614,7 +614,7 @@ matproxy.Add( {
 		local blendvec = LerpVector(median, self.MinVec, self.MaxVec)
 		local val = blendvec
 		
-		self.drc_locallightlerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_locallightlerp or val, val)
+		self.drc_locallightlerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_locallightlerp or val, val)
 		local interp = self.drc_locallightlerp
 		mat:SetVector( self.ResultTo, interp )
 	end
@@ -697,7 +697,7 @@ matproxy.Add( {
 		if ent.Preview == true then
 			local mul = Vector(1, 1, 1)
 			if HDR then mul = self.HDRCorrectionLevel else mul = (10 * self.LDRCorrectionLevel) end
-			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("EyeTintVec") / 255) * mul) * DRC.LightingInfo.MapAmbientAvg * DRC.WeathermodScalar )
+			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("EyeTintVec") / 255) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
 		end
 		
 		local pcr_hands, pcg_hands, pcb_hands, lightlevel_hands = 0, 0, 0, Vector(0, 0, 0)
@@ -710,7 +710,7 @@ matproxy.Add( {
 			else col = Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			self.drc_reflectiontintlerp_hands = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_reflectiontintlerp_hands or col, col)
+			self.drc_reflectiontintlerp_hands = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_reflectiontintlerp_hands or col, col)
 			local interp = self.drc_reflectiontintlerp_hands
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -725,7 +725,7 @@ matproxy.Add( {
 			local col = Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b)
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_ragdoll = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_ragdoll or col, col)
+			ent.drc_reflectiontintlerp_ragdoll = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_ragdoll or col, col)
 			local interp = ent.drc_reflectiontintlerp_ragdoll
 			
 			local mul = Vector(1, 1, 1)
@@ -742,7 +742,7 @@ matproxy.Add( {
 			local col = Vector(lightlevel.r, lightlevel.g, lightlevel.b)
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp or col, col)
+			ent.drc_reflectiontintlerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp or col, col)
 			local interp = ent.drc_reflectiontintlerp
 			
 			local mul = Vector(1, 1, 1)
@@ -856,7 +856,7 @@ matproxy.Add( {
 		
 		local roundedvec = Vector(roundedx, roundedy, roundedz)
 		
-		ent.drc_reflectiontintlerp_ent = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_ent or col, col)
+		ent.drc_reflectiontintlerp_ent = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_ent or col, col)
 		local interp = roundedvec * ent.drc_reflectiontintlerp_ent
 
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -938,7 +938,7 @@ matproxy.Add( {
 		if ent.Preview == true then
 			local mul = Vector(1, 1, 1)
 			if HDR then mul = self.HDRCorrectionLevel else mul = (10 * self.LDRCorrectionLevel) end
-			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("PlayerColour_DRC")) * mul) * DRC.LightingInfo.MapAmbientAvg * DRC.WeathermodScalar )
+			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("PlayerColour_DRC")) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
 		return end
 		
 		local pcr_hands, pcg_hands, pcb_hands, lightlevel_hands = 0, 0, 0, Vector(0, 0, 0)
@@ -957,7 +957,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			self.drc_reflectiontintlerp_pc_hands = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_reflectiontintlerp_pc_hands or col, col)
+			self.drc_reflectiontintlerp_pc_hands = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_reflectiontintlerp_pc_hands or col, col)
 			local interp = self.drc_reflectiontintlerp_pc_hands
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -980,7 +980,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_pc_ragdoll = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_pc_ragdoll or col, col)
+			ent.drc_reflectiontintlerp_pc_ragdoll = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_pc_ragdoll or col, col)
 			local interp = ent.drc_reflectiontintlerp_pc_ragdoll
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1003,7 +1003,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 			
-			ent.drc_reflectiontintlerp_wpn = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
+			ent.drc_reflectiontintlerp_wpn = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn
 			
 			local mul = Vector(1, 1, 1)
@@ -1035,7 +1035,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 				
-			ent.drc_reflectiontintlerp_pc = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_pc or col, col)
+			ent.drc_reflectiontintlerp_pc = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_pc or col, col)
 			local interp = ent.drc_reflectiontintlerp_pc
 			
 			local mul = Vector(1, 1, 1)
@@ -1119,7 +1119,7 @@ matproxy.Add( {
 		if ent.Preview == true then
 			local mul = Vector(1, 1, 1)
 			if HDR then mul = self.HDRCorrectionLevel else mul = (10 * self.LDRCorrectionLevel) end
-			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("EyeTintVec") / 255) * mul) * DRC.LightingInfo.MapAmbientAvg * DRC.WeathermodScalar )
+			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("EyeTintVec") / 255) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
 		return end
 		
 		if self.TintVector == nil then self.TintVector = Vector(1, 1, 1) end
@@ -1146,7 +1146,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_eye_hands = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_eye_hands or col, col)
+			ent.drc_reflectiontintlerp_eye_hands = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_eye_hands or col, col)
 			local interp = ent.drc_reflectiontintlerp_eye_hands
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1169,7 +1169,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_eye_ragdoll = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_eye_ragdoll or col, col)
+			ent.drc_reflectiontintlerp_eye_ragdoll = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_eye_ragdoll or col, col)
 			local interp = ent.drc_reflectiontintlerp_eye_ragdoll
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1192,7 +1192,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 			
-			ent.drc_reflectiontintlerp_wpn = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
+			ent.drc_reflectiontintlerp_wpn = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn
 			
 			local mul = Vector(1, 1, 1)
@@ -1217,7 +1217,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 				
-			ent.drc_reflectiontintlerp_eye = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_eye or col, col)
+			ent.drc_reflectiontintlerp_eye = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_eye or col, col)
 			local interp = ent.drc_reflectiontintlerp_eye
 			
 			local mul = Vector(1, 1, 1)
@@ -1301,7 +1301,7 @@ matproxy.Add( {
 		if ent.Preview == true then
 			local mul = Vector(1, 1, 1)
 			if HDR then mul = self.HDRCorrectionLevel else mul = (10 * self.LDRCorrectionLevel) end
-			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("ColourTintVec1") / 255) * mul) * DRC.LightingInfo.MapAmbientAvg * DRC.WeathermodScalar )
+			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("ColourTintVec1") / 255) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
 		return end
 		
 		if self.TintVector == nil then self.TintVector = Vector(1, 1, 1) end
@@ -1328,7 +1328,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_tint1_hands = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint1_hands or col, col)
+			ent.drc_reflectiontintlerp_tint1_hands = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint1_hands or col, col)
 			local interp = ent.drc_reflectiontintlerp_tint1_hands
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1351,7 +1351,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_tint1_ragdoll = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint1_ragdoll or col, col)
+			ent.drc_reflectiontintlerp_tint1_ragdoll = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint1_ragdoll or col, col)
 			local interp = ent.drc_reflectiontintlerp_tint1_ragdoll
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1374,7 +1374,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 			
-			ent.drc_reflectiontintlerp_wpn = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
+			ent.drc_reflectiontintlerp_wpn = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn
 			
 			local mul = Vector(1, 1, 1)
@@ -1399,7 +1399,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 				
-			ent.drc_reflectiontintlerp_tint1 = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint1 or col, col)
+			ent.drc_reflectiontintlerp_tint1 = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint1 or col, col)
 			local interp = ent.drc_reflectiontintlerp_tint1
 			
 			local mul = Vector(1, 1, 1)
@@ -1483,7 +1483,7 @@ matproxy.Add( {
 		if ent.Preview == true then
 			local mul = Vector(1, 1, 1)
 			if HDR then mul = self.HDRCorrectionLevel else mul = (10 * self.LDRCorrectionLevel) end
-			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("ColourTintVec2") / 255) * mul) * DRC.LightingInfo.MapAmbientAvg * DRC.WeathermodScalar )
+			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("ColourTintVec2") / 255) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
 		return end
 		
 		if self.TintVector == nil then self.TintVector = Vector(1, 1, 1) end
@@ -1510,7 +1510,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_tint2_hands = Lerp(FrameTime() + (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint2_hands or col, col)
+			ent.drc_reflectiontintlerp_tint2_hands = Lerp(RealFrameTime() + (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint2_hands or col, col)
 			local interp = ent.drc_reflectiontintlerp_tint2_hands
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1533,7 +1533,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_tint2_ragdoll = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint2_ragdoll or col, col)
+			ent.drc_reflectiontintlerp_tint2_ragdoll = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint2_ragdoll or col, col)
 			local interp = ent.drc_reflectiontintlerp_tint2_ragdoll
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1556,7 +1556,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 			
-			ent.drc_reflectiontintlerp_wpn = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
+			ent.drc_reflectiontintlerp_wpn = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn
 			
 			local mul = Vector(1, 1, 1)
@@ -1582,7 +1582,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 				
-			ent.drc_reflectiontintlerp_tint2 = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint2 or col, col)
+			ent.drc_reflectiontintlerp_tint2 = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_tint2 or col, col)
 			local interp = ent.drc_reflectiontintlerp_tint2
 			
 			local mul = Vector(1, 1, 1)
@@ -1687,7 +1687,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_wpn_hands = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn_hands or col, col)
+			ent.drc_reflectiontintlerp_wpn_hands = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn_hands or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn_hands
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1710,7 +1710,7 @@ matproxy.Add( {
 			else col = pcmath * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * (10 * self.LDRCorrectionLevel) end
 			if ( !isvector( col )) then return end
 				
-			ent.drc_reflectiontintlerp_wpn_ragdoll = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn_ragdoll or col, col)
+			ent.drc_reflectiontintlerp_wpn_ragdoll = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn_ragdoll or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn_ragdoll
 			
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
@@ -1736,7 +1736,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 			
-			ent.drc_reflectiontintlerp_wpn = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
+			ent.drc_reflectiontintlerp_wpn = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn
 			
 			local mul = Vector(1, 1, 1)
@@ -1761,7 +1761,7 @@ matproxy.Add( {
 			if ( !isvector( col )) then return end
 			col = col * pcmath
 			
-			ent.drc_reflectiontintlerp_wpn = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
+			ent.drc_reflectiontintlerp_wpn = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_reflectiontintlerp_wpn or col, col)
 			local interp = ent.drc_reflectiontintlerp_wpn
 			
 			local mul = Vector(1, 1, 1)
@@ -1813,11 +1813,11 @@ matproxy.Add( {
 		
 		if self.FlipVar == 0 then
 			local magmath = (mag / maxmag) / 2 * self.VarMult
-			ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+			ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 			mat:SetVector( self.ResultTo, Vector(ent.drc_scrollmaglerp, 0, 0) )
 		else
 			local magmath = (mag / maxmag) / 2 * self.VarMult
-			ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+			ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 			mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 		end
 	end
@@ -1864,11 +1864,11 @@ matproxy.Add( {
 		
 		if self.FlipVar == 0 then
 			local magmath = (mag / maxmag) / 2 * self.VarMult
-			ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+			ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 			mat:SetVector( self.ResultTo, Vector(ent.drc_scrollmaglerp, 0, 0) )
 		else
 			local magmath = (mag / maxmag) / 2 * self.VarMult
-			ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+			ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 			mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 		end
 	end
@@ -1909,7 +1909,7 @@ matproxy.Add( {
 		
 		local magmath = (mag / maxmag) * self.RadVar
 		
-		self.drc_rotatemaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
+		self.drc_rotatemaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
 
 		mat:SetVector( self.ResultTo, Vector(self.drc_rotatemaglerp, 0, 0) )
 	end
@@ -1938,7 +1938,7 @@ matproxy.Add( {
 			local maxhp = ply:GetMaxHealth()
 			
 			local hpmath = (hp / maxhp)
-			self.drc_scrollhplerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_scrollhplerp or hpmath, hpmath)
+			self.drc_scrollhplerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_scrollhplerp or hpmath, hpmath)
 			local col = Lerp(self.drc_scrollhplerp, self.MinVec, self.MaxVec)
 			
 			local interp = self.drc_scrollhplerp
@@ -1949,7 +1949,7 @@ matproxy.Add( {
 			local maxhp = ply:GetMaxHealth()
 			
 			local hpmath = (hp / maxhp)
-			self.drc_scrollhplerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_scrollhplerp or hpmath, hpmath)
+			self.drc_scrollhplerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_scrollhplerp or hpmath, hpmath)
 			local col = Lerp(self.drc_scrollhplerp, self.MinVec, self.MaxVec)
 			
 			local interp = self.drc_scrollhplerp
@@ -1960,7 +1960,7 @@ matproxy.Add( {
 			local maxhp = ply:GetMaxHealth()
 			
 			local hpmath = (hp / maxhp)
-			self.drc_scrollhplerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_scrollhplerp or hpmath, hpmath)
+			self.drc_scrollhplerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_scrollhplerp or hpmath, hpmath)
 			local col = Lerp(self.drc_scrollhplerp, self.MinVec, self.MaxVec)
 			
 			local interp = self.drc_scrollhplerp
@@ -1994,11 +1994,11 @@ matproxy.Add( {
 			
 			if self.FlipVar == 0 then
 				local magmath = (mag / maxmag) / 2 * self.VarMult
-				ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(ent.drc_scrollmaglerp, 0, 0) )
 			else
 				local magmath = (mag / maxmag) / 2 * self.VarMult
-				ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 			end
 		elseif owner:IsWeapon() then
@@ -2008,11 +2008,11 @@ matproxy.Add( {
 			
 			if self.FlipVar == 0 then
 				local magmath = (mag / maxmag) / 2 * self.VarMult
-				ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(ent.drc_scrollmaglerp, 0, 0) )
 			else
 				local magmath = (mag / maxmag) / 2 * self.VarMult
-				ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 			end
 		elseif owner:EntIndex() == LocalPlayer():GetHands():EntIndex() then
@@ -2022,11 +2022,11 @@ matproxy.Add( {
 			
 			if self.FlipVar == 0 then
 				local magmath = (mag / maxmag) / 2 * self.VarMult
-				ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(ent.drc_scrollmaglerp, 0, 0) )
 			else
 				local magmath = (mag / maxmag) / 2 * self.VarMult
-				ent.drc_scrollmaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
+				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 			end
 		end
@@ -2058,7 +2058,7 @@ matproxy.Add( {
 			local mag = ply:Health()
 			local maxmag = ply:GetMaxHealth()
 			local magmath = (mag / maxmag) * self.RadVar
-			self.drc_rotatemaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
+			self.drc_rotatemaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
 
 			mat:SetVector( self.ResultTo, Vector(self.drc_rotatemaglerp, 0, 0) )
 		elseif owner:IsWeapon() then
@@ -2066,7 +2066,7 @@ matproxy.Add( {
 			local mag = ply:Health()
 			local maxmag = ply:GetMaxHealth()
 			local magmath = (mag / maxmag) * self.RadVar
-			self.drc_rotatemaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
+			self.drc_rotatemaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
 
 			mat:SetVector( self.ResultTo, Vector(self.drc_rotatemaglerp, 0, 0) )
 		elseif owner:EntIndex() == LocalPlayer():GetHands():EntIndex() then
@@ -2074,7 +2074,7 @@ matproxy.Add( {
 			local mag = ply:Health()
 			local maxmag = ply:GetMaxHealth()
 			local magmath = (mag / maxmag) * self.RadVar
-			self.drc_rotatemaglerp = Lerp(FrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
+			self.drc_rotatemaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
 
 			mat:SetVector( self.ResultTo, Vector(self.drc_rotatemaglerp, 0, 0) )
 		end

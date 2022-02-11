@@ -38,6 +38,7 @@ SWEP.Primary.HitSoundEnt 	= Sound( "" )
 SWEP.Primary.HoldType		= "melee"
 SWEP.Primary.CrouchHoldType	= "melee"
 SWEP.Primary.ImpactDecal 	= ""
+SWEP.Primary.BurnDecal 	= ""
 SWEP.Primary.Automatic		= false
 SWEP.Primary.Damage			= 12
 SWEP.Primary.DamageType		= DMG_SLASH
@@ -69,6 +70,7 @@ SWEP.Primary.LungeHitSoundEnt	= Sound( "" )
 SWEP.LungeHoldType				= "melee"
 SWEP.LungeHoldTypeCrouch		= "melee"
 SWEP.Primary.LungeImpactDecal 	= ""
+SWEP.Primary.LungeBurnDecal 	= ""
 SWEP.Primary.LungeHitAct		= nil
 SWEP.Primary.LungeMissAct		= ACT_VM_PRIMARYATTACK
 SWEP.Primary.LungeDelayMiss		= 1.3
@@ -94,6 +96,7 @@ SWEP.Secondary.HitSoundEnt 	 = Sound( "" )
 SWEP.Secondary.HoldType		 = "knife"
 SWEP.Secondary.HoldTypeCrouch	 = "melee2"
 SWEP.Secondary.ImpactDecal 	 = ""
+SWEP.Secondary.BurnDecal 	 = ""
 SWEP.Secondary.Automatic 	 = false
 SWEP.Secondary.Damage 	  	 = 47
 SWEP.Secondary.DamageType	 = DMG_ALWAYSGIB
@@ -546,6 +549,7 @@ local tr = util.TraceLine( {
 
 if ( tr.Hit ) then
 	util.Decal(self.Secondary.ImpactDecal, tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal)  
+	util.Decal(self.Secondary.BurnDecal, tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal)  
 end
 
 local bullet = {}

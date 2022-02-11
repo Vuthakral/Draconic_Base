@@ -239,6 +239,10 @@ if GetConVar("cl_drc_debug_crosshairmode") == nil then
 	CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3)
 end
 
+if GetConVar("cl_drc_debug_traceinfo") == nil then
+	CreateConVar("cl_drc_debug_traceinfo", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide information about the current thing you are looking at.", 0, 1)
+end
+
 if GetConVar("cl_drc_lowered_crosshair") == nil then
 	CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	
 end

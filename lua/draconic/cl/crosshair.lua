@@ -10,14 +10,6 @@ local function drc_Crosshair()
 	if !IsValid(curswep) then return end
 	if !curswep.Draconic then return end
 	
-	local etr = util.TraceLine({
-		start = LocalPlayer():GetShootPos(),
-		endpos = LocalPlayer():GetShootPos() + LocalPlayer():EyeAngles():Forward() * 10000,
-		filter = function(ent) if ent != LocalPlayer() then return true end end
-	})
-	
-	DRC.CalcView.HitPos = etr.HitPos
-	DRC.CalcView.ToScreen = DRC.CalcView.HitPos:ToScreen()
 	local pos = DRC.CalcView.ToScreen
 	
 	local widthpos, heightpos = nil, nil

@@ -82,5 +82,12 @@ if SERVER then
 		DRC:IncludeDir( SVDir )
 		DRC:IncludeDir( DRCAddons )
 		DRC:IncludeDir( DRCPlayermodels )
+		
+		if SERVER then
+			net.Start("DRC_MapVersion")
+			local info = { ply, game.GetMapVersion() }
+			net.WriteTable(info)
+			net.Send(ply)
+		end
 	end)
 end

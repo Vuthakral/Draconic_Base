@@ -6,3 +6,5 @@ util.AddNetworkString("DRCNetworkGesture")
 util.AddNetworkString("DRCNetworkedAddText")
 util.AddNetworkString("DRC_SyncSpray")
 util.AddNetworkString("DRC_RequestSprayInfo")
+util.AddNetworkString("DRC_Nuke") -- "Nuke Map" dev tool
+util.AddNetworkString("DRC_MapVersion")

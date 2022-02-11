@@ -156,8 +156,10 @@ function ENT:GetCreatorAttachmentValue(att, val)
 end
 
 function ENT:Think()
-	local vel = self:GetVelocity()
+	if !IsValid(self) then return end
 	local phys = self:GetPhysicsObject()
+	if !IsValid(phys) then return end
+	local vel = self:GetVelocity()
 	local pos = self:GetPos()
 	local type = self.ProjectileType
 	local owner = self:GetOwner()
@@ -461,6 +463,16 @@ function ENT:PhysicsCollide( data, phys )
 	if self.Triggered == true then return end
 	self.Triggered = true
 	
+	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && type == "point" then
+		if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
+			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
+		end
+			
+		if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil then
+			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
+		end
+	end
+	
 	timer.Simple(0, function()
 	if tgt:IsWorld() == false then
 		local NI = tgt:GetNWInt(SCC)
@@ -711,6 +723,32 @@ function ENT:TriggerExplosion()
 		if self:IsValid() then self:LuaExplode("default") end
 	elseif self.ExplosionType == "custom" then
 		if self:IsValid() then self:DoCustomExplode() end
+	end
+	
+	local pos = self:GetPos()
+	local dist = self.ExplodePressure * 10 or self.SuperExplodePressure * 10
+	
+	local N = DRC_TraceDir(pos, Angle(0, 0, 0), dist)
+	local S = DRC_TraceDir(pos, Angle(0, 180, 0), dist)
+	local E = DRC_TraceDir(pos, Angle(0, -90, 0), dist)
+	local W = DRC_TraceDir(pos, Angle(0, 90, 0), dist)
+	local U = DRC_TraceDir(pos, Angle(-90, 0, 0), dist)
+	local D = DRC_TraceDir(pos, Angle(90, 0, 0), dist)
+	local TraceTable = {N, S, E, W, U, D}
+
+	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true then
+		for k,v in pairs(TraceTable) do
+			if v.Hit then
+				if v.HitSky then return end
+				if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
+					util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
+				end
+					
+				if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil then
+					util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
+				end
+			end
+		end
 	end
 end
 

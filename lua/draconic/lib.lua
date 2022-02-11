@@ -5,7 +5,7 @@ Draconic = {
 }
 
 DRC = {}
-DRC.LightingInfo = {}
+DRC.MapInfo = {}
 
 DRC.CalcView = {
 	["Pos"] = Vector(),
@@ -572,9 +572,14 @@ net.Receive("DRC_RequestSprayInfo", function()
 	end
 end)
 
-hook.Add("PlayerInitialSpawn", "drc_SetPlayerSprayFile", function(ply)
+hook.Add("PlayerInitialSpawn", "drc_InitialSpawnHook", function(ply)
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
+	
+	net.Start("DRC_MapVersion")
+	local info = { ply, game.GetMapVersion() }
+	net.WriteTable(info)
+	net.Send(ply)
 end)
 
 hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
@@ -1243,6 +1248,27 @@ net.Receive("DRCPlayerMelee", function(len, ply)
 	end
 end)
 
+net.Receive("DRC_Nuke", function(len, ply)
+	local ent = net.ReadEntity()
+	if !IsValid(ent) then return end
+	if !ent:IsAdmin() then
+		ent:Kill()
+		print("".. ent:Nick() .." (".. ent:SteamID64() ..") is likely using exploits and tried to run the DRC Nuke dev tool!")
+	return end
+	for k,v in pairs(ents.GetAll()) do
+		if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then v:TakeDamage(999999999, ent) v:Remove()
+		elseif v:IsPlayer() then v:ScreenFade(SCREENFADE.IN, Color(255, 255, 255), 3, 0)
+		end
+	end
+end)
+
+net.Receive("DRC_MapVersion", function(len, ply)
+	local tab = net.ReadTable()
+	local ver = tab[2]
+	
+	DRC.MapInfo.Version = ver
+end)
+
 
 local CubeCheckTime = 0
 hook.Add("Tick", "drc_CubeMapAntiFail", function()
@@ -1299,7 +1325,7 @@ local fuckedupmodels = {
 	"models/combine_dropship.mdl"
 }
 
-local function Fuckyougmod(str)
+function DRC:SurfacePropToEnum(str)
 	local prefix = "MAT_"
 	local newstring = "".. prefix .."".. string.upper(str) ..""
 	return newstring
@@ -1319,7 +1345,7 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 	if CTFK(fuckedupmodels, tgt:GetModel()) then
 		mat = "MAT_DEFAULT"
 	else
-		mat = Fuckyougmod(tgt:GetBoneSurfaceProp(0))
+		mat = DRC:SurfacePropToEnum(tgt:GetBoneSurfaceProp(0))
 	end
 	
 	local damagevalue = dmg:GetDamage()
@@ -1533,7 +1559,7 @@ function DRC_ParticleExplosion(pos, magnitude, dist)
 			partdata:SetOrigin(v.HitPos)
 			partdata:SetNormal(v.HitNormal)
 			partdata:SetMagnitude( partdata:GetMagnitude() * (1 - v.Fraction) )
-			local surface = Fuckyougmod(util.GetSurfacePropName(v.SurfaceProps))
+			local surface = DRC:SurfacePropToEnum(util.GetSurfacePropName(v.SurfaceProps))
 			if CTFK(DRC.MaterialCategories.Stone, surface) then util.Effect("drc_rubble", partdata) end
 			if CTFK(DRC.MaterialCategories.Metal, surface) then util.Effect("drc_sparks", partdata) end
 			if CTFK(DRC.MaterialCategories.Dust, surface) then util.Effect("drc_dust", partdata) end
@@ -1685,6 +1711,8 @@ hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 	end
 	
 	if CurTime() < ply.SwapCD then return end
+	if !ply.PickupWeapons then ply.PickupWeapons = {} end
+	if !ply.ViableWeapons then ply.ViableWeapons = {} end
 	if !table.IsEmpty(ply.PickupWeapons) then
 		if ply:KeyDown(IN_USE) && SERVER then
 			if curswep.LoopFireSound != nil then curswep.LoopFireSound:Stop() end

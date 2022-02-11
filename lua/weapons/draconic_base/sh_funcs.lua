@@ -272,6 +272,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		self.Force 	= self.Primary.Force
 		self.Damage = self.Primary.Damage
 		self.ID		= self.Primary.ImpactDecal
+		self.BD		= self.Primary.BurnDecal
 		self.DT		= self.Primary.DamageType
 		self.DH		= self.Primary.DelayHit
 		self.HA		= self.Primary.MeleeHitActivity
@@ -282,6 +283,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		self.Force = self.Secondary.Force
 		self.Damage = self.Secondary.Damage
 		self.ID		= self.Secondary.ImpactDecal
+		self.BD		= self.Secondary.BurnDecal
 		self.DT		= self.Secondary.DamageType
 		self.DH		= self.Secondary.DelayHit
 		self.HA		= self.Secondary.MeleeHitActivity
@@ -292,6 +294,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		self.Force = self.Primary.LungeForce
 		self.Damage = self.Primary.LungeDamage
 		self.ID		= self.Primary.LungeImpactDecal
+		self.BD		= self.Primary.LungeBurnDecal
 		self.DT		= self.Primary.LungeDamageType
 		self.DH		= self.Primary.LungeDelayHit
 		self.HA		= self.Primary.LungeHitAct
@@ -302,6 +305,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		self.Force 	= self.Primary.MeleeForce
 		self.Damage = self.Primary.MeleeDamage
 		self.ID		= self.Primary.MeleeImpactDecal
+		self.BD		= self.Primary.MeleeBurnDecal
 		self.DT		= self.Primary.MeleeDamageType
 		self.DH		= self.Primary.MeleeDelayHit
 		self.HA		= self.Primary.MeleeHitActivity
@@ -341,6 +345,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		end
 	elseif swingtrace.Entity:IsWorld() then
 		util.Decal(self.ID, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
+		util.Decal(self.BD, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
 	end
 	end
 
@@ -452,7 +457,11 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 			end
 
 			if self:GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
-				util.Decal( self:GetAttachmentValue("Ammunition", "ImpactDecal"), tr.StartPos, tr.HitPos, {self, ply})
+				util.Decal( self:GetAttachmentValue("Ammunition", "ImpactDecal"), tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, {self, ply})
+			end
+			
+			if self:GetAttachmentValue("Ammunition", "BurnDecal") != nil then
+				util.Decal( self:GetAttachmentValue("Ammunition", "BurnDecal"), tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, {self, ply})
 			end
 			
 			self:DoCustomBulletImpact(tr.HitPos, tr.Normal, takedamageinfo)

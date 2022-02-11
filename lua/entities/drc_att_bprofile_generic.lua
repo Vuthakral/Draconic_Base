@@ -101,6 +101,7 @@ ENT.BulletTable = {
 		MAT_WOOD_FURNITURE = 1,
 		MAT_WOOD_SOLID = 1,
 		MAT_WOOD_PLANK = 1,
+		MAT_WOOD_PANEL = 1,
 		MAT_CARDBOARD = 1,
 		MAT_TILE = 1,
 		MAT_POTTERY = 1,
@@ -131,5 +132,6 @@ ENT.BulletTable = {
 	RecoilDown = 1,
 	RecoilHoriz = 1,
 	ClipSizeMul = 1,
-	ImpactDecal = nil
+	ImpactDecal = nil,
+	BurnDecal = nil,
 }

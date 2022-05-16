@@ -18,6 +18,7 @@ ENT.Author			= "Vuthakral"
 ENT.Model = "models/Items/AR2_Grenade.mdl"
 
 ENT.Damage 	= 75
+ENT.AffectRadius	= 200
 ENT.Mass	= 1
 ENT.Gravity = true
 ENT.ProjectileType	= "explosive"

@@ -10,6 +10,8 @@ local function drc_Crosshair()
 	if !IsValid(curswep) then return end
 	if !curswep.Draconic then return end
 	
+	if curswep.DrawCrosshair == false then return end
+	
 	local pos = DRC.CalcView.ToScreen
 	
 	local widthpos, heightpos = nil, nil
@@ -125,6 +127,10 @@ local function drc_Crosshair()
 							
 			surface.DrawCircle((widthpos), (heightpos), 64 * LerpC / 50.75, 0, 100, 255, 255)
 			surface.DrawCircle((widthpos), (heightpos), 64 * LerpC / 52, 0, 175, 255, 255)
+			
+			if curswep.Primary.AimAssist == true then
+				surface.DrawCircle((widthpos), (heightpos), 13 * curswep.SpreadCone * curswep.Primary.AimAssist_Mul, 0, 255, 255, 255)
+			end
 		end
 	else end
 	
@@ -169,6 +175,9 @@ local function drc_Crosshair()
 		surface.SetMaterial( Material(curswep.CrosshairDynamic) )
 		surface.DrawTexturedRect(widthpos - smathoffset * 3.25 * artificial - LerpC / 2 * cx, heightpos - smathoffset * 3.25 * artificial - LerpC / 2 * cy, smathoffset * 6.5 * artificial + LerpC, smathoffset * 6.5 * artificial + LerpC)
 	end
+	
+	DRC.Crosshair = {}
+	DRC.Crosshair.Size = smathoffset * 6.5 * artificial + LerpC
 	
 	if curswep.CrosshairStatic != nil or curswep.CrosshairDynamic != nil then return end
 	

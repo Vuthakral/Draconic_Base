@@ -36,7 +36,6 @@ SWEP.FireModes_CanBurst = false
 SWEP.FireModes_CanSemi	= true
 SWEP.FireModes_BurstShots = 3
 
-SWEP.Primary.AimAssist		= true
 SWEP.Primary.IronRecoilMul	= 0.5
 SWEP.Primary.Spread			= 1
 SWEP.Primary.SpreadDiv		= 90
@@ -45,6 +44,7 @@ SWEP.Primary.KickHoriz		= 0.26
 SWEP.Primary.RecoilUp		= 0
 SWEP.Primary.RecoilDown		= 0
 SWEP.Primary.RecoilHoriz	= 0
+SWEP.Primary.MuzzleAngle	= Angle(0, 0, 0)
 SWEP.Primary.Force			= 0
 SWEP.Primary.Damage			= 1
 SWEP.Primary.Ammo			= "replaceme"
@@ -104,6 +104,7 @@ SWEP.Secondary.SightsSuppressAnim 	= false
 SWEP.Secondary.Scoped				= false
 SWEP.Secondary.ScopeHideVM			= false
 SWEP.Secondary.IronFOV				= 60
+SWEP.Secondary.IronFOVAlt			= 60
 SWEP.Secondary.IronInFP				= nil
 SWEP.Secondary.IronOutFP			= nil
 SWEP.Secondary.ScopeZoomTime 		= 0.25
@@ -121,6 +122,7 @@ SWEP.Secondary.KickHoriz		= 0.26
 SWEP.Secondary.RecoilUp			= 1
 SWEP.Secondary.RecoilDown		= 1
 SWEP.Secondary.RecoilHoriz		= 1
+SWEP.Secondary.MuzzleAngle		= Angle(0, 0, 0)
 SWEP.Secondary.Force			= 0.2
 SWEP.Secondary.Damage			= 12
 SWEP.Secondary.Ammo				= "none"
@@ -151,6 +153,7 @@ SWEP.OCKickHoriz		= 0.26
 SWEP.OCRecoilUp			= 0.06
 SWEP.OCRecoilDown		= 0.03
 SWEP.OCRecoilHoriz		= 8
+SWEP.OCMuzzleAngle		= Angle(0, 0, 0)
 SWEP.OCIronRecoilMul	= 1
 SWEP.OCForce			= 9
 SWEP.OCDamage			= 12
@@ -194,12 +197,14 @@ function SWEP:CanSwitchFireModes()
 end
 
 function SWEP:CanPrimaryAttack()
-local ply = self:GetOwner()
-local charge = self:GetNWInt("Charge")
-local sk = ply:KeyDown(IN_SPEED)
-local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
-local issprinting = sk && mk
-local wl = ply:WaterLevel()
+	if self.Primary.Disabled == true then return end
+	
+	local ply = self:GetOwner()
+	local charge = self:GetNWInt("Charge")
+	local sk = ply:KeyDown(IN_SPEED)
+	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
+	local issprinting = sk && mk
+	local wl = ply:WaterLevel()
 	
 	local curFOV = ply:GetFOV()
 	local IronFOV = self.Secondary.IronFOV
@@ -270,7 +275,11 @@ local IronFOV = self.Secondary.IronFOV
 end
 
 function SWEP:PrimaryAttack()
-	if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomPrimaryAttackEvents() end
+	if !IsValid(self) then return end
+	if self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomPrimaryAttackEvents() end
+	
+	self:DoCustomPrimary()
+	
 	local ply = self:GetOwner()
 	local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
 	local firetime = self:SequenceDuration( fireseq )
@@ -481,6 +490,7 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
 	
 	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.MeleeShakeMul)
+	ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, -y1m * (5 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, 0))
 	timer.Simple(self.Primary.MeleeHitDelay, function()
 		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.MeleeShakeMul)
 	end)
@@ -517,6 +527,7 @@ local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
 local firetime = self:SequenceDuration( fireseq )
 local vm = ply:GetViewModel()
 	
+	self:DoCustomSecondary()
 	
 if dc && self.ChargeType == "default" && charge < 99 then
 elseif dc && (self.ChargeType == "dualaction" or self.ChargeType == "discharge") && charge >= 99 then self:DoOvercharge()
@@ -541,6 +552,7 @@ elseif dc && self.ChargeType != "default" then
 				self:TogglePassive()
 			else
 				self:CallShoot("secondary")
+				self:DoCustomSecondaryAttackEvents()
 			end
 		end
 	end
@@ -1040,10 +1052,32 @@ function SWEP:DoImpactEffect(tr, dt)
 	if self.HideImpacts == true then return true else return false end
 end
 
+function SWEP:GetShootPos()
+	local attnum = self:LookupAttachment("muzzle")
+	local attinfo = self:GetAttachment(attnum)
+	
+	if attinfo == nil then MsgC(Color(255, 0, 0), "Draconic: ".. self:GetModel() .." / ".. self.ViewModel .." does not have a muzzle attachment!") end
+	
+	return attinfo.Pos
+end
+
+function SWEP:GetShootAng()
+	local attnum = self:LookupAttachment("muzzle")
+	local attinfo = self:GetAttachment(attnum)
+	
+	return attinfo.Ang
+end
+
 function SWEP:DoCustomPrimaryAttackEvents()
 end
 
 function SWEP:DoCustomSecondaryAttackEvents()
+end
+
+function SWEP:DoCustomPrimary() -- called regardless of whether or not CanPrimaryAttack passes.
+end
+
+function SWEP:DoCustomSecondary() -- called regardless of whether or not CanSecondaryAttack passes, even if secondary is disabled.
 end
 
 function SWEP:DoScriptedSecondaryAttack()
@@ -1073,6 +1107,7 @@ end
 function SWEP:DoCustomManualLoadEvents()
 end
 
+-- ADDON COMPATIBILITY. DO NOT USE ANYTHING BELOW THIS LINE!
 SWEP.ignorepcs = { -- NPCS to avoid targeting
 	"npc_bullseye", -- Yes I know blocking this is a bad idea. I'll deal with it later, as instances where this matters are close to none.
 	"npc_enemyfinder",
@@ -1092,7 +1127,6 @@ SWEP.ignorepcs = { -- NPCS to avoid targeting
 	"npc_template_maker",
 }
 
--- ADDON COMPATIBILITY. DO NOT USE ANY FUNCTIONS BELOW THIS LINE!
 function SWEP:AI_PrimaryAttack() -- Iv04
 	if !self:CanPrimaryAttackNPC() then return end
 	self:PrimaryAttack()

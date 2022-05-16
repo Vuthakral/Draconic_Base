@@ -378,7 +378,7 @@ function SWEP:Overheat()
 			self.Weapon:EmitSound(ventstart)
 		else end
 		if self.DoOverheatAnimation == true then
-			timer.Simple( looptime, function() if ply:IsValid() && ply:Alive() then self:AutoVent() end end)
+			timer.Simple( looptime, function() if IsValid(ply) && ply:Alive() then self:AutoVent() end end)
 		else 
 			timer.Simple( 0.3, function() if ply:IsValid() && ply:Alive() then self:AutoVent() end end)
 		end

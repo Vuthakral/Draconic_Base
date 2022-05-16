@@ -1,166 +1,199 @@
-SWEP.Base				= "draconic_melee_base"
-SWEP.Gun				= "drc_unarmed"
+SWEP.Base = "draconic_melee_base"
 
-SWEP.HoldType			= "fist" -- https://wiki.garrysmod.com/page/Hold_Types
-SWEP.CrouchHoldType		= "fist"
-SWEP.IdleSequence		= "fists_idle_01"
-SWEP.WalkSequence		= "fists_idle_01"
-SWEP.Category			= "Draconic"
-SWEP.PrintName			= "Hands"
-SWEP.Auhtor				= "Vuthakral"
-SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
-SWEP.Purpose			= ""
-SWEP.Instructions		= "Hold left click to grab objects, right click to punch."
- 
-SWEP.Spawnable      = false
-SWEP.AdminSpawnable = false
-SWEP.DrawCrosshair  = false
-SWEP.Slot           = 0
-SWEP.SlotPos        = 1
+SWEP.Category			= "Other"
+SWEP.PrintName			= "Unarmed"
+SWEP.Author				= "Vuthakral"
 
-SWEP.UseHands		= true
-SWEP.ViewModel 		= "models/vuthakral/weapons/c_arms_redef.mdl"
-SWEP.WorldModel 	= ""
-SWEP.ViewModelFOV   = 70
-SWEP.VMPos 			= Vector(0, 0, 0)
-SWEP.VMAng 			= Vector(0, 0, 0)
-SWEP.SS 			= 1
-SWEP.BS 			= 1
+SWEP.Spawnable			= true
+SWEP.AdminSpawnable		= false
+SWEP.AutoSwitchTo		= true
+SWEP.AutoSwitchFrom		= true
 
-SWEP.IdleActivity = ACT_VM_IDLE
-SWEP.CrouchIdleActivity = ACT_VM_IDLE
+SWEP.Slot				= 0
+SWEP.SlotPos			= 0
 
-SWEP.ViewModelFlip  = false
+SWEP.ViewModel			= "models/vuthakral/drc_unarmed.mdl"
+SWEP.ViewModelFOV		= 90
+SWEP.VMPos				= Vector(0, 0, 0)
+SWEP.VMAng				= Vector(0, 0, 0)
+SWEP.SprintPos			= Vector(0, 0, 0)
+SWEP.SprintAng			= Vector(0, 0, 0)
+SWEP.PassivePos			= Vector(0, 0, 0)
+SWEP.PassiveAng			= Vector(0, 0, 0)
+SWEP.UseHands			= true
 
-SWEP.Secondary.SwingSound 	 = Sound( "draconic.BladeStabSmall" )
-SWEP.Secondary.HitSoundWorld = Sound( "Flesh.ImpactHard" )
-SWEP.Secondary.HitSoundFlesh = Sound( "Flesh.ImpactHard" )
-SWEP.Secondary.HitSoundEnt 	 = Sound( "Flesh.ImpactHard" )
-SWEP.Secondary.HoldType		 = "fist"
-SWEP.Secondary.HoldTypeCrouch	 = "fist"
-SWEP.Secondary.ImpactDecal 	 = ""
-SWEP.Secondary.Automatic 	 = true
-SWEP.Secondary.Damage 	  	 = 15
-SWEP.Secondary.DamageType	 = DMG_SLASH
-SWEP.Secondary.Range       	 = 15
-SWEP.Secondary.Force	   	 = 2
-SWEP.Secondary.DelayMiss   	 = 1.5
-SWEP.Secondary.DelayHit	   	 = 0.78
-SWEP.Secondary.CanAttackCrouched = true
-SWEP.Secondary.HitActivity	= ACT_VM_PRIMARYATTACK
-SWEP.Secondary.CrouchHitActivity	= ACT_VM_PRIMARYATTACK
-SWEP.Secondary.MissActivity	= ACT_VM_PRIMARYATTACK
-SWEP.Secondary.CrouchMissActivity	= ACT_VM_PRIMARYATTACK
-SWEP.Secondary.HitDelay		= 0.19
+SWEP.HoldType	= "normal"
 
-SWEP.Time = 0
-SWEP.Range = 50
-SWEP.Drag = nil
+SWEP.Primary.SwingSound			= Sound( "draconic.FistSwingFast" )
+SWEP.Primary.HitSoundWorld 		= Sound( "" )
+SWEP.Primary.HitSoundFlesh 		= Sound( "" )
+SWEP.Primary.HitSoundEnt 		= Sound( "" )
+SWEP.Primary.HoldType			= "fist"
+SWEP.Primary.CrouchHoldType		= "melee"
+SWEP.Primary.ImpactDecal 		= ""
+SWEP.Primary.BurnDecal 			= ""
+SWEP.Primary.Automatic			= false
+SWEP.Primary.Damage				= 25
+SWEP.Primary.DamageType			= DMG_CLUB
+SWEP.Primary.Range				= 25
+SWEP.Primary.Force				= 2
+SWEP.Primary.DelayMiss			= 0.65
+SWEP.Primary.DelayHit 			= 0.65
+SWEP.Primary.CanAttackCrouched = true
+SWEP.Primary.HitActivity		= ACT_VM_IDLE
+SWEP.Primary.CrouchHitActivity	= nil
+SWEP.Primary.MissActivity		= ACT_VM_PRIMARYATTACK 
+SWEP.Primary.CrouchMissActivity	= ACT_VM_HITLEFT
+SWEP.Primary.HitDelay			= 0.07
+SWEP.Primary.StartX				= -50
+SWEP.Primary.StartY				= 3
+SWEP.Primary.EndX				= 50
+SWEP.Primary.EndY				= -10
+SWEP.Primary.ShakeMul			= 1
+
+SWEP.Primary.CanLunge			= true
+SWEP.Primary.LungeAutomatic		= false
+SWEP.Primary.LungeRequiresTarget= false
+SWEP.Primary.LungeVelocity		= 1000
+SWEP.Primary.LungeMaxDist		= 100
+SWEP.Primary.LungeSwingSound	= Sound( "draconic.FistSwingFast" )
+SWEP.Primary.LungeHitSoundWorld = Sound( "" )
+SWEP.Primary.LungeHitSoundFlesh = Sound( "" )
+SWEP.Primary.LungeHitSoundEnt	= Sound( "" )
+SWEP.LungeHoldType				= "fist"
+SWEP.LungeHoldTypeCrouch		= "melee"
+SWEP.Primary.LungeImpactDecal 	= ""
+SWEP.Primary.LungeBurnDecal 	= ""
+SWEP.Primary.LungeHitAct		= nil
+SWEP.Primary.LungeMissAct		= ACT_VM_HITCENTER
+SWEP.Primary.LungeMissActCrouch	= ACT_VM_HITCENTER2
+SWEP.Primary.LungeDelayMiss		= 1.3
+SWEP.Primary.LungeDelayHit		= 0.7
+SWEP.Primary.LungeHitDelay		= 0.26
+SWEP.Primary.LungeDamage		= 80
+SWEP.Primary.LungeDamageType	= DMG_CLUB
+SWEP.Primary.LungeRange			= 25
+SWEP.Primary.LungeForce			= 5
+SWEP.Primary.LungeStartX		= 7
+SWEP.Primary.LungeStartY		= -20
+SWEP.Primary.LungeEndX			= -5
+SWEP.Primary.LungeEndY			= 3
+SWEP.Primary.LungeShakeMul		= 1
+
+SWEP.Secondary.SwingSound			= Sound( "draconic.FistSwingFast" )
+SWEP.Secondary.HitSoundWorld 		= Sound( "" )
+SWEP.Secondary.HitSoundFlesh 		= Sound( "" )
+SWEP.Secondary.HitSoundEnt 			= Sound( "" )
+SWEP.Secondary.HoldType				= "fist"
+SWEP.Secondary.CrouchHoldType		= "melee"
+SWEP.Secondary.ImpactDecal 			= ""
+SWEP.Secondary.BurnDecal 			= ""
+SWEP.Secondary.Automatic			= false
+SWEP.Secondary.Damage				= 25
+SWEP.Secondary.DamageType			= DMG_CLUB
+SWEP.Secondary.Range				= 25
+SWEP.Secondary.Force				= 2
+SWEP.Secondary.DelayMiss			= 0.65
+SWEP.Secondary.DelayHit 			= 0.65
+SWEP.Secondary.CanAttackCrouched 	= true
+SWEP.Secondary.HitActivity			= ACT_VM_IDLE
+SWEP.Secondary.CrouchHitActivity	= nil
+SWEP.Secondary.MissActivity			= ACT_VM_SECONDARYATTACK
+SWEP.Secondary.CrouchMissActivity	= ACT_VM_HITRIGHT
+SWEP.Secondary.HitDelay				= 0.07
+SWEP.Secondary.StartX				= 50
+SWEP.Secondary.StartY				= 3
+SWEP.Secondary.EndX					= -40
+SWEP.Secondary.EndY					= -10
+SWEP.Secondary.ShakeMul				= 1
 
 function SWEP:DoCustomThink()
 	local ply = self:GetOwner()
-	if ply:KeyDown(IN_ATTACK) then
-		self:PrimaryAttack()
-	elseif !ply:KeyDown(IN_ATTACK) then
-		self.Drag = nil
-	else end
-end
-
-function SWEP:PrimaryAttack()
-	local ply = self:GetOwner()
-	local Pos = self.Owner:GetShootPos()
-	local Aim = self.Owner:GetAimVector()
-
-	local Tr = util.TraceLine{
-		start = Pos,
-		endpos = Pos +Aim *self.Range,
-		filter = player.GetAll(),
-	}
-
-	local HitEnt = Tr.Entity
-	if self.Drag then
-		HitEnt = self.Drag.Entity
+	if !IsValid(ply) then return end
+	if !ply:IsPlayer() then return end
+	local vm = ply:GetViewModel()
+	if !IsValid(vm) then return end
+	
+	local cv = ply:Crouching()
+	local kickanim = vm:LookupSequence("kick0")
+	local kneeanim = vm:LookupSequence("kick1")
+	
+	if cv then
+		self.Primary.StartX		= -45
+		self.Primary.StartY		= -20
+		self.Primary.EndX		= 45
+		self.Primary.EndY		= 20
+		self.Primary.Range		= 15
+		
+		self.Secondary.StartX	= 45
+		self.Secondary.StartY	= -20
+		self.Secondary.EndX		= -45
+		self.Secondary.EndY		= 20
+		self.Secondary.Range	= 15
 	else
-		if not IsValid( HitEnt ) or HitEnt:GetMoveType() ~= MOVETYPE_VPHYSICS or
-			HitEnt:IsVehicle() or HitEnt:GetNWBool( "NoDrag", false ) or
-			HitEnt.BlockDrag or
-			IsValid( HitEnt:GetParent() ) then
-			return
-		end
-
-		if not self.Drag then
-			self.Drag = {
-				OffPos = HitEnt:WorldToLocal(Tr.HitPos),
-				Entity = HitEnt,
-				Fraction = Tr.Fraction,
-			}
-		end
+		self.Primary.StartX		= -50
+		self.Primary.StartY		= 3
+		self.Primary.EndX		= 50
+		self.Primary.EndY		= -10
+		self.Primary.Range		= 25
+		
+		self.Secondary.StartX	= 50
+		self.Secondary.StartY	= 3
+		self.Secondary.EndX		= -50
+		self.Secondary.EndY		= -10
+		self.Secondary.Range	= 25
 	end
+	
+	if !DRC:ValveBipedCheck(ply) then self.Primary.CanLunge = false end
 
-	if CLIENT or not IsValid( HitEnt ) then return end
-
-	local Phys = HitEnt:GetPhysicsObject()
-
-	if IsValid( Phys ) then
-		local Pos2 = Pos +Aim *self.Range *self.Drag.Fraction
-		local OffPos = HitEnt:LocalToWorld( self.Drag.OffPos )
-		local Dif = Pos2 -OffPos
-		local Nom = (Dif:GetNormal() *math.min(1, Dif:Length() /100) *500 -Phys:GetVelocity()) *Phys:GetMass()
-
-		Phys:ApplyForceOffset( Nom, OffPos )
-		Phys:AddAngleVelocity( -Phys:GetAngleVelocity() /4 )
+	if CLIENT then
+		if ply != LocalPlayer() then return end
+		if !IsValid(self.CSPlayerModel) then
+			self.CSPlayerModel = ents.CreateClientside("drc_dummy")
+			self.CSPlayerModel:SetModel(LocalPlayer():GetModel())
+			self.CSPlayerModel:SetSkin(LocalPlayer():GetSkin())
+			
+			for k,v in pairs(ply:GetBodyGroups()) do
+				self.CSPlayerModel:SetBodygroup(v.id, ply:GetBodygroup(v.id))
+			end
+			
+			self.CSLegModel = ents.CreateClientside("drc_dummy")
+			self.CSLegModel:SetModel(self.ViewModel)
+			
+			self.CSLegModel:SetPos(vm:EyePos())
+			self.CSLegModel:SetAngles(vm:EyeAngles())
+			self.CSLegModel:SetParent(vm)
+		else
+			if vm:GetSequence() == kickanim or vm:GetSequence() == kneeanim then
+				self.CSPlayerModel:SetNoDraw(false)
+				self.CSLegModel:SetSequence(self.VMSequence)
+				self.CSLegModel:SetCycle(self.VMCycle)
+			else
+				self.CSPlayerModel:SetNoDraw(true)
+			end
+		
+			self.CSPlayerModel:SetPos(self.CSLegModel:GetPos())
+			self.CSPlayerModel:SetAngles(self.CSLegModel:GetAngles())
+			
+			if !self.CSPlayerModel:IsEffectActive(EF_BONEMERGE) then
+				self.CSPlayerModel:SetParent(self.CSLegModel)
+				self.CSPlayerModel:AddEffects(EF_BONEMERGE)
+			end
+		end
 	end
 end
 
-if CLIENT then
-	surface.CreateFont("Notif", {
-		font 	= "heydings controls",
-		size	= 36,
-		weight	= 300	
-	})
-
-	local w2 = ScrW()/2 
-	local leftwide = w2 - 300 
-	local leftwidehalf = leftwide / 2
-
-	local x, y = ScrW() /2, ScrH() /2
-	local MainCol = Color( 255, 255, 255, 255 )
-	local Col = Color( 255, 255, 255, 255 )
-
-	function SWEP:DrawHUD()
-		if IsValid( self.Owner:GetVehicle() ) then return end
-		local Pos = self.Owner:GetShootPos()
-		local Aim = self.Owner:GetAimVector()
-
-		local Tr = util.TraceLine{
-			start = Pos,
-			endpos = Pos +Aim *self.Range,
-			filter = player.GetAll(),
-		}
-
-		local HitEnt = Tr.Entity
-		if IsValid( HitEnt ) and HitEnt:GetMoveType() == MOVETYPE_VPHYSICS and
-			not self.rDag and
-			not HitEnt:IsVehicle() and
-			not IsValid( HitEnt:GetParent() ) and
-			not HitEnt:GetNWBool( "NoDrag", false ) then
-
-			self.Time = math.min( 1, self.Time +2 *FrameTime() )
-		else
-			self.Time = math.max( 0, self.Time -2 *FrameTime() )
-		end
-
-		if self.Time > 0 then
-			Col.a = MainCol.a *self.Time
-
-			draw.SimpleText(
-				"G",
-				"Notif",
-				x,
-				y,
-				Col,
-				TEXT_ALIGN_LEFT
-			)
-		end
+function SWEP:FuckOff()
+	if IsValid(self.CSPlayerModel) then
+		self.CSPlayerModel:Remove()
+		self.CSLegModel:Remove()
 	end
-else end
+end
+
+function SWEP:DoCustomHolster()
+	self:FuckOff()
+end
+
+function SWEP:DoCustomRemove()
+	self:FuckOff()
+end

@@ -386,10 +386,10 @@ end
 function SWEP:GetConeTarget()
 	local ply = self:GetOwner()
 	if !ply or !ply:IsPlayer() then return end
-	local coneents = DRC:EyeCone(ply, 500, self.SpreadCone)
+	local coneents = DRC:EyeCone(ply, self.Primary.AimAssistDist, self.SpreadCone * self.Primary.AimAssist_Mul)
 	local targets = {}
 	for k,v in pairs(coneents) do
-		if (v:IsPlayer() && v != ply) or v:IsNPC() or v:IsNextBot() then table.insert(targets, v) end
+		if (v:IsPlayer() && v != ply) or v:IsNPC() or v:IsNextBot() or DRC:IsVehicle(v) then table.insert(targets, v) end
 	end
 	local closesttarget = nil
 	for k,v in pairs(targets) do
@@ -406,8 +406,23 @@ function SWEP:GetConeTarget()
 	return target, dist
 end
 
+function SWEP:GetTraceTarget()
+	if CLIENT then return end
+	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
+	
+	local tr = util.TraceLine({
+		start = ply:EyePos(),
+		endpos = ply:EyePos() + ply:GetAimVector() * 1000,
+		filter = function(ent) return (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) && ent:EntIndex() != 0 && (ent != self && ent != ply) end
+	})
+	
+	return tr.Entity
+end
+
 function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	local ply = self:GetOwner()
+	local stats = self.StatsToPull
 	local fm = self:GetNWString("FireMode")
 	if fm == "Burst" && !IsFirstTimePredicted() then return end
 	
@@ -510,8 +525,8 @@ function SWEP:DoShoot(mode)
 		tr = util.GetPlayerTrace(ply)
 	end
 	local trace = util.TraceLine( tr )
-	local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
-	local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
+	local LeftHand = ply:LookupBone(DRC.Skel.LeftHand.Name)
+	local RightHand = ply:LookupBone(DRC.Skel.RightHand.Name)
 	
 	local pmag = self:Clip1()
 	local nmag = self:Clip1() - stats.APS
@@ -617,16 +632,20 @@ function SWEP:DoShoot(mode)
 				vm:SendViewModelMatchingSequence(fireseq)
 				self:SetCycle(0)
 				self:ResetSequence(fireseq)
+				self:ResetSequenceInfo(fireseq)
 			elseif mode == "secondary" then
 				vm:SendViewModelMatchingSequence(fireseq2)
 				self:ResetSequence(fireseq2)
+				self:ResetSequenceInfo(fireseq2)
 			elseif mode == "overcharge" then
 				if fireseq3 == -1 then
 					vm:SendViewModelMatchingSequence(fireseq)
 					self:ResetSequence(fireseq)
+					self:ResetSequenceInfo(fireseq)
 				else
 					vm:SendViewModelMatchingSequence(fireseq3)
 					self:ResetSequence(fireseq3)
+					self:ResetSequenceInfo(fireseq3)
 				end
 			end
 		end
@@ -686,8 +705,8 @@ function SWEP:DoShoot(mode)
 				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
 				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
 				local projang = ply:GetAimVector():Angle() + Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue
-				proj:SetAngles(projang)
-				if ply:IsPlayer() && (self:ValveBipedCheck() == false or self.SightsDown == true) then
+				proj:SetAngles(projang  + stats.MuzzleAngle)
+				if ply:IsPlayer() && self.SightsDown == true then
 					if self.SightsDown == true && self.Secondary.Scoped == true then
 						proj:SetPos( ply:EyePos() )
 					else
@@ -700,12 +719,14 @@ function SWEP:DoShoot(mode)
 						proj:SetPos( ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25) )
 					end
 				else
-					proj:SetPos( ply:GetBonePosition(RightHand))
+					proj:SetPos(ply:GetBonePosition(RightHand)) -- Unfortunately, muzzle pos does not work in singleplayer.
 				end
 				proj:SetOwner(self.Owner)
 				proj:Spawn()
 				proj.Owner = self.Owner
 				proj:Activate()
+				
+				self:PassToProjectile(proj)
 				
 				if !self.PTable then self.PTable = {} end
 				if proj.Draconic == true then table.insert(self.PTable, proj) end
@@ -745,6 +766,7 @@ function SWEP:DoShoot(mode)
 		timer.Simple( burst * delay + math.Rand(0.3,3), function() if !IsValid(ply) or !IsValid(self) then return end self.NPCBursting = false end)
 		
 		for i=1,length do
+			if !IsValid(self) then return end
 			timer.Simple( delay*i, function()
 				if !IsValid(ply) or !IsValid(self) then return end
 				local fm = self:GetNWString("FireMode")
@@ -882,7 +904,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	--print(self.Sound)
 	
 --	self:EmitSound(self.Sound)
-	DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, listener)
+	DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
 	
 --	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
 --		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() < 1 then
@@ -1122,13 +1144,16 @@ function SWEP:GetAttachmentValue(att, val)
 		local foundval = tab[val]
 		if foundval == nil then
 			foundval = base.t.BulletTable[val]
-			if GetConVar("cl_drc_debugmode"):GetFloat() > 1 && foundval != nil then print("Failed to find value (".. tostring(att) .." - " .. tostring(val) .."), pulling base instead: ".. foundval .."") end
+		--	if GetConVar("cl_drc_debugmode"):GetFloat() > 1 && foundval != nil then print("Failed to find value (".. tostring(att) .." - " .. tostring(val) .."), pulling base instead: ".. foundval .."") end
 		else
-			if GetConVar("cl_drc_debugmode"):GetFloat() > 1 then print("Found value (".. tostring(att) .." - " .. tostring(val) .."): ".. foundval .."") end
+		--	if GetConVar("cl_drc_debugmode"):GetFloat() > 1 then print("Found value (".. tostring(att) .." - " .. tostring(val) .."): ".. foundval .."") end
 		end
 		return foundval
 	end
 end
 
 function SWEP:DoCustomOverchargeAttackEvents()
+end
+
+function SWEP:PassToProjectile(ent)
 end

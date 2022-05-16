@@ -30,9 +30,13 @@ ENT.Force				= 5
 ENT.Gravity				= true
 ENT.DoesRadialDamage 	= false
 ENT.ProjectileType 		= "point"
-ENT.Explosive			= true
+ENT.Explosive			= false
 ENT.ExplosionType		= "hl2"
 ENT.RemoveInWater		= false
+
+ENT.Tracking		= false
+ENT.TrackType		= "Tracking"
+ENT.TrackFraction 	= 0.5
 
 ENT.SuperCombineRequirement		= 0
 ENT.SuperDamage					= 100
@@ -50,16 +54,6 @@ ENT.ExplodeShakePower 		= 5
 ENT.ExplodeShakeTime  		= 0.5	
 ENT.ExplodeShakeDistance 	= 500
 
---[[ TODO: Fix
-ENT.ExplodeLight = false
-ENT.ExplodeLightColor = Color(255, 255, 255, 255)
-ENT.ExplodeLightType = 0
-ENT.ExplodeLightSize = 250
-ENT.ExplodeLightDecay = 250
-ENT.ExplodeLightBrightness = 0.1
-ENT.ExplodeLightLifeTime = 3
-]]
-
 ENT.ManualDetonation	= false
 ENT.DetonateSoundNear	= nil
 ENT.DetonateSoundFar	= nil
@@ -69,9 +63,9 @@ ENT.LoopingSound		= nil
 ENT.ExplodeSoundNear	= nil
 ENT.ExplodeSoundFar		= nil
 
-ENT.ExplodePressure			= 5
+ENT.ExplodePressure		= 5
 
-ENT.AffectRadius	= 0.0001
+ENT.AffectRadius		= 0.0001
 ENT.SuperAffectRadius	= 0.0001
 
 ENT.SpawnEffect			= nil
@@ -81,11 +75,6 @@ ENT.SuperLuaExplEffect	= nil
 
 ENT.ImpactEffect	= nil
 ENT.ImpactSound		= nil
-
-ENT.TracksNPCs		= false
-ENT.TracksPlayers	= false
-ENT.TrackRadius		= 15
-ENT.TrackDist		= 250
 
 ENT.TrailMat		= nil
 ENT.TrailColor		= Color(255, 255, 255)
@@ -124,6 +113,7 @@ ENT.SpriteColor2	 = Color(255, 255, 255)
 ENT.EMP			= false
 ENT.EMPTime		= 5
 ENT.EMPSound	= nil
+ENT.EMPEffect	= nil
 
 ENT.TimerFrequency	= 1
 
@@ -137,6 +127,13 @@ ENT.TriggeredSound = false
 ENT.Draconic = true
 ENT.DraconicProjectile = true
 ENT.BProfile = false
+ENT.TrackTarget = nil
+ENT.ManualDetect = {
+		"npc_combinegunship",
+		"npc_strider",
+		"npc_hunter",
+		"npc_combinedropship"
+}
 
 function ENT:GetCreator()
 	return self.Creator
@@ -173,6 +170,15 @@ function ENT:Think()
 	if self:WaterLevel() == 3 then
 		phys:EnableGravity(true)
 		if IsValid(self) && self.LoopingSound != nil then self:StopSound(self.LoopingSound) end
+	end
+	
+	if IsValid(self:GetCreator()) && self:GetCreator():IsWeapon() then
+	--	if self:GetOwner():GetActiveWeapon() != self:GetCreator() then return end
+		if self.Tracking == true then
+			if self.TrackType == "Guided" then
+				self.TrackTarget = self:GetOwner():GetEyeTrace().HitPos
+			end
+		end
 	end
 	
 	self.LastPos = pos
@@ -214,7 +220,6 @@ function ENT:Think()
 	end
 	
 	if vel == vector_origin then return end
-	local tr = util.TraceLine({start=self:GetPos(), endpos=self:GetPos() + vel:GetNormal() * 20, filter={self, self:GetOwner()}, mask=MASK_SHOT_HULL})
 	
 	if self.Effect != nil then
 		if !phys:IsValid() then return end
@@ -223,13 +228,19 @@ function ENT:Think()
 		ed:SetEntity(self)
 		util.Effect(self.Effect, ed)
 	end
-	
---	if self.TracksNPCs == true or self.TracksPlayers == true then
---		local track = ents.FindInCone( self:GetPos(), self:GetForward(), self.TrackDist, math.cos(self.TrackRadius) )
---		PrintTable(track)
---	end
 
 	self:DoCustomThink()
+	
+	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
+	local tr = util.TraceLine({start=self:GetPos(), endpos=self:GetPos() + vel:GetNormal() * 100, filter={self, self:GetOwner(), self:GetCreator()}, mask=MASK_SHOT_HULL})
+	
+	if tr.Entity == nil then return end
+	if self.Triggered == true then return end
+	if IsValid(tr.Entity) && IsValid(self) && IsValid(self:GetCreator()) && self.Triggered == false && tr.Entity:IsNPC() then
+		if table.HasValue(self.ManualDetect, tr.Entity:GetClass()) then
+			self:Touch(tr.Entity)
+		end
+	end
 end
 
 function ENT:DoCustomThink()
@@ -245,6 +256,7 @@ function ENT:GetObjVelocity()
 end
 
 function ENT:PhysicsUpdate()
+	if !IsValid(self) then return end
 	local phys = self:GetPhysicsObject()
 	local vel = phys:GetVelocity()
 	local pos = phys:GetPos()
@@ -266,6 +278,48 @@ function ENT:PhysicsUpdate()
 		
 		phys:SetVelocity(vel)
 	end
+	
+	if self.Tracking == true then
+		if !IsValid(self:GetOwner()) then return end
+		if !IsValid(self:GetCreator()) then return end
+		local tgt = self.TrackTarget
+		if IsValid(tgt) && IsValid(Entity(tgt:EntIndex())) then
+			local endp = tgt:GetPos() + tgt:OBBCenter()
+			if DRC:IsVehicle(tgt) then endp = tgt:GetPos() + Vector(0, 0, 2) end
+			local tr = util.TraceLine({
+				start = phys:GetPos(),
+				endpos = endp,
+				filter = function(ent) if ent != tgt then return false end end
+			})
+			
+			local ang = tr.Normal:Angle()
+			
+			local angx = math.ApproachAngle(self:GetAngles().x, ang.x, self.TrackFraction)
+			local angy = math.ApproachAngle(self:GetAngles().y, ang.y, self.TrackFraction)
+			local angz = math.ApproachAngle(self:GetAngles().z, ang.z, self.TrackFraction)
+			
+			ang = Angle(angx, angy, angz)
+			
+			phys:SetAngles(ang)
+			phys:SetVelocity(phys:GetAngles():Forward() * self:GetCreator().Primary.ProjSpeed)
+		elseif isvector(tgt) then
+			local tr = util.TraceLine({
+				start = phys:GetPos(),
+				endpos = tgt,
+			})
+			
+			local ang = tr.Normal:Angle()
+			
+			local angx = math.ApproachAngle(self:GetAngles().x, ang.x, self.TrackFraction)
+			local angy = math.ApproachAngle(self:GetAngles().y, ang.y, self.TrackFraction)
+			local angz = math.ApproachAngle(self:GetAngles().z, ang.z, self.TrackFraction)
+			
+			ang = Angle(angx, angy, angz)
+			
+			phys:SetAngles(ang)
+			phys:SetVelocity(phys:GetAngles():Forward() * self:GetCreator().Primary.ProjSpeed)
+		end
+	end
 end
 
 function ENT:Initialize()
@@ -273,8 +327,10 @@ function ENT:Initialize()
 	local ply = self:GetOwner()
 	self:SetCollisionGroup(COLLISION_GROUP_PROJECTILE)
 	
+	if type == "lua_explosive" or type == "explosive" or type == "custom_explosive" or type == "grenade" or type == "FuseAfterFirstBounce" then self.Explosive = true end
+	
 	if IsValid(ply) then
-		if ply:GetClass() == "gmod_sent_vehicle_fphysics_base" then
+		if DRC:IsVehicle(ply) then
 			self:SetCreator(ply)
 		elseif ply:IsPlayer() or ply:IsNPC() or ply:IsNextBot() then
 			if ply:IsPlayer() then
@@ -294,6 +350,13 @@ function ENT:Initialize()
 	
 	if IsValid(self:GetCreator()) && self:GetCreator():IsWeapon() then
 		self.BProfile = true
+		
+		if self.Tracking == true then
+			if self.TrackType == "Tracking" then
+				self.TrackTarget = self:GetCreator():GetTraceTarget()
+				if IsValid(self:GetCreator():GetConeTarget()) then self.TrackTarget = self:GetCreator():GetConeTarget() end
+			end
+		end
 	end
 
 	self.SpawnTime = CurTime()
@@ -435,9 +498,9 @@ end
 local cooldown = 0
 
 function ENT:Touch(ent)
-	local type = self.ProjectileType
+	local ty = self.ProjectileType
 
-	if type == "point" then
+	if ty == "point" or ty == "lua_explosive" or ty == "explosive" then
 		local CollData = {
 			["HitPos"] = self:GetPos(),
 			["HitEntity"] = ent,
@@ -464,17 +527,18 @@ function ENT:PhysicsCollide( data, phys )
 	self.Triggered = true
 	
 	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && type == "point" then
-		if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
+		if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil && !tgt:IsNPC() then
 			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
 		end
 			
-		if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil then
+		if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil && !tgt:IsNPC() then
 			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
 		end
 	end
 	
 	timer.Simple(0, function()
 	if tgt:IsWorld() == false then
+		if !IsValid(tgt) then SafeRemoveEntity(self) return end
 		local NI = tgt:GetNWInt(SCC)
 		if type == "point" then
 			local tr = util.TraceLine({start=self:GetPos(), endpos=tgt:LocalToWorld(tgt:OBBCenter()), filter={self, self:GetOwner()}, mask=MASK_SHOT_HULL})
@@ -482,6 +546,7 @@ function ENT:PhysicsCollide( data, phys )
 			self:DamageTarget(tgt, tr)
 			self:DoImpactEffect()
 			
+			SafeRemoveEntity(self)
 			if self.EMP == true then self:DoEMP(tgt) end
 		elseif type == "explosive" then
 			self:TriggerExplosion()
@@ -534,12 +599,13 @@ function ENT:PhysicsCollide( data, phys )
 					tgt:SetNWInt(SCC, NI + 1)
 				end
 			--	print(NI)
-				timer.Simple(self.FuseTime - 0.25, function()
-					if self:IsValid() then
+				timer.Simple(self.FuseTime, function()
+				
 						local CNI = tgt:GetNWInt(SCC)
-						tgt:SetNWInt(SCC, CNI - 1)
+						tgt:SetNWInt(SCC, math.Clamp(CNI - 1, 0, 99))
+						NI = math.Clamp(NI, 0, 99)
 					--	print("Supercombine entity removed. | SC Score: ".. NI .."")
-					end
+					
 				end)
 			end
 		end
@@ -633,72 +699,16 @@ function ENT:DoImpactEffect()
 end
 
 function ENT:DoEMP(target, hitpos)
-	if self:IsValid() then
-		local tgt = target
-		local hitpos = self:GetPos()
-		
-		if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Triggered on ".. tgt:GetClass() .."") end
-		
-		if tgt.ResistsEMP != nil && tgt.ResistsEMP == true then
-		elseif tgt.ResistsEMP != nil && tgt.ResistsEMP == false then
-			if tgt.LFS != nil && tgt.LFS == true then
-				if tgt:GetEngineActive() == true then 
-					if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (LFS)") end
-					if self.EMPSound != nil then DRC:EmitSound(self, Sound(self.EMPSound)) end
-					tgt:StopEngine()
-					timer.Simple(self.EMPTime, function() tgt:StartEngine() end)
-				end 
-			elseif tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" then
-				if tgt:GetActive() == true then
-					if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (Simfphys)") end
-					if self.EMPSound != nil then DRC:EmitSound(self, Sound(self.EMPSound)) end
-					tgt:StopEngine()
-					tgt:SetActive( false )
-					timer.Simple(self.EMPTime, function() tgt:StartEngine() tgt:SetActive( true ) end)
-				end
-			end
-		elseif tgt.ResistsEMP == nil then
-			if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Found nil resistance") end
-			if tgt:IsPlayer() && tgt:Armor() > 0 then
-				if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (Player)") end
-					tgt:SetArmor(0)
-				if self.EMPSound != nil && !game.IsDedicated() then
-					DRC:EmitSound(self, Sound(self.EMPSound))
-				end 
-			elseif tgt:IsPlayer() && tgt:Armor() < 1 then
-				if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (Player); but target's armour was already 0.") end
-			elseif tgt:IsNextBot() && tgt.Shield != nil then -- Iv04 Nextbot shield stripping
-				tgt.Shield = -1
-				DRC:EmitSound(self, Sound(self.EMPSound))
-			end
-			if tgt.LFS != nil && tgt.LFS == true then
-				if tgt:GetEngineActive() == true then
-					if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (LFS)") end
-					if self.EMPSound != nil then DRC:EmitSound(self, Sound(self.EMPSound)) end
-					tgt:StopEngine()
-					timer.Simple(self.EMPTime, function() tgt:StartEngine() end)
-				end
-			elseif tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" then 
-				if tgt:GetActive() == true then
-					if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (Simfphys)") end
-					if self.EMPSound != nil then DRC:EmitSound(self, Sound(self.EMPSound)) end
-					tgt:StopEngine()
-					tgt:SetActive( false )
-					timer.Simple(self.EMPTime, function() tgt:StartEngine() tgt:SetActive( true ) end)
-				end
-			elseif tgt:GetClass() == "prop_vehicle_jeep" or tgt:GetClass() == "prop_vehicle_airboat" then
-				if tgt:IsEngineStarted() == true then
-					if GetConVar("cl_drc_debugmode"):GetString() == "0" then else print("EMP Done (Base vehicle entity)") end
-					if self.EMPSound != nil then DRC:EmitSound(self, Sound(self.EMPSound)) end
-					tgt:StartEngine(false)
-					timer.Simple(self.EMPTime, function() tgt:StartEngine(true) end)
-				end
-			end
-		end
-	end
+	if !IsValid(self) then return end
+	if !IsValid(target) then return end
+	
+	DRC:EMP(self, target, self.EMPTime, self.EMPSound, self.EMPEffect)
 end
 
-function ENT:TriggerExplosion()
+function ENT:TriggerExplosion(nodecal)
+	if !IsValid(self) then return end
+	if nodecal == nil then nodecal = false end
+	
 	self.SpriteMat = nil
 	self.SpriteMat2 = nil
 	self.TrailMat = nil
@@ -714,7 +724,7 @@ function ENT:TriggerExplosion()
 	
 	if self.TriggeredSound == false then
 		self.TriggeredSound = true
-		DRC:EmitSound(self, self.ENear, self.EFar, 1750)
+		DRC:EmitSound(self, self.ENear, self.EFar, 1750, SOUND_CONTEXT_EXPLOSION)
 	end
 	
 	if self.ExplosionType == "hl2" then
@@ -736,15 +746,15 @@ function ENT:TriggerExplosion()
 	local D = DRC_TraceDir(pos, Angle(90, 0, 0), dist)
 	local TraceTable = {N, S, E, W, U, D}
 
-	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true then
+	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && nodecal == false then
 		for k,v in pairs(TraceTable) do
 			if v.Hit then
 				if v.HitSky then return end
-				if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
+				if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil && !v.Entity:IsNPC() then
 					util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
 				end
 					
-				if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil then
+				if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil && !v.Entity:IsNPC() then
 					util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
 				end
 			end
@@ -757,7 +767,7 @@ function ENT:Detonate()
 	if self.Explosive == false then return end
 	
 	self.Detonated = true
-	DRC:EmitSound(self, self.DetonateSoundNear, self.DetonateSoundFar, 1750)
+	DRC:EmitSound(self, self.DetonateSoundNear, self.DetonateSoundFar, 1750, SOUND_CONTEXT_EXPLOSION)
 	timer.Simple(self.DetonationDelay, function() if IsValid(self) then self:TriggerExplosion() end end)
 end
 
@@ -773,7 +783,7 @@ function ENT:TriggerSC()
 				self:EmitSound(self.ENearSC)
 				self:EmitSound(self.EFarSC)
 			else
-				DRC:EmitSound(soundent, self.ENearSC, self.EFarSC, 1750)
+				DRC:EmitSound(soundent, self.ENearSC, self.EFarSC, 1750, SOUND_CONTEXT_EXPLOSION)
 			end
 		end)
 		timer.Simple( 5, function() soundent:Remove() end)
@@ -817,17 +827,18 @@ function ENT:LuaExplode(mode)
 	
 	for f, v in pairs(ents.FindInSphere(pos, self.MSRadius)) do
 	
+	local totaldamage = 0
+	local d1 = (self.MSDamage / (v:GetPos() + Vector(v:OBBCenter().x, v:OBBCenter().y, (v:OBBMaxs().z - (v:OBBMaxs().z/10)))):Distance(pos) * 20) / 2
+	local d2 = (self.MSDamage / (v:GetPos() + v:OBBCenter()):Distance(pos) * 20) / 2
+	totaldamage = d1 + d2
+	
 	local dmg2 = DamageInfo()
-	dmg2:SetDamage(self.MSDamage / (v:GetPos() + Vector(0, 0, 10)):Distance(pos) * 20)
+	dmg2:SetDamage(totaldamage)
 	dmg2:SetInflictor(self)
 	dmg2:SetDamageForce(self:EyeAngles():Forward())
 	dmg2:SetDamagePosition(self:GetPos())
 	dmg2:SetDamageType(self.MSDamageType)
-	if !IsValid(owner) then
-		dmg2:SetAttacker(self)
-	else
-		dmg2:SetAttacker(owner)
-	end
+	if !IsValid(owner) then dmg2:SetAttacker(self) else dmg2:SetAttacker(owner) end
 	
 		if v:GetClass() == self:GetClass() then
 			if self.Gravity == true then
@@ -837,7 +848,7 @@ function ENT:LuaExplode(mode)
 			if IsValid(v:GetPhysicsObject()) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
 				v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
 			elseif v:IsPlayer() or v:IsNPC() or v:IsNextBot() then
-				v:SetVelocity((v:OBBCenter()-pos)*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50)
+				if v:GetClass() != "npc_strider" && v:GetClass() != "npc_combinegunship" then v:SetVelocity((v:OBBCenter()-pos)*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50) end
 			end
 			if SERVER && v:GetClass() != "env_spritetrail" && v:GetClass() != "class CLuaEffect" then v:TakeDamageInfo(dmg2) end
 			if self.EMP == true then self:DoEMP(v) end
@@ -892,7 +903,7 @@ function ENT:Explode(mode)
 	
 	local explo = ents.Create("env_explosion")
 		explo:SetOwner(self.explosion)
-		explo:SetPos(self.Entity:GetPos())
+		explo:SetPos(self:GetPos())
 		explo:SetKeyValue("iMagnitude", "25")
 		explo:SetKeyValue("radius", self.AffectRadius)
 		explo:Spawn()
@@ -910,7 +921,7 @@ function ENT:Explode(mode)
 			if IsValid(v:GetPhysicsObject()) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
 				v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
 			elseif v:IsPlayer() or v:IsNPC() or v:IsNextBot() then
-				v:SetVelocity((v:OBBCenter()-pos)*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50)
+				if v:GetClass() != "npc_strider" && v:GetClass() != "npc_combinegunship" then v:SetVelocity((v:OBBCenter()-pos)*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50) end
 			end
 			if self.EMP == true then self:DoEMP(v) end
 		end

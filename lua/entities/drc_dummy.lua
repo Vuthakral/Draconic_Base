@@ -12,4 +12,5 @@ ENT.AdminSpawnable	= false
 function ENT:Initialize()
 	self:DrawShadow(false)
 	self:SetMaterial("models/vuthakral/nodraw")
+	self:SetAutomaticFrameAdvance(true)
 end

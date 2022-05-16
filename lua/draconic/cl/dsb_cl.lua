@@ -14,7 +14,34 @@ local function drawBlur( x, y, w, h, layers, density, alpha )
 	end
 end
 
-hook.Add("Think", "drc_GetTraceData", function()
+--[[ hook.Add("PreDrawPlayerHands", "drc_FPShield", function(hands, vm, ply, wpn)
+	if !IsValid(DRC.CSPlayerHandShield) then return end
+	DRC.CSPlayerHandShield:SetAutomaticFrameAdvance(true)
+	DRC.CSPlayerHandShield:SetModel(hands:GetModel())
+	DRC.CSPlayerHandShield:SetAngles(hands:GetAngles())
+	DRC.CSPlayerHandShield:SetPos(hands:GetPos())
+--	DRC.CSPlayerHandShield:SetParent(hands)
+	DRC.CSPlayerHandShield:SetMaterial("models/vuthakral/shield_example")
+	
+	for k,v in pairs(DRC:GetBones(hands)) do
+		local id = hands:LookupBone(k)
+		if id != nil then
+			local matr = hands:GetBoneMatrix(id)
+			if matr then
+				local newmatr = Matrix()
+				local shp, mshp, ent = DRC:GetShield(LocalPlayer())
+				newmatr:SetTranslation(matr:GetTranslation())
+				newmatr:SetAngles(matr:GetAngles())
+				newmatr:SetScale(Vector(ent.ShieldScale, ent.ShieldScale, ent.ShieldScale))
+				DRC.CSPlayerHandShield:SetBoneMatrix(id, newmatr)
+			end
+		end
+	end
+end) --]]
+
+local CSModelCheck = 0
+local CSShieldModelCheck = 0
+hook.Add("Think", "drc_CSThinkStuff", function()
 	local etr = util.TraceLine({
 		start = LocalPlayer():GetShootPos(),
 		endpos = LocalPlayer():GetShootPos() + LocalPlayer():EyeAngles():Forward() * 10000,
@@ -24,46 +51,45 @@ hook.Add("Think", "drc_GetTraceData", function()
 	DRC.CalcView.Trace = etr
 	DRC.CalcView.HitPos = etr.HitPos
 	DRC.CalcView.ToScreen = DRC.CalcView.HitPos:ToScreen()
+	
+	if CurTime() > CSModelCheck then
+		CSModelCheck = CurTime() + 5
+		for k,v in pairs(ents.GetAll()) do
+			if v:GetClass() == "drc_csplayermodel" && v != DRC.CSPlayerModel then v:Remove() end
+		end
+	end
+	
+	-- It was either do this or network something every time an entity takes damage. So yeah...
+	if CurTime() > CSShieldModelCheck then
+	--	if !IsValid(DRC.CSPlayerHandShield) then
+	--		local hands = LocalPlayer():GetHands()
+	--		DRC.CSPlayerHandShield = ents.CreateClientside("drc_shieldmodel")
+	--	end
+		CSShieldModelCheck = CurTime() + 5
+		for k,v in pairs(ents.GetAll()) do
+			local shp, smhp, sent = DRC:GetShield(v)
+			if smhp != 0 && !IsValid(sent) then
+				local shield = ents.CreateClientside("drc_shieldmodel")
+				shield.FollowEnt = v
+				shield:Spawn()
+			end
+		end
+	end
+	
+	if GetConVar("cl_drc_thirdperson"):GetFloat() != GetConVar("cl_drc_thirdperson"):GetFloat() then DRC.Convars_CL.EnableTP:SetFloat(GetConvar("cl_drc_thirdperson"):GetFloat()) end
+	
+	if LocalPlayer():KeyDown(IN_USE) && LocalPlayer():KeyPressed(IN_ALT1) then
+		if !DRC.Convars_CL.EnableTP then DRC.Convars_CL.EnableTP = GetConVar("cl_drc_thirdperson") end
+		if DRC.Convars_CL.EnableTP:GetFloat() == 0 then DRC.Convars_CL.EnableTP:SetFloat(1) else DRC.Convars_CL.EnableTP:SetFloat(0) end
+	end
+	
+	if LocalPlayer():KeyDown(IN_USE) && LocalPlayer():KeyPressed(IN_ALT2) then
+		if !DRC.Convars_CL.TP_FlipShoulder then DRC.Convars_CL.TP_FlipShoulder = GetConVar("cl_drc_thirdperson_flipside") end
+		if DRC.Convars_CL.TP_FlipShoulder:GetFloat() == 0 then DRC.Convars_CL.TP_FlipShoulder:SetFloat(1) else DRC.Convars_CL.TP_FlipShoulder:SetFloat(0) end
+	end
 end)
 
-local function drc_TraceInfo()
-	if GetConVar("cl_drc_debug_traceinfo"):GetFloat() == 0 then return end
-	local pos = DRC.CalcView.ToScreen
-	local data = DRC.CalcView.Trace
-	local ent = data.Entity
-	if !IsValid(ent) then return end
-	local hp = nil
-	if !ent:IsWorld() then hp = ent:Health() end
-	
-	local col = Color(255, 255, 255)
-	
-	surface.SetFont("DermaLarge")
-	surface.SetTextColor(col)
-	surface.SetTextPos(pos.x - pos.x/2, pos.y)
-	surface.DrawText(tostring(ent))
-	
-	pos.y = pos.y + 32
-	
-	if hp then 
-	surface.SetTextPos(pos.x - pos.x/2, pos.y)
-	surface.DrawText(tostring("".. hp .." / ".. ent:GetMaxHealth() ..""))
-	end
-	
-	pos.y = pos.y + 32
-	
-	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
-	local BaseBT = BaseProfile.t.BulletTable
-	local BaseDT = BaseBT.MaterialDamageMuls
-	local enum = DRC:SurfacePropToEnum(ent:GetBoneSurfaceProp(0))
-	
-	if BaseDT[enum] && enum != "MAT_" == nil then
-		col = Color(255, 0, 0)
-	end
-	surface.SetTextColor(col)
-	surface.SetTextPos(pos.x - pos.x/2, pos.y)
-	if enum != "MAT_" then surface.DrawText(tostring(enum)) end
-end
-hook.Add("HUDPaint", "drc_TraceInfo", drc_TraceInfo)
+
 
 local GCT = CurTime()
 local GNT = GCT + 1
@@ -629,41 +655,19 @@ hook.Add("PostDrawViewHands", "drc_interact_hidevm", function(vm, ply, wep)
 	if ply:GetNWBool("Interacting") == true then return true end
 end)
 
-hook.Add("HUDPaint", "DrcLerp_Debug_Visualizer2D", function()
-	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
-	if GetConVar("cl_drc_debugmode"):GetString() != "1" then return end
-	local cdi = GetConVar("cl_drc_debug_cameradrag"):GetFloat()
-	
-	if cdi != 1 then return end
-	
-	local ply = LocalPlayer()
-	local wpn = ply:GetActiveWeapon()
-	if !wpn then return end
-	if wpn.Draconic == nil then return end
-	
-	col1 = Color(255, 255, 255, 175)
-	col2 = Color(255, 255, 255, 75)
-	surface.SetDrawColor( col1 )
-	
-	surface.DrawCircle(ScrW() / 12, ScrH() / 1.125, 100, col1.r, col1.g, col1.b, col1.a)
-	surface.DrawRect(ScrW() / 12, ScrH() / 1.125, 2, 2)
-	draw.DrawText("Camera Drag Interpreter", "HudSelectionText", 50, ScrH() / 1.32, Color(236, 236, 236, 175))
-	draw.DrawText(drc_vm_lerpang_final, "HudSelectionText", 50, ScrH() / 1.29, Color(236, 236, 236, 175))
-	
-	surface.SetDrawColor( col2 )
-	surface.DrawLine(ScrW() / 12, ScrH() / 1.125, ScrW() / 12  + (drc_vm_lerpang_final.y), ScrH() / 1.125 - (drc_vm_lerpang_final.x))
-	surface.SetDrawColor( col1 )
-	surface.DrawRect(ScrW() / 12 - 2 + (drc_vm_lerpang_final.y), ScrH() / 1.125 - 2 - (drc_vm_lerpang_final.x), 5, 5)
-end)
-
 function ThirdPersonModEnabled(ply)
+	local veh, drctpcheck5 = ply:GetVehicle(), false
+	if IsValid(veh) then
+		drctpcheck5 = veh:GetThirdPersonMode()
+	end
+	
 	drctpcheck1 = false
 	drctpcheck2 = false
 	drctpcheck3 = false
 	drctpcheck4 = false
 
 	if GetConVar("simple_thirdperson_enabled") != nil then
-		if GetConVar("simple_thirdperson_enabled"):GetBool() == true then drctpcheck1 = true else drctpcheck1 = false end
+		if GetConVar("simple_thirdperson_enabled"):GetFloat() == 1 then drctpcheck1 = true else drctpcheck1 = false end
 	end
 	
 	if ply:GetNW2Bool("ThirtOTS") == true then drctpcheck2 = true else drctpcheck2 = false end
@@ -676,8 +680,96 @@ function ThirdPersonModEnabled(ply)
 		if GetConVar("cl_view_ext_tps"):GetString() != "0" then drctpcheck4 = true else drctpcheck4 = false end
 	end
 	
-	if drctpcheck1 == true or drctpcheck2 == true or drctpcheck3 == true or drctpcheck4 == true then return true else return false end
+	if drctpcheck1 == true or drctpcheck2 == true or drctpcheck3 == true or drctpcheck4 == true or drctpcheck5 == true then return true else return false end
 end
+
+function DRC:ThirdPersonEnabled(ply)
+	if ThirdPersonModEnabled(ply) == true then return true end
+	if ply:GetViewEntity() != ply then return true end
+	local curswep = ply:GetActiveWeapon()
+	if curswep.ASTWTWO == true then return true end
+	if ply:GetNWString("Draconic_ThirdpersonForce") == "On" then return true end
+	if ply:GetNWString("Draconic_ThirdpersonForce") == "Off" then return false end
+	if curswep.Draconic == true && curswep.Thirdperson == true then return true end
+	if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
+	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true else return false end
+end
+
+function DRC:ShouldDoDRCThirdPerson(ply)
+	if !IsValid(ply) then return end
+	local curswep = ply:GetActiveWeapon()
+	if curswep.Draconic && curswep.Thirdperson == true then return true end
+	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+	return false
+end
+
+hook.Add("CalcView", "!DRC_TPWeapon", function(ply, pos, angles, fov)
+	if !IsValid(ply) then return end
+	if !ply:Alive() then return end
+	if ply:InVehicle() then return end
+	if DRC:SightsDown(LocalPlayer():GetActiveWeapon()) then return end
+	
+	if DRC:ThirdPersonEnabled(ply) == true then
+		if !DRC:ShouldDoDRCThirdPerson(ply) then return end
+		local curswep = ply:GetActiveWeapon()
+		if curswep.ASTWTWO && GetConVar("cl_drc_thirdperson"):GetFloat() == 0 then return end
+		local PSMul = ply:GetModelScale()
+--		if !IsValid(curswep) then return end
+		local root = LocalPlayer():LookupBone("ValveBiped.Bip01_Pelvis")
+		local bpos = nil
+		if root != nil then bpos = LocalPlayer():GetBonePosition(root) end
+		local av = ply:GetAimVector()
+		local ea = ply:EyeAngles()
+		local ep = ply:EyePos()
+		local pos = ply:GetPos()
+		
+		if !DRC:ValveBipedCheck(ply) then bpos = LocalPlayer():GetPos() + LocalPlayer():OBBCenter() end
+		
+		local ht = "default"
+		if IsValid(curswep) then ht = curswep:GetHoldType() end
+		
+		local offset = DRC.ThirdPerson.DefaultOffsets[ht] * PSMul
+		
+		if GetConVar("cl_drc_thirdperson_flipside"):GetFloat() == 1 then offset.y = -offset.y end
+		
+		if curswep.ThirdpersonOffset && (curswep:GetNWBool("Passive") != true) then offset = curswep.ThirdpersonOffset end
+		
+		offset_lerp = LerpVector(RealFrameTime() * 10, offset_lerp or offset, offset)
+		
+		local bonepos = bpos
+		bpos = LocalToWorld(offset_lerp, ea, bpos, ea)
+		
+		local trZ = util.TraceLine({
+			start = bonepos,
+			endpos = bpos + ea:Up() * 25 * PSMul,
+			filter = function(ent) if ent == ply then return false end end
+		})
+		
+		local tr = util.TraceLine({
+			start = trZ.HitPos,
+			endpos = trZ.HitPos + ea:Forward() * -100 * PSMul,
+			filter = function(ent) if ent == ply then return false end end
+		})
+		
+		if DRC:ThirdPersonEnabled(ply) == true then
+			view = {}
+			view.origin = tr.HitPos
+			view.angles = view.angles
+			view.fov = 75 * (ply:GetFOV() / 100)
+			view.drawviewer = true
+			if tr.Hit then view.znear = 0.03 else view.znear = 1 end
+		else
+			view = {}
+			view.origin = origin
+			view.angles = angles
+			view.fov = fov
+			view.drawviewer = false
+			view.znear = 1
+		end
+		
+		return view
+	end
+end)
 
 -- hypothetically, since lua runs linearly & reads alphabetically, having my hook name start with an exclamation mark should have it run before any others.
 -- This should, again hypothetically, prevent the five million shitty """""viewbobbing""""" scripts from breaking this. It might also help shitty thirdperson mod that don't know how to overwrite CalcView hooks.
@@ -692,6 +784,7 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	local wpn = ply:GetActiveWeapon()
 	if !wpn then return end
 	if wpn.Draconic == nil then return end
+	if wpn.IsMelee == true then return end
 	local vm = ply:GetViewModel()
 	local sights = wpn.SightsDown
 	

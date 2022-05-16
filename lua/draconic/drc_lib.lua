@@ -4,15 +4,30 @@ Draconic = {
 	["Author"] = "Vuthakral",
 }
 
-DRC = {}
+if SERVER then AddCSLuaFile("sh/convars.lua") end
+include("sh/convars.lua")
+
 DRC.MapInfo = {}
+
+if SERVER then
+	DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas()
+	
+	hook.Add( "InitPostEntity", "DRC_GetNavMeshInfo", function()
+		timer.Simple(10, function() DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas() end)
+	end)
+end
 
 DRC.CalcView = {
 	["Pos"] = Vector(),
 	["Ang"] = Angle(),
 	["HitPos"] = Vector(),
 	["ToScreen"] = {},
+	["wallpos"] = Vector(),
 }
+
+DRC.PlayerInfo = {}
+DRC.PlayerInfo.ViewOffsets = {}
+DRC.PlayerInfo.ViewOffsets.Defaults = { ["Standing"] = Vector(0, 0, 64), ["Crouched"] = Vector(0, 0, 28)}
 
 DRC.Skel = {
 	["Spine"] = { ["Name"] = "ValveBiped.Bip01_Spine", ["Scale"] = Vector(1,0.65,1) },
@@ -22,6 +37,8 @@ DRC.Skel = {
 	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(-100,-25,0) },
 	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -200, 0) },
 	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -200, 0) },
+	["LeftHand"] = { ["Name"] = "ValveBiped.Bip01_L_Hand", ["Offset"] = Vector(0, 0, 0) },
+	["RightHand"] = { ["Name"] = "ValveBiped.Bip01_R_Hand", ["Offset"] = Vector(0, 0, 0) },
 }
 
 if CLIENT then DRC.HDREnabled = render.GetHDREnabled() end
@@ -94,6 +111,25 @@ function DRC:GetVersion()
 	return Draconic.Version
 end
 
+function DRC:GetOS()
+	if system.IsWindows() then return "Windows" end
+	if system.IsLinux() then return "Linux" end
+	if system.IsOSX() then return "OSX" end
+end
+
+function DRC:GetPower()
+	if system.BatteryPower() != 255 then return system.BatteryPower() else return "Desktop" end
+end
+
+function DRC:GetServerMode()
+	if game.IsDedicated() then return "Dedicated Server"
+	elseif !game.IsDedicated() then
+		if game.SinglePlayer() then return "Singleplayer"
+		else return "Listen Server"
+		end
+	end
+end
+
 function DRC:MismatchWarn(ply, ent)
 	if !ply or !ent then return end
 	
@@ -115,6 +151,64 @@ function DRC:MismatchWarn(ply, ent)
 	else
 		DRC:AddText(ply, msg)
 	end
+end
+
+function DRC:ValveBipedCheck(ent)
+	local LeftHand = ent:LookupBone("ValveBiped.Bip01_L_Hand")
+	local RightHand = ent:LookupBone("ValveBiped.Bip01_R_Hand")
+	local Spine = ent:LookupBone("ValveBiped.Bip01_Spine")
+	local Spine1 = ent:LookupBone("ValveBiped.Bip01_Spine1")
+	local Spine2 = ent:LookupBone("ValveBiped.Bip01_Spine2")
+	local Spine4 = ent:LookupBone("ValveBiped.Bip01_Spine4")
+	local LeftClav = ent:LookupBone("ValveBiped.Bip01_L_Clavicle")
+	local RightClav = ent:LookupBone("ValveBiped.Bip01_R_Clavicle")
+	local LeftThigh = ent:LookupBone("ValveBiped.Bip01_L_Thigh")
+	local RightThigh = ent:LookupBone("ValveBiped.Bip01_R_Thigh")
+	
+	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh then return false
+	elseif ent:GetBoneParent(Spine1) != Spine then return false
+	else return true end
+end
+
+function DRC:SightsDown(ent, irons)
+	if !IsValid(ent) then return end
+	if irons == nil then irons = false end
+	
+	if ent.UniqueFiremode then -- ASTW2's unique camera stuff
+		if ent:GetNWBool("insights") == true then return true else return false end
+	end
+	
+	if !irons then
+		if ent.Draconic then
+			if ent.Secondary.Scoped == true then return ent.SightsDown else return false end
+		elseif ent.IsTFAWeapon then
+			return ent:GetIronSights()
+		elseif ent.ASTWTWO then
+			if ent.TrueScope == true && ent:GetNWBool("insights") == true then return true else return false end
+		end
+	else
+		if ent.Draconic then
+			if ent.Secondary.Scoped == true then return ent.SightsDown else return false end
+		end
+	end
+end
+
+local ConversionRates = {
+	["km"] = 0.0000254,
+	["m"] = 0.0254,
+	["cm"] = 2.54,
+	["mm"] = 25.4,
+	
+	["in"] = 1,
+	["ft"] = 0.08333,
+	["yd"] = 0.02777,
+	["mile"] = 1 / 63360,
+}
+
+function DRC:ConvertUnit(input, output)
+	if !ConversionRates[tostring(output)] then print("Draconic Base: Requested unit conversion ''".. tostring(output) .."'' is not valid!") end
+	local inches = input * 0.75
+	return inches * ConversionRates[output]
 end
 
 function DRC:GetColours(ent, rgb)
@@ -245,7 +339,7 @@ function DRC:AddText(ply, varargs)
 	net.Send(ply)
 end
 
-function DRC:EmitSound(source, near, far, distance, listener)
+function DRC:EmitSound(source, near, far, distance, hint, listener)
 	if !IsValid(source) then return end
 	if near == nil && far == nil then return end
 	if far == nil && near != nil then source:EmitSound(near) return end
@@ -263,6 +357,8 @@ function DRC:EmitSound(source, near, far, distance, listener)
 	net.Start("DRCSound")
 	net.WriteTable(nt)
 	net.Broadcast()
+	
+	if distance && hint then sound.EmitHint(hint, source:GetPos(), math.Rand(distance/5, distance), 0.25, source) end
 end
 
 function DRC:TraceAngle(start, nd)
@@ -366,10 +462,10 @@ function DRC:FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
 end
 
 function DRC:GetSWLightMod()
-	if !SW then return end
+	if !SW then return nil end
 	
 	local thyme = SW.Time
-	if !thyme then return end
+	if !thyme then return nil end
 	
 	local mulval = DRC.SWModVal
 	if thyme < 4.5 && thyme > 0 then mulval = Vector(0.05, 0.1, 0.2)
@@ -410,6 +506,8 @@ end
 
 function DRC:GetRoomSizeName(size)
 	local tab = DRC.RoomDefinitions
+	if !tab then return end
+	if !size then return end
 	if size <= tab.Vent then return "Vent"
 	elseif size > tab.Vent && size <= tab.Small then return "Small"
 	elseif size > tab.Small && size <= tab.Regular then return "Regular"
@@ -508,6 +606,34 @@ end )
 end
 -- End cubemap collection code
 
+function DRC:DLight(ent, pos, col, size, lifetime, emissive)
+	local HDR = render.GetHDREnabled()
+
+	if emissive == nil then emissive = false end
+	if IsEntity(ent) then ent = ent:EntIndex() end
+	local dl = DynamicLight(ent, emissive)
+	dl.pos = pos
+	dl.r = col.r
+	dl.g = col.g
+	dl.b = col.b
+	dl.brightness = col.a
+	dl.Decay = (1000 / lifetime)
+	dl.size = size
+	dl.DieTime = CurTime() + lifetime
+	
+	if HDR == false && emissive == false then
+		local el = DynamicLight(ent, true)
+		el.pos = pos
+		el.r = col.r
+		el.g = col.g
+		el.b = col.b
+		el.brightness = col.a
+		el.Decay = (1000 / lifetime)
+		el.size = size
+		el.DieTime = CurTime() + lifetime
+	end
+end
+
 function DRC:GetSpray(ply, dowrite)
 --	if !IsValid(ply) then return end
 	if SERVER then print("DRC:GetSpray() is a CLIENT ONLY function.") return end
@@ -573,6 +699,8 @@ net.Receive("DRC_RequestSprayInfo", function()
 end)
 
 hook.Add("PlayerInitialSpawn", "drc_InitialSpawnHook", function(ply)
+	ply.SprayIndexed = false
+	ply.DRCSprayFrames = 1
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
 	
@@ -585,6 +713,11 @@ end)
 hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	DRC:RefreshColours(ply)
 	ply:SetNWBool("Interacting", false)
+	ply:SetNWString("Draconic_ThirdpersonForce", nil)
+	ply:SetNWBool("ShowSpray_Ents", ply:GetInfoNum("cl_drc_showspray", 0))
+	ply:SetNWBool("ShowSpray_Weapons", ply:GetInfoNum("cl_drc_showspray_weapons", 0))
+	ply:SetNWBool("ShowSpray_Vehicles", ply:GetInfoNum("cl_drc_showspray_vehicles", 0))
+	ply:SetNWBool("ShowSpray_Player", ply:GetInfoNum("cl_drc_showspray_player", 0))
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
@@ -627,8 +760,12 @@ end)
 
 -- ayylmao a high enough ping can make some stuff in :Holster() and :OnRemove() not work because Source loves controlling stuff server-side
 -- also :Holster() and :OnRemove() logically don't apply when an NPC dies lol
-hook.Add("DoPlayerDeath", "drc_stfu1", function(ply)
+hook.Add("DoPlayerDeath", "drc_PlayerDeathEvents", function(ply, attacker, dmg)
 	if !IsValid(ply) then return end
+	
+	timer.Simple(0.1, function()
+		DRC:RefreshColours(ply)
+	end)
 	
 	local wpn = ply:GetActiveWeapon()
 	if !IsValid(wpn) then return end
@@ -640,10 +777,6 @@ hook.Add("DoPlayerDeath", "drc_stfu1", function(ply)
 	wpn:StopSound(wpn.ChargeSound)
 	wpn:StopSound(wpn.Primary.LoopingFireSound)
 	wpn.LoopFireSound:Stop()
-	
-	timer.Simple(0.1, function()
-		DRC:RefreshColours(ply)
-	end)
 end)
 
 hook.Add("PlayerSwitchWeapon", "drc_stfu2", function(ply, ow, nw)
@@ -1191,6 +1324,11 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 		local newstats = weapons.GetStored(neww)
 		local newht = newstats.HoldType
 		
+		if nw.ASTWTWO == true then
+			if nw.Melee == true then newht = newstats.HoldType_Lowered end
+			if nw.Melee != true then newht = newstats.HoldType_Hipfire end
+		end
+		
 		local onehand = { "pistol", "slam", "magic" }
 		local twohand = { "smg", "ar2", "shotgun", "crossbow", "camera", "revolver" }
 		local dualtypes = { "duel" }
@@ -1210,7 +1348,7 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 	else
 		local onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine" }
 		local twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
-		local dualtypes = {}
+		local dualtypes = { "weapon_cubemap" }
 		local lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
 		local hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
 		local meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
@@ -1321,162 +1459,15 @@ hook.Add( "Initialize", "drc_SetupAmmoTypes", function()
 	end
 end )
 
-local fuckedupmodels = {
-	"models/combine_dropship.mdl"
-}
-
 function DRC:SurfacePropToEnum(str)
 	local prefix = "MAT_"
 	local newstring = "".. prefix .."".. string.upper(str) ..""
 	return newstring
 end
 
-hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
-	if !IsValid(tgt) then return end
-	local inflictor = dmg:GetInflictor()
-	local attacker = dmg:GetAttacker()
-	local vehicle = false
-	
-	if tgt.LFS or tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" or tgt:IsVehicle() then vehicle = true end
-	
-	if inflictor.Draconic == nil then return end
-	if inflictor.IsMelee == true then return end
-	local mat = nil
-	if CTFK(fuckedupmodels, tgt:GetModel()) then
-		mat = "MAT_DEFAULT"
-	else
-		mat = DRC:SurfacePropToEnum(tgt:GetBoneSurfaceProp(0))
-	end
-	
-	local damagevalue = dmg:GetDamage()
-	
-	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
-	local BT, DT, BaseBT, BaseDT, scalar = nil, nil, nil, nil, 0
-	
-	local hl2diff_inflict, hl2diff_take = 1, 1
-	if GetConVarNumber("skill") == 1 then
-		hl2diff_take = GetConVarNumber("sk_dmg_take_scale1")
-		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale1")
-	elseif GetConVarNumber("skill") == 2 then
-		hl2diff_take = GetConVarNumber("sk_dmg_take_scale2")
-		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale2")
-	elseif GetConVarNumber("skill") == 3 then
-		hl2diff_take = GetConVarNumber("sk_dmg_take_scale3")
-		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale3")
-	end
-	
-	if inflictor:IsWeapon() then
-		BT = inflictor.ActiveAttachments.Ammunition.t.BulletTable
-		DT = inflictor.ActiveAttachments.Ammunition.t.BulletTable.MaterialDamageMuls
-		BaseBT = BaseProfile.t.BulletTable
-		BaseDT = BaseBT.MaterialDamageMuls
-		
-		if DT == nil or DT[mat] == nil then
-			if BaseDT[mat] == nil && mat != "MAT_" then
-				print("You've found an undefined material type in the Draconic Base, pretty please report this to me so I can remove this annoying console message! The material is: ".. mat .."")
-				mat = "MAT_DEFAULT"
-				scalar = BaseDT[mat]
-			elseif mat == "MAT_" then
-				mat = "MAT_DEFAULT"
-				scalar = BaseDT[mat]
-			else
-				scalar = BaseDT[mat]
-			end
-		else
-			scalar = DT[mat]
-		end
-		
-		if attacker:IsPlayer() && tgt:IsNPC() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "PvEDamageMul")
-		elseif attacker:IsPlayer() && tgt:IsPlayer() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "PvPDamageMul")
-		elseif attacker:IsNPC() && tgt:IsPlayer() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "EvPDamageMul")
-		elseif attacker:IsNPC() && tgt:IsNPC() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "EvEDamageMul")
-		else
-			damagevalue = (damagevalue * scalar)
-		end
-		
-		if inflictor:GetAttachmentValue("Ammunition", "EvPUseHL2Scale") == true && (!attacker:IsPlayer() && tgt:IsPlayer()) then
-			damagevalue = (damagevalue * 0.3) * hl2diff_take
-		end
-		
-		if inflictor:GetAttachmentValue("Ammunition", "PvEUseHL2Scale") == true && (attacker:IsPlayer() && (tgt:IsNPC() or tgt:IsNextBot())) then			
-			damagevalue = damagevalue * hl2diff_inflict
-		end
-		
-		if BT == nil then
-			damagevalue = damagevalue
-		else
-			if BT.Damage == nil then
-				damagevalue = damagevalue * BaseBT.Damage
-			else
-				damagevalue = damagevalue * BT.Damage
-			end
-		end
-		
-		if vehicle == true then damagevalue = damagevalue * inflictor:GetAttachmentValue("Ammunition", "VehicleDamageMul") end
-	elseif inflictor.BProfile == true then
-		if !inflictor:GetCreator().ActiveAttachments then return end
-		BT = inflictor:GetCreator().ActiveAttachments.Ammunition.t.BulletTable
-		DT = inflictor:GetCreator().ActiveAttachments.Ammunition.t.BulletTable.MaterialDamageMuls
-		BaseBT = BaseProfile.t.BulletTable
-		BaseDT = BaseBT.MaterialDamageMuls
-		
-		if DT == nil or DT[mat] == nil then
-			if BaseDT[mat] == nil && mat != "MAT_" then
-				print("You've found an undefined material type in the Draconic Base, pretty please report this to me so I can remove this annoying console message! The material is: ".. mat .."")
-				mat = "MAT_DEFAULT"
-				scalar = BaseDT[mat]
-			elseif mat == "MAT_" then
-				mat = "MAT_DEFAULT"
-				scalar = BaseDT[mat]
-			else
-				scalar = BaseDT[mat]
-			end
-		else
-			scalar = DT[mat]
-		end
-		
-		if attacker:IsPlayer() && tgt:IsNPC() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetCreatorAttachmentValue("Ammunition", "PvEDamageMul")
-		elseif attacker:IsPlayer() && tgt:IsPlayer() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetCreatorAttachmentValue("Ammunition", "PvPDamageMul")
-		elseif attacker:IsNPC() && tgt:IsPlayer() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetCreatorAttachmentValue("Ammunition", "EvPDamageMul")
-		elseif attacker:IsNPC() && tgt:IsNPC() then
-			damagevalue = (damagevalue * scalar) * inflictor:GetCreatorAttachmentValue("Ammunition", "EvEDamageMul")
-		else
-			damagevalue = (damagevalue * scalar)
-		end
-		
-		if inflictor:GetCreatorAttachmentValue("Ammunition", "EvPUseHL2Scale") == true && (!attacker:IsPlayer() && tgt:IsPlayer()) then
-			damagevalue = (damagevalue * 0.3) * hl2diff_take
-		end
-		
-		if inflictor:GetCreatorAttachmentValue("Ammunition", "PvEUseHL2Scale") == true && (attacker:IsPlayer() && (tgt:IsNPC() or tgt:IsNextBot())) then
-			damagevalue = damagevalue * hl2diff_inflict
-		end
-		
-		if BT == nil then
-			damagevalue = damagevalue
-		else
-			if BT.Damage == nil then
-				damagevalue = damagevalue * BaseBT.Damage
-			else
-				damagevalue = damagevalue * BT.Damage
-			end
-		end
-		
-		if vehicle == true then damagevalue = damagevalue * inflictor:GetCreatorAttachmentValue("Ammunition" ,"VehicleDamageMul") end
-	end
-	
-	dmg:SetDamage(damagevalue)
-end)
-
 function DRC:GetHGMul(ent, hg, dinfo)
 	local infl = dinfo:GetInflictor()
+	if infl.DraconicProjectile == true then infl = infl:GetCreator() end
 	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
 	local BT = infl.ActiveAttachments.Ammunition.t.BulletTable
 	local DT = infl.ActiveAttachments.Ammunition.t.BulletTable.HitboxDamageMuls
@@ -1567,12 +1558,154 @@ function DRC_ParticleExplosion(pos, magnitude, dist)
 	end
 end
 
+function DRC:TraceDir(origin, dir, dist)
+	DRC_TraceDir(origin, dir, dist)
+end
+
 function DRC:ParticleExplosion(pos, magnitude, dist)
 	DRC_ParticleExplosion(pos, magnitude, dist)
 end
 
 function DRC:CallGesture(ply, slot, act, akill)
 	DRCCallGesture(ply, slot, act, akill)
+end
+
+function DRC:GetBones(ent)
+	local bt = {}
+	local count = ent:GetBoneCount()
+				
+	for i=0,count do
+		local name = tostring(ent:GetBoneName(i))
+		bt[name] = {}
+		bt[name].Pos = ent:GetBonePosition(i)
+		bt[name].Ang = ent:GetBonePosition(i)
+	end
+	return bt
+end
+
+function DRC:IsVehicle(ent)
+	if ent:IsVehicle() or ent:GetClass() == "gmod_sent_vehicle_fphysics_base" or ent:GetClass() == "npc_helicopter" or ent:GetClass() == "npc_combinegunship" or ent.LFS or ent.Base == "haloveh_base" or ent.Base == "ma2_mech" or ent.Base == "ma2_battlesuit" then return true else return false end
+end
+
+function DRC:IsCharacter(ent)
+	if ent:IsPlayer() == true or ent:IsNPC() == true or ent:IsNextBot() == true then return true else return false end
+end
+
+if SERVER then
+	function DRC:SetShieldInfo(ent, bool, tbl)
+		if !IsValid(ent) then return end
+		if bool == nil then bool = false end
+		
+		if bool == true then
+			ent.BloodEnum = tbl.Effects.BloodEnum
+			ent:SetNWInt("DRC_ShieldHealth", tbl.Health)
+			ent:SetNWInt("DRC_ShieldMaxHealth", tbl.Health)
+			ent:SetNWInt("DRC_ShieldRechargeDelay", tbl.RegenDelay)
+			ent:SetNWInt("DRC_ShieldRechargeAmount", tbl.RegenAmount)
+			ent:SetNWBool("DRC_Shielded", true)
+			ent:SetNWBool("DRC_Shield_AlwaysGlow", tbl.AlwaysVisible)
+			ent:SetNWBool("DRC_Shield_Recharges", tbl.Regenerating)
+			ent:SetNWBool("DRC_RechargeShield", false)
+			ent:SetNWBool("DRC_ShieldDown", false)
+			ent:SetNWString("DRC_Shield_ImpactSound", tbl.Sounds.Impact)
+			ent:SetNWString("DRC_Shield_DepleteSound", tbl.Sounds.Deplete)
+			ent:SetNWString("DRC_Shield_RechargeSound", tbl.Sounds.Recharge)
+			ent:SetNWString("DRC_Shield_ImpactEffect", tbl.Effects.Impact)
+			ent:SetNWString("DRC_Shield_DepleteEffect", tbl.Effects.Deplete)
+			ent:SetNWString("DRC_Shield_RechargeEffect", tbl.Effects.Recharge)
+			ent:SetNWString("DRC_Shield_Material", tbl.Material)
+			ent:SetNWInt("DRC_Shield_PingScale", tbl.ScaleMin)
+			ent:SetNWInt("DRC_Shield_PingScale_Min", tbl.ScaleMin)
+			ent:SetNWInt("DRC_Shield_PingScale_Max", tbl.ScaleMax)
+			
+			timer.Simple(engine.TickInterval(), function()
+				net.Start("DRC_MakeShieldEnt")
+				net.WriteEntity(ent)
+				net.Broadcast()
+			end)
+		else
+			ent:SetNWBool("DRC_Shielded", false)
+		end
+	end
+	
+	function DRC:ShieldEffects(ent, dinfo)
+		local hp, maxhp = DRC:GetShield(ent)
+			
+		if hp > 0 then
+			DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_ImpactSound"), nil, 1500)
+			local ed = EffectData()
+			ed:SetOrigin(dinfo:GetDamagePosition())
+			ed:SetStart(dinfo:GetDamagePosition())
+			ed:SetEntity(ent)
+			util.Effect(ent:GetNWString("DRC_Shield_ImpactEffect"), ed)
+		elseif hp < 1 && ent:GetNWBool("DRC_ShieldDown") == false then
+			DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_DepleteSound"), nil, 1500)
+			local ed = EffectData()
+			ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
+			ed:SetStart(ent:GetPos() + ent:OBBCenter())
+			ed:SetEntity(ent)
+			util.Effect(ent:GetNWString("DRC_Shield_DepleteEffect"), ed)
+		end
+	end
+	
+	function DRC:PingShield(ent, scale)
+		ent:SetNWInt("DRC_ShieldVisibility", 1)
+		timer.Simple(1, function()
+			for i=0,9 do
+				timer.Simple(i*0.1, function() ent:SetNWInt("DRC_ShieldVisibility", ent:GetNWInt("DRC_ShieldVisibility") - 0.1) end)
+			end
+		end)
+		
+		if scale == true then
+			ent:SetNWInt("DRC_Shield_PingScale", ent:GetNWInt("DRC_Shield_PingScale_Max"))
+			timer.Simple(0.5, function() ent:SetNWInt("DRC_Shield_PingScale", ent:GetNWInt("DRC_Shield_PingScale_Min")) end)
+		end
+	end
+	
+	function DRC:AddShield(ent, amount)
+		if !IsValid(ent) then return end
+		ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") + amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
+		DRC:PingShield(ent, false)
+	end
+	
+	function DRC:SubtractShield(ent, amount)
+		if !IsValid(ent) then return end
+		local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
+		if shieldhp <= 0 then ent:SetNWBool("DRC_ShieldDown", true) end
+		
+		ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
+		ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + ent:GetNWInt("DRC_ShieldRechargeDelay") - engine.TickInterval())
+		DRC:PingShield(ent, true)
+		timer.Simple(ent:GetNWInt("DRC_ShieldRechargeDelay"), function()
+			if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") then
+				ent:SetNWBool("DRC_ShieldDown", false)
+				DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_RechargeSound"), nil, 1500)
+				local ed = EffectData()
+				if !IsValid(ent) then return end
+				ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
+				ed:SetStart(ent:GetPos() + ent:OBBCenter())
+				ed:SetEntity(ent)
+				util.Effect(ent:GetNWString("DRC_Shield_RechargeEffect"), ed)
+			end
+		end)
+	end
+end
+
+function DRC:PopShield(ent)
+	ent:SetNWInt("DRC_ShieldHealth", 0)
+	ent:TakeDamage(0)
+end
+
+function DRC:GetShield(ent)
+	if CLIENT then
+	--	if IsValid(ent.ShieldEntity) && ent.ShieldEntity != nil then
+			local val, maxi, ent = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth"), ent.ShieldEntity
+			return val, maxi, ent
+	--	else return nil end
+	else
+		local val, maxi = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth")
+		return val, maxi
+	end
 end
 
 hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply, weapon )
@@ -1753,10 +1886,13 @@ hook.Add("PlayerGiveSWEP", "drc_GivePickupOnlyWeapon", function(ply, wpn, swep)
 end)
 
 hook.Add("OnEntityCreated", "drc_SetupWeaponColours", function(ent)
+	if !IsValid(ent) then return end
 	if !ent:IsWeapon() then return end
 	if ent:IsWeapon() && ent.Draconic != true then return end
 	
 	timer.Simple(0, function()
+		if !IsValid(ent) then return end
+		if !IsValid(ent:GetOwner()) then return end
 		local ply = ent:GetOwner()
 		
 		if ply:IsPlayer() then

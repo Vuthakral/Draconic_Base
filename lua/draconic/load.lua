@@ -1,40 +1,34 @@
 local CLDir = "draconic/cl"
 local SVDir = "draconic/sv"
+local SHDir = "draconic/sh"
 local DRCAddons = "draconic/addons"
 local DRCPlayermodels = "draconic/addons/playermodels"
 
-if SERVER then AddCSLuaFile("draconic/lib.lua") end
-include("draconic/lib.lua")
+DRC = {}
+
+function DRC:Load()
+	if SERVER then AddCSLuaFile("draconic/drc_lib.lua") end
+	include("draconic/drc_lib.lua")
+	MsgC(Color(0, 255, 0), "[Draconic Base] ", Color(255, 255, 255), "Loading Draconic library...\n")
+end
 
 function DRC:AddFile( File, directory )
 	local prefix = string.lower( string.Left( File, 3 ) )
 
-	if SERVER and directory == "draconic/sv/" then
+	if directory == "draconic/sh/" then
+		if SERVER then AddCSLuaFile( directory .. File ) end
 		include( directory .. File )
-		print( "[Draconic Base] Loading server script: " .. File )
+		MsgC(Color(0, 255, 0), "[Draconic Base] ", Color(255, 255, 255), "Registering & Loading shared script: ", Color(103, 169, 137), "".. tostring(File) .."\n")
+	elseif SERVER and directory == "draconic/sv/" then
+		include( directory .. File )
+		MsgC(Color(0, 255, 0), "[Draconic Base] ", Color(255, 255, 255), "Loading server script: ", Color(3, 169, 244), "".. tostring(File) .."\n")
 	elseif directory == "draconic/cl/" then
 		if SERVER then
 			AddCSLuaFile( directory .. File )
-			print( "[Draconic Base] Registering clientside script: " .. File )
+			MsgC(Color(0, 255, 0), "[Draconic Base] ", Color(255, 255, 255), "Registering clientside script: ", Color(222, 169, 9), "".. tostring(File) .."\n")
 		elseif CLIENT then
 			include( directory .. File )
-			print( "[Draconic Base] Loading clientside script: " .. File )
-		end
-	elseif directory == "draconic/addons/" then
-		if SERVER then
-			AddCSLuaFile( directory .. File )
-			print( "[Draconic Base] Registering addon's script: " .. File )
-		elseif CLIENT then
-			include( directory .. File )
-			print( "[Draconic Base] Loading addon's script: " .. File )
-		end
-	elseif directory == "draconic/addons/playermodels/" then
-		if SERVER then
-			AddCSLuaFile( directory .. File )
-			print( "[Draconic Base] Registering playermodel script: " .. File )
-		elseif CLIENT then
-			include( directory .. File )
-			print( "[Draconic Base] Loading playermodel script: " .. File )
+			MsgC(Color(0, 255, 0), "[Draconic Base] ", Color(255, 255, 255), "Loading clientside script: ", Color(222, 169, 9), "".. tostring(File) .."\n")
 		end
 	end
 end
@@ -62,6 +56,7 @@ if CLIENT then
 	if !file.Exists("draconic/avatars", "DATA") then file.CreateDir("draconic/avatars") end
 end
 
+DRC:Load()
 DRC:IncludeDir( CLDir )
 DRC:IncludeDir( SVDir )
 DRC:IncludeDir( DRCAddons )
@@ -78,8 +73,14 @@ if SERVER then
 		end
 		if terminate == true then return end
 		
+		if CLIENT then
+			DRC.CSPlayerModel:Remove()
+		end
+		
+		DRC:Load()
 		DRC:IncludeDir( CLDir )
 		DRC:IncludeDir( SVDir )
+		DRC:IncludeDir( SHDir )
 		DRC:IncludeDir( DRCAddons )
 		DRC:IncludeDir( DRCPlayermodels )
 		
@@ -91,3 +92,9 @@ if SERVER then
 		end
 	end)
 end
+
+concommand.Add("drc_debug_dropweapon", function(ply)
+	if IsValid(ply) && GetConVarNumber("sv_drc_allowdebug") == 1 then
+		ply:DropWeapon()
+	end
+end)

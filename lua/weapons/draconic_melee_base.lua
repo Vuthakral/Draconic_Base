@@ -13,17 +13,13 @@ SWEP.HoldType			= "melee" -- https://wiki.garrysmod.com/page/Hold_Types
 SWEP.HoldTypeCrouch		= "melee" -- https://wiki.garrysmod.com/page/Hold_Types
 SWEP.Category			= "Draconic"
 SWEP.PrintName			= "Draconic Melee Base"
-SWEP.Auhtor				= "Vuthakral"
-SWEP.Contact			= " https://discord.gg/6Y7WXrX // Steam: Vuthakral // Disc: Vuthakral#9761 "
-SWEP.Purpose			= "SWEP Base"
-SWEP.Instructions		= "open rectum & insert"
 
 SWEP.Spawnable			= false
 SWEP.AdminSpawnable		= false
 
 SWEP.Slot				= 0
 SWEP.SlotPos			= 0
-SWEP.DrawAmmo		= false
+SWEP.DrawAmmo			= false
 
 SWEP.PassivePos = Vector(0, -25, -25)
 SWEP.PassiveAng = Vector(0, 0, 0)
@@ -73,6 +69,8 @@ SWEP.Primary.LungeImpactDecal 	= ""
 SWEP.Primary.LungeBurnDecal 	= ""
 SWEP.Primary.LungeHitAct		= nil
 SWEP.Primary.LungeMissAct		= ACT_VM_PRIMARYATTACK
+SWEP.Primary.LungeHitActCrouch	= nil
+SWEP.Primary.LungeMissActCrouch	= ACT_VM_PRIMARYATTACK
 SWEP.Primary.LungeDelayMiss		= 1.3
 SWEP.Primary.LungeDelayHit		= 0.7
 SWEP.Primary.LungeHitDelay		= 0.26
@@ -85,9 +83,6 @@ SWEP.Primary.LungeStartY			= -3
 SWEP.Primary.LungeEndX			= -7
 SWEP.Primary.LungeEndY			= 3
 SWEP.Primary.LungeShakeMul		= 1
-
-SWEP.Primary.Ammo = nil
-SWEP.Secondary.Ammo = nil
 
 SWEP.Secondary.SwingSound 	 = Sound( "" )
 SWEP.Secondary.HitSoundWorld = Sound( "" )
@@ -336,7 +331,9 @@ function SWEP:DoPrimaryLunge()
 	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
 	
 	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
+	ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.HitDelay) * self.Primary.ShakeMul, -y1m * (5 + self.Primary.HitDelay) * self.Primary.ShakeMul, 0))
 	timer.Simple(self.Primary.LungeHitDelay, function()
+		if !IsValid(self) then return end
 		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
 	end)
 
@@ -351,12 +348,13 @@ function SWEP:DoPrimaryLunge()
 	end
 
 	local anim = self:SelectWeightedSequence( self.Primary.LungeMissAct )
+	if cv == true then anim = self:SelectWeightedSequence( self.Primary.LungeMissActCrouch ) end
 	local animdur = self:SequenceDuration( anim )
 	self.IsDoingMelee = true
-	timer.Simple(animdur, function() self.IsDoingMelee = false end)
+	timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
 	
 	self:EmitSound(Sound(self.Primary.LungeSwingSound))
-	self.Weapon:SendWeaponAnim( self.Primary.LungeMissAct )
+	self.Weapon:SendWeaponAnim( self:GetSequenceActivity(anim) )
 	self:SetNextPrimaryFire( CurTime() + self.Primary.LungeDelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 	
@@ -402,6 +400,7 @@ function SWEP:DoPrimaryAttack()
 	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
 	
 	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
+	ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.HitDelay) * self.Primary.ShakeMul, -y1m * (5 + self.Primary.HitDelay) * self.Primary.ShakeMul, 0))
 	timer.Simple(self.Primary.HitDelay, function()
 		if not self:GetOwner():IsValid() then return end
 		if not self:IsValid() then return end
@@ -411,12 +410,13 @@ function SWEP:DoPrimaryAttack()
 --	ply:ChatPrint("".. x1m .." | ".. x2m .." | " .. y1m .. " | ".. y2m .. "")
 
 	local anim = self:SelectWeightedSequence( self.Primary.MissActivity )
+	if cv == true then anim = self:SelectWeightedSequence( self.Primary.CrouchMissActivity ) end
 	local animdur = self:SequenceDuration( anim )
 	self.IsDoingMelee = true
-	timer.Simple(animdur, function() self.IsDoingMelee = false end)
+	timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
 	
 	self:EmitSound(Sound(self.Primary.SwingSound))
-	self.Weapon:SendWeaponAnim( self.Primary.MissActivity )
+	self.Weapon:SendWeaponAnim( self:GetSequenceActivity(anim) )
 	self:SetNextPrimaryFire( CurTime() + self.Primary.DelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 
@@ -500,10 +500,11 @@ function SWEP:DoSecondaryAttack()
 	local y1m = math.Rand(y1 * 0.9, y1 * 1.1)
 	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
 	
-	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
+	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Secondary.ShakeMul)
+	ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Secondary.HitDelay) * self.Secondary.ShakeMul, -y1m * (5 + self.Secondary.HitDelay) * self.Primary.ShakeMul, 0))
 	timer.Simple(self.Secondary.HitDelay, function()
 		if !IsValid(self) then return end
-		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
+		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Secondary.ShakeMul)
 	end)
 	
 --	ply:ChatPrint("".. x1m .." | ".. x2m .." | " .. y1m .. " | ".. y2m .. "")
@@ -519,12 +520,13 @@ function SWEP:DoSecondaryAttack()
 	end
 
 	local anim = self:SelectWeightedSequence( self.Secondary.MissActivity )
+	if cv == true then anim = self:SelectWeightedSequence( self.Secondary.CrouchMissActivity ) end
 	local animdur = self:SequenceDuration( anim )
 	self.IsDoingMelee = true
-	timer.Simple(animdur, function() self.IsDoingMelee = false end)
+	timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
 	
 	self:EmitSound(Sound(self.Secondary.SwingSound))
-	self.Weapon:SendWeaponAnim( self.Secondary.MissActivity )
+	self.Weapon:SendWeaponAnim( self:GetSequenceActivity(anim) )
 	self:SetNextSecondaryFire( CurTime() + self.Secondary.DelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 

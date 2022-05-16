@@ -19,11 +19,7 @@ if CLIENT then
 			DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, GetSF2LightLevel(0.05), GetSF2LightLevel(0.05))
 			DRC.WeathermodScalar = Vector(DRC.WeathermodScalar, DRC.WeathermodScalar, DRC.WeathermodScalar)
 		elseif SW then
-			if IsValid(DRC:GetSWLightMod()) then
-				DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, DRC:GetSWLightMod(), DRC:GetSWLightMod())
-			else
-				DRC.WeathermodScalar = Vector(1,1,1)
-			end
+			DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, DRC:GetSWLightMod(), DRC:GetSWLightMod())
 		else
 			DRC.WeathermodScalar = Vector(1,1,1)
 		end
@@ -118,6 +114,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		
 		if self.TintVector == nil then self.TintVector = Vector(1, 1, 1) end
 		if self.PowerFloat == nil then self.PowerFloat = 1 end
@@ -147,6 +144,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local col = owner:GetPlayerColor()
@@ -185,6 +183,7 @@ matproxy.Add( {
 
 local function FuckMeIWasDumb_PlayerColours(self, mat, ent)
 	if ( !IsValid( ent )) then return end
+	if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		
 		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then
@@ -284,6 +283,12 @@ matproxy.Add( {
 			mat:SetVector( self.ResultTo, col + col * mul )
 		return end
 		
+		if ent:GetClass() == "drc_shieldmodel" then
+			local col = ent:GetOwner():GetNWVector("EnergyTintVec")
+			if col == Vector(0, 0, 0) then col = Vector(0.3, 0.7, 1) end
+			mat:SetVector(self.ResultTo, col)
+		return end
+		
 		if ent.Preview == true then
 			col = LocalPlayer():GetNWVector("EnergyTintVec")
 			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
@@ -375,6 +380,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
@@ -411,6 +417,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
@@ -439,6 +446,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
@@ -472,6 +480,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
@@ -511,6 +520,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local ang = owner:EyeAngles()
@@ -534,6 +544,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if ent.Preview == true then
@@ -573,6 +584,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
@@ -602,6 +614,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
@@ -635,6 +648,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		
@@ -774,6 +788,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		
@@ -886,6 +901,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		
 		if #drc_cubesamples != 0 then
 			self.TintVector = mat:GetVector("$cubemaptint")
@@ -1067,6 +1083,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		
 		if #drc_cubesamples != 0 then
 			self.TintVector = mat:GetVector("$cubemaptint")
@@ -1249,7 +1266,8 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-
+		if !IsValid(LocalPlayer()) then return end
+		
 		if #drc_cubesamples != 0 then
 			self.TintVector = mat:GetVector("$cubemaptint")
 			self.PowerFloat = mat:GetFloat("$cubemappower")
@@ -1431,7 +1449,8 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-
+		if !IsValid(LocalPlayer()) then return end
+		
 		if #drc_cubesamples != 0 then
 			self.TintVector = mat:GetVector("$cubemaptint")
 			self.PowerFloat = mat:GetFloat("$cubemappower")
@@ -1614,6 +1633,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		
 		if #drc_cubesamples != 0 then
 			self.TintVector = mat:GetVector("$cubemaptint")
@@ -1789,6 +1809,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -1834,6 +1855,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -1884,6 +1906,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -1926,6 +1949,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
@@ -1980,6 +2004,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		
@@ -2043,6 +2068,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -2138,12 +2164,14 @@ matproxy.Add( {
 			mat:SetFloat("$cloakfactor", 1)
 		return end
 		
-		local display_generic = plyent:GetInfoNum("cl_drc_showspray", 0)
-		local display_weapons = plyent:GetInfoNum("cl_drc_showspray_weapons", 0)
-		local display_vehicles = plyent:GetInfoNum("cl_drc_showspray_vehicles", 0)
-		local display_player = plyent:GetInfoNum("cl_drc_showspray_player", 0)
+		local display_generic = plyent:GetNWBool("ShowSpray_Ents")
+		local display_weapons = plyent:GetNWBool("ShowSpray_Weapons")
+		local display_vehicles = plyent:GetNWBool("ShowSpray_Vehicles")
+		local display_player = plyent:GetNWBool("ShowSpray_Player")
 		
 		if ent.LFS == true then
+			if !IsValid(ent:GetDriverSeat()) then return end
+			if !IsValid(ent:GetDriverSeat():GetDriver()) then return end
 			ent.frames = ent:GetDriverSeat():GetDriver().DRCSprayFrames
 			if IsValid(ent:GetDriverSeat():GetDriver()) then
 				ent.DRCSprayFrames = ent.frames
@@ -2239,6 +2267,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
 		
 		if ent:Health() <= 0 then mat:SetInt("$frame", self.FrameNum - 1) return end
 		
@@ -2266,5 +2295,75 @@ matproxy.Add( {
 		end
 		
 		mat:SetInt("$frame", ent.DRCBlinkFrame)
+	end
+} )
+
+matproxy.Add( {
+	name = "drc_ScollPitch",
+	init = function( self, mat, values )
+		self.ResultTo = values.resultvar
+		self.LerpPower = mat:GetFloat("$pitch_ls")
+	end,
+
+	bind = function( self, mat, ent )
+		if !IsValid(ent) then ent = LocalPlayer() end
+		if ent:IsWeapon() && ent:GetOwner():EntIndex() != 0 then ent = ent:GetOwner() end
+		
+		if !self.LerpPower then self.LerpPower = 1 end
+		
+		local ea = ent:EyeAngles()
+		local pitch = ea.x
+		
+		self.drc_scrollpitchlerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_scrollpitchlerp or ea.x, ea.x)
+
+		mat:SetVector( self.ResultTo, Vector(0, self.drc_scrollpitchlerp/3.33333333) )
+	end
+} )
+
+matproxy.Add( {
+	name = "drc_ShieldFade",
+	init = function( self, mat, values )
+		self.ResultTo = values.resultvar
+	end,
+
+	bind = function( self, mat, ent )
+		if !IsValid(ent) then return end
+		if !IsValid(LocalPlayer()) then return end
+		
+		local ohp, mohp = nil, nil
+		if ent:GetClass() == "drc_dummy" then ohp, mohp, ent = DRC:GetShield(LocalPlayer()) end
+		
+		local parent = ent:GetOwner()
+		local hp, mhp, ent = DRC:GetShield(parent)
+		local vis = parent:GetNWInt("DRC_ShieldVisibility")
+		local glow = parent:GetNWInt("DRC_Shield_AlwaysGlow")
+		if hp < 0.01 then vis = 0 end
+		if glow == false then
+			ent.DRCShieldVis = Lerp(RealFrameTime() * 10, ent.DRCShieldVis or vis, vis)
+		else
+			if hp < 0.01 then ent.DRCShieldVis = 0 else ent.DRCShieldVis = 1 end
+		end
+		
+		if game.SinglePlayer() then
+			if GetConVar("cl_drc_debugmode"):GetFloat() != 0 && GetConVar("cl_drc_debug_alwaysshowshields"):GetFloat() == 1 then
+				ent.RenderOverride = function()
+					render.SetBlend(0)
+					mat:SetFloat("$emissiveBlendStrength", 1)
+					ent:DrawModel()
+				end
+			else
+				ent.RenderOverride = function()
+					render.SetBlend(0)
+					mat:SetFloat("$emissiveBlendStrength", ent.DRCShieldVis)
+					ent:DrawModel()
+				end
+			end
+		else
+			ent.RenderOverride = function()
+				render.SetBlend(0)
+				mat:SetFloat("$emissiveBlendStrength", ent.DRCShieldVis)
+				ent:DrawModel()
+			end
+		end
 	end
 } )

@@ -100,6 +100,20 @@ net.Receive("DRCNetworkGesture", function(len, ply)
 	local akill = tbl.Autokill
 
 	DRCPlayGesture(plyr, slot, act, akill)
+	
+	if plyr:IsPlayer() then
+		if IsValid(DRC.CSPlayerModel) then -- TODO: Find a way to make this actually work
+		--	local seq = DRC.CSPlayerModel:SelectWeightedSequence(act)
+		--	local thyme = DRC.CSPlayerModel:SequenceDuration(seq)
+		--	DRC.CSPlayerModel.Turning = true
+		--	DRC.CSPlayerModel:ResetSequence(DRC.CSPlayerModel:GetSequenceName(seq))
+		--	DRC.CSPlayerModel:ResetSequenceInfo(DRC.CSPlayerModel:GetSequenceName(seq))
+		--	DRC.CSPlayerModel:SetSequence(DRC.CSPlayerModel:GetSequenceName(seq))
+		--	timer.Simple(thyme, function()
+		--		DRC.CSPlayerModel.Turning = false
+		--	end)
+		end
+	end
 end)
 
 net.Receive("DRCSound", function(len, ply)
@@ -131,5 +145,12 @@ net.Receive("DRCSound", function(len, ply)
 	else
 	--	source:EmitSound(near, nil, nil, nil, nil, nil, 1)
 		source:EmitSound(far, nil, nil, nil, nil, nil, 1)
+	end
+end)
+
+net.Receive("DRC_WeaponDropped", function()
+	local weapon = net.ReadEntity()
+	if IsValid(weapon) then
+		weapon:DoCustomDrop()
 	end
 end)

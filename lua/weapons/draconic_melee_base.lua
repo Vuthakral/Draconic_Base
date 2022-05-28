@@ -354,7 +354,7 @@ function SWEP:DoPrimaryLunge()
 	timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
 	
 	self:EmitSound(Sound(self.Primary.LungeSwingSound))
-	self.Weapon:SendWeaponAnim( self:GetSequenceActivity(anim) )
+	if anim != -1 then self:SendWeaponAnim( self:GetSequenceActivity(anim) ) end
 	self:SetNextPrimaryFire( CurTime() + self.Primary.LungeDelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 	
@@ -416,7 +416,7 @@ function SWEP:DoPrimaryAttack()
 	timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
 	
 	self:EmitSound(Sound(self.Primary.SwingSound))
-	self.Weapon:SendWeaponAnim( self:GetSequenceActivity(anim) )
+	if anim != -1 then self:SendWeaponAnim( self:GetSequenceActivity(anim) ) end
 	self:SetNextPrimaryFire( CurTime() + self.Primary.DelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 
@@ -526,7 +526,7 @@ function SWEP:DoSecondaryAttack()
 	timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
 	
 	self:EmitSound(Sound(self.Secondary.SwingSound))
-	self.Weapon:SendWeaponAnim( self:GetSequenceActivity(anim) )
+	if anim != -1 then self:SendWeaponAnim( self:GetSequenceActivity(anim) ) end
 	self:SetNextSecondaryFire( CurTime() + self.Secondary.DelayMiss )
 	self.IdleTimer = CurTime() + vm:SequenceDuration()
 
@@ -642,7 +642,7 @@ function SWEP:TogglePassive()
 	else
 		self.Loading = true
 		self.Idle = 0
-	--	self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
+	--	self:SendWeaponAnim( ACT_VM_DRAW )
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
 		self.Weapon:SetNWBool("Passive", false)

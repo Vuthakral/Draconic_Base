@@ -343,6 +343,7 @@ function DRC:EmitSound(source, near, far, distance, hint, listener)
 	if !IsValid(source) then return end
 	if near == nil && far == nil then return end
 	if far == nil && near != nil then source:EmitSound(near) return end
+	
 	source:EmitSound(near)
 
 	if CLIENT then return end
@@ -1625,6 +1626,8 @@ if SERVER then
 			end)
 		else
 			ent:SetNWBool("DRC_Shielded", false)
+			ent:SetNWInt("DRC_ShieldHealth", 0)
+			ent:SetNWInt("DRC_ShieldMaxHealth", 0)
 		end
 	end
 	

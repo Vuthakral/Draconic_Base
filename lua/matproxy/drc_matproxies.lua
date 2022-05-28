@@ -519,7 +519,15 @@ matproxy.Add( {
 	end,
 
 	bind = function( self, mat, ent )
-		if ( !IsValid( ent )) then return end
+		if ( !IsValid( ent )) then
+			local ang = LocalPlayer():EyeAngles()
+			if self.SnapDegree == nil then self.SnapDegree = 0.01 end
+			local antistupidity = math.Clamp(self.SnapDegree, 0.01, 360)
+			
+			local angmath = ang:SnapTo("y", antistupidity)
+
+			mat:SetVector( self.ResultTo, Vector(-angmath.y, 0, 0) )
+		return end
 		if !IsValid(LocalPlayer()) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end

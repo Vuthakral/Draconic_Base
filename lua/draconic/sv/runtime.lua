@@ -12,6 +12,7 @@ util.AddNetworkString("DRC_MakeShieldEnt")
 util.AddNetworkString("DRC_WeaponDropped")
 util.AddNetworkString("DRC_ApplyPlayermodel")
 util.AddNetworkString("DRC_UpdatePlayermodel")
+util.AddNetworkString("DRCSWEP_ClientHitReport")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -205,5 +206,5 @@ end)
 local updateentstime = 0
 local drcgroundents = {}
 hook.Add("PhysicsCollide", "DRC_WeaponGroundImpact", function(data, coll)
-	print(coll)
+--	print(coll)
 end)

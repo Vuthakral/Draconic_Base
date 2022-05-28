@@ -347,7 +347,6 @@ function DRC:EmitSound(source, near, far, distance, hint, listener)
 	source:EmitSound(near)
 
 	if CLIENT then return end
-	
 	local nt = {}
 	nt.Src = source
 	nt.Near = near

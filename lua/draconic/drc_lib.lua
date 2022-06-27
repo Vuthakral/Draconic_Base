@@ -1783,9 +1783,9 @@ function DRC:GetVoiceSet(ent)
 end
 
 function DRC:IsVSentenceValid(vs, call, subcall)
-	if !vs then return end
+	if !vs or vs == nil then return end
 	local voice = DRC.VoiceSets[vs]
-	if !subcall then
+	if !subcall or subcall == nil then
 		if voice[call] != nil then return true end
 	elseif subcall then
 		if voice[call] then

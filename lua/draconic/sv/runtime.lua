@@ -13,6 +13,8 @@ util.AddNetworkString("DRC_WeaponDropped")
 util.AddNetworkString("DRC_ApplyPlayermodel")
 util.AddNetworkString("DRC_UpdatePlayermodel")
 util.AddNetworkString("DRCSWEP_ClientHitReport")
+util.AddNetworkString("DRCVoiceSet_CL")
+util.AddNetworkString("DRC_UpdatePlayerHands")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -144,12 +146,17 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 		end
 		
 		if vehicle == true then damagevalue = damagevalue * inflictor:GetAttachmentValue("Ammunition", "VehicleDamageMul") end
-	elseif inflictor.BProfile == true then
+	elseif inflictor.BProfile == true or inflictor.OverrideBProfile != nil then
 		if !inflictor:GetCreator().ActiveAttachments then return end
 		BT = inflictor:GetCreator().ActiveAttachments.Ammunition.t.BulletTable
 		DT = inflictor:GetCreator().ActiveAttachments.Ammunition.t.BulletTable.MaterialDamageMuls
 		BaseBT = BaseProfile.t.BulletTable
 		BaseDT = BaseBT.MaterialDamageMuls
+		
+		if inflictor.OverrideBProfile != nil then
+			BT = scripted_ents.GetStored(inflictor.OverrideBProfile).t.BulletTable
+			DT = scripted_ents.GetStored(inflictor.OverrideBProfile).t.BulletTable.MaterialDamageMuls
+		end
 		
 		if DT == nil or DT[mat] == nil then
 			if BaseDT[mat] == nil && mat != "MAT_" then
@@ -205,6 +212,41 @@ end)
 
 local updateentstime = 0
 local drcgroundents = {}
-hook.Add("PhysicsCollide", "DRC_WeaponGroundImpact", function(data, coll)
---	print(coll)
+
+hook.Add("PlayerDeath", "VoiceSets_Death", function(vic, infl, att)
+	DRC:SpeakSentence(vic, "Pain", "Death")
+end)
+
+hook.Add("PlayerSpawn", "VoiceSets_Spawn", function(vic, infl, att)
+	local vs = DRC:GetVoiceSet(vic)
+	if vs == nil then return end
+	DRC:SpeakSentence(vic, "Respawn")
+end)
+
+
+hook.Add("PostEntityTakeDamage", "VoiceSets_Damage", function(ent, dmg, took)
+	if took == true && DRC:GetVoiceSet(ent) != nil then DRC:DamageSentence(ent, dmg:GetDamage()) end
+end)
+
+hook.Add("PlayerStartTaunt", "VoiceSets_Taunts", function(ply, act, length)
+	if act == ACT_GMOD_TAUNT_CHEER then DRC:SpeakSentence(ply, "Taunts", "Cheer") end
+	if act == ACT_GMOD_TAUNT_LAUGH then DRC:SpeakSentence(ply, "Taunts", "Laugh") end
+	if act == ACT_GMOD_TAUNT_SALUTE then DRC:SpeakSentence(ply, "Taunts", "Salute") end
+	if act == ACT_GMOD_TAUNT_ZOMBIE then DRC:SpeakSentence(ply, "Taunts", "Zombie") end
+	if act == ACT_GMOD_TAUNT_PERSISTENCE then DRC:SpeakSentence(ply, "Taunts", "Pers") end
+	if act == ACT_GMOD_TAUNT_MUSCLE then DRC:SpeakSentence(ply, "Taunts", "Muscle") end
+	if act == ACT_GMOD_TAUNT_DANCE then DRC:SpeakSentence(ply, "Taunts", "Dance") end
+	if act == ACT_GMOD_TAUNT_ROBOT then DRC:SpeakSentence(ply, "Taunts", "Robot") end
+end)
+
+net.Receive("DRCVoiceSet_CL", function()
+	local tbl = net.ReadTable()
+	local value = tbl[2]
+	local ent = tbl[1]
+	
+	if value == "+use" then
+		DRC:VoiceSpot(ent)
+	else
+		DRC:SpeakSentence(ent, tostring(DRC.VoiceSetDefs[value]), nil, false)
+	end
 end)

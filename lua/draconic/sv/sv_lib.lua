@@ -62,6 +62,8 @@ net.Receive("DRC_ApplyPlayermodel", function()
 	local bgs = tbl.bodygroups
 	local colours = tbl.colours
 	local model = tbl.model
+	local vs = tbl.voiceset
+	local hands = tbl.hands
 	
 	if !util.IsValidModel(model) then return end
 	local pname = player_manager.TranslateToPlayerModelName(model)
@@ -72,6 +74,7 @@ net.Receive("DRC_ApplyPlayermodel", function()
 	ent:SetBodyGroups(bgs)
 	ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model)
 	DRC:RefreshColours(ent)
+	ent:SetNWString("DRCVoiceSet", vs)
 	
 	net.Start("DRC_UpdatePlayermodel")
 	net.WriteTable(tbl)

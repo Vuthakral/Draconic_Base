@@ -4,8 +4,6 @@ local SHDir = "draconic/sh"
 local DRCAddons = "draconic/addons"
 local DRCPlayermodels = "draconic/addons/playermodels"
 
-DRC = {}
-
 function DRC:Load()
 	if SERVER then AddCSLuaFile("draconic/drc_lib.lua") end
 	include("draconic/drc_lib.lua")

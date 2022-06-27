@@ -74,47 +74,23 @@ if GetConVar("sv_drc_playerrep_tweakonly") == nil then
 end
 
 if CLIENT then
-	if GetConVar("cl_drc_debugmode") == nil then
-		DRC.Convars_CL.Debug = CreateConVar("cl_drc_debugmode", 0, {FCVAR_USERINFO}, "Enables / Disables debug mode of the Draconic Base. (Requires sv_drc_allowdebug.)", 0, 2)
-	end
-
-	if GetConVar("cl_drc_debug_invertnearfar") == nil then
-		DRC.Convars_CL.Debug_InvertSounds = CreateConVar("cl_drc_debug_invertnearfar", 0, {FCVAR_USERINFO}, "Inverts the near/far sound effect code.", 0, 1)
-	end
-
-	if GetConVar("cl_drc_debug_vmattachments") == nil then
-		DRC.Convars_CL.Debug_VMAttachments = CreateConVar("cl_drc_debug_vmattachments", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the viewmodel attachment visualizations.", 0, 1)
-	end
-
-	if GetConVar("cl_drc_debug_legacyassistant") == nil then
-		DRC.Convars_CL.Debug_Legacy = CreateConVar("cl_drc_debug_legacyassistant", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the old legacy debug window 'DSB Debug Assisstant'.", 0, 1)
-	end
-
-	if GetConVar("cl_drc_debug_crosshairmode") == nil then
-		DRC.Convars_CL.Debug_Crosshair = CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3)
-	end
-
-	if GetConVar("cl_drc_lowered_crosshair") == nil then
-		DRC.Convars_CL.EnableLowCrosshair = CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	
-	end
-
-	if GetConVar("cl_drc_experimental_fp") == nil then
-		DRC.Convars_CL.EnableEFP = CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1)	
-	end
-	
-	if GetConVar("cl_drc_thirdperson") == nil then
-		DRC.Convars_CL.EnableTP = CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.)", 0, 1)	
-	end
-	
-	if GetConVar("cl_drc_thirdperson_flipside") == nil then
-		DRC.Convars_CL.TP_FlipShoulder = CreateConVar("cl_drc_thirdperson_flipside", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Flip the thirdperson side the view is on.)", 0, 1)	
-	end
-	
+	if GetConVar("cl_playerhands") == nil then CreateConVar("cl_playerhands", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
+	if GetConVar("cl_playerhands_bodygroups") == nil then CreateConVar("cl_playerhands_bodygroups", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
+	if GetConVar("cl_playerhands_skin") == nil then CreateConVar("cl_playerhands_skin", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
+	if GetConVar("cl_drc_debugmode") == nil then CreateConVar("cl_drc_debugmode", 0, {FCVAR_USERINFO}, "Enables / Disables debug mode of the Draconic Base. (Requires sv_drc_allowdebug.)", 0, 2) end
+	if GetConVar("cl_drc_debug_invertnearfar") == nil then CreateConVar("cl_drc_debug_invertnearfar", 0, {FCVAR_USERINFO}, "Inverts the near/far sound effect code.", 0, 1) end
+	if GetConVar("cl_drc_debug_vmattachments") == nil then CreateConVar("cl_drc_debug_vmattachments", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the viewmodel attachment visualizations.", 0, 1) end
+	if GetConVar("cl_drc_debug_legacyassistant") == nil then CreateConVar("cl_drc_debug_legacyassistant", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the old legacy debug window 'DSB Debug Assisstant'.", 0, 1) end
+	if GetConVar("cl_drc_debug_crosshairmode") == nil then DRC.Convars_CL.Debug_Crosshair = CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3) end
+	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
+	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
+	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.)", 0, 1) end
+	if GetConVar("cl_drc_thirdperson_flipside") == nil then CreateConVar("cl_drc_thirdperson_flipside", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Flip the thirdperson side the view is on.)", 0, 1)	end
 	DRC.Convars_CL.ForceEFP = false
 
-	if GetConVar("cl_drc_sway") == nil then
-		DRC.Convars_CL.VMSway = CreateConVar("cl_drc_sway", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable predictive-aim weapon swaying", 0, 1)
-	end
+	if GetConVar("cl_drc_sway") == nil then CreateConVar("cl_drc_sway", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable predictive-aim weapon swaying", 0, 1)end
+	if GetConVar("cl_drc_voiceset") == nil then CreateConVar("cl_drc_voiceset", "none", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)") end
+	if GetConVar("cl_drc_voicepitch") == nil then CreateConVar("cl_drc_voicepitch", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)", 0.9, 1.1) end
 
 	if GetConVar("drc_colour_r_player") == nil then
 		CreateConVar("drc_colour_r_player", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE})
@@ -137,19 +113,8 @@ if CLIENT then
 		CreateConVar("drc_colour_b_acc2", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE})
 	end
 
-	if GetConVar("cl_drc_showspray") == nil then
-		CreateConVar("cl_drc_showspray", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on content that supports it.", 0, 1)	
-	end
-
-	if GetConVar("cl_drc_showspray_weapons") == nil then
-		CreateConVar("cl_drc_showspray_weapons", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on weapons that support it.", 0, 1)	
-	end
-
-	if GetConVar("cl_drc_showspray_vehicles") == nil then
-		CreateConVar("cl_drc_showspray_vehicles", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on vehicles that support it.", 0, 1)	
-	end
-
-	if GetConVar("cl_drc_showspray_player") == nil then
-		CreateConVar("cl_drc_showspray_player", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on your player if the model support it.", 0, 1)	
-	end
+	if GetConVar("cl_drc_showspray") == nil then CreateConVar("cl_drc_showspray", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on content that supports it.", 0, 1) end
+	if GetConVar("cl_drc_showspray_weapons") == nil then CreateConVar("cl_drc_showspray_weapons", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on weapons that support it.", 0, 1) end
+	if GetConVar("cl_drc_showspray_vehicles") == nil then CreateConVar("cl_drc_showspray_vehicles", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on vehicles that support it.", 0, 1)	end
+	if GetConVar("cl_drc_showspray_player") == nil then CreateConVar("cl_drc_showspray_player", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on your player if the model support it.", 0, 1) end
 end

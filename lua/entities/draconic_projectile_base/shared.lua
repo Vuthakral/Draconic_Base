@@ -119,6 +119,8 @@ ENT.TimerFrequency	= 1
 
 ENT.GravitySpherePower	= 0
 
+ENT.OverrideBProfile = nil
+
 -- DO NOT TOUCH ZONE
 ENT.ENear	= nil
 ENT.EFar	= nil

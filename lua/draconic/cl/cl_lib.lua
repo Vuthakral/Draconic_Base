@@ -75,6 +75,18 @@ function DRC:GetCustomizationAllowed()
 	if tweakGMs[gamemode] then return nil end
 end
 
+net.Receive("DRC_UpdatePlayerHands", function()
+	local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
+	local pmname = player_manager.TranslateToPlayerModelName(handval)
+	if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then 
+		pmname = player_manager.TranslateToPlayerModelName(LocalPlayer():GetModel())
+	end
+	local handstable = player_manager.TranslatePlayerHands(pmname)
+	handstable.skin = LocalPlayer():GetInfo("cl_playerhands_skin")
+	handstable.bodygroups = LocalPlayer():GetInfo("cl_playerhands_bodygroups")
+	DRC:ChangeCHandModel(handstable)
+end)
+
 net.Receive("DRC_UpdatePlayermodel", function()
 	local tbl = net.ReadTable()
 	

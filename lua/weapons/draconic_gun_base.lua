@@ -351,6 +351,7 @@ function SWEP:PrimaryAttack()
 					self.Loading = true
 					ply:SetFOV(0, self.Secondary.ScopeZoomTime)
 					timer.Simple( firetime, function()
+						if !IsValid(self) then return end
 						self:LoadNextShot()
 					end)
 				elseif self.LoadAfterShot == true && self.LoadAfterReloadEmpty == false && (self.Weapon:Clip1() <=0) then

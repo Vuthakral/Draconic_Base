@@ -224,20 +224,42 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 		DRC.CSPlayerModel = ents.CreateClientside("drc_csplayermodel")
 		DRC.CSPlayerModel:SetModel(LocalPlayer():GetModel())
 		DRC.CSPlayerModel:SetParent(LocalPlayer())
-		
-		
 		DRC.CSPlayerModel.Skel = DRC:GetBones(DRC.CSPlayerModel)
 	end
-
-	DRC.CSPlayerModel:SetMaterial("")
-	DRC.CSPlayerModel:SetNoDraw(false)
-	DRC.CSPlayerModel:SetModelScale(LocalPlayer():GetModelScale())
-	DRC.CSPlayerModel:SetPos(CSPos)
-	DRC.CSPlayerModel:SetAngles(ply:GetRenderAngles())
-	if DRC.CSPlayerModel.Turning != true then DRC.CSPlayerModel:SetSequence(ply:GetSequence()) end
-	DRC.CSPlayerModel:SetCycle(ply:GetCycle())
 	
-	CopyPoseParams(ply, DRC.CSPlayerModel)
+	if !IsValid(DRC.CSShadowModel) then
+		DRC.CSShadowModel = ents.CreateClientside("drc_csshadowmodel")
+		DRC.CSShadowModel:SetModel(LocalPlayer():GetModel())
+		DRC.CSShadowModel:SetParent(LocalPlayer())
+		DRC.CSShadowModel.Skel = DRC:GetBones(DRC.CSShadowModel)
+		
+	end
+	
+	if !IsValid(DRC.CSWeaponShadow) then
+		DRC.CSWeaponShadow = ents.CreateClientside("drc_csweaponshadow")
+		DRC.CSWeaponShadow:SetModel(LocalPlayer():GetModel())
+		DRC.CSWeaponShadow:SetParent(DRC.CSShadowModel)
+		DRC.CSWeaponShadow:AddEffects(EF_BONEMERGE)
+	end
+	
+	local parents = {DRC.CSPlayerModel, DRC.CSShadowModel}
+	
+	for k,ent in pairs(parents) do
+	--	ent:SetMaterial("")
+		ent:SetNoDraw(false)
+		ent:SetModelScale(LocalPlayer():GetModelScale())
+		ent:SetPos(CSPos)
+		ent:SetAngles(ply:GetRenderAngles())
+		if ent.Turning != true then ent:SetSequence(ply:GetSequence()) end
+		ent:SetCycle(ply:GetCycle())
+		
+		for k,val in pairs(ply:GetBodyGroups()) do
+			ent:SetBodygroup(val.id, ply:GetBodygroup(val.id))
+		end
+		
+		CopyPoseParams(ply, ent)
+	end
+	
 	
 	local leftarm = ply:LookupBone(DRC.Skel.LeftArm.Name)
 	local rightarm = ply:LookupBone(DRC.Skel.RightArm.Name)
@@ -260,9 +282,5 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	else
 		DRC.CSPlayerModel:ManipulateBonePosition(leftarm, DRC.Skel.LeftArm.Offset)
 		DRC.CSPlayerModel:ManipulateBonePosition(rightarm, DRC.Skel.RightArm.Offset)
-	end
-	
-	for k,v in pairs(ply:GetBodyGroups()) do
-		DRC.CSPlayerModel:SetBodygroup(v.id, ply:GetBodygroup(v.id))
 	end
 end)

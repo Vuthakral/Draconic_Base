@@ -1,5 +1,6 @@
 function DRCMenu( player )
     local ply = player
+	local VSelection = ply:GetNWString("DRCVoiceSet")
     
 	local usekey = string.upper(ReturnKey("+use"))
 	local m1key = string.upper(ReturnKey("+attack"))
@@ -29,6 +30,7 @@ function DRCMenu( player )
     Derma:SetPos( leftwidehalf/1.25, topwidehalf/4 )
     Derma:SetSize( 1200, 720)
     Derma:SetTitle("Draconic Menu")
+	Derma:SetIcon("icon16/draconic_base.png")
 	Derma:MakePopup()
 	Derma:SetBackgroundBlur(true)
 	Derma:SetScreenLock(true)
@@ -40,32 +42,38 @@ function DRCMenu( player )
 	local windowtall = Derma:GetTall()
 	
 	local mainframe = vgui.Create("DPanel", Derma)
-	mainframe:Dock( FILL )
+	mainframe:Dock(FILL)
+	mainframe:DockMargin(0, 0, 0, 0)
+	mainframe:DockPadding(0, 0, 0, 0)
 	mainframe:SetPaintBackground(false)
 	
 	local maintabs = vgui.Create( "DPropertySheet", mainframe )
-	maintabs:Dock( FILL )
+	maintabs:Dock(FILL)
+	maintabs:DockMargin(0, 0, 0, 0)
+	maintabs:DockPadding(0, 0, 0, 0)
 	maintabs:SetPadding(0)
 	maintabs.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	
 	local mt1 = vgui.Create( "DPanel", maintabs )
-	mt1:Dock(FILL)
-	mt1:SetBackgroundColor(Color(255, 255, 255, 5))
-	maintabs:AddSheet( "Player Representation", mt1)
+	mt1:DockMargin(0, 0, 0, 0)
+	mt1:DockPadding(0, 0, 0, 0)
+	mt1:SetBackgroundColor(Color(255, 255, 255, 0))
+	maintabs:AddSheet( "Player Representation", mt1, "icon16/user.png")
     
     local frame = vgui.Create("DPanel", mt1)
-    frame:SetPos(0, 0)
 	frame:SetWide(windowwide/2)
 	frame:Dock(LEFT)
+	frame:DockPadding(0, 0, 0, 0)
 --    frame:SetSize(512, topwide/1.5-24)
     frame:SetBackgroundColor(Color(255, 255, 255, 5))
 	
 	local frame2 = vgui.Create("DPanel", mt1)
-	frame2:SetPos(windowwide/2, -1)
+	frame2:SetPos(windowwide/2, 0)
 	frame2:SetWide(windowwide/2)
 	frame2:Dock(RIGHT)
+	frame2:DockPadding(0, 0, 0, 0)
 --	frame2:SetSize(leftwide*1.25/2, topwide/1.5-54)
 	frame2:SetBackgroundColor(Color(255, 255, 255, 15))
     
@@ -78,6 +86,7 @@ function DRCMenu( player )
 	
 	local bg = vgui.Create("DImage", frame)
 	bg:SetPos(0, 0)
+	bg:Dock(FILL)
 	bg:SetSize(589, 658)
 	bg:SetImage("vgui/drc_playerbg")
 	bg:SetZPos(-10)
@@ -85,7 +94,7 @@ function DRCMenu( player )
 	local pmodel = LocalPlayer():GetInfo( "cl_playermodel" )
 	local pmodelname = player_manager.TranslatePlayerModel( pmodel )
 	
-	if DRC:GetCustomizationAllowed() != true then print("A") pmodelname = LocalPlayer():GetModel() print(pmodelname) end
+	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() print(pmodelname) end
 	
     local preview = vgui.Create("DAdjustableModelPanel", frame)
 	preview:SetSize(589,658)
@@ -195,20 +204,37 @@ function DRCMenu( player )
 	end
 	
 	local tabs = vgui.Create( "DPropertySheet", frame2 )
-	tabs:Dock( FILL )
+	tabs:Dock(FILL)
 	tabs:SetPadding(0)
+	tabs:DockPadding(0, 0, 0, 0)
 	tabs.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	
-	local tab1 = vgui.Create( "DPanel", tabs )
-	tab1:SetBackgroundColor( Color(245, 245, 245, 0) )
-	tabs:AddSheet( "Playermodels", tab1)
+	local tab1 = vgui.Create("DPropertySheet", tabs)
+	tab1:SetPadding(0)
+	tab1:DockPadding(0, 0, 0, 0)
+	tabs:AddSheet( "Player", tab1, "icon16/user.png")
+	tab1.Paint = function(self, w, h)
+        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+    end
+	function tab1:OnActiveTabChanged(old, new)
+		local mode = new:GetText()
+	end
+	
+	local tab1PMs = vgui.Create( "DPanel", tab1 )
+	tab1PMs:DockPadding(0, 0, 0, 0)
+	tab1PMs:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab1:AddSheet( "Playermodels", tab1PMs, "icon16/folder_user.png")
+	
+	local tab1Hands = vgui.Create( "DPanel", tab1 )
+	tab1Hands:DockPadding(0, 0, 0, 0)
+	tab1Hands:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab1:AddSheet( "Hands", tab1Hands, "icon16/folder_page.png")
 				
 	local tab2 = vgui.Create( "DPanel", tabs )
 	tab2:SetBackgroundColor( Color(255, 255, 255, 255) )
-	tab2:Dock( FILL )
-	tabs:AddSheet( "Colours", tab2 )
+	tabs:AddSheet( "Colours", tab2, "icon16/color_wheel.png" )
 	
 	local t3c = vgui.Create( "DPanel", tabs )
 	t3c:SetBackgroundColor( Color(0, 0, 0, 0) )
@@ -217,18 +243,13 @@ function DRCMenu( player )
 	local t3p = t3c:Add( "DPanelList" )
 	t3p:DockPadding( 64, 8, 8, 8 )
 	t3p:EnableVerticalScrollbar( true )
-	t3p:Dock( FILL )
+	t3p:Dock(FILL)
 	
 	local tab3 = tabs:AddSheet( "#smwidget.bodygroups", t3p, "icon16/cog.png" )
 	
-	local tab4 = vgui.Create( "DPanel", tabs )
-	tab4:SetBackgroundColor( Color(255, 255, 255, 255) )
-	tab4:Dock( FILL )
-	tabs:AddSheet( "Saved Avatars", tab4 )
-	
-	local modelListPnl = tab1:Add( "DPanel" )
+	local modelListPnl = tab1PMs:Add( "DPanel" )
 	modelListPnl:DockPadding( 8, 0, 8, 0 )
-	modelListPnl:Dock( FILL )
+	modelListPnl:Dock(FILL)
 	modelListPnl:SetBackgroundColor(Color(0, 0, 0, 0))
 	
 	local SearchBar = modelListPnl:Add( "DTextEntry" )
@@ -238,23 +259,25 @@ function DRCMenu( player )
 	SearchBar:SetPlaceholderText( "#spawnmenu.quick_filter" )
 	
 	local PanelSelect = modelListPnl:Add( "DPanelSelect" )
-	PanelSelect:Dock( FILL )
+	PanelSelect:Dock(FILL)
 	PanelSelect:SetBackgroundColor(Color(0, 0, 0, 0))
 	PanelSelect.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	
 	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-
-		local icon = vgui.Create( "SpawnIcon" )
-		icon:SetModel( model )
-		icon:SetSize( 64, 64 )
-		icon:SetTooltip( name )
-		icon.playermodel = name
-		icon.model_path = model
-
-		PanelSelect:AddPanel( icon, { cl_playermodel = name } )
-
+		if !string.match(model, "c_") && !string.match(model, "v_") then
+			if !string.match(model, "viewhands") then -- I HATE YOU.
+			local icon = vgui.Create( "SpawnIcon" )
+			icon:SetModel( model )
+			icon:SetSize( 64, 64 )
+			icon:SetTooltip( name )
+			icon.playermodel = name
+			icon.model_path = model
+			
+			PanelSelect:AddPanel( icon, { cl_playermodel = name } )
+			end
+		end
 	end
 	
 	SearchBar.OnValueChange = function( s, str )
@@ -268,9 +291,41 @@ function DRCMenu( player )
 	PanelSelect:InvalidateLayout()
 	end
 	
+	local modelListPnl_Hands = tab1Hands:Add( "DPanel" )
+	modelListPnl_Hands:DockPadding( 8, 0, 8, 0 )
+	modelListPnl_Hands:Dock(FILL)
+	modelListPnl_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
+	
+	local PanelSelect_Hands = modelListPnl_Hands:Add( "DPanelSelect" )
+	PanelSelect_Hands:Dock(FILL)
+	PanelSelect_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
+	PanelSelect_Hands.Paint = function(self, w, h)
+        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+    end
+	
+	local RemoveButton = vgui.Create("DImageButton")
+	RemoveButton:SetSize(64,64)
+	RemoveButton:SetImage("gui/cross.png", "gui/cross.png")
+	RemoveButton:SetColor(Color(255, 0, 0, 255))
+	PanelSelect_Hands:AddPanel(RemoveButton)
+	
+	for name, model in SortedPairs( player_manager.AllValidModels() ) do
+		if string.match(model, "c_") or string.match(model, "v_") or string.match(model, "viewhands") then -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
+			local icon = vgui.Create( "SpawnIcon" )
+			icon:SetModel( model )
+			icon:SetSize( 64, 64 )
+			icon:SetTooltip( name )
+			icon.playerhands = name
+			icon.model_path = model
+			icon.tbl = player_manager.TranslatePlayerHands(name)
+			
+			PanelSelect_Hands:AddPanel( icon, { cl_playerhands = name } )
+		end
+	end
+	
     local ScrollPrim = vgui.Create("DScrollPanel", tab2)
 	ScrollPrim:SetPos(0, 0)
-	ScrollPrim:Dock( FILL )
+	ScrollPrim:Dock(FILL)
 	ScrollPrim:DockMargin(0, 0, 16, 16)
 	ScrollPrim:SetBackgroundColor(Color(255, 255, 255, 0))
 	
@@ -294,9 +349,9 @@ function DRCMenu( player )
 	
 	local clabel = vgui.Create("DLabel", tab2)
 	clabel:SetPos(16, 600)
-	clabel:SetSize(400, 32)
+	clabel:SetSize(600, 32)
 	clabel:SetTextColor(Color(0, 0, 0, 255))
-	clabel:SetText("**These colours update for everyone when you respawn")
+	clabel:SetText("**These colours update for everyone when you respawn or press the 'Apply Changes' button on the left.")
 	
 	local playercol = Vector(GetConVarString("cl_playercolor")) * 255
 	local weaponcol = Vector(GetConVarString("cl_weaponcolor")) * 255
@@ -408,6 +463,13 @@ function DRCMenu( player )
 			str = "".. str .."".. tostring(num) ..""
 		end
 	
+		local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
+		local pmname = player_manager.TranslateToPlayerModelName(handval)
+		if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then 
+			pmname = player_manager.TranslateToPlayerModelName(preview:GetModel())
+		end
+		local handstable = player_manager.TranslatePlayerHands(pmname)
+	
 		local tbl = {
 			["player"] = LocalPlayer(),
 			["model"] = preview:GetModel(),
@@ -421,11 +483,21 @@ function DRCMenu( player )
 			},
 			["bodygroups"] = str,
 			["skin"] = preview:GetEntity():GetSkin(),
+			["voiceset"] = VSelection,
+			["hands"] = {
+				["model"] = handval,
+				["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
+				["skin"] = LocalPlayer():GetInfo("cl_playerhands_skin"),
+			}
 		}
+		handstable.skin = tbl.hands.skin
+		handstable.bodygroups = tbl.hands.bodygroups
 		
 		net.Start("DRC_ApplyPlayermodel")
 		net.WriteTable(tbl)
 		net.SendToServer()
+		
+		DRC:ChangeCHandModel(handstable)
 		
 		applybutton:SetEnabled(false)
 		applybutton:SetText("Wait 3...")
@@ -446,8 +518,19 @@ function DRCMenu( player )
 	
 	local tab5 = vgui.Create( "DPanel", tabs )
 	tab5:SetBackgroundColor( Color(255, 255, 255, 255) )
-	tab5:Dock( FILL )
-	tabs:AddSheet( "Spray", tab5 )
+--	tab5:Dock(FILL)
+	tabs:AddSheet( "Extra", tab5, "icon16/draconic_base.png" )
+	
+	local tab4 = vgui.Create( "DPanel", tabs )
+	tab4:SetBackgroundColor( Color(255, 255, 255, 255) )
+--	tab4:Dock(FILL)
+	tabs:AddSheet( "Saved Avatars", tab4, "icon16/award_star_gold_1.png" )
+	
+	local SprayLabel = vgui.Create("DLabel", tab5)
+	SprayLabel:SetPos(16,12)
+	SprayLabel:SetSize(500,20)
+	SprayLabel:SetText("Spray settings:")
+	SprayLabel:SetColor(Color(0, 0, 0, 255))
 	
 	local Sprays_General = vgui.Create( "DCheckBoxLabel", tab5 )
 	Sprays_General:SetPos(16, 32)
@@ -458,7 +541,7 @@ function DRCMenu( player )
 	Sprays_General:SetEnabled(true)
 	
 	local Sprays_Vehicles = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_Vehicles:SetPos(16, 64)
+	Sprays_Vehicles:SetPos(16, 50)
 	Sprays_Vehicles:SetSize(500, 20)
 	Sprays_Vehicles:SetText( "Show spray on vehicles" )
 	Sprays_Vehicles:SetConVar( "cl_drc_showspray_vehicles" )
@@ -466,7 +549,7 @@ function DRCMenu( player )
 	Sprays_Vehicles:SetEnabled(true)
 	
 	local Sprays_Weapons = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_Weapons:SetPos(16, 96)
+	Sprays_Weapons:SetPos(16, 68)
 	Sprays_Weapons:SetSize(500, 20)
 	Sprays_Weapons:SetText( "Show spray on weapons" )
 	Sprays_Weapons:SetConVar( "cl_drc_showspray_weapons" )
@@ -474,7 +557,7 @@ function DRCMenu( player )
 	Sprays_Weapons:SetEnabled(true)
 	
 	local Sprays_Player = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_Player:SetPos(16, 128)
+	Sprays_Player:SetPos(16, 86)
 	Sprays_Player:SetSize(500, 20)
 	Sprays_Player:SetText( "Show spray on yourself" )
 	Sprays_Player:SetConVar( "cl_drc_showspray_player" )
@@ -482,21 +565,64 @@ function DRCMenu( player )
 	Sprays_Player:SetEnabled(true)
 	
 	local SprayPreviewText = vgui.Create("DLabel", tab5)
-	SprayPreviewText:SetPos(16, 160)
+	SprayPreviewText:SetPos(16, 105)
 	SprayPreviewText:SetTextColor(Color(0, 0, 0, 255))
 	SprayPreviewText:SetText("Your spray:")
 	
 	local SprayPreview = vgui.Create("DImage", tab5)
-	SprayPreview:SetPos(100, 192)
-	SprayPreview:SetSize(400, 400)
+	SprayPreview:SetPos(16, 115)
+	SprayPreview:SetSize(320, 320)
 	SprayPreview:SetImageColor(Color(255, 255, 255, 255))
 	SprayPreview:SetMaterial("vgui/drc_spraypreview")
 	
 	local SprayDisclaimer = vgui.Create("DLabel", tab5)
-	SprayDisclaimer:SetPos(16, 600)
+	SprayDisclaimer:SetPos(16, 430)
 	SprayDisclaimer:SetSize(400, 32)
 	SprayDisclaimer:SetTextColor(Color(0, 0, 0, 255))
 	SprayDisclaimer:SetText("**sprays only appear on content that support it")
+	
+	local VoiceLabel = vgui.Create("DLabel", tab5)
+	VoiceLabel:SetPos(300,12)
+	VoiceLabel:SetSize(500,20)
+	VoiceLabel:SetText("Voiceset settings:")
+	VoiceLabel:SetColor(Color(0, 0, 0, 255))
+	
+	local CVLabel = vgui.Create("DLabel", tab5)
+	CVLabel:SetPos(300,30)
+	CVLabel:SetSize(500,20)
+	if DRC.VoiceSets[LocalPlayer():GetNWString("DRCVoiceSet")] == nil then
+		CVLabel:SetText("> Current VS: None")
+	else
+		CVLabel:SetText("> Current VS: ".. DRC.VoiceSets[LocalPlayer():GetNWString("DRCVoiceSet")].Name .."")
+	end
+	CVLabel:SetColor(Color(0, 0, 0, 255))
+	
+	local VoiceSelector = vgui.Create( "DComboBox", tab5 )
+	VoiceSelector:SetSortItems(true)
+	VoiceSelector:SetPos(306, 50)
+	VoiceSelector:SetSize(150, 20)
+	VoiceSelector:SetConVar( "cl_drc_voiceset" )
+	VoiceSelector:AddChoice("[!] None", "none")
+	for k,v in pairs(DRC.VoiceSets) do
+		local tbl = DRC.VoiceSets[k]
+		VoiceSelector:AddChoice(tbl.Name, tbl.ID)
+	end
+	function VoiceSelector:OnSelect(index, value, data)
+		LocalPlayer():ConCommand("cl_drc_voiceset ".. data .."")
+		VSelection = data
+	end
+	
+--[[	local VoicePitch = vgui.Create("DNumSlider", tab5)
+	VoicePitch:SetPos(306,80)
+	VoicePitch:SetSize(200,20)
+	VoicePitch:SetConVar("cl_drc_voicepitch")
+	VoicePitch:SetValue(ply:GetInfoNum("cl_drc_voicepitch", 1))
+	VoicePitch:SetMin(0.9)
+	VoicePitch:SetMax(1.1)
+	VoicePitch:SetDecimals(2)
+	VoicePitch:SetText("Voice Pitch")
+	VoicePitch.Label:SetTextColor(Color(0, 0, 0, 255)) --]]
+	
 	
 --	local weaponlabel = vgui.Create("DLabel", tab6)
 --	weaponlabel:SetText("Preview Weapon Model:")
@@ -511,24 +637,7 @@ function DRCMenu( player )
 		RunConsoleCommand( "cl_weaponcolor", tostring( weaponcolour:GetVector() ))
 	end
 	
-	local function UpdateDraconicColours()
-	--[[	LocalPlayer():ConCommand("cl_drc_tint1_r ".. accentColour1:GetColor().r .."")
-		LocalPlayer():ConCommand("cl_drc_tint1_g ".. accentColour1:GetColor().g .."")
-		LocalPlayer():ConCommand("cl_drc_tint1_b ".. accentColour1:GetColor().b .."")
-		
-		LocalPlayer():ConCommand("cl_drc_tint2_r ".. accentColour2:GetColor().r .."")
-		LocalPlayer():ConCommand("cl_drc_tint2_g ".. accentColour2:GetColor().g .."")
-		LocalPlayer():ConCommand("cl_drc_tint2_b ".. accentColour2:GetColor().b .."")
-		
-		LocalPlayer():ConCommand("cl_drc_eyecolour_r ".. eyecolour:GetColor().r .."")
-		LocalPlayer():ConCommand("cl_drc_eyecolour_g ".. eyecolour:GetColor().g .."")
-		LocalPlayer():ConCommand("cl_drc_eyecolour_b ".. eyecolour:GetColor().b .."")
-		
-		LocalPlayer():ConCommand("cl_drc_energycolour_r ".. energyColour:GetColor().r .."")
-		LocalPlayer():ConCommand("cl_drc_energycolour_g ".. energyColour:GetColor().g .."")
-		LocalPlayer():ConCommand("cl_drc_energycolour_b ".. energyColour:GetColor().b .."")
-	]]
-		
+	local function UpdateDraconicColours()		
 		DRC:RefreshColours(LocalPlayer())
 	end
 	
@@ -639,34 +748,41 @@ function DRCMenu( player )
 		end
 		
 		local function UpdateFromConvars()
-
 			local model = LocalPlayer():GetInfo( "cl_playermodel" )
-			local modelname = player_manager.TranslatePlayerModel( model )
-			
+			modelname = player_manager.TranslatePlayerModel( model )
 			if DRC:GetCustomizationAllowed() == true then
 				util.PrecacheModel( modelname )
 				preview:SetModel( modelname )
 			end
-			preview.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end
-
+			RebuildBodygroupTab()
+			if preview.Entity then preview.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end end
 			playercolour:SetVector( Vector( GetConVarString( "cl_playercolor" ) ) )
 			weaponcolour:SetVector( Vector( GetConVarString( "cl_weaponcolor" ) ) )
-
 		--	PlayPreviewAnimation( preview, model )
-			RebuildBodygroupTab()
-
 		end
-	UpdateFromConvars()
+	UpdateFromConvars(false)
 	
 	function PanelSelect:OnActivePanelChanged( old, new )
-
 		if ( old != new ) then -- Only reset if we changed the model
 			RunConsoleCommand( "cl_playerbodygroups", "0" )
 			RunConsoleCommand( "cl_playerskin", "0" )
 		end
-
-		timer.Simple( 0.1, function() UpdateFromConvars() end )
-
+		timer.Simple( 0.1, function() UpdateFromConvars(false) end )
+	end
+	
+	function PanelSelect_Hands:OnActivePanelChanged( old, new )
+		if ( old != new ) then -- Only reset if we changed the model
+			if new.GetImage then
+				RunConsoleCommand("cl_playerhands", "disabled")
+				RunConsoleCommand("cl_playerhands_bodygroups", "0")
+				RunConsoleCommand("cl_playerhands_skin", "0")
+			else
+				local hands = new.tbl
+				RunConsoleCommand("cl_playerhands", tostring(hands.model))
+				RunConsoleCommand("cl_playerhands_bodygroups", tostring(hands.body))
+				RunConsoleCommand("cl_playerhands_skin", tostring(hands.skin))
+			end
+		end
 	end
 
 	preview.Entity.Preview = true
@@ -994,7 +1110,7 @@ function DRCMenu( player )
 	
 	if DRC:GetCustomizationAllowed() == nil then
 		for k,v in pairs(tabs:GetItems()) do
-			if v.Name == "Playermodels" then
+			if v.Name == "Player" then
 				tabs:CloseTab(v.Tab)
 			elseif v.Name == "Saved Avatars" then
 				tabs:CloseTab(v.Tab)
@@ -1002,86 +1118,37 @@ function DRCMenu( player )
 		end
 		tab1:Remove()
 		tab4:Remove()
+		VoiceSelector:SetEnabled(false)
 		
 		tabs:SetActiveTab(tabs:GetItems()[1].Tab)
-	end
-	
-	if DRC:GetCustomizationAllowed() == false then
-		local tab5 = vgui.Create( "DPanel", mt1 )
-		tab5:SetBackgroundColor( Color(255, 255, 255, 255) )
-		tab5:SetPos(0, 0)
-		tab5:SetSize(1200,720)
-		
-		local label = vgui.Create("DLabel", tab5)
-		label:SetTextColor(color_black)
-		label:SetSize(512, 256)
-		label:SetPos(0,0)
-		label:Dock(FILL)
-		label:SetContentAlignment(9)
-		label:SetText("This server has player customization disabled.\nThis is likely because the developers have made a system to handle it for you and don't want you to mess it up.\nYou can still customize your spray settings here, though.")
-		
-		local Sprays_General = vgui.Create( "DCheckBoxLabel", tab5 )
-		Sprays_General:SetPos(16, 32)
-		Sprays_General:SetSize(500, 20)
-		Sprays_General:SetText( "Show spray on spawned props/entities" )
-		Sprays_General:SetConVar( "cl_drc_showspray" )
-		Sprays_General.Label:SetColor(Color(0, 0, 0, 255))
-		Sprays_General:SetEnabled(true)
-		
-		local Sprays_Vehicles = vgui.Create( "DCheckBoxLabel", tab5 )
-		Sprays_Vehicles:SetPos(16, 64)
-		Sprays_Vehicles:SetSize(500, 20)
-		Sprays_Vehicles:SetText( "Show spray on vehicles" )
-		Sprays_Vehicles:SetConVar( "cl_drc_showspray_vehicles" )
-		Sprays_Vehicles.Label:SetColor(Color(0, 0, 0, 255))
-		Sprays_Vehicles:SetEnabled(true)
-		
-		local Sprays_Weapons = vgui.Create( "DCheckBoxLabel", tab5 )
-		Sprays_Weapons:SetPos(16, 96)
-		Sprays_Weapons:SetSize(500, 20)
-		Sprays_Weapons:SetText( "Show spray on weapons" )
-		Sprays_Weapons:SetConVar( "cl_drc_showspray_weapons" )
-		Sprays_Weapons.Label:SetColor(Color(0, 0, 0, 255))
-		Sprays_Weapons:SetEnabled(true)
-		
-		local Sprays_Player = vgui.Create( "DCheckBoxLabel", tab5 )
-		Sprays_Player:SetPos(16, 128)
-		Sprays_Player:SetSize(500, 20)
-		Sprays_Player:SetText( "Show spray on yourself" )
-		Sprays_Player:SetConVar( "cl_drc_showspray_player" )
-		Sprays_Player.Label:SetColor(Color(0, 0, 0, 255))
-		Sprays_Player:SetEnabled(true)
-		
-		local SprayPreviewText = vgui.Create("DLabel", tab5)
-		SprayPreviewText:SetPos(16, 160)
-		SprayPreviewText:SetTextColor(Color(0, 0, 0, 255))
-		SprayPreviewText:SetText("Your spray:")
-		
-		local SprayPreview = vgui.Create("DImage", tab5)
-		SprayPreview:SetPos(100, 192)
-		SprayPreview:SetSize(400, 400)
-		SprayPreview:SetImageColor(Color(255, 255, 255, 255))
-		SprayPreview:SetMaterial("vgui/drc_spraypreview")
-		
-		local SprayDisclaimer = vgui.Create("DLabel", tab5)
-		SprayDisclaimer:SetPos(16, 600)
-		SprayDisclaimer:SetSize(400, 32)
-		SprayDisclaimer:SetTextColor(Color(0, 0, 0, 255))
-		SprayDisclaimer:SetText("**sprays only appear on content that support it")
+	elseif DRC:GetCustomizationAllowed() == false then
+		for k,v in pairs(tabs:GetItems()) do
+			if v.Name == "Player" then
+				tabs:CloseTab(v.Tab)
+			elseif v.Name == "Saved Avatars" then
+				tabs:CloseTab(v.Tab)
+			elseif v.Name == "Colours" then
+				tabs:CloseTab(v.Tab)
+			end
 		end
+		tab1:Remove()
+		tab2:Remove()
+		tab4:Remove()
+		VoiceSelector:SetEnabled(false)
+	end
 	
 	RefreshAvatars()
 	
 	local mt2 = vgui.Create( "DPanel", maintabs )
 	mt2:SetBackgroundColor(Color(255, 255, 255, 5))
-	maintabs:AddSheet( "Settings", mt2)
+	maintabs:AddSheet( "Settings", mt2, "icon16/wrench.png")
 	
 	local t2frame = vgui.Create("DPanel", mt2)
 	t2frame:SetBackgroundColor(Color(255, 255, 255, 5))
-	t2frame:Dock( FILL )
+	t2frame:Dock(FILL)
 	
 	local t2tabs = vgui.Create("DPropertySheet", t2frame)
-	t2tabs:Dock( FILL )
+	t2tabs:Dock(FILL)
 	t2tabs:SetPadding(0)
 	t2tabs.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
@@ -1138,11 +1205,11 @@ function DRCMenu( player )
 	ControlsValue:SetContentAlignment(6)
 	
 	local t2tab1 = vgui.Create( "DPanel" )
-	t2tab1:Dock( FILL )
+	t2tab1:Dock(FILL)
 	t2tab1.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
-	t2tabs:AddSheet( "Client Settings", t2tab1)
+	t2tabs:AddSheet( "Client Settings", t2tab1, "icon16/wrench_orange.png")
 	
 	local DrcSoul = vgui.Create( "DCheckBoxLabel", t2tab1 )
 	DrcSoul:SetPos(25, 35)
@@ -1234,11 +1301,11 @@ function DRCMenu( player )
 	VMOZ:SetEnabled(true)
 	
 	local t2tab2 = vgui.Create( "DPanel" )
-	t2tab2:Dock( FILL )
+	t2tab2:Dock(FILL)
 	t2tab2.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
-	t2tabs:AddSheet( "Server Settings", t2tab2)
+	t2tabs:AddSheet( "Server Settings", t2tab2, "icon16/wrench.png")
 	
 				local DrcMovement = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcMovement:SetPos(25, 15)
@@ -1351,7 +1418,7 @@ function DRCMenu( player )
 				
 	local mt3 = vgui.Create( "DPanel", maintabs )
 	mt3:SetBackgroundColor(Color(255, 255, 255, 5))
-	maintabs:AddSheet( "Credits", mt3)
+	maintabs:AddSheet( "Credits", mt3, "icon16/text_indent.png")
 	
 	local infopage = vgui.Create("HTML", mt3)
 	infopage:Dock(FILL)
@@ -1466,21 +1533,21 @@ function DRCMenu( player )
 				
 	local mt4 = vgui.Create( "DPanel", maintabs )
 	mt4:SetBackgroundColor(Color(255, 255, 255, 10))
-	maintabs:AddSheet( "Debug & Dev Tools", mt4)
+	maintabs:AddSheet( "Debug & Dev Tools", mt4, "icon16/folder_bug.png")
 	
 	local t4tabs = vgui.Create("DPropertySheet", mt4)
-	t4tabs:Dock( FILL )
+	t4tabs:Dock(FILL)
 	t4tabs:SetPadding(0)
 	t4tabs.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	
 	local t4tab1 = vgui.Create( "DPanel" )
-	t4tab1:Dock( FILL )
+	t4tab1:Dock(FILL)
 	t4tab1.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
-	t4tabs:AddSheet( "Debug Information", t4tab1)
+	t4tabs:AddSheet( "Debug Information", t4tab1, "icon16/information.png")
 	
 	local debug_gameinfo = vgui.Create( "DPanel", t4tab1)
 	debug_gameinfo:Dock(RIGHT)
@@ -1638,11 +1705,11 @@ function DRCMenu( player )
 	DebugInfo:SetColor(Color(col.x, col.y, col.z, 255))
 	
 	local t4tab2 = vgui.Create( "DPanel" )
-	t4tab2:Dock( FILL )
+	t4tab2:Dock(FILL)
 	t4tab2.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
-	t4tabs:AddSheet( "Development Tools", t4tab2)
+	t4tabs:AddSheet( "Development Tools", t4tab2, "icon16/bomb.png")
 	
 	local t4tab2panel_left = vgui.Create("DPanel", t4tab2)
 	t4tab2panel_left:Dock(FILL)
@@ -1753,11 +1820,11 @@ function DRCMenu( player )
 	end
 	
 	local t4tab3 = vgui.Create( "DPanel" )
-	t4tab2:Dock( FILL )
+	t4tab2:Dock(FILL)
 	t4tab2.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
-	t4tabs:AddSheet( "Draconic Wiki", t4tab3)
+	t4tabs:AddSheet( "Draconic Wiki", t4tab3, "icon16/book_link.png")
 	
 	local wiki = vgui.Create("DHTML", t4tab3)
 	wiki:Dock(FILL)

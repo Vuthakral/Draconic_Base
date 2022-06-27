@@ -7,8 +7,6 @@ Draconic = {
 if SERVER then AddCSLuaFile("sh/convars.lua") end
 include("sh/convars.lua")
 
-DRC.MapInfo = {}
-
 if SERVER then
 	DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas()
 	
@@ -714,6 +712,7 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	DRC:RefreshColours(ply)
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWString("Draconic_ThirdpersonForce", nil)
+	ply:SetNWString("DRCVoiceSet", ply:GetInfo("cl_drc_voiceset"))
 	ply:SetNWBool("ShowSpray_Ents", ply:GetInfoNum("cl_drc_showspray", 0))
 	ply:SetNWBool("ShowSpray_Weapons", ply:GetInfoNum("cl_drc_showspray_weapons", 0))
 	ply:SetNWBool("ShowSpray_Vehicles", ply:GetInfoNum("cl_drc_showspray_vehicles", 0))
@@ -721,6 +720,11 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
+	
+	timer.Simple(engine.TickInterval(), function()
+		net.Start("DRC_UpdatePlayerHands")
+		net.Send(ply)
+	end)
 	
 --[[	local hands = ply:GetHands()
 	if !hands then return end
@@ -1708,6 +1712,160 @@ function DRC:GetShield(ent)
 		local val, maxi = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth")
 		return val, maxi
 	end
+end
+
+DRC.VoiceSetDefs = {
+	["slot1"] = "RequestHelp",
+	["slot2"] = "MoveIt",
+	["slot3"] = "Compliment",
+	["slot4"] = "Insult",
+	["slot5"] = "Hello",
+	["slot6"] = "Question",
+	["slot7"] = "Agree",
+	["slot8"] = "Disagree",
+	["slot9"] = "Apologize",
+	["+reload"] = "Reload",
+	["spot"] = "Spotting",
+}
+
+function DRC:RegisterVoiceSet(vs)
+	if !vs then return end
+	local name = vs.ID
+	
+	DRC.VoiceSets[name] = vs
+end
+
+function DRC:VoiceSpot(ply)
+	if !IsValid(ply) then return end
+	local voice = DRC.VoiceSets[DRC:GetVoiceSet(ply)]
+	local coneents = DRC:EyeCone(ply, 5000, 5)
+	local targets = {}
+	for k,v in pairs(coneents) do
+		if (v:IsPlayer() && v != ply) or v:IsNPC() or v:IsNextBot() or DRC:IsVehicle(v) or v:IsRagdoll() then table.insert(targets, v) end
+	end
+	local closesttarget = nil
+	for k,v in pairs(targets) do
+		local dist = v:EyePos():DistToSqr(ply:EyePos())
+		if k == 1 then
+			closesttarget = {v, dist}
+		else
+			if dist < closesttarget[2] then closesttarget = {v, dist} end
+		end
+	end
+	if !closesttarget then return nil end
+	
+	local target = closesttarget[1]:GetClass()
+	if closesttarget[1]:IsRagdoll() then
+		DRC:SpeakSentence(ply, "Spotting", "DeadBody", true)
+	elseif closesttarget[1]:IsNPC() then
+		local disp  = closesttarget[1]:Disposition(ply)
+		if !voice["Spotting"][target] then
+			if disp < 3 then
+				DRC:SpeakSentence(ply, "Spotting", "Generic_Enemy", true)
+			else
+				DRC:SpeakSentence(ply, "Spotting", "Generic_Friendly", true)
+			end
+		else
+			DRC:SpeakSentence(ply, "Spotting", target, true)
+		end
+	elseif closesttarget[1]:IsNextBot() then
+		if !voice["Spotting"][target] then
+			DRC:SpeakSentence(ply, "Spotting", "Generic", true)
+		end
+	elseif closesttarget[1]:IsPlayer() then DRC:SpeakSentence(ply, "Spotting", "Generic", true)
+	end
+end
+
+function DRC:GetVoiceSet(ent)
+	local vs = ent:GetNWString("DRCVoiceSet")
+	if vs == "none" or vs == nil or vs == "" then return nil end
+	return vs
+end
+
+function DRC:IsVSentenceValid(vs, call, subcall)
+	if !vs then return end
+	local voice = DRC.VoiceSets[vs]
+	if !subcall then
+		if voice[call] != nil then return true end
+	elseif subcall then
+		if voice[call] then
+			if voice[call][subcall] then return true end
+		end
+	else print("C") return false
+	end
+end
+
+function DRC:SpeakSentence(ent, call, subcall, important)
+	if important == true then ent.DRCSpeaking = false end
+	if ent.DRCSpeaking == true then return end
+	local num, rng, sel = nil, nil, nil
+	local vs = DRC:GetVoiceSet(ent)
+	local voice = DRC.VoiceSets[DRC:GetVoiceSet(ent)]
+	if subcall then
+		if !DRC:IsVSentenceValid(vs, call, subcall) then return end
+		num = #voice[call][subcall]
+		rng = math.Round(math.Rand(1, num))
+		sel = voice[call][subcall][rng]
+	else
+		if !DRC:IsVSentenceValid(vs, call) then return end
+		num = #voice[call]
+		rng = math.Round(math.Rand(1, num))
+		sel = voice[call][rng]
+	end
+	
+	if sel then
+		local dur = SoundDuration(sel)
+		ent.DRCSpeaking = true
+		ent:EmitSound(sel)
+		timer.Simple(dur, function() if ent:IsValid() then ent.DRCSpeaking = false end end)
+	end
+end
+
+function DRC:DamageSentence(ent, damage)
+	if !IsValid(ent) then return end
+	local hp, mhp = ent:Health(), ent:GetMaxHealth()
+	
+	local percentage = damage/mhp
+	
+	if percentage >= 0.3 then
+		DRC:SpeakSentence(ent, "Pain", "Major")
+	elseif percentage < 0.3 && percentage >= 0.15 then
+		DRC:SpeakSentence(ent, "Pain", "Medium")
+	elseif percentage < 0.15 then
+		DRC:SpeakSentence(ent, "Pain", "Minor")
+	end
+end
+
+function DRC:FloorDist(e, sqr)
+	local tr = util.TraceLine({
+		start = e:GetPos(),
+		endpos = e:GetPos() - Vector(0, 0, 100000000),
+		filter = function(ent) if ent != e then return true end end
+	})
+	
+	if sqr != true then
+		local sp = e:GetPos()
+		local dist = sp:Distance(tr.HitPos)
+		return dist
+	else
+		local sp = e:GetPos()
+		local dist = sp:DistToSqr(tr.HitPos)
+		return dist
+	end
+end
+
+function DRC:ChangeCHandModel(tbl)
+	if !tbl then return end
+	if !tbl.model or tbl.model == "" then return end
+	if !tbl.skin or tbl.skin == "" then return end
+	if !tbl.bodygroups or tbl.bodygroups == "" then return end
+	if SERVER then return end
+	if DRC:GetCustomizationAllowed() != true then return end
+	local ply = LocalPlayer()
+	local handsent = ply:GetHands()
+	handsent:SetModel(tbl.model)
+	handsent:SetSkin(tbl.skin)
+	handsent:SetBodyGroups(tbl.bodygroups)
 end
 
 hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply, weapon )

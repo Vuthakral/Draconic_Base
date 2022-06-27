@@ -1,3 +1,6 @@
+DRC = {}
+DRC.MapInfo = {}
+DRC.VoiceSets = {}
 if SERVER then AddCSLuaFile("draconic/load.lua") end
 include("draconic/load.lua")
 
@@ -202,6 +205,15 @@ end
 	--	ply:SetPoseParameter("drc_speaking", ply.drc_voicelerp)
 --	end
 --end)
+
+sound.Add( {
+	name = "draconic.silence",
+	channel = CHAN_AUTO,
+	volume = 0,
+	level = 0,
+	pitch = { 100, 100 },
+	sound = { "draconic/silence.wav" }
+} )
 
 sound.Add( {
 	name = "draconic.ProjectileSplash_Tiny",

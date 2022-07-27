@@ -5,11 +5,13 @@ This is a framework base made by Vuthakral for the game "Garry's Mod". The Draco
 
 For generalized development help, check the wiki of this GitHub repository.
 For more specific development help, or to keep up to date with new information about the Draconic Base, consider joining my personal Discord server @ https://discord.gg/feThY5n8vH
+
+> **Changelogs**: https://github.com/Vuthakral/Draconic_Base/wiki/Changelog-List
+
+> **Wiki**: https://github.com/Vuthakral/Draconic_SWEP_Base/wiki
 _____
 
 > Steam Workshop Page: [https://steamcommunity.com/sharedfiles/filedetails/?id=1847505933](https://steamcommunity.com/sharedfiles/filedetails/?id=1847505933)
-
-> GitHub Wiki for this Base: [https://github.com/Vuthakral/Draconic_SWEP_Base/wiki](https://github.com/Vuthakral/Draconic_SWEP_Base/wiki)
 
 > License: [https://github.com/Vuthakral/Draconic_Base/blob/master/LICENSE.md](https://github.com/Vuthakral/Draconic_Base/blob/master/LICENSE.md)
 

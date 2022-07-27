@@ -104,41 +104,6 @@ function DRCCallGesture(ply, slot, act, akill)
 	net.Broadcast()
 end
 
-function DRC_TraceDir(origin, dir, dist)
-	if origin == nil then print("TraceDir origin is null!") return end
-	local entity = nil
-	if IsEntity(origin) then
-		entity = origin
-		origin = origin:GetPos()
-	end
-	
-	if dir == nil then dir = Angle(0, 0, 0) end
-	if dist == nil then dist = 6942069 end
-	
-	local tr = util.TraceLine({
-		start = origin,
-		endpos = origin + dir:Forward() * dist,
-		filter = function( ent )
-			if ent:IsPlayer() or ent == entity then return false end
-			if ( !ent:IsPlayer() && ent:GetPhysicsObject() != nil or ent:IsWorld() ) then return true end
-		end
-	})
-	
-	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 then
-		local csent1 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
-		local csent2 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
-		csent1:SetPos(tr.HitPos)
-		csent2:SetPos(tr.StartPos)
-		csent1:SetColor(Color(255, 0, 0, 255))
-		csent2:SetColor(Color(0, 255, 0, 255))
-		csent1:Spawn()
-		csent2:Spawn()
-		timer.Simple(3, function() csent1:Remove() csent2:Remove() end)
-	end
-	
-	return tr
-end
-
 list.Set( "DesktopWindows", "Draconic Menu", {
 	title = "Draconic Base",
 	icon = "icon64/draconic_base.png",
@@ -504,4 +469,39 @@ sound.Add( {
 	"physics/flesh/fist_swing_04.wav",
 	"physics/flesh/fist_swing_05.wav",
 	"physics/flesh/fist_swing_06.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.Spark_Light",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "ambient/energy/newspark03.wav",
+	"ambient/energy/newspark04.wav",
+	"ambient/energy/newspark07.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.Spark_Medium",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "ambient/energy/newspark02.wav",
+	"ambient/energy/newspark05.wav",
+	"ambient/energy/newspark09.wav",
+	"ambient/energy/newspark06.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.Spark_Violent",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "ambient/energy/newspark01.wav",
+	"ambient/energy/newspark08.wav",
+	"ambient/energy/newspark10.wav",
+	"ambient/energy/newspark11.wav" }
 } )

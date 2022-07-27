@@ -107,16 +107,52 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 			pos = pos + (DRC.CalcView.wallpos * crouchAEMul)
 		end
 		
-	--	local newtr = util.TraceLine({
-	--		start = pos + DRC.CalcView.Pos,
-	--		endpos = LocalPlayer():GetEyeTrace().HitPos,
-	--		filter = function(ent) if ent == LocalPlayer() then return false else return true end end
-	--	})
-	--	local trang = newtr.Normal:Angle()
-	--	local bobpower = 1
-	--	local angdiff = (ply:EyeAngles() - eyes.Ang) * 0.025
-	
-		local angadd = ang -- angdiff
+		local wep = ply:GetActiveWeapon()
+			if IsValid(wep) then
+			local ht = wep:GetHoldType()
+			local bobpower = {
+				[""] = 0.025,
+				["pistol"] = 0.03,
+				["smg"] = 0.025,
+				["grenade"] = 0.15,
+				["ar2"] = 0.025,
+				["shotgun"] = 0.03,
+				["rpg"] = 0.05,
+				["physgun"] = 0.03,
+				["crossbow"] = 0.03,
+				["melee"] = 0.05,
+				["crowbar"] = 0.05, -- HL:S Crowbar???????
+				["slam"] = 0.1,
+				["normal"] = 0.1,
+				["fist"] = 0.1,
+				["melee2"] = 0.1,
+				["passive"] = 0.1,
+				["knife"] = 0.1,
+				["duel"] = 0.03,
+				["camera"] = 0,
+				["magic"] = 0.05,
+				["revolver"] = 0.03,
+			}			
+			DRC.CalcView.InheritStrength = Lerp(0.1, DRC.CalcView.InheritStrength or bobpower[ht], bobpower[ht])
+		else
+			DRC.CalcView.InheritStrength = 0.1
+		end
+		
+		local newtr = util.TraceLine({
+			start = pos + DRC.CalcView.Pos,
+			endpos = LocalPlayer():GetEyeTrace().HitPos,
+			filter = function(ent) if ent == LocalPlayer() then return false else return true end end
+		})
+		local angdiff = (ply:EyeAngles() - eyes.Ang)
+		angdiff:Normalize()
+		angdiff = angdiff * DRC.CalcView.InheritStrength
+		
+		local angadd = ang
+		if !DRC:SightsDown(wep) then
+		angadd:RotateAroundAxis(angadd:Right(), angdiff.x)
+		angadd:RotateAroundAxis(angadd:Up(), angdiff.y)
+		angadd:RotateAroundAxis(angadd:Forward(), angdiff.z)
+		end
 		
 		if DRC.CalcView.Ang && DRC.CrosshairAngMod then
 			DRC.CalcView.AimCorrectAngle = angadd + (DRC.CalcView.Ang + DRC.CrosshairAngMod * DRC.CalcView.EFP_ISPow)
@@ -132,11 +168,8 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 			zfar = nil,
 			}
 			
-			if GetConVar("cl_drawownshadow"):GetInt() != 1 then  RunConsoleCommand("cl_drawownshadow", 1) end
 			return view
 		end
-	else
-		if GetConVar("cl_drawownshadow"):GetInt() != 0 then  RunConsoleCommand("cl_drawownshadow", 0) end
 	end
 end)
 
@@ -150,6 +183,7 @@ hook.Add( "CalcViewModelView", "Draconic_Experimental_First_Person_CVMV", functi
 		local diff = ply:EyePos() - pos
 		local newpos = eyes.Pos
 		local hands = ply:GetHands()
+		local et = DRC.CalcView.Trace
 
 		newpos = pos + Vector(diff.x * .1, diff.y * .1, diff.z * .1)
 		local holdtype = wpn:GetHoldType()
@@ -157,7 +191,7 @@ hook.Add( "CalcViewModelView", "Draconic_Experimental_First_Person_CVMV", functi
 			newpos = pos - Vector(diff.x * .1, diff.y * .1, diff.z * .1)
 		end
 
-		local aids = ply:GetEyeTrace().HitPos
+		local aids = et.HitPos
 		local hiv = math.Round(ply:EyePos():Distance(aids))
 		hiv = math.Clamp(hiv, 0, 50) / 50
 		hiv = 1 - hiv
@@ -171,18 +205,34 @@ hook.Add( "CalcViewModelView", "Draconic_Experimental_First_Person_CVMV", functi
 		
 		if wpn.Draconic == true && GetConVar("cl_drc_lowered_crosshair"):GetFloat() == 1 then
 			DRC.CrosshairAngMod = Angle(-10, 0, 0)
+			if DRC:SightsDown(wpn) then 
+				DRC.CalcView.LoweredAng = Angle(7, 0, 0)
+			else
+				DRC.CalcView.LoweredAng = Angle(7, 0, 0)
+			end
 		else
 			DRC.CrosshairAngMod = Angle(0, 0, 0)
+			DRC.CalcView.LoweredAng = Angle(0, 0, 0)
 		end
 
 		local calcvpos, calcvang = Vector(), Angle()
 		
-		if wpn.Draconic then
+		--local offtrace = util.TraceLine({
+		--	start = pos,
+		--	endpos = et.HitPos,
+		--	filter = function(ent) if ent == LocalPlayer() then return false else return true end end
+		--})
+		--local offang = offtrace.Normal:Angle()
+		--DRC.CalcView.OffAng = LerpAngle(0.5, DRC.CalcView.OffAng or offang, offang)
+		
+		if wpn.Draconic or wpn.ArcCW then
 			calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
-			eyeang = calcvang + (DRC.CrosshairAngMod/1.5)
+		--	local newangdiff = calcvang - DRC.CalcView.OffAng
+			
+			eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng -- newangdiff
 			newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
 		end
-		
+	--	newpos = Vector()
 		return newpos, eyeang
 	end
 end)
@@ -269,18 +319,20 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	local spine2 = ply:LookupBone(DRC.Skel.Spine2.Name)
 	local spine4 = ply:LookupBone(DRC.Skel.Spine4.Name)
 
+	if DRC:ValveBipedCheck(DRC.CSPlayerModel) then
 	DRC.CSPlayerModel:ManipulateBoneScale(spine0, DRC.Skel.Spine.Scale)
 	DRC.CSPlayerModel:ManipulateBoneScale(spine1, DRC.Skel.Spine1.Scale)
-	DRC.CSPlayerModel:ManipulateBoneScale(spine2, DRC.Skel.Spine2.Scale)
-	DRC.CSPlayerModel:ManipulateBoneScale(spine4, DRC.Skel.Spine4.Scale)
+	if spine2 != nil then DRC.CSPlayerModel:ManipulateBoneScale(spine2, DRC.Skel.Spine2.Scale) end
+	if spine4 != nil then DRC.CSPlayerModel:ManipulateBoneScale(spine4, DRC.Skel.Spine4.Scale) end
 	
-	DRC.CSPlayerModel:ManipulateBonePosition(neck, DRC.Skel.Neck.Offset)
+	if neck != nil then DRC.CSPlayerModel:ManipulateBonePosition(neck, DRC.Skel.Neck.Offset) end
 	
-	if IsValid(ply:GetVehicle()) == true then
-		DRC.CSPlayerModel:ManipulateBonePosition(leftarm, Vector(0, 0, 0))
-		DRC.CSPlayerModel:ManipulateBonePosition(rightarm, Vector(0, 0, 0))
-	else
-		DRC.CSPlayerModel:ManipulateBonePosition(leftarm, DRC.Skel.LeftArm.Offset)
-		DRC.CSPlayerModel:ManipulateBonePosition(rightarm, DRC.Skel.RightArm.Offset)
+		if IsValid(ply:GetVehicle()) == true or !IsValid(ply:GetActiveWeapon()) then
+			DRC.CSPlayerModel:ManipulateBonePosition(leftarm, Vector(0, 0, 0))
+			DRC.CSPlayerModel:ManipulateBonePosition(rightarm, Vector(0, 0, 0))
+		else
+			DRC.CSPlayerModel:ManipulateBonePosition(leftarm, DRC.Skel.LeftArm.Offset)
+			DRC.CSPlayerModel:ManipulateBonePosition(rightarm, DRC.Skel.RightArm.Offset)
+		end
 	end
 end)

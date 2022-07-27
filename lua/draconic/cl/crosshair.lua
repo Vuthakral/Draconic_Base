@@ -1,4 +1,3 @@
-local widthpos, heightpos = 0, 0
 local function drc_Crosshair()
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	if GetConVar("cl_drc_disable_crosshairs"):GetFloat() == 1 then return end
@@ -14,16 +13,12 @@ local function drc_Crosshair()
 	
 	local pos = DRC.CalcView.ToScreen
 	
-	local widthpos, heightpos = nil, nil
-	widthpos = pos.x
-	heightpos = pos.y
-	
 	if curswep.SightsDown == false or curswep.Secondary.ScopePitch != 0 then
-	--	widthpos = ScrW()/2
-	--	heightpos = ScrH()/2
-	elseif curswep.SightsDown == true then
-		widthpos = ScrW()/2
-		heightpos = ScrH()/2
+	--	pos.x = ScrW()/2
+	--	pos.y = ScrH()/2
+	elseif curswep.SightsDown && curswep.Secondary.Scoped == true then
+		pos.x = ScrW()/2
+		pos.y = ScrH()/2
 		
 		local Xalpha = 0
 		if ((pos.x > ScrW()/2 + 25) or (pos.x < ScrW()/2 - 25)) or ((pos.y > ScrH()/2 + 25) or (pos.y < ScrH()/2 - 25)) then
@@ -45,7 +40,7 @@ local function drc_Crosshair()
 	local bool1 = curswep.Weapon:GetNWBool("Inspecting")
 	local bool2 = curswep:GetNWBool("Passive")
 	--local bool3 = curswep.Weapon:GetNWBool("Ironsights")
-	local bool3 = curswep.SightsDown
+	local bool3 = (curswep.SightsDown == true && !DRC:ThirdPersonEnabled(ply))
 	
 	if (bool1 == false) or (bool2 == false) or (bool3 == false) then
 		alphach = Lerp(curswep.MulIns, 0, 255)
@@ -82,8 +77,8 @@ local function drc_Crosshair()
 				if curswep.CrosshairShadow == true then
 					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch*1.5 )
 					surface.SetMaterial( Material(curswep.CrosshairStatic) )
-					surface.DrawTexturedRect(widthpos, heightpos, artificial, artificial)
-					surface.DrawTexturedRect(widthpos, heightpos, artificial, artificial)
+					surface.DrawTexturedRect(pos.x, pos.y, artificial, artificial)
+					surface.DrawTexturedRect(pos.x, pos.y, artificial, artificial)
 				end
 		
 			if target && (dist < curswep.Primary.LungeMaxDist) then
@@ -92,7 +87,7 @@ local function drc_Crosshair()
 				surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphalerpch )
 			end
 			surface.SetMaterial( Material(curswep.CrosshairStatic) )
-			surface.DrawTexturedRectRotated(widthpos * artificial, heightpos * artificial, ScrH()/8 * artificial, ScrH()/8 * artificial, 0)
+			surface.DrawTexturedRectRotated(pos.x * artificial, pos.y * artificial, ScrH()/8 * artificial, ScrH()/8 * artificial, 0)
 			end
 		end
 	
@@ -118,18 +113,18 @@ local function drc_Crosshair()
 			
 			surface.SetDrawColor( hl.x, hl.y, hl.z, heat * 2.5 )
 			surface.SetMaterial(Material("vgui/hud/xbox_reticle"))
-			surface.DrawTexturedRect( (widthpos - (256 * 0.5) * (spread / spreaddiv) * 16), (heightpos - (256 * 0.5) * smath * 16), 256 * smath * 16, 256 * smath * 16 )
+			surface.DrawTexturedRect( (pos.x - (256 * 0.5) * (spread / spreaddiv) * 16), (pos.y - (256 * 0.5) * smath * 16), 256 * smath * 16, 256 * smath * 16 )
 					
-			surface.DrawCircle((widthpos), (heightpos), 64 * smath * 10, 255, 255, 255, 255)
-			surface.DrawCircle((widthpos), (heightpos), 64 * smath * 13.37, 255, 0, 0, 255)
-			surface.DrawCircle((widthpos), (heightpos), 64 * smath * 1, 0, 255, 0, 255)
-			surface.DrawCircle((widthpos), (heightpos), 64 * smath * 3, 120, 255, 120, 50)
+			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 10, 255, 255, 255, 255)
+			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 13.37, 255, 0, 0, 255)
+			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 1, 0, 255, 0, 255)
+			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 3, 120, 255, 120, 50)
 							
-			surface.DrawCircle((widthpos), (heightpos), 64 * LerpC / 50.75, 0, 100, 255, 255)
-			surface.DrawCircle((widthpos), (heightpos), 64 * LerpC / 52, 0, 175, 255, 255)
+			surface.DrawCircle((pos.x), (pos.y), 64 * LerpC / 50.75, 0, 100, 255, 255)
+			surface.DrawCircle((pos.x), (pos.y), 64 * LerpC / 52, 0, 175, 255, 255)
 			
 			if curswep.Primary.AimAssist == true then
-				surface.DrawCircle((widthpos), (heightpos), 13 * curswep.SpreadCone * curswep.Primary.AimAssist_Mul, 0, 255, 255, 255)
+				surface.DrawCircle((pos.x), (pos.y), 13 * curswep.SpreadCone * curswep.Primary.AimAssist_Mul, 0, 255, 255, 255)
 			end
 		end
 	else end
@@ -142,8 +137,8 @@ local function drc_Crosshair()
 				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 			end
 			surface.SetMaterial( Material(curswep.CrosshairStatic) )
-			surface.DrawTexturedRect(widthpos - smathoffset * 3.3775 * artificial * cx, heightpos - smathoffset * 3.3775 * artificial * cy, smathoffset * 6.75 * artificial, smathoffset * 6.75 * artificial)
-			surface.DrawTexturedRect(widthpos - smathoffset * 3.1275 * artificial * cx, heightpos - smathoffset * 3.1275 * artificial * cy, smathoffset * 6.25 * artificial, smathoffset * 6.25 * artificial)
+			surface.DrawTexturedRect(pos.x - smathoffset * 3.3775 * artificial * cx, pos.y - smathoffset * 3.3775 * artificial * cy, smathoffset * 6.75 * artificial, smathoffset * 6.75 * artificial)
+			surface.DrawTexturedRect(pos.x - smathoffset * 3.1275 * artificial * cx, pos.y - smathoffset * 3.1275 * artificial * cy, smathoffset * 6.25 * artificial, smathoffset * 6.25 * artificial)
 		end
 	
 		if curswep.CrosshairNoIronFade == false then
@@ -152,7 +147,7 @@ local function drc_Crosshair()
 			surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 		end
 		surface.SetMaterial( Material(curswep.CrosshairStatic) )
-		surface.DrawTexturedRect(widthpos - smathoffset * 3.25 * artificial * cx, heightpos - smathoffset * 3.25 * artificial * cy, smathoffset * 6.5 * artificial, smathoffset * 6.5 * artificial)
+		surface.DrawTexturedRect(pos.x - smathoffset * 3.25 * artificial * cx, pos.y - smathoffset * 3.25 * artificial * cy, smathoffset * 6.5 * artificial, smathoffset * 6.5 * artificial)
 	end
 	
 	if curswep.CrosshairDynamic != nil then
@@ -163,8 +158,8 @@ local function drc_Crosshair()
 				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 			end
 			surface.SetMaterial( Material(curswep.CrosshairDynamic) )
-			surface.DrawTexturedRect(widthpos - smathoffset * 3.1275 * artificial - LerpC / 2 * cx, heightpos - smathoffset * 3.1275 * artificial - LerpC / 2 * cy, smathoffset * 6.25 * artificial + LerpC, smathoffset * 6.25 * artificial + LerpC)
-			surface.DrawTexturedRect(widthpos - smathoffset * 3.3775 * artificial - LerpC / 2 * cx, heightpos - smathoffset * 3.3775 * artificial - LerpC / 2 * cy, smathoffset * 6.75 * artificial + LerpC, smathoffset * 6.75 * artificial + LerpC)
+			surface.DrawTexturedRect(pos.x - smathoffset * 3.1275 * artificial - LerpC / 2 * cx, pos.y - smathoffset * 3.1275 * artificial - LerpC / 2 * cy, smathoffset * 6.25 * artificial + LerpC, smathoffset * 6.25 * artificial + LerpC)
+			surface.DrawTexturedRect(pos.x - smathoffset * 3.3775 * artificial - LerpC / 2 * cx, pos.y - smathoffset * 3.3775 * artificial - LerpC / 2 * cy, smathoffset * 6.75 * artificial + LerpC, smathoffset * 6.75 * artificial + LerpC)
 		end
 	
 		if curswep.CrosshairNoIronFade == false then
@@ -173,7 +168,7 @@ local function drc_Crosshair()
 			surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 		end
 		surface.SetMaterial( Material(curswep.CrosshairDynamic) )
-		surface.DrawTexturedRect(widthpos - smathoffset * 3.25 * artificial - LerpC / 2 * cx, heightpos - smathoffset * 3.25 * artificial - LerpC / 2 * cy, smathoffset * 6.5 * artificial + LerpC, smathoffset * 6.5 * artificial + LerpC)
+		surface.DrawTexturedRect(pos.x - smathoffset * 3.25 * artificial - LerpC / 2 * cx, pos.y - smathoffset * 3.25 * artificial - LerpC / 2 * cy, smathoffset * 6.5 * artificial + LerpC, smathoffset * 6.5 * artificial + LerpC)
 	end
 	
 	DRC.Crosshair = {}
@@ -181,18 +176,18 @@ local function drc_Crosshair()
 	
 	if curswep.CrosshairStatic != nil or curswep.CrosshairDynamic != nil then return end
 	
-	draw.RoundedBox( 0, widthpos + LerpC + smath + smathoffset, heightpos -2, 22, 3, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, widthpos + LerpC + 1 + smath + smathoffset, heightpos -1, 20, 1, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x + LerpC + smath + smathoffset, pos.y -2, 22, 3, Color(0, 0, 0, 200 * alphalerpch))
+	draw.RoundedBox( 0, pos.x + LerpC + 1 + smath + smathoffset, pos.y -1, 20, 1, Color(255, 255, 255, 255 * alphalerpch))
 	
-	draw.RoundedBox( 0, widthpos - LerpC - 20 - smath - smathoffset, heightpos -2, 22, 3, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, widthpos - LerpC - 19 - smath - smathoffset, heightpos -1, 20, 1, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x - LerpC - 20 - smath - smathoffset, pos.y -2, 22, 3, Color(0, 0, 0, 200 * alphalerpch))
+	draw.RoundedBox( 0, pos.x - LerpC - 19 - smath - smathoffset, pos.y -1, 20, 1, Color(255, 255, 255, 255 * alphalerpch))
 	
-	draw.RoundedBox( 0, widthpos -1, heightpos + LerpC + smath + smathoffset -1, 3, 22, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, widthpos, heightpos + LerpC + smath + smathoffset, 1, 20, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x -1, pos.y + LerpC + smath + smathoffset -1, 3, 22, Color(0, 0, 0, 200 * alphalerpch))
+	draw.RoundedBox( 0, pos.x, pos.y + LerpC + smath + smathoffset, 1, 20, Color(255, 255, 255, 255 * alphalerpch))
 	
-	surface.DrawCircle((widthpos), (heightpos), 64 * LerpC / 50, LerpC * 5, LerpC * 5, LerpC * 5, LerpC * 2.5)
+	surface.DrawCircle((pos.x), (pos.y), 64 * LerpC / 50, LerpC * 5, LerpC * 5, LerpC * 5, LerpC * 2.5)
 	
-	surface.DrawCircle((widthpos), (heightpos), 1, 255, 255, 255, 255 * alphalerpch)
-	surface.DrawCircle((widthpos), (heightpos), 2, 0, 0, 0, 10 * alphalerpch)
+	surface.DrawCircle((pos.x), (pos.y), 1, 255, 255, 255, 255 * alphalerpch)
+	surface.DrawCircle((pos.x), (pos.y), 2, 0, 0, 0, 10 * alphalerpch)
 end
 hook.Add("HUDPaint", "drc_crosshair", drc_Crosshair)

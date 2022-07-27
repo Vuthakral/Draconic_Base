@@ -8,10 +8,7 @@ It contains all of the settings, explanations on how to use them, tutorials, hel
 --]]
 
 local HDR = render.GetHDREnabled()
-local curmap = game.GetMap()
-local LMCorrection = 1
-DRC.MapInfo.MapAmbient = render.GetAmbientLightColor()
-DRC.MapInfo.MapAmbientAvg = (DRC.MapInfo.MapAmbient.x + DRC.MapInfo.MapAmbient.y + DRC.MapInfo.MapAmbient.z) / 3
+local LMCor = DRC.MapInfo.LMCorrection
 
 if CLIENT then
 	hook.Add("Think", "Draconic_Base_Matproxy_Clientside_Think_Please_Just_Trust_Me_It_Isnt_Laggy", function()
@@ -27,76 +24,6 @@ if CLIENT then
 		if !DRC.MapInfo.MapAmbient then DRC.MapInfo.MapAmbient = render.GetAmbientLightColor() end
 		if !DRC.MapInfo.MapAmbientAvg then DRC.MapInfo.MapAmbientAvg = (DRC.MapInfo.MapAmbient.x + DRC.MapInfo.MapAmbient.y + DRC.MapInfo.MapAmbient.z) / 3 end
 	end)
-end
-
-drc_badlightmaps = { -- The only maps that get added to this list are old maps which will not see an update/fix from their authors. This is not meant as a mark of shame. It is used in the Draconic menu to inform developers the map they are using has incorrectly compiled lighting, and as a result their content using the Draconic base visually might be slightly off.
-	"gm_blackmesa_sigma",
-	"gm_bigcity_improved",
-	"gm_bigcity_improved_lite",
-	"gm_emp_chain",
---	"rp_darkscape",
---	"rp_jupiter_underground",
-}
-
-local drc_verifiedlightmaps = { -- (most) Base game maps & ones I know for sure are done correctly.
-	"gm_construct",
-	"gm_flatgrass",
-	"gm_bigcity",
-	"gm_emp_streetsoffire",
-	"gm_vault",
-}
-
-local drc_tweakedlightmaps = { -- Maps with good enough cubemapping but my own stuff is screwy on. Compensation, basically.
-}
-
-drc_singlecubemaps = {
-	"mu_volcano",
-	"gm_cultist_outpost",
-	"gm_reactionsew",
-}
-
-drc_fullbrightcubemaps = {
-}
-
-drc_authorpassedlightmaps = { -- Use " table.insert(drc_authorpassedlightmaps, "your_map_name") " in an autorun script as part of your map to tell the base your map should be labelled as "Author Pass".
-}
-
-if CTFK(drc_badlightmaps, curmap) or CTFK(drc_singlecubemaps, curmap) or CTFK(drc_fullbrightcubemaps, curmap) then
-	drc_mapfailed_lightamsp = true
-	if curmap == "gm_blackmesa_sigma" then
-		LMCorrection = 0.1
-	elseif curmap == "gm_bigcity_improved" or curmap == "gm_bigcity_improved_lite" then
-		LMCorrection = 0.25
-	elseif curmap == "mu_volcano" then
-		LMCorrection = DRC.MapInfo.MapAmbientAvg * 3
-	elseif curmap == "gm_cultist_outpost" then
-		LMCorrection = 0.25
-	elseif curmap == "gm_emp_chain" then
-		LMCorrection = 0.15
-	else
-		LMCorrection = 0.1
-	end
-else
-	drc_mapfailed_lightamsp = false
-	LMCorrection = 1
-end
-
-if CTFK(drc_verifiedlightmaps, curmap) then
-	drc_mappassed_lightmap = true
-else
-	drc_mappassed_lightmap = false
-end
-
-if CTFK(drc_authorpassedlightmaps, curmap) then
-	drc_authorpassedlightmap = true
-else
-	drc_authorpassedlightmap = false
-end
-
-if CTFK(drc_tweakedlightmaps, curmap) then
-	drc_mappassed_lightmap = true
-else
-	drc_mappassed_lightmap = false
 end
 
 matproxy.Add( {
@@ -271,11 +198,14 @@ matproxy.Add( {
 	name = "drc_EnergyColour",
 	init = function( self, mat, values )
 		self.ResultTo = values.resultvar
+		self.PowerFloat = mat:GetFloat("$energy_Mul")
 	end,
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
 		local col, mul = nil
+		
+		if !self.PowerFloat then self.PowerFloat = 1 end
 		
 		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then
 			local col = LocalPlayer():GetActiveWeapon():GetNWVector("EnergyTintVec") / 255
@@ -286,7 +216,7 @@ matproxy.Add( {
 		if ent:GetClass() == "drc_shieldmodel" then
 			local col = ent:GetOwner():GetNWVector("EnergyTintVec")
 			if col == Vector(0, 0, 0) then col = Vector(0.3, 0.7, 1) end
-			mat:SetVector(self.ResultTo, col)
+			mat:SetVector(self.ResultTo, col * self.PowerFloat)
 		return end
 		
 		if ent.Preview == true then
@@ -462,6 +392,34 @@ matproxy.Add( {
 		if charge == nil then return end
 		
 		local blendvec = LerpVector(self.chargelerp, self.MinVec, self.MaxVec) * self.MulInt / 100
+		
+		mat:SetVector( self.ResultTo, blendvec )
+	end
+} )
+
+matproxy.Add( {
+	name = "drc_CurMag",
+	init = function( self, mat, values )
+		self.ResultTo = values.resultvar
+		self.MinVec = mat:GetVector("$colourfrom")
+		self.MaxVec = mat:GetVector("$colourto")
+		self.MulInt = mat:GetFloat("$colourmul")
+	end,
+
+	bind = function( self, mat, ent )
+		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
+		local owner = ent:GetOwner()
+		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
+		local wpn = owner:GetActiveWeapon()
+		if ( !IsValid( wpn ) or !wpn:IsWeapon() ) then return end
+		if wpn == nil then return end
+		
+		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
+		if self.MaxVec == nil then self.MaxVec = Vector(0, 0, 0) end
+		if self.MulInt == nil then self.MulInt = 1 end
+		
+		local blendvec = LerpVector(wpn:Clip1() / wpn:GetMaxClip1(), self.MinVec, self.MaxVec) * self.MulInt
 		
 		mat:SetVector( self.ResultTo, blendvec )
 	end
@@ -738,7 +696,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 				
 			mat:SetVector( self.ResultTo, (final * self.PowerFloat) * (self.TintVector * self.PowerFloat) * final )
@@ -756,7 +714,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 				
 			mat:SetVector( self.ResultTo, (final * self.PowerFloat) * (self.TintVector * self.PowerFloat) * final )
 		else
@@ -773,7 +731,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = (final * self.PowerFloat) * (self.TintVector * self.PowerFloat) * final
 			mat:SetVector( self.ResultTo, val )
@@ -885,7 +843,7 @@ matproxy.Add( {
 		local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 		local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 		local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-		local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+		local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 		
 		local correction = nil
 		if HDR then correction = self.HDRCorrectionLevel else correction = (((lightlevel.r + lightlevel.g + lightlevel.b) / 3) * self.LDRCorrectionLevel) end
@@ -987,7 +945,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1010,7 +968,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1036,7 +994,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1068,7 +1026,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection
+			local final = Vector(finalx, finaly, finalz) * LMCor
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1177,7 +1135,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1200,7 +1158,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1226,7 +1184,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1251,7 +1209,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1360,7 +1318,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1383,7 +1341,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1409,7 +1367,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1434,7 +1392,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1543,7 +1501,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1566,7 +1524,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1592,7 +1550,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1618,7 +1576,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1721,7 +1679,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 				
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1744,7 +1702,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(interp.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(interp.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 				
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1773,7 +1731,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -1798,7 +1756,7 @@ matproxy.Add( {
 			local finalx = math.Clamp(mul.x, self.MinFloat, self.MaxFloat)
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
-			local final = Vector(finalx, finaly, finalz) * LMCorrection * DRC.WeathermodScalar
+			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
 			local val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
@@ -2346,11 +2304,15 @@ matproxy.Add( {
 		local vis = parent:GetNWInt("DRC_ShieldVisibility")
 		local glow = parent:GetNWInt("DRC_Shield_AlwaysGlow")
 		if hp < 0.01 then vis = 0 end
-		if glow == false then
+		if glow == false && !DRC:GetOverShield(parent) then
 			ent.DRCShieldVis = Lerp(RealFrameTime() * 10, ent.DRCShieldVis or vis, vis)
-		else
+		elseif glow == true then
 			if hp < 0.01 then ent.DRCShieldVis = 0 else ent.DRCShieldVis = 1 end
+		elseif glow == false && DRC:GetOverShield(parent) != nil then
+			ent.DRCShieldVis = math.Clamp(Lerp(RealFrameTime() * 10, ent.DRCShieldVis or vis, vis), 0.5, 1)
 		end
+		
+		if DRC:GetShieldInvulnerability(parent) == true then ent.DRCShieldVis = 1 end
 		
 		if game.SinglePlayer() then
 			if GetConVar("cl_drc_debugmode"):GetFloat() != 0 && GetConVar("cl_drc_debug_alwaysshowshields"):GetFloat() == 1 then

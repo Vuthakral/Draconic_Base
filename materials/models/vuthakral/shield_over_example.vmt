@@ -1,0 +1,31 @@
+"VertexLitGeneric"
+{
+	$basetexture	"models\debug\debugwhite"
+
+ 	$model		1
+	$nocull		1
+	$translucent	1
+	$nodecal		1
+
+	$color2	"[ 1 1 1 ]"
+
+	$emissiveBlendEnabled	1
+	$emissiveBlendTexture	"models\vuthakral\shield_arcs"
+	$emissiveBlendBaseTexture	"models\debug\debugwhite"
+	$emissiveBlendFlowTexture	"models\vuthakral\shield_flow"
+	$emissiveBlendTint		"[ 1 1 1 ]"
+	$emissiveBlendStrength 	1
+	$emissiveBlendScrollVector	"[ .15 .15 ]"
+
+	$energy_Mul 3
+
+	Proxies
+	{
+
+		drc_ShieldFade{}
+		drc_EnergyColour
+		{
+			resultVar	$emissiveBlendTint	
+		}
+	}
+}

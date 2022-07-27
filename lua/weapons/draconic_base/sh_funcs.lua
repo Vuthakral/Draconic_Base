@@ -818,6 +818,8 @@ function SWEP:DoEffects(mode, nosound, multishot)
 			self.Projectile = self.Primary.Projectile
 			self.TracerEffect = self.Primary.TracerEffect
 			
+			self:CallOnClient("MuzzleFlash")
+			
 			if fm == "Semi" or fm == "Auto" then
 				self.Sound = self.Primary.SoundTable.Semiauto.Near
 				self.DistSound = self.Primary.SoundTable.Semiauto.Far
@@ -1035,6 +1037,28 @@ function SWEP:DoRecoil(mode)
 	if CLIENT then ply:SetEyeAngles(Angle(0, 0, 0) + Angle(eyeang.pitch, eyeang.yaw, nil)) end
 end
 
+function SWEP:MuzzleFlash()
+	if SERVER then return end
+	local col = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Colour")
+	if self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Dynamic") == true then
+		local bright = (col.a/5)* (math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1))
+		local ent = DRC.CalcView.MuzzleLamp
+		ent.Texture = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Mask")
+		ent.Light:SetColor(Color(col.r, col.g, col.b))
+		ent.Light:SetBrightness(bright)
+		ent.FOV = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "FOV")
+		ent.FarZ = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "FarZ")
+		ent.Enabled = true
+	end
+	
+	if self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Simple") == true then
+		local att = self:LookupAttachment("muzzle")
+		local attinfo = self:GetAttachment(att)
+		local pos, ang = attinfo.Pos, attinfo.Ang
+		DRC:DLight(self, pos, col, self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Size"), self:GetAttachmentValue("Ammunition", "MuzzleFlash", "LifeTime"))
+	end
+end
+
 function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as a "sequence of triggers" to cause a myriad of functions / effects, but splits to multiple functions for SWEP authors to be able to call any of them independently.	
 	local ply = self:GetOwner()
 	if ignoreimpossibility == nil then ignoreimpossibility = false end
@@ -1132,7 +1156,7 @@ end
 function SWEP:DoCustomMeleeImpact(att, tr)
 end
 
-function SWEP:GetAttachmentValue(att, val)
+function SWEP:GetAttachmentValue(att, val, subval)
 	local AA = self.ActiveAttachments
 	local base = scripted_ents.GetStored("drc_att_bprofile_generic")
 	local BT = base.t.BulletTable
@@ -1142,11 +1166,12 @@ function SWEP:GetAttachmentValue(att, val)
 		tab = AA.Ammunition.t.BulletTable
 		
 		local foundval = tab[val]
-		if foundval == nil then
-			foundval = base.t.BulletTable[val]
-		--	if GetConVar("cl_drc_debugmode"):GetFloat() > 1 && foundval != nil then print("Failed to find value (".. tostring(att) .." - " .. tostring(val) .."), pulling base instead: ".. foundval .."") end
-		else
-		--	if GetConVar("cl_drc_debugmode"):GetFloat() > 1 then print("Found value (".. tostring(att) .." - " .. tostring(val) .."): ".. foundval .."") end
+		local foundsubval = nil
+		if foundval == nil then foundval = base.t.BulletTable[val] end
+		if subval then
+			if tab[val] then foundsubval = tab[val][subval] end
+			if foundsubval == nil then foundsubval = base.t.BulletTable[val][subval] end
+			return foundsubval
 		end
 		return foundval
 	end

@@ -171,7 +171,7 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 			local ed3 = EffectData()
 			ed3:SetOrigin(pos)
 			util.Effect(effe, ed3)
-			DRC_ParticleExplosion(self:GetPos(), ep * 30, ep * 20)
+			DRC:ParticleExplosion(self, ep * 30, ep * 20)
 		end
 	end
 		

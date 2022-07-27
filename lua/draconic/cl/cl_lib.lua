@@ -13,6 +13,7 @@ DRC.ThirdPerson.DefaultOffsets = {
 	["physgun"] = Vector(25, -15, 0),
 	["crossbow"] = Vector(45, -20, 0),
 	["melee"] = Vector(55, -17.5, 0),
+	["crowbar"] = Vector(55, -17.5, 0), -- HL:S Crowbar??????
 	["melee2"] = Vector(55, -22.5, 0),
 	["slam"] = Vector(55, -25, 0),
 	["normal"] = Vector(35, 0, 10),
@@ -76,6 +77,7 @@ function DRC:GetCustomizationAllowed()
 end
 
 net.Receive("DRC_UpdatePlayerHands", function()
+	if !IsValid(LocalPlayer()) then return end
 	local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
 	local pmname = player_manager.TranslateToPlayerModelName(handval)
 	if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then 
@@ -100,4 +102,5 @@ net.Receive("DRC_UpdatePlayermodel", function()
 	ent:SetSkin(skin)
 	ent:SetBodyGroups(bgs)
 	DRC:RefreshColours(ent)
+	RunConsoleCommand("drc_refreshcsents")
 end)

@@ -91,8 +91,9 @@ function DRCMenu( player )
 	bg:SetImage("vgui/drc_playerbg")
 	bg:SetZPos(-10)
 	
-	local pmodel = LocalPlayer():GetInfo( "cl_playermodel" )
-	local pmodelname = player_manager.TranslatePlayerModel( pmodel )
+	--local pmodel = LocalPlayer():GetInfo( "cl_playermodel" )
+	--local pmodelname = player_manager.TranslatePlayerModel( pmodel )
+	local pmodelname = LocalPlayer():GetModel()
 	
 	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() print(pmodelname) end
 	
@@ -265,9 +266,16 @@ function DRCMenu( player )
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	
+	local arms = {
+		["c_"] = "E",
+		["v_"] = "E",  -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
+		["viewhands"] = "E", -- I HATE YOU.
+	}
+	
 	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-		if !string.match(model, "c_") && !string.match(model, "v_") then
-			if !string.match(model, "viewhands") then -- I HATE YOU.
+		local substring = string.sub("model", 1, 2)
+		local substring_stupid = string.sub("model", 1, 9)
+		if !arms[substring] or !arms[substring_stupid] then
 			local icon = vgui.Create( "SpawnIcon" )
 			icon:SetModel( model )
 			icon:SetSize( 64, 64 )
@@ -276,7 +284,6 @@ function DRCMenu( player )
 			icon.model_path = model
 			
 			PanelSelect:AddPanel( icon, { cl_playermodel = name } )
-			end
 		end
 	end
 	
@@ -310,7 +317,7 @@ function DRCMenu( player )
 	PanelSelect_Hands:AddPanel(RemoveButton)
 	
 	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-		if string.match(model, "c_") or string.match(model, "v_") or string.match(model, "viewhands") then -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
+		if arms[substring] or arms[substring_stupid] then
 			local icon = vgui.Create( "SpawnIcon" )
 			icon:SetModel( model )
 			icon:SetSize( 64, 64 )
@@ -1259,8 +1266,16 @@ function DRCMenu( player )
 	DrcThirdperson.Label:SetColor(TextCol)
 	DrcThirdperson:SetEnabled(true)
 	
+	local DrcThirdperson_Dyn = vgui.Create( "DCheckBoxLabel", t2tab1 )
+	DrcThirdperson_Dyn:SetPos(25, 185)
+	DrcThirdperson_Dyn:SetSize(500, 20)
+	DrcThirdperson_Dyn:SetText( "Disable Thirdperson Free-look" )
+	DrcThirdperson_Dyn:SetConVar( "cl_drc_thirdperson_disable_freelook" )
+	DrcThirdperson_Dyn.Label:SetColor(TextCol)
+	DrcThirdperson_Dyn:SetEnabled(true)
+	
 	local DRCSway = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DRCSway:SetPos(25, 185)
+	DRCSway:SetPos(25, 210)
 	DRCSway:SetSize(500, 20)
 	DRCSway:SetText( "Scripted Weapon Swaying" )
 	DRCSway:SetConVar( "cl_drc_sway" )
@@ -1268,7 +1283,7 @@ function DRCMenu( player )
 	DRCSway:SetEnabled(true)
 	
 	local VMOX = vgui.Create( "DNumSlider", t2tab1 )
-	VMOX:SetPos(25, 205)
+	VMOX:SetPos(25, 235)
 	VMOX:SetSize(300, 20)
 	VMOX:SetText( "Global viewmodel offset X" )
 	VMOX.Label:SetColor(TextCol)
@@ -1279,7 +1294,7 @@ function DRCMenu( player )
 	VMOX:SetEnabled(true)
 	
 	local VMOY = vgui.Create( "DNumSlider", t2tab1 )
-	VMOY:SetPos(25, 225)
+	VMOY:SetPos(25, 255)
 	VMOY:SetSize(300, 20)
 	VMOY:SetText( "Global viewmodel offset Y" )
 	VMOY.Label:SetColor(TextCol)
@@ -1290,7 +1305,7 @@ function DRCMenu( player )
 	VMOY:SetEnabled(true)
 	
 	local VMOZ = vgui.Create( "DNumSlider", t2tab1 )
-	VMOZ:SetPos(25, 250)
+	VMOZ:SetPos(25, 275)
 	VMOZ:SetSize(300, 20)
 	VMOZ:SetText( "Global viewmodel offset Y" )
 	VMOZ.Label:SetColor(TextCol)
@@ -1342,29 +1357,42 @@ function DRCMenu( player )
 				DrcSprintOverride:SetConVar( "sv_drc_force_sprint" )
 				DrcSprintOverride.Label:SetColor(TextCol)
 				
+				local SvThirdperson = vgui.Create( "DCheckBoxLabel", t2tab2 )
+				SvThirdperson:SetPos(25, 115)
+				SvThirdperson:SetSize(20, 20)
+				SvThirdperson:SetText( "Disable access to Draconic's thirdperson system (Weapons that require it can still use it)" )
+				SvThirdperson:SetConVar( "sv_drc_disable_thirdperson" )
+				SvThirdperson.Label:SetColor(TextCol)
+				
+				local SvFreecam = vgui.Create( "DCheckBoxLabel", t2tab2 )
+				SvFreecam:SetPos(25, 135)
+				SvFreecam:SetSize(20, 20)
+				SvFreecam:SetText( "Disable Draconic thirdperson's freecam system globally" )
+				SvFreecam:SetConVar( "sv_drc_disable_thirdperson_freelook" )
+				SvFreecam.Label:SetColor(TextCol)
+				
 				local DrcCawadoody = vgui.Create( "DCheckBoxLabel", t2tab2 )
-				DrcCawadoody:SetPos(25, 115)
+				DrcCawadoody:SetPos(25, 155)
 				DrcCawadoody:SetSize(20, 20)
 				DrcCawadoody:SetText( "Allow weapons to use unrealistic 'Call of Duty' bullet spread" )
 				DrcCawadoody:SetConVar( "sv_drc_callofdutyspread" )
 				DrcCawadoody.Label:SetColor(TextCol)
 				
 				local LGTitle = vgui.Create( "DLabel", t2tab2)
-				LGTitle:SetPos(50, 125)
+				LGTitle:SetPos(50, 175)
 				LGTitle:SetSize(w2, 20)
 				LGTitle:SetText("(This means 'Allow weapons to magically decrease bullet spread when down sights')")
 				LGTitle:SetColor(SubtextCol)
 				
 				local DiffSetting = vgui.Create( "DLabel", t2tab2)
-		--		DiffSetting:SetFont("DermaLarge")
-				DiffSetting:SetPos(25, 155)
+				DiffSetting:SetPos(25, 195)
 				DiffSetting:SetSize(100, 20)
 				DiffSetting:SetText("HL2 Difficulty:")
 				DiffSetting:SetColor(TextCol)
 				
 				local HL2Diff = vgui.Create( "DComboBox", t2tab2 )
 				HL2Diff:SetSortItems(false)
-				HL2Diff:SetPos(125, 155)
+				HL2Diff:SetPos(125, 195)
 				HL2Diff:SetSize(150, 20)
 				HL2Diff:SetConVar( "skill" )
 				HL2Diff:AddChoice("Easy", 1)
@@ -1375,19 +1403,19 @@ function DRCMenu( player )
 				end
 				
 				local DiffDescE = vgui.Create( "DLabel", t2tab2)
-				DiffDescE:SetPos(300, 155)
+				DiffDescE:SetPos(300, 195)
 				DiffDescE:SetSize(w2, 20)
 				DiffDescE:SetText("Easy: ".. GetConVarNumber("sk_dmg_inflict_scale1") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale1") * 100 .."% damage taken.")
 				DiffDescE:SetColor(SubtextCol)
 				
 				local DiffDescM = vgui.Create( "DLabel", t2tab2)
-				DiffDescM:SetPos(300, 170)
+				DiffDescM:SetPos(300, 210)
 				DiffDescM:SetSize(w2, 20)
 				DiffDescM:SetText("Medium: ".. GetConVarNumber("sk_dmg_inflict_scale2") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale2") * 100 .."% damage taken.")
 				DiffDescM:SetColor(SubtextCol)
 				
 				local DiffDescH = vgui.Create( "DLabel", t2tab2)
-				DiffDescH:SetPos(300, 185)
+				DiffDescH:SetPos(300, 225)
 				DiffDescH:SetSize(w2, 20)
 				DiffDescH:SetText("Hard: ".. GetConVarNumber("sk_dmg_inflict_scale3") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale3") * 100 .."% damage taken.")
 				DiffDescH:SetColor(SubtextCol)
@@ -1694,12 +1722,12 @@ function DRCMenu( player )
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)
 	DebugInfo:SetPos(25, 40)
 	DebugInfo:SetSize(300, 20)
-	DebugInfo:SetText("Local light level >> ".. tostring(col) .."")
+	DebugInfo:SetText("Local light level >>      ".. tostring(col) .."")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)
 	DebugInfo:SetFont("Marlett")
-	DebugInfo:SetPos(275, 40)
+	DebugInfo:SetPos(120, 40)
 	DebugInfo:SetSize(50, 20)
 	DebugInfo:SetText("g")
 	DebugInfo:SetColor(Color(col.x, col.y, col.z, 255))
@@ -1810,12 +1838,12 @@ function DRCMenu( player )
 		end
 		
 		if game.SinglePlayer() then
-		local spawnworldmodel = vgui.Create("DButton", t4tab2panel_right)
-		spawnworldmodel:SetText("Spawn weapon worldmodel (drc_debug_spawnweaponmodel)")
-		spawnworldmodel:Dock(TOP)
-		spawnworldmodel.DoClick = function()
-			SpawnThatShit()
-		end
+			local spawnworldmodel = vgui.Create("DButton", t4tab2panel_right)
+			spawnworldmodel:SetText("Spawn weapon worldmodel (drc_debug_spawnweaponmodel)")
+			spawnworldmodel:Dock(TOP)
+			spawnworldmodel.DoClick = function()
+				SpawnThatShit()
+			end
 		end
 	end
 	
@@ -1833,7 +1861,3 @@ function DRCMenu( player )
 	wiki:OpenURL("https://github.com/Vuthakral/Draconic_Base/wiki")
 	
 end
-
-concommand.Add("drc_menu", function()
-	DRCMenu(LocalPlayer())
-end)

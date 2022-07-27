@@ -100,13 +100,25 @@ function ENT:Draw()
 		CopyPoseParams(parent, self)
 	end
 	
+	self.mat_to_use = parent:GetNWString("DRC_Shield_Material")
+	if DRC:GetOverShield(parent) then
+		self.mat_to_use = parent:GetNWString("DRC_Shield_OverMaterial")
+	end
+	
+	if DRC:GetShieldInvulnerability(parent) == true then
+		if parent == LocalPlayer() then print(parent:GetNWString("DRC_Shield_InvulnMaterial")) end
+		if parent:GetNWString("DRC_Shield_InvulnMaterial") != "" then
+		self.mat_to_use = parent:GetNWString("DRC_Shield_InvulnMaterial")
+		end
+	end
+	
 	if parent == LocalPlayer() then
 		if DRC:ThirdPersonEnabled(parent) == true then
-			self:SetMaterial(parent:GetNWString("DRC_Shield_Material"))
+			self:SetMaterial(self.mat_to_use)
 		else
 			if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
 				if !DRC.CSPlayerModel then return end
-				self:SetMaterial(parent:GetNWString("DRC_Shield_Material"))
+				self:SetMaterial(self.mat_to_use)
 				self:SetParent(DRC.CSPlayerModel)
 				for k,v in pairs(self.Bones) do
 					local id = self:LookupBone(k)
@@ -126,9 +138,8 @@ function ENT:Draw()
 			end
 		end
 	else
-		self:SetMaterial(parent:GetNWString("DRC_Shield_Material"))
+		self:SetMaterial(self.mat_to_use)
 	end
-	
 	
 	for k,v in pairs(parent:GetBodyGroups()) do
 		self:SetBodygroup(v.id, parent:GetBodygroup(v.id))

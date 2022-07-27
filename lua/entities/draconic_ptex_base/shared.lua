@@ -66,6 +66,8 @@ function ENT:Think()
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 	self:SetMaterial("models/vuthakral/nodraw")
 	
+	if !self.Light then self.Light = ProjectedTexture() end
+	
 	if CLIENT && self.Light then
 		self.Light:SetTexture(self.Texture)
 		self.Light:SetNearZ(self.NearZ)

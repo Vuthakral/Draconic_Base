@@ -740,12 +740,12 @@ function ENT:TriggerExplosion(nodecal)
 	local pos = self:GetPos()
 	local dist = self.ExplodePressure * 10 or self.SuperExplodePressure * 10
 	
-	local N = DRC_TraceDir(pos, Angle(0, 0, 0), dist)
-	local S = DRC_TraceDir(pos, Angle(0, 180, 0), dist)
-	local E = DRC_TraceDir(pos, Angle(0, -90, 0), dist)
-	local W = DRC_TraceDir(pos, Angle(0, 90, 0), dist)
-	local U = DRC_TraceDir(pos, Angle(-90, 0, 0), dist)
-	local D = DRC_TraceDir(pos, Angle(90, 0, 0), dist)
+	local N = DRC:TraceDir(pos, Angle(0, 0, 0), dist)
+	local S = DRC:TraceDir(pos, Angle(0, 180, 0), dist)
+	local E = DRC:TraceDir(pos, Angle(0, -90, 0), dist)
+	local W = DRC:TraceDir(pos, Angle(0, 90, 0), dist)
+	local U = DRC:TraceDir(pos, Angle(-90, 0, 0), dist)
+	local D = DRC:TraceDir(pos, Angle(90, 0, 0), dist)
 	local TraceTable = {N, S, E, W, U, D}
 
 	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && nodecal == false then

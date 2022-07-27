@@ -54,7 +54,7 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 	
 	if CurTime() > CSModelCheck then
 		CSModelCheck = CurTime() + 5
-		for k,v in pairs(ents.GetAll()) do
+		for k,v in pairs(ents.FindByClass("drc_csplayermodel")) do
 			if v:GetClass() == "drc_csplayermodel" && v != DRC.CSPlayerModel then v:Remove() end
 		end
 	end
@@ -74,18 +74,6 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 				shield:Spawn()
 			end
 		end
-	end
-	
-	if GetConVar("cl_drc_thirdperson"):GetFloat() != GetConVar("cl_drc_thirdperson"):GetFloat() then DRC.Convars_CL.EnableTP:SetFloat(GetConvar("cl_drc_thirdperson"):GetFloat()) end
-	
-	if LocalPlayer():KeyDown(IN_USE) && LocalPlayer():KeyPressed(IN_ALT1) then
-		if !DRC.Convars_CL.EnableTP then DRC.Convars_CL.EnableTP = GetConVar("cl_drc_thirdperson") end
-		if DRC.Convars_CL.EnableTP:GetFloat() == 0 then DRC.Convars_CL.EnableTP:SetFloat(1) else DRC.Convars_CL.EnableTP:SetFloat(0) end
-	end
-	
-	if LocalPlayer():KeyDown(IN_USE) && LocalPlayer():KeyPressed(IN_ALT2) then
-		if !DRC.Convars_CL.TP_FlipShoulder then DRC.Convars_CL.TP_FlipShoulder = GetConVar("cl_drc_thirdperson_flipside") end
-		if DRC.Convars_CL.TP_FlipShoulder:GetFloat() == 0 then DRC.Convars_CL.TP_FlipShoulder:SetFloat(1) else DRC.Convars_CL.TP_FlipShoulder:SetFloat(0) end
 	end
 end)
 
@@ -686,11 +674,11 @@ end
 function DRC:ThirdPersonEnabled(ply)
 	if ThirdPersonModEnabled(ply) == true then return true end
 	if ply:GetViewEntity() != ply then return true end
+	if DRC:IsDraconicThirdPersonEnabled(ply) == true then return true end
 	local curswep = ply:GetActiveWeapon()
 	if curswep.ASTWTWO == true then return true end
 	if ply:GetNWString("Draconic_ThirdpersonForce") == "On" then return true end
 	if ply:GetNWString("Draconic_ThirdpersonForce") == "Off" then return false end
-	if curswep.Draconic == true && curswep.Thirdperson == true then return true end
 	if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
 	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true else return false end
 end
@@ -700,6 +688,20 @@ function DRC:ShouldDoDRCThirdPerson(ply)
 	local curswep = ply:GetActiveWeapon()
 	if curswep.Draconic && curswep.Thirdperson == true then return true end
 	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+	return false
+end
+
+function DRC:IsDraconicThirdPersonEnabled(ply)
+	if !IsValid(ply) then return end
+	local curswep = ply:GetActiveWeapon()
+	if !IsValid(curswep) then
+		if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
+		if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+	else
+		if curswep.Draconic == true && curswep.Thirdperson == true then return true end
+		if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
+		if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+	end
 	return false
 end
 

@@ -7,6 +7,8 @@ Draconic = {
 if SERVER then AddCSLuaFile("sh/convars.lua") end
 include("sh/convars.lua")
 
+DRC.MapInfo.Name = game.GetMap()
+
 if SERVER then
 	DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas()
 	
@@ -15,6 +17,7 @@ if SERVER then
 	end)
 end
 
+if CLIENT then
 DRC.CalcView = {
 	["Pos"] = Vector(),
 	["Ang"] = Angle(),
@@ -22,6 +25,9 @@ DRC.CalcView = {
 	["ToScreen"] = {},
 	["wallpos"] = Vector(),
 }
+
+DRC.CalcView.ThirdPerson = {}
+end
 
 DRC.PlayerInfo = {}
 DRC.PlayerInfo.ViewOffsets = {}
@@ -162,8 +168,9 @@ function DRC:ValveBipedCheck(ent)
 	local RightClav = ent:LookupBone("ValveBiped.Bip01_R_Clavicle")
 	local LeftThigh = ent:LookupBone("ValveBiped.Bip01_L_Thigh")
 	local RightThigh = ent:LookupBone("ValveBiped.Bip01_R_Thigh")
+	local Pelvis = ent:LookupBone("ValveBiped.Bip01_Pelvis")
 	
-	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh then return false
+	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh or !Pelvis then return false
 	elseif ent:GetBoneParent(Spine1) != Spine then return false
 	else return true end
 end
@@ -713,6 +720,8 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWString("Draconic_ThirdpersonForce", nil)
 	ply:SetNWString("DRCVoiceSet", ply:GetInfo("cl_drc_voiceset"))
+	ply:SetNWInt("DRC_ShieldHealth_Extra", 0)
+	ply:SetNWBool("DRC_ShieldInvulnerable", false)
 	ply:SetNWBool("ShowSpray_Ents", ply:GetInfoNum("cl_drc_showspray", 0))
 	ply:SetNWBool("ShowSpray_Weapons", ply:GetInfoNum("cl_drc_showspray_weapons", 0))
 	ply:SetNWBool("ShowSpray_Vehicles", ply:GetInfoNum("cl_drc_showspray_vehicles", 0))
@@ -1350,7 +1359,7 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 		elseif CTFK(meleetwohand, newht) then PlayReadyAnim(ply, melee2)
 		end
 	else
-		local onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine" }
+		local onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine", "weapon_alyxgun" }
 		local twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
 		local dualtypes = { "weapon_cubemap" }
 		local lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
@@ -1524,7 +1533,6 @@ end)
 	-- Arms & legs: 0.2x
 	-- Gear: 0.01x
 
-
 function DRC_ParticleExplosion(pos, magnitude, dist)
 	if SERVER && pos == nil then return end
 	if pos == nil then pos = LocalPlayer():EyePos() end
@@ -1534,12 +1542,12 @@ function DRC_ParticleExplosion(pos, magnitude, dist)
 	local partdata = EffectData()
 	partdata:SetMagnitude(magnitude)
 	
-	local N = DRC_TraceDir(pos, Angle(0, 0, 0), dist)
-	local S = DRC_TraceDir(pos, Angle(0, 180, 0), dist)
-	local E = DRC_TraceDir(pos, Angle(0, -90, 0), dist)
-	local W = DRC_TraceDir(pos, Angle(0, 90, 0), dist)
-	local U = DRC_TraceDir(pos, Angle(-90, 0, 0), dist)
-	local D = DRC_TraceDir(pos, Angle(90, 0, 0), dist)
+	local N = DRC:TraceDir(pos, Angle(0, 0, 0), dist)
+	local S = DRC:TraceDir(pos, Angle(0, 180, 0), dist)
+	local E = DRC:TraceDir(pos, Angle(0, -90, 0), dist)
+	local W = DRC:TraceDir(pos, Angle(0, 90, 0), dist)
+	local U = DRC:TraceDir(pos, Angle(-90, 0, 0), dist)
+	local D = DRC:TraceDir(pos, Angle(90, 0, 0), dist)
 	local TraceTable = {N, S, E, W, U, D}
 
 	for k,v in pairs(TraceTable) do
@@ -1563,7 +1571,38 @@ function DRC_ParticleExplosion(pos, magnitude, dist)
 end
 
 function DRC:TraceDir(origin, dir, dist)
-	DRC_TraceDir(origin, dir, dist)
+	if origin == nil then print("TraceDir origin is null!") return end
+	local entity = nil
+	if IsEntity(origin) then
+		entity = origin
+		origin = origin:GetPos()
+	end
+	
+	if dir == nil then dir = Angle(0, 0, 0) end
+	if dist == nil then dist = 6942069 end
+	
+	local tr = util.TraceLine({
+		start = origin,
+		endpos = origin + dir:Forward() * dist,
+		filter = function( ent )
+			if ent:IsPlayer() or ent == entity then return false end
+			if ( !ent:IsPlayer() && ent:GetPhysicsObject() != nil or ent:IsWorld() ) then return true end
+		end
+	})
+	
+	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 then
+		local csent1 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
+		local csent2 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
+		csent1:SetPos(tr.HitPos)
+		csent2:SetPos(tr.StartPos)
+		csent1:SetColor(Color(255, 0, 0, 255))
+		csent2:SetColor(Color(0, 255, 0, 255))
+		csent1:Spawn()
+		csent2:Spawn()
+		timer.Simple(3, function() csent1:Remove() csent2:Remove() end)
+	end
+	
+	return tr
 end
 
 function DRC:ParticleExplosion(pos, magnitude, dist)
@@ -1622,6 +1661,12 @@ if SERVER then
 			ent:SetNWInt("DRC_Shield_PingScale_Min", tbl.ScaleMin)
 			ent:SetNWInt("DRC_Shield_PingScale_Max", tbl.ScaleMax)
 			
+			-- These options were added post-conception and need a validity check
+			if !tbl.OverMaterial then tbl.OverMaterial = "models/vuthakral/shield_over_example" end
+			ent:SetNWString("DRC_Shield_OverMaterial", tbl.OverMaterial)
+			if !tbl.ArmourRequirement then tbl.ArmourRequirement = false end
+			ent:SetNWBool("DRC_Shield_RechargeRequiresArmour", tbl.ArmourRequirement) -- not implemented yet
+			
 			timer.Simple(engine.TickInterval(), function()
 				net.Start("DRC_MakeShieldEnt")
 				net.WriteEntity(ent)
@@ -1677,28 +1722,56 @@ if SERVER then
 	function DRC:SubtractShield(ent, amount)
 		if !IsValid(ent) then return end
 		local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
+		local overshieldhp = ent:GetNWInt("DRC_ShieldHealth_Extra")
 		if shieldhp <= 0 then ent:SetNWBool("DRC_ShieldDown", true) end
 		
-		ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
-		ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + ent:GetNWInt("DRC_ShieldRechargeDelay") - engine.TickInterval())
+		if overshieldhp <= 0 then
+			ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
+			ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + ent:GetNWInt("DRC_ShieldRechargeDelay") - engine.TickInterval())
+			timer.Simple(ent:GetNWInt("DRC_ShieldRechargeDelay"), function()
+				if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") then
+					ent:SetNWBool("DRC_ShieldDown", false)
+					DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_RechargeSound"), nil, 1500)
+					local ed = EffectData()
+					if !IsValid(ent) then return end
+					ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
+					ed:SetStart(ent:GetPos() + ent:OBBCenter())
+					ed:SetEntity(ent)
+					util.Effect(ent:GetNWString("DRC_Shield_RechargeEffect"), ed)
+				end
+			end)
+		else
+			ent:SetNWInt("DRC_ShieldHealth_Extra", math.Clamp(ent:GetNWInt("DRC_ShieldHealth_Extra") - amount, 0, math.huge))
+		end
+		
 		DRC:PingShield(ent, true)
-		timer.Simple(ent:GetNWInt("DRC_ShieldRechargeDelay"), function()
-			if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") then
-				ent:SetNWBool("DRC_ShieldDown", false)
-				DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_RechargeSound"), nil, 1500)
-				local ed = EffectData()
-				if !IsValid(ent) then return end
-				ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
-				ed:SetStart(ent:GetPos() + ent:OBBCenter())
-				ed:SetEntity(ent)
-				util.Effect(ent:GetNWString("DRC_Shield_RechargeEffect"), ed)
-			end
-		end)
+	end
+	
+	function DRC:AddOverShield(ent, amount)
+		if !IsValid(ent) then return end
+		ent:SetNWInt("DRC_ShieldHealth_Extra", amount)
+	end
+	
+	function DRC:AddOverShield_Mul(ent, times, cap)
+		if !IsValid(ent) then return end
+		if cap == nil then cap = 999999999 end
+		ent:SetNWInt("DRC_ShieldHealth_Extra", math.Clamp(ent:GetNWInt("DRC_ShieldMaxHealth") * times, 0, cap))
+	end
+	
+	function DRC:SetShieldInvulnerable(ent, thyme, mat)
+		if !IsValid(ent) then return end
+		if !ent:GetNWString("DRC_Shielded") then return end
+		if mat == nil then mat = "models/vuthakral/shield_invuln_example" end
+		
+		ent:SetNWBool("DRC_ShieldInvulnerable", true)
+		ent:SetNWString("DRC_Shield_InvulnMaterial", mat)
+		timer.Simple(thyme, function() if IsValid(ent) then ent:SetNWBool("DRC_ShieldInvulnerable", false) end end)
 	end
 end
 
 function DRC:PopShield(ent)
 	ent:SetNWInt("DRC_ShieldHealth", 0)
+	ent:SetNWInt("DRC_ShieldHealth_Extra", 0)
 	ent:TakeDamage(0)
 end
 
@@ -1712,6 +1785,24 @@ function DRC:GetShield(ent)
 		local val, maxi = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth")
 		return val, maxi
 	end
+end
+
+function DRC:GetOverShield(ent)
+	local ovs = ent:GetNWInt("DRC_ShieldHealth_Extra")
+	
+	local shieldmax = ent:GetNWInt("DRC_ShieldMaxHealth")
+	local meth, curmeth = 0, 0
+	if ovs > 0 then
+		meth = ovs/shieldmax
+		curmeth = math.abs(math.floor(meth) - meth)
+		if curmeth == 0 then curmeth = 1 end
+	end
+	
+	if ovs <= 0 then return nil, 0, 0 else return ovs, math.ceil(meth), curmeth end
+end
+
+function DRC:GetShieldInvulnerability(ent)
+	if ent:GetNWBool("DRC_ShieldInvulnerable") == true then return true else return false end
 end
 
 DRC.VoiceSetDefs = {
@@ -1759,7 +1850,7 @@ function DRC:VoiceSpot(ply)
 		DRC:SpeakSentence(ply, "Spotting", "DeadBody", true)
 	elseif closesttarget[1]:IsNPC() then
 		local disp  = closesttarget[1]:Disposition(ply)
-		if !voice["Spotting"][target] then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Spotting", target) then
 			if disp < 3 then
 				DRC:SpeakSentence(ply, "Spotting", "Generic_Enemy", true)
 			else
@@ -1778,7 +1869,10 @@ end
 
 function DRC:GetVoiceSet(ent)
 	local vs = ent:GetNWString("DRCVoiceSet")
+	local tab = DRC.VoiceSets
+	
 	if vs == "none" or vs == nil or vs == "" then return nil end
+	if !tab[vs] then return nil end
 	return vs
 end
 
@@ -1791,7 +1885,7 @@ function DRC:IsVSentenceValid(vs, call, subcall)
 		if voice[call] then
 			if voice[call][subcall] then return true end
 		end
-	else print("C") return false
+	else return false
 	end
 end
 
@@ -1862,7 +1956,9 @@ function DRC:ChangeCHandModel(tbl)
 	if SERVER then return end
 	if DRC:GetCustomizationAllowed() != true then return end
 	local ply = LocalPlayer()
+	if !IsValid(ply) then return end
 	local handsent = ply:GetHands()
+	if !IsValid(handsent) then return end
 	handsent:SetModel(tbl.model)
 	handsent:SetSkin(tbl.skin)
 	handsent:SetBodyGroups(tbl.bodygroups)

@@ -32,7 +32,7 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 	local vehicle = false
 	
 	if tgt:GetNWBool("DRC_Shielded") == true then
-		if !tgt.DRCShield_UID then tgt.DRCShield_UID = "".. tgt:GetClass() .."_".. tostring(math.Rand(0, math.huge)) .."" end
+		if !tgt.DRCShield_UID then tgt.DRCShield_UID = "".. tgt:GetClass() .."_".. tostring(math.floor(math.Rand(0, 999999999))) .."_".. tgt:EntIndex() .."" end
 		dmg:ScaleDamage(1)
 		dmg:SetDamageBonus(0)
 		dmg:SetDamageCustom(0)
@@ -54,9 +54,16 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 			end)
 		end
 		
-		DRC:SubtractShield(tgt, dmg:GetDamage())
+		if tgt:GetNWBool("DRC_ShieldInvulnerable") != true then
+			DRC:SubtractShield(tgt, dmg:GetDamage())
+		else
+			dmg:SetDamage(0)
+			dmg:SetDamageBonus(0)
+			dmg:ScaleDamage(0)
+			dmg:SetDamageCustom(0)
+		end
 		
-		local shieldhp = tgt:GetNWInt("DRC_ShieldHealth")
+		local shieldhp = tgt:GetNWInt("DRC_ShieldHealth") + tgt:GetNWInt("DRC_ShieldHealth_Extra")
 		if shieldhp - dmg:GetDamage() < 0 then
 			dmg:SetDamage(math.abs(shieldhp - dmg:GetDamage()))
 			DRC:ShieldEffects(tgt, dmg)

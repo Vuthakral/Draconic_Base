@@ -46,7 +46,11 @@ if GetConVar("sv_drc_allowdebug") == nil then
 end
 
 if GetConVar("sv_drc_disable_thirdperson") == nil then
-	DRC.Convars_SV.DisableTP = CreateConVar("sv_drc_disable_thirdperson", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DEMO}, "Disables Draconic thirdperson when not using a weapon which requires it.", 0, 1)
+	DRC.Convars_SV.DisableTP = CreateConVar("sv_drc_disable_thirdperson", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_DEMO}, "Disables Draconic thirdperson when not using a weapon which requires it.", 0, 1)
+end
+
+if GetConVar("sv_drc_disable_thirdperson_freelook") == nil then
+	DRC.Convars_SV.DisableTP_Freelook = CreateConVar("sv_drc_disable_thirdperson_freelook", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_DEMO}, "Disables Draconic thirdperson's freelook functionality.", 0, 1)
 end
 
 if GetConVar("sv_drc_disable_crosshairs") == nil then
@@ -84,12 +88,13 @@ if CLIENT then
 	if GetConVar("cl_drc_debug_crosshairmode") == nil then DRC.Convars_CL.Debug_Crosshair = CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3) end
 	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
 	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
-	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.)", 0, 1) end
-	if GetConVar("cl_drc_thirdperson_flipside") == nil then CreateConVar("cl_drc_thirdperson_flipside", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Flip the thirdperson side the view is on.)", 0, 1)	end
+	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.", 0, 1) end
+	if GetConVar("cl_drc_thirdperson_flipside") == nil then CreateConVar("cl_drc_thirdperson_flipside", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Flip the thirdperson side the view is on.", 0, 1)	end
+	if GetConVar("cl_drc_thirdperson_disable_freelook") == nil then CreateConVar("cl_drc_thirdperson_disable_freelook", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disable freelook movement in third person.", 0, 1)	end
 	DRC.Convars_CL.ForceEFP = false
 
 	if GetConVar("cl_drc_sway") == nil then CreateConVar("cl_drc_sway", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable predictive-aim weapon swaying", 0, 1)end
-	if GetConVar("cl_drc_voiceset") == nil then CreateConVar("cl_drc_voiceset", "none", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)") end
+	if GetConVar("cl_drc_voiceset") == nil then CreateConVar("cl_drc_voiceset", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)") end
 	if GetConVar("cl_drc_voicepitch") == nil then CreateConVar("cl_drc_voicepitch", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)", 0.9, 1.1) end
 
 	if GetConVar("drc_colour_r_player") == nil then

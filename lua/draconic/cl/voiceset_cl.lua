@@ -11,6 +11,14 @@ function DRC:VoiceMenuKill()
 	DRC.VoiceMenuTimeout = CurTime()
 end
 
+function DRC:VoiceMenuToggle()
+	if DRC.VoiceMenuState == false then
+		DRC:VoiceMenuTrigger()
+	else
+		DRC:VoiceMenuKill()
+	end
+end
+
 function DRC:SendVoiceCall(call)
 	local t={LocalPlayer(), call}
 	net.Start("DRCVoiceSet_CL")
@@ -39,10 +47,8 @@ local slots = {
 hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 	if !IsValid(ply) or !ply:Alive() then return end
 	if bind == "+menu_context" then
-		if DRC.VoiceMenuState == false then
-			DRC:VoiceMenuTrigger()
-		else
-			DRC:VoiceMenuKill()
+		if input.LookupBinding("draconic_voicesets_menu_toggle", true) == nil then
+			DRC:VoiceMenuToggle()
 		end
 	end
 	
@@ -50,12 +56,14 @@ hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 	
 	if bind == "+reload" then
 		local wpn = ply:GetActiveWeapon()
-		local clip = wpn:Clip1()
-		local maxclip = wpn:GetMaxClip1()
-		local ammo = wpn:GetPrimaryAmmoType()
-		local reserve = ply:GetAmmoCount(ammo)
-		if clip < maxclip && reserve > 0 then
-			if game.GetAmmoName(ammo) != "ammo_drc_battery" then DRC:SendVoiceCall(bind) end
+		if IsValid(wpn) then
+			local clip = wpn:Clip1()
+			local maxclip = wpn:GetMaxClip1()
+			local ammo = wpn:GetPrimaryAmmoType()
+			local reserve = ply:GetAmmoCount(ammo)
+			if clip < maxclip && reserve > 0 then
+				if game.GetAmmoName(ammo) != "ammo_drc_battery" then DRC:SendVoiceCall(bind) end
+			end
 		end
 	end
 end)
@@ -63,8 +71,9 @@ end)
 hook.Add("HUDPaintBackground", "VoiceSets_HUD", function()
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
-	if DRC.VoiceSets[DRC:GetVoiceSet(LocalPlayer())] == nil then return end
-	if ply:GetInfoNum("cl_drawhud", 1) == 0 then return end
+	if DRC:GetVoiceSet(LocalPlayer()) == nil then return end
+--	if DRC.VoiceSets[DRC:GetVoiceSet(LocalPlayer())] == nil then return end
+--	if ply:GetInfoNum("cl_drawhud", 1) == 0 then return end
 	if !ply:Alive() then return end
 	if DRC.VoiceMenuState != true then return end
 	draw.RoundedBox(8, 16, ScrH() * 0.5, 148, 200, Color(127, 127, 127, 100))

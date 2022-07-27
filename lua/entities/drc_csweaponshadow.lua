@@ -25,7 +25,8 @@ function ENT:Draw()
 	if !IsValid(weapon) then return end
 	if DRC:ThirdPersonEnabled(ply) == true then return end
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 0 then return end
-
+	
+	if weapon:GetModel() == "" then self:SetModel("models/editor/overlay_helper.mdl") end
 	if self:GetModel() != weapon:GetModel() then self:SetModel(weapon:GetModel()) end
 	self:DrawShadow(true)
 	self:SetRenderMode(RENDERMODE_NORMAL)

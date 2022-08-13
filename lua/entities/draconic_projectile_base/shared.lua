@@ -20,19 +20,20 @@ ENT.Model 		= "models/Items/AR2_Grenade.mdl"
 ENT.HideModel	= false
 ENT.HideShadow	= false
 
-ENT.Buoyancy			= 0.15
-ENT.Drag				= 0
-ENT.Mass				= nil
+ENT.Buoyancy				= 0.15
+ENT.Drag					= 0
+ENT.Mass					= nil
 
-ENT.Damage 				= 25
-ENT.DamageType			= DMG_GENERIC
-ENT.Force				= 5
-ENT.Gravity				= true
-ENT.DoesRadialDamage 	= false
-ENT.ProjectileType 		= "point"
-ENT.Explosive			= false
-ENT.ExplosionType		= "hl2"
-ENT.RemoveInWater		= false
+ENT.Damage 					= 25
+ENT.DamageType				= DMG_GENERIC
+ENT.Force					= 5
+ENT.Gravity					= true
+ENT.DoesRadialDamage 		= false
+ENT.ProjectileType 			= "point"
+ENT.Explosive				= false
+ENT.ExplosionType			= "hl2"
+ENT.ExplosiveIgnoresCover	= false
+ENT.RemoveInWater			= false
 
 ENT.Tracking		= false
 ENT.TrackType		= "Tracking"
@@ -160,7 +161,7 @@ function ENT:Think()
 	if !IsValid(phys) then return end
 	local vel = self:GetVelocity()
 	local pos = self:GetPos()
-	local type = self.ProjectileType
+	local tipe = self.ProjectileType
 	local owner = self:GetOwner()
 	if self.SpawnTime == nil then return end
 	local st = self.SpawnTime
@@ -187,7 +188,7 @@ function ENT:Think()
 	
 	self.TimerName = "DPTimer_".. self:EntIndex() ..""
 	
-	if !timer.Exists(self.TimerName) && type != "sticky" && type != "playersticky" && type != "supercombine" && type != "magazine" then
+	if !timer.Exists(self.TimerName) && tipe != "sticky" && tipe != "playersticky" && tipe != "supercombine" && tipe != "magazine" then
 		timer.Create(self.TimerName, self.TimerFrequency, 0, function()
 			if not SERVER then return end
 			for f, v in pairs(ents.FindInSphere(self.LastPos, self.AffectRadius)) do
@@ -197,7 +198,7 @@ function ENT:Think()
 
 				local dmg69 = DamageInfo()
 					
-					dmg69:SetDamage(self.Damage / 25 / (v:GetPos()):Distance(self.LastPos) * 20)
+					dmg69:SetDamage(self.Damage / 5 / (v:GetPos()):Distance(self.LastPos) * 20)
 					if IsValid(owner) then
 						dmg69:SetAttacker(owner)
 					else
@@ -208,10 +209,10 @@ function ENT:Think()
 					dmg69:SetDamagePosition(self.LastPos)
 					dmg69:SetDamageType(self.DamageType)
 				
-				if IsValid(v:GetPhysicsObject()) && !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
+				if IsValid(v:GetPhysicsObject()) && !DRC:IsCharacter(v) then
 					if self.GravitySpherePower != 0 then v:GetPhysicsObject():SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
 					if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
-				elseif v:IsPlayer() or v:IsNPC() or v:IsNextBot() then
+				elseif DRC:IsCharacter(v) then
 					if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
 					if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
 				else
@@ -569,7 +570,7 @@ function ENT:PhysicsCollide( data, phys )
 				if self.EMP == true then self:DoEMP(tgt) end
 			end
 		elseif type == "sticky" then
-			if tgt:IsNPC() or tgt:IsNextBot() or tgt:IsWorld() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
+			if tgt != self:GetOwner() then
 				self:SetSolid(SOLID_NONE)
 				self:SetMoveType(MOVETYPE_NONE)
 				self:SetParent(tgt)
@@ -650,6 +651,11 @@ function ENT:PhysicsCollide( data, phys )
 		self:TriggerExplosion()
 	end
 	end)
+	
+	self:DoCustomPhysicsCollide(data, phys)
+end
+
+function ENT:DoCustomPhysicsCollide(data, phys)
 end
 
 function ENT:DamageTarget(tgt)
@@ -825,7 +831,7 @@ function ENT:LuaExplode(mode)
 		self.MSLuaEffect		= self.SuperLuaExplEffect
 	end
 	
-	DRC_ParticleExplosion(self, self.MSPressure * 30, self.MSPressure * 50)
+	DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast")
 	
 	for f, v in pairs(ents.FindInSphere(pos, self.MSRadius)) do
 	
@@ -849,10 +855,24 @@ function ENT:LuaExplode(mode)
 		else
 			if IsValid(v:GetPhysicsObject()) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
 				v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
-			elseif v:IsPlayer() or v:IsNPC() or v:IsNextBot() then
-				if v:GetClass() != "npc_strider" && v:GetClass() != "npc_combinegunship" then v:SetVelocity((v:OBBCenter()-pos)*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50) end
+			elseif DRC:IsCharacter(v) then
+				if v:GetClass() != "npc_strider" && v:GetClass() != "npc_combinegunship" then
+					local tr = util.TraceLine({
+						start = self:GetPos(),
+						endpos = v:GetPos() + v:OBBCenter(),
+						filter = function(ent) if ent != v then return false else return true end end
+					})
+					local dir = tr.Normal:Angle():Forward() * 500
+					v:SetVelocity(dir*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50)
+				end
 			end
-			if SERVER && v:GetClass() != "env_spritetrail" && v:GetClass() != "class CLuaEffect" then v:TakeDamageInfo(dmg2) end
+			if SERVER && !DRC.HelperEnts[v:GetClass()] then
+				if self.ExplosiveIgnoresCover == true then 
+					v:TakeDamageInfo(dmg2)
+				else
+					if DRC:EnvelopTrace(self, v) == true then v:TakeDamageInfo(dmg2) end
+				end
+			end
 			if self.EMP == true then self:DoEMP(v) end
 		end
 	end

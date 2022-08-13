@@ -1,3 +1,5 @@
+DRC.Debug = {}
+
 local drc_frame = 0
 local drc_framesavg = 0
 local function drc_DebugUI()
@@ -168,3 +170,84 @@ local function drc_TraceInfo()
 	surface.DrawText("Owner: ".. tostring(ent:GetOwner()) .."")
 end
 hook.Add("HUDPaint", "drc_TraceInfo", drc_TraceInfo)
+
+DRC.Debug.TraceLines = {}
+
+hook.Add("PostDrawTranslucentRenderables", "drc_DebugStuff", function()
+	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
+	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
+	
+	for k,v in pairs(DRC.Debug.TraceLines) do
+		if v != nil then
+			local p1, p2, col = v[1], v[2], v[3]
+			render.DrawLine(p1, p2, col, true)
+		end
+	end
+	
+	
+	if GetConVar("cl_drc_debug_hitboxes"):GetFloat() == 0 then return end
+	
+	local ply = LocalPlayer()
+	local tgtent = DRC.CalcView.Trace.Entity
+	local HitboxColours = {
+		DRC.Cols.pulsewhite,
+		Color(255, 0, 0, 255),
+		Color(0, 255, 0, 255),
+		Color(170, 170, 75, 255),
+		Color(0, 0, 255, 255),
+		Color(255, 100, 255, 255),
+		Color(90, 175, 255, 255),
+		Color(255, 255, 255, 255)
+	}
+	
+	local function DoTheFunny(pos,ang, mins, maxs, col)
+		render.SetColorMaterial()
+		render.DrawWireframeBox( pos, ang, mins, maxs, col, true)
+		render.DrawBox( pos, ang, mins, maxs, Color(col.r, col.g, col.b, 5), true)
+	end
+	
+	if DRC:ThirdPersonEnabled(ply) then
+	for hitgroup=0, ply:GetHitboxSetCount() - 1 do
+		 for box=0, ply:GetHitBoxCount(hitgroup) - 1 do
+		 	local pos, ang =  ply:GetBonePosition( ply:GetHitBoxBone(box, hitgroup) )
+		 	local mins, maxs = ply:GetHitBoxBounds(box, hitgroup)
+			local enum = ply:GetHitBoxHitGroup(box, hitgroup) + 1
+			local col = HitboxColours[enum]
+			if !col then col = Color(255, 255, 255, 255) end
+			DoTheFunny( pos, ang, mins, maxs, col)
+		end
+	end
+	end
+	
+	if !IsValid(tgtent) then return end
+	if tgtent:GetHitboxSetCount() == nil then return end
+	for hitgroup=0, tgtent:GetHitboxSetCount() - 1 do
+		 for box=0, tgtent:GetHitBoxCount( hitgroup ) - 1 do
+		 	local pos, ang =  tgtent:GetBonePosition( tgtent:GetHitBoxBone(box, hitgroup) )
+		 	local mins, maxs = tgtent:GetHitBoxBounds(box, hitgroup)
+			local enum = tgtent:GetHitBoxHitGroup(box, hitgroup) + 1
+			local col = HitboxColours[enum]
+			if !col then col = Color(255, 255, 255, 255) end
+			DoTheFunny( pos, ang, mins, maxs, col)
+		end
+	end
+end)
+
+net.Receive("DRC_RenderTrace", function()
+	local tbl = net.ReadTable()
+	if !tbl then return end
+	local tr, colour, thyme = tbl[1], tbl[2], tbl[3]
+	if isstring(colour) then colour = DRC.Cols[colour] end
+	
+	DRC:RenderTrace(tr, colour, thyme)
+end)
+
+function DRC:RenderTrace(tr, colour, thyme)
+	if GetConVar("cl_drc_debug_tracelines"):GetFloat() != 1 then return end
+	local id = math.Round(math.Rand(1, 999999999))
+--	if DRC.Debug.TraceLines[id] != nil then DRC:RenderTrace(tr, colour, thyme) return end -- prevent overwriting trace slot in use
+	local p1, p2 = tr.StartPos, tr.HitPos
+	
+	DRC.Debug.TraceLines[id] = {p1, p2, colour}
+	timer.Simple(thyme, function() DRC.Debug.TraceLines[id] = nil end)
+end

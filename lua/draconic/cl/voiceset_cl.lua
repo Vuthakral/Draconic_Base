@@ -46,8 +46,9 @@ local slots = {
 
 hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 	if !IsValid(ply) or !ply:Alive() then return end
-	if bind == "+menu_context" then
-		if input.LookupBinding("draconic_voicesets_menu_toggle", true) == nil then
+	
+	if input.LookupBinding("draconic_voicesets_menu_toggle", true) == nil then
+		if bind == "+menu_context" then
 			DRC:VoiceMenuToggle()
 		end
 	end
@@ -100,7 +101,12 @@ hook.Add("HUDPaintBackground", "VoiceSets_HUD", function()
 		local defname = "E"
 		if i > 1 then press = i-1 end
 		if isnumber(press) then press = ReturnKey("slot".. press .."") end
-		if i == 11 then press = string.upper(ReturnKey("+menu_context")) end
+		
+		if input.LookupBinding("draconic_voicesets_menu_toggle", true) == nil then
+			if i == 11 then press = string.upper(ReturnKey("+menu_context")) end
+		else
+			if i == 11 then press = string.upper(ReturnKey("draconic_voicesets_menu_toggle")) end
+		end
 		
 		defname = DRC.VoiceSetDefs["slot".. def ..""]
 		local valid = DRC.VoiceSets[DRC:GetVoiceSet(LocalPlayer())][defname]

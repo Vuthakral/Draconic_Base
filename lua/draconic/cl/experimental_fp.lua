@@ -18,7 +18,7 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 		local holdtype = "default"
 		if IsValid(curswep) then holdtype = curswep:GetHoldType() end
 		
-		if curswep.Draconic == true && curswep.SightsDown == true then
+		if DRC:SightsDown(curswep) == true then
 			pos = ply:EyePos()
 			offsetmul = 0
 		else
@@ -69,11 +69,11 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 				drc_vm_lerpdivval = Lerp(RealFrameTime() * 5, drc_vm_lerpdivval or 50, 50)
 			end
 			
-			if wpn.SightsDown == true or (wpn.Loading == false && wpn.Inspecting == false && wpn.Idle == 1) then
+			if sights == true or (wpn.Loading == false && wpn.Inspecting == false && wpn.Idle == 1) then
 				local fr = math.Round(1 / FrameTime())
 				
 				if fr > 15 then
-					if ply:KeyDown(IN_SPEED) or wpn.SightsDown == true then
+					if ply:KeyDown(IN_SPEED) or sights == true then
 						drc_vm_lerpang_final = Angle(0, 0, 0)
 					else
 						drc_vm_lerpang_final = LerpAngle(RealFrameTime() * drc_vm_angmedian, drc_vm_lerpang_final or Angle(0, 0, 0), drc_vm_lerpang)
@@ -217,22 +217,13 @@ hook.Add( "CalcViewModelView", "Draconic_Experimental_First_Person_CVMV", functi
 
 		local calcvpos, calcvang = Vector(), Angle()
 		
-		--local offtrace = util.TraceLine({
-		--	start = pos,
-		--	endpos = et.HitPos,
-		--	filter = function(ent) if ent == LocalPlayer() then return false else return true end end
-		--})
-		--local offang = offtrace.Normal:Angle()
-		--DRC.CalcView.OffAng = LerpAngle(0.5, DRC.CalcView.OffAng or offang, offang)
-		
-		if wpn.Draconic or wpn.ArcCW then
-			calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
-		--	local newangdiff = calcvang - DRC.CalcView.OffAng
-			
-			eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng -- newangdiff
-			newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
+		if IsValid(wpn) then
+			if wpn.Draconic or wpn.ArcCW or wpn.IsTFAWeapon then
+				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
+				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
+				newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
+			end
 		end
-	--	newpos = Vector()
 		return newpos, eyeang
 	end
 end)

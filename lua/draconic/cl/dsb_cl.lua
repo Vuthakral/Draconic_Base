@@ -39,18 +39,29 @@ end
 	end
 end) --]]
 
+DRC.Cols = {}
+
 local CSModelCheck = 0
 local CSShieldModelCheck = 0
 hook.Add("Think", "drc_CSThinkStuff", function()
+	if !IsValid(LocalPlayer()) then return end
+	local ply = LocalPlayer()
 	local etr = util.TraceLine({
-		start = LocalPlayer():GetShootPos(),
-		endpos = LocalPlayer():GetShootPos() + LocalPlayer():EyeAngles():Forward() * 10000,
-		filter = function(ent) if ent != LocalPlayer() then return true end end
+		start = ply:GetShootPos(),
+		endpos = ply:GetShootPos() + ply:EyeAngles():Forward() * 10000,
+		filter = function(ent) if ent != ply then return true end end
 	})
 	
 	DRC.CalcView.Trace = etr
 	DRC.CalcView.HitPos = etr.HitPos
 	DRC.CalcView.ToScreen = DRC.CalcView.HitPos:ToScreen()
+	if DRC.CalcView.LightColour then DRC.CalcView.LightColour:SetString(tostring(render.GetLightColor(ply:EyePos()))) end
+	
+	DRC.Cols = {
+		["error"] = Color(TimedSin(1, 127, 255, 0), 0, 0, 255),
+		["pulsewhite"] = Color(TimedSin(1, 127, 255, 0), TimedSin(1, 127, 255, 0), TimedSin(1, 127, 255, 0), 255),
+		["gamer"] = Color(TimedSin(2.75, 127, 255, 0), TimedSin(1.83, 127, 255, 0), TimedSin(0.916, 127, 255, 0), 255),
+	}
 	
 	if CurTime() > CSModelCheck then
 		CSModelCheck = CurTime() + 5
@@ -62,7 +73,7 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 	-- It was either do this or network something every time an entity takes damage. So yeah...
 	if CurTime() > CSShieldModelCheck then
 	--	if !IsValid(DRC.CSPlayerHandShield) then
-	--		local hands = LocalPlayer():GetHands()
+	--		local hands = ply:GetHands()
 	--		DRC.CSPlayerHandShield = ents.CreateClientside("drc_shieldmodel")
 	--	end
 		CSShieldModelCheck = CurTime() + 5
@@ -77,7 +88,14 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 	end
 end)
 
-
+hook.Add("RenderScreenspaceEffects", "DRC_Camera_Overlays", function()
+	local ply = LocalPlayer()
+	if !IsValid(ply) && !ply:Alive() then return end
+	local wpn = ply:GetActiveWeapon()
+	if IsValid(wpn) && wpn:GetClass() == "drc_camera" then
+		DrawMaterialOverlay(DRC.CameraOverlay, DRC.CameraPower)
+	end
+end)
 
 local GCT = CurTime()
 local GNT = GCT + 1
@@ -716,7 +734,8 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	if ply:InVehicle() then return end
 
 	local wpn = ply:GetActiveWeapon()
-	if !wpn then return end
+	if !IsValid(wpn) then return end
+	if wpn:GetClass() == "drc_camera" then return end
 	if wpn.Draconic == nil then return end
 	if wpn.IsMelee == true then return end
 	local vm = ply:GetViewModel()
@@ -799,18 +818,20 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	if ply:GetNW2Int("TFALean", 1337) != 1337 then
 		DRC.CalcView.Pos = drc_vm_lerppos / drc_vm_lerpdiv - ( origin - drc_calcview_tfapos)
 		DRC.CalcView.Ang = drc_vm_lerpang_final / drc_vm_lerpdiv - ( ang - drc_calcview_tfaang) + DRC.CrosshairAngMod * drc_vm_sightpow
+		if GetConVar("cl_drc_sway"):GetFloat() != 1 then DRC.CalcView.Ang = Angle() end
 		local view = {
 			origin = origin - drc_vm_lerppos / drc_vm_lerpdiv - ( origin - drc_calcview_tfapos),
-			angles = ang - drc_vm_lerpang_final / drc_vm_lerpdiv - ( ang - drc_calcview_tfaang) + DRC.CrosshairAngMod * drc_vm_sightpow,
+			angles = ang - DRC.CalcView.Ang,
 			fov = fov
 		}
 		return view
 	else
 		DRC.CalcView.Pos = drc_vm_lerppos / drc_vm_lerpdiv
 		DRC.CalcView.Ang = drc_crosshair_pitchmod - drc_vm_lerpang_final / drc_vm_lerpdiv + DRC.CrosshairAngMod * drc_vm_sightpow
+		if GetConVar("cl_drc_sway"):GetFloat() != 1 then DRC.CalcView.Ang = Angle() end
 		local view = {
 			origin = origin - drc_vm_lerppos / drc_vm_lerpdiv,	
-			angles = ang + drc_crosshair_pitchmod - drc_vm_lerpang_final / drc_vm_lerpdiv + DRC.CrosshairAngMod * drc_vm_sightpow,
+			angles = ang + DRC.CalcView.Ang,
 			fov = fov
 		}
 		return view

@@ -323,6 +323,9 @@ function SWEP:PrimaryAttack()
 				if self.LoadAfterShot == true && (self.Weapon:Clip1() > 0) then
 					self.Loading = true
 					timer.Simple( firetime, function() if ply:IsValid() && ply:Alive() then
+						if !IsValid(ply) then return end
+						if !IsValid(self) then return end
+						if !ply:Alive() then return end
 						ply:SetFOV(0, self.Secondary.ScopeZoomTime)
 						self:LoadNextShot()
 						end
@@ -493,6 +496,8 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.MeleeShakeMul)
 	ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, -y1m * (5 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, 0))
 	timer.Simple(self.Primary.MeleeHitDelay, function()
+		if !IsValid(self) then return end
+		if !IsValid(self:GetOwner()) then return end
 		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.MeleeShakeMul)
 	end)
 
@@ -513,6 +518,7 @@ if not IsValid(self) or not IsValid(self.Owner) then return end
 
 	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.MeleeHitDelay * 100) / 60 * i / 60, 3), 1, function()
+			if !IsValid(self) then return end
 			self:MeleeImpact(self.Primary.MeleeRange, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "gunmelee")
 		end)
 	end
@@ -707,60 +713,60 @@ end
 
 
 function SWEP:Reload()
-if game.SinglePlayer() then self:CallOnClient("Reload") end -- why
-local ply = self:GetOwner()
-local usekey = ply:KeyDown(IN_USE)
-local reloadkey = ply:KeyDown(IN_RELOAD)
-local walkkey = ply:KeyDown(IN_WALK)
-local sprintkey = ply:KeyDown(IN_SPEED)
-local BT = self.ActiveAttachments.Ammunition.t.BulletTable
-local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
+	self:DoCustomReload()
+	if game.SinglePlayer() then self:CallOnClient("Reload") end -- why
+	local ply = self:GetOwner()
+	local usekey = ply:KeyDown(IN_USE)
+	local reloadkey = ply:KeyDown(IN_RELOAD)
+	local walkkey = ply:KeyDown(IN_WALK)
+	local sprintkey = ply:KeyDown(IN_SPEED)
+	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
+	local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
+	local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
 
-local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
-
-if ply:IsPlayer() then
-	if usekey && reloadkeypressed then
-		if sprintkey then
-			self:ToggleInspectMode()
-		elseif self.Inspecting == false then
-			self:Inspect()
-		elseif self.Inspect == true then end
-	elseif walkkey && reloadkey && self.IsTaunting == 0 then
-		self:Taunt()
-		elseif walkkey && reloadkey && self.IsTaunting == 1 then
-	elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.Loading == false && self.ManualReload == true && ( self.Weapon:Clip1() < CM ) then
-		if ( ply:GetAmmoCount(self.Primary.Ammo) ) <= 0 then
-		else
-				self:StartManualReload()
-				ply:SetFOV(0, 0.05)
-				self.Weapon:SetNWBool( "Ironsights", false )
-				if self.Weapon:Clip1() <= 0 then
-					self:SetNWBool("reloadedEmpty", true)
-				else
-					self:SetNWBool("reloadedEmpty", false)
-				end
-				return true
-		end
-	elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.Loading == false && self.ManualReload == false && ( self.Weapon:Clip1() < CM ) then
-			if ( self.Weapon:Clip1() < CM ) && self.Weapon:Ammo1() > 0 then
-				self:DoReload()
-				ply:SetFOV(0, 0.05)
-				self.Weapon:SetNWBool( "Ironsights", false )
-				if self.Weapon:Clip1() <= 0 then
-					self:SetNWBool("reloadedEmpty", true)
-				else
-					self:SetNWBool("reloadedEmpty", false)
-				end
-				return true
-			elseif ( self.Weapon:Clip1() < CM ) && self.Weapon:Ammo1() > 1 then
+	if ply:IsPlayer() then
+		if usekey && reloadkeypressed then
+			if sprintkey then
+				self:ToggleInspectMode()
+			elseif self.Inspecting == false then
+				self:Inspect()
+			elseif self.Inspect == true then end
+		elseif walkkey && reloadkey && self.IsTaunting == 0 then
+			self:Taunt()
+			elseif walkkey && reloadkey && self.IsTaunting == 1 then
+		elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.Loading == false && self.ManualReload == true && ( self.Weapon:Clip1() < CM ) then
+			if ( ply:GetAmmoCount(self.Primary.Ammo) ) <= 0 then
+			else
+					self:StartManualReload()
+					ply:SetFOV(0, 0.05)
+					self.Weapon:SetNWBool( "Ironsights", false )
+					if self.Weapon:Clip1() <= 0 then
+						self:SetNWBool("reloadedEmpty", true)
+					else
+						self:SetNWBool("reloadedEmpty", false)
+					end
+					return true
 			end
-	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
-		if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then
-		else
-			ply:SetFOV(0, 0.05)
-			self:ReloadSecondary()
+		elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.Loading == false && self.ManualReload == false && ( self.Weapon:Clip1() < CM ) then
+				if ( self.Weapon:Clip1() < CM ) && self.Weapon:Ammo1() > 0 then
+					self:DoReload()
+					ply:SetFOV(0, 0.05)
+					self.Weapon:SetNWBool( "Ironsights", false )
+					if self.Weapon:Clip1() <= 0 then
+						self:SetNWBool("reloadedEmpty", true)
+					else
+						self:SetNWBool("reloadedEmpty", false)
+					end
+					return true
+				elseif ( self.Weapon:Clip1() < CM ) && self.Weapon:Ammo1() > 1 then
+				end
+		elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
+			if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then
+			else
+				ply:SetFOV(0, 0.05)
+				self:ReloadSecondary()
+			end
 		end
-	end
 	elseif !ply:IsPlayer() then
 		self:DoReload()
 	end
@@ -1103,6 +1109,9 @@ function SWEP:DoCustomReloadLoopEvents()
 end
 
 function SWEP:DoCustomReloadStartEvents()
+end
+
+function SWEP:DoCustomReload()
 end
 
 function SWEP:DoCustomManualLoadEvents()

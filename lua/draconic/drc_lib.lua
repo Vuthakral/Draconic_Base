@@ -58,57 +58,127 @@ DRC.RoomDefinitions = {
 }
 
 DRC.MaterialCategories = {}
-DRC.MaterialCategories.Stone = {
-	"MAT_CONCRETE",
-	"MAT_BRICK",
-	"MAT_PLASTER",
-	"MAT_DIRT",
-	"MAT_ROCK",
-	"MAT_GRASS",
-}
 
 DRC.MaterialCategories.Metal = {
-	"MAT_STRIDER",
-	"MAT_HUNTER",
-	"MAT_PAINTCAN",
-	"MAT_POPCAN",
-	"MAT_CANISTER",
-	"MAT_VENT",
-	"MAT_GRENADE",
-	"MAT_WEAPON",
-	"MAT_METAL",
-	"MAT_METALVEHICLE",
-	"MAT_COMBINE_METAL",
-	"MAT_GUNSHIP",
-	"MAT_ROLLER",
-	"MAT_SOLIDMETAL",
-	"MAT_SLIPPERYMETAL",
-	"MAT_METALPANEL",
-	"MAT_METAL_BARREL",
-	"MAT_FLOATING_METAL_BARREL",
-	"MAT_METAL_BOX",
-	"MAT_GRATE",
-	"MAT_COMPUTER",
-	"MAT_ITEM",
-	"MAT_JALOPY",
-	"MAT_AIRBOAT",
+}
+DRC.MaterialCategories.Dust = {
 }
 
-DRC.MaterialCategories.Dust = {
-	"MAT_DEFAULT",
-	"MAT_PLASTIC",
-	"MAT_PLASTIC_BARREL",
-	"MAT_VENT",
-	"MAT_CONCRETE",
-	"MAT_BRICK",
-	"MAT_PLASTER",
-	"MAT_DIRT",
-	"MAT_ROCK",
-	"MAT_SAND",
-	"MAT_GRASS",
-	"MAT_CARDBOARD",
-	"MAT_POTTERY",
-	"MAT_SNOW",
+DRC.SurfacePropDefinitions = { -- Todo: flesh, tile, synth, plastic, gas, liquid, computer, cardboard
+	["MAT_CONCRETE"] = {"stone", "rubble"},
+	["MAT_BRICK"] = {"stone", "rubble"},
+	["MAT_PLASTER"] = {"dust"},
+	["MAT_DIRT"] = {"dirt", "dust"},
+	["MAT_WOOD"] = {"dirt", "wood"},
+	["MAT_WOOD_FURNITURE"] = {"wood"},
+	["MAT_WOOD_SOLID"] = {"wood"},
+	["MAT_WOOD_CRATE"] = {"wood"},
+	["MAT_WOOD_PLANK"] = {"wood"},
+	["MAT_WOOD_PANEL"] = {"wood"},
+	["MAT_BOULDER"] = {"rubble", "stone", "dirt"},
+	["MAT_ROCK"] = {"rubble", "stone", "dirt"},
+	["MAT_GRAVEL"] = {"rubble", "dirt"},
+	["MAT_GRASS"] = {"dirt", "dust"},
+	["MAT_SAND"] = {"sand", "dust"},
+	["MAT_SNOW"] = {"snow", "dust"},
+	["MAT_ICE"] = {"shards"},
+	["MAT_POTTERY"] = {"tile"},
+	["MAT_GLASS"] = {"glass", "shards"},
+	["MAT_GLASS_BOTTLE"] = {"shards"},
+	["MAT_ANTLION"] = {"flesh"},
+	["MAT_FLESH"] = {"flesh"},
+	["MAT_ARMORFLESH"] = {"flesh"},
+	["MAT_BLOODYFLESH"] = {"flesh"},
+	["MAT_ZOMBIEFLESH"] = {"flesh"},
+	["MAT_STRIDER"] = {"metal", "synth"},
+	["MAT_HUNTER"] = {"bugshell", "synth"},
+	["MAT_PAINTCAN"] = {"paint", "metal"},
+	["MAT_POPCAN"] = {"liquid", "metal"},
+	["MAT_CANISTER"] = {"gas", "metaldrum"},
+	["MAT_VENT"] = {"metal"},
+	["MAT_GRENADE"] = {"metal"},
+	["MAT_WEAPON"] = {"plastic", "metal"},
+	["MAT_METAL"] = {"metal"},
+	["MAT_METALVEHICLE"] = {"metal", "metalhollow"},
+	["MAT_COMBINE_METAL"] = {"metal", "metalhollow"},
+	["MAT_COMBINE_GLASS"] = {"glass", "shards"},
+	["MAT_GUNSHIP"] = {"synth", "metalhollow"},
+	["MAT_ROLLER"] = {"computer", "metalhollow"},
+	["MAT_SOLIDMETAL"] = {"metal"},
+	["MAT_SLIPPERYMETAL"] = {"metal"},
+	["MAT_METALPANEL"] = {"metal"},
+	["MAT_METAL_BARREL"] = {"metaldrum"},
+	["MAT_FLOATING_METAL_BARREL"] = {"metaldrum"},
+	["MAT_METAL_BOX"] = {"metal"},
+	["MAT_GRATE"] = {"metal"},
+	["MAT_COMPUTER"] = {"computer"},
+	["MAT_JALOPY"] = {"metalhollow"},
+	["MAT_AIRBOAT"] = {"metalhollow"},
+	["MAT_DEFAULT"] = {"dust"},
+	["MAT_PLASTIC"] = {"plastic", "dust"},
+	["MAT_PLASTIC_BARREL"] = {"plastic", "dust"},
+	["MAT_CARDBOARD"] = {"cardboard", "dust"},
+}
+
+DRC.HelperEnts = {
+	["ai_ally_manager"] = "ally_manager",
+	["ai_battle_line"] = "battle_line",
+	["ai_changehintgroup"] = "changehintgroup",
+	["ai_changetarget"] = "changetarget",
+	["ai_goal_actbusy"] = "actbusy",
+	["ai_goal_assault"] = "assault",
+	["ai_goal_follow"] = "follow",
+	["ai_goal_lead"] = "lead",
+	["ai_goal_operator"] = "operator",
+	["ai_goal_police"] = "police",
+	["ai_goal_standoff"] = "standoff",
+	["ai_network"] = "ai",
+	["env_alyxemp"] = "empeffect",
+	["env_gunfire"] = "gunfire",
+	["env_muzzleflash"] = "muzzleflash",
+	["env_ar2explosion"] = "comballexplode",
+	["env_spritetrail"] = "spritetrail",
+	["env_dusttrail"] = "dusttrail",
+	["env_effectscript"] = "dusttrail",
+	["env_movieexplosion"] = "movieexplosion",
+	["env_particle_trail"] = "particletrail",
+	["env_particlefire"] = "particlefire",
+	["env_particlesmokegrenade"] = "smokegrenade",
+	["env_physwire"] = "physwire",
+	["env_quadraticbeam"] = "beam2005",
+	["env_rockettrail"] = "rockettrail",
+	["env_steamjet"] = "steamjet",
+	["gib"] = "gib",
+	["rope_anchor"] = "ropepoint",
+	["entityflame"] = "igniter2006",
+	["env_entity_igniter"] = "igniter",
+	["trigger_waterydeath"] = "suffocate",
+	["env_soundscape"] = "soundscape",
+	["ambient_generic"] = "ambient",
+	["point_spotlight"] = "sdk2006lightomgwhy",
+	["spotlight_end"] = "lightmarker",
+	["light"] = "staticlight",
+	["func_brush"] = "brush",
+	["info_ladder_dismount"] = "ladder_exit",
+	["func_ladder"] = "ladder",
+	["beam"] = "beam",
+	["move_rope"] = "ropephysics",
+	["scene_manager"] = "cinematic",
+	["bodyque"] = "followpoint",
+	["soundent"] = "soundemitter2005",
+	["path_track"] = "pathtr",
+	["path_corner"] = "pathcor",
+	["gmod_gamerules"] = "objectrelativecodinglmao",
+	["class CLuaEffect"] = "emitter",
+	["lua_run"] = "garry",
+	["predicted_viewmodel"] = "viewmodel",
+	["viewmodel"] = "viewmodel",
+	["target_cdaudio"] = "cdaudio", -- HOLY SHIT THIS IS STILL IN THE ENGINE?????
+	["drc_ptex_base"] = "drc_ptex_base",
+	["drc_csshadowmodel"] = "drc_csshadowmodel",
+	["drc_csweaponshadow"] = "drc_csweaponshadow",
+	["drc_csplayermodel"] = "drc_csplayermodel",
+	["drc_shieldmodel"] = "drc_shieldmodel",
 }
 
 function DRC:GetVersion()
@@ -179,10 +249,6 @@ function DRC:SightsDown(ent, irons)
 	if !IsValid(ent) then return end
 	if irons == nil then irons = false end
 	
-	if ent.UniqueFiremode then -- ASTW2's unique camera stuff
-		if ent:GetNWBool("insights") == true then return true else return false end
-	end
-	
 	if !irons then
 		if ent.Draconic then
 			if ent.Secondary.Scoped == true then return ent.SightsDown else return false end
@@ -190,6 +256,8 @@ function DRC:SightsDown(ent, irons)
 			return ent:GetIronSights()
 		elseif ent.ASTWTWO then
 			if ent.TrueScope == true && ent:GetNWBool("insights") == true then return true else return false end
+		elseif ent.ArcCW then
+			if ent.Sighted == true then return true else return false end
 		end
 	else
 		if ent.Draconic then
@@ -524,7 +592,7 @@ end
 function DRC:RoomSize(pos)
 	if !IsValid(pos) then return end
 	if IsEntity(pos) then
-		if pos:IsPlayer() or pos:IsNPC() or pos:IsNextBot() then
+		if DRC:IsCharacter(pos) then
 			pos = pos:EyePos()
 		else
 			pos = pos:GetPos()
@@ -720,12 +788,16 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWString("Draconic_ThirdpersonForce", nil)
 	ply:SetNWString("DRCVoiceSet", ply:GetInfo("cl_drc_voiceset"))
-	ply:SetNWInt("DRC_ShieldHealth_Extra", 0)
-	ply:SetNWBool("DRC_ShieldInvulnerable", false)
 	ply:SetNWBool("ShowSpray_Ents", ply:GetInfoNum("cl_drc_showspray", 0))
 	ply:SetNWBool("ShowSpray_Weapons", ply:GetInfoNum("cl_drc_showspray_weapons", 0))
 	ply:SetNWBool("ShowSpray_Vehicles", ply:GetInfoNum("cl_drc_showspray_vehicles", 0))
 	ply:SetNWBool("ShowSpray_Player", ply:GetInfoNum("cl_drc_showspray_player", 0))
+	ply:SetNWInt("DRC_GunSpreadMod", 1)
+	ply:SetNWInt("DRC_GunDamageMod", 1)
+	ply:SetNWInt("DRC_MeleeDamageMod", 1)
+	ply:SetNWInt("DRC_ShieldHealth_Extra", 0)
+	ply:SetNWBool("DRC_ShieldInvulnerable", false)
+	ply:SetNWFloat("DRC_VoiceSetDSP", 0)
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
@@ -1259,7 +1331,7 @@ end)
 
 local function PlayReadyAnim(ply, anim)
 	if !IsValid(ply) then 
-		DRCNotify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
+		DRC:Notify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
 	return end
 	
 	if wOS then return end -- temp
@@ -1386,7 +1458,9 @@ end)
 
 net.Receive("DRCPlayerMelee", function(len, ply)
 	local ply = net.ReadEntity()
+	if !IsValid(ply) then return end
 	local wpn = ply:GetActiveWeapon()
+	if !IsValid(wpn) then return end
 	local ht = wpn:GetHoldType()
 	
 	if !wpn.Draconic then return end
@@ -1533,40 +1607,77 @@ end)
 	-- Arms & legs: 0.2x
 	-- Gear: 0.01x
 
-function DRC_ParticleExplosion(pos, magnitude, dist)
-	if SERVER && pos == nil then return end
-	if pos == nil then pos = LocalPlayer():EyePos() end
-	if magnitude == nil then magnitude = 5 end
-	if dist == nil then dist = 500 end
+function DRC:DynamicParticle(source, magnitude, distance, special, target)
+	if !special then return end
+	local pos = source
+	if IsEntity(pos) then pos = pos:GetPos() + pos:OBBCenter() end
 	
-	local partdata = EffectData()
-	partdata:SetMagnitude(magnitude)
+	local function GetEffect(name)
+		local str = DRC:SurfacePropToEnum(util.GetSurfacePropName(name))
+		local effe = DRC.SurfacePropDefinitions[str]
+		if !effe then return end
+		return effe
+	end
 	
-	local N = DRC:TraceDir(pos, Angle(0, 0, 0), dist)
-	local S = DRC:TraceDir(pos, Angle(0, 180, 0), dist)
-	local E = DRC:TraceDir(pos, Angle(0, -90, 0), dist)
-	local W = DRC:TraceDir(pos, Angle(0, 90, 0), dist)
-	local U = DRC:TraceDir(pos, Angle(-90, 0, 0), dist)
-	local D = DRC:TraceDir(pos, Angle(90, 0, 0), dist)
-	local TraceTable = {N, S, E, W, U, D}
-
-	for k,v in pairs(TraceTable) do
-		if v.Hit then
-			if v.HitSky then return end
-	--		print(v.HitTexture)
-	--		local tex = Material(v.HitTexture):GetTexture("$basetexture")
-	--		local col = tex:GetColor(tex:Width()/2, tex:Height()/2)
-	--		col = Vector(tonumber(col[2]), tonumber(col[3]), tonumber(col[4]))
-	--		col = Color(col.x, col.y, col.z, 255)
-	--		partdata:SetColor(col.r, col.g, col.b)
-			partdata:SetOrigin(v.HitPos)
-			partdata:SetNormal(v.HitNormal)
-			partdata:SetMagnitude( partdata:GetMagnitude() * (1 - v.Fraction) )
-			local surface = DRC:SurfacePropToEnum(util.GetSurfacePropName(v.SurfaceProps))
-			if CTFK(DRC.MaterialCategories.Stone, surface) then util.Effect("drc_rubble", partdata) end
-			if CTFK(DRC.MaterialCategories.Metal, surface) then util.Effect("drc_sparks", partdata) end
-			if CTFK(DRC.MaterialCategories.Dust, surface) then util.Effect("drc_dust", partdata) end
+	local function DoEffect(tab, data)
+		if !tab then return end
+		for k,v in pairs(tab) do
+			local part = "drc_".. v ..""
+		--	print(k,v, part)
+			util.Effect(part, data)
 		end
+	end
+	
+	local ed = EffectData()
+	ed:SetMagnitude(magnitude)
+	
+	if special == "blast" then
+		local N = DRC:TraceDir(source, Angle(0, 0, 0), distance)
+		local S = DRC:TraceDir(source, Angle(0, 180, 0), distance)
+		local E = DRC:TraceDir(source, Angle(0, -90, 0), distance)
+		local W = DRC:TraceDir(source, Angle(0, 90, 0), distance)
+		local U = DRC:TraceDir(source, Angle(-90, 0, 0), distance)
+		local D = DRC:TraceDir(source, Angle(90, 0, 0), distance)
+		local TraceTable = {N, S, E, W, U, D}
+		
+		for k,v in pairs(TraceTable) do
+			if v.Hit then
+				if v.HitSky then return end
+				ed:SetOrigin(v.HitPos)
+				ed:SetNormal(v.HitNormal)
+				ed:SetMagnitude(ed:GetMagnitude()/4 * (1 - v.Fraction))
+				DoEffect(GetEffect(v.SurfaceProps), ed)
+			end
+		end
+	end
+end
+
+function DRC:EnvelopTrace(ent1, ent2, expensive)
+	if !IsValid(ent1) or !IsValid(ent2) then return end
+	if ent1 == ent2 then return end
+	if ent2:GetParent() == ent1 then return end
+	if ent1:IsWeapon() or ent2:IsWeapon() then return end
+	if expensive == nil then expensive = false end
+	
+	if expensive == false then
+		local tr = util.TraceLine({
+			start = ent1:GetPos() + ent1:OBBCenter(),
+			endpos = ent2:GetPos() + ent2:OBBCenter(),
+			filter = function(ent) if ent == ent1 then return false else return true end end
+		})
+		
+		local ang = tr.Normal:Angle()
+		
+		local tr2 = util.TraceLine({
+			start = ent1:GetPos() + ang:Forward() * 10,
+			endpos = ent2:GetPos() + ent2:OBBCenter() + ang:Forward() * 250,
+			filter = function(ent) if ent == ent1 then return false else return true end end
+		})
+		
+		DRC:RenderTrace(tr2, Color(255, 255, 255, 255), 3)
+		
+		if tr2.Hit && tr2.Entity == ent2 then return true else return false end
+	else
 	end
 end
 
@@ -1590,6 +1701,8 @@ function DRC:TraceDir(origin, dir, dist)
 		end
 	})
 	
+	DRC:RenderTrace(tr, Color(255, 255, 0, 255), 3)
+	
 	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 then
 		local csent1 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
 		local csent2 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
@@ -1603,10 +1716,6 @@ function DRC:TraceDir(origin, dir, dist)
 	end
 	
 	return tr
-end
-
-function DRC:ParticleExplosion(pos, magnitude, dist)
-	DRC_ParticleExplosion(pos, magnitude, dist)
 end
 
 function DRC:CallGesture(ply, slot, act, akill)
@@ -1894,7 +2003,10 @@ function DRC:SpeakSentence(ent, call, subcall, important)
 	if ent.DRCSpeaking == true then return end
 	local num, rng, sel = nil, nil, nil
 	local vs = DRC:GetVoiceSet(ent)
+	if !vs then return end
 	local voice = DRC.VoiceSets[DRC:GetVoiceSet(ent)]
+	local dsp = voice.DSP
+	local start, stop = voice.StartSound, voice.StopSound
 	if subcall then
 		if !DRC:IsVSentenceValid(vs, call, subcall) then return end
 		num = #voice[call][subcall]
@@ -1908,10 +2020,23 @@ function DRC:SpeakSentence(ent, call, subcall, important)
 	end
 	
 	if sel then
-		local dur = SoundDuration(sel)
+		if ent:GetNWFloat("DRC_VoiceSetDSP", 0) != 0 then dsp = ent:GetNWFloat("DRC_VoiceSetDSP") end
+		local dur, durstart, durend = SoundDuration(sel), 0, 0
+		if start then
+		--	durstart = SoundDuration(start)
+		--	dur = dur + durstart
+		--	ent:EmitSound(start)
+		end
 		ent.DRCSpeaking = true
-		ent:EmitSound(sel)
-		timer.Simple(dur, function() if ent:IsValid() then ent.DRCSpeaking = false end end)
+		timer.Simple(durstart, function() if ent:IsValid() then ent:EmitSound(sel, nil, 100, 1, nil, SND_NOFLAGS, dsp) end end)
+		timer.Simple(dur, function() 
+			if ent:IsValid() then
+				if stop then
+				--	ent:EmitSound(stop)
+				end
+				ent.DRCSpeaking = false
+			end
+		end)
 	end
 end
 
@@ -2143,6 +2268,11 @@ end)
 
 hook.Add("OnEntityCreated", "drc_SetupWeaponColours", function(ent)
 	if !IsValid(ent) then return end
+	if ent:IsNPC() or ent:IsNextBot() then
+		ent:SetNWInt("DRC_GunSpreadMod", 1)
+		ent:SetNWInt("DRC_GunDamageMod", 1)
+	end
+	
 	if !ent:IsWeapon() then return end
 	if ent:IsWeapon() && ent.Draconic != true then return end
 	
@@ -2186,7 +2316,7 @@ end)
 hook.Add("PlayerAmmoChanged", "drc_StopImpulse101FromBreakingBatteries", function(ply, id, old, new)
 	local batteryammo = game.GetAmmoID("ammo_drc_battery")
 	if id == batteryammo && new > 110 then
-		if CLIENT then DRCNotify(nil, "hint", "critical", "Don't give yourself this ammo type! You'll only break your battery-based weapon!", NOTIFY_HINT, 5) end
+		if CLIENT then DRC:Notify(nil, "hint", "critical", "Don't give yourself this ammo type! You'll only break your battery-based weapon!", NOTIFY_HINT, 5) end
 		ply:SetAmmo(old, batteryammo)
 		timer.Simple(0.2, function() ply:SetAmmo(old, batteryammo) end)
 	end
@@ -2241,6 +2371,8 @@ end)
 
 hook.Add( "EntityEmitSound", "drc_timewarpsnd", function( t )
 	local cheats = GetConVar( "sv_cheats" )
+	local bool = GetConVar("sv_drc_soundtime_disabled"):GetFloat()
+	if bool != 0 then return end
 	local timeScale = GetConVar( "host_timescale" )
 	local p = t.Pitch
 	

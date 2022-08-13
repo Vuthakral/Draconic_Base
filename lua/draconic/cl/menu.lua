@@ -25,6 +25,19 @@ function DRCMenu( player )
 	local TextCol = Color(220, 220, 220, 255)
 	local SubtextCol = Color(170, 170, 170, 255)
 	local NotifyCol = Color(255, 255, 255, 255)
+	
+	local function MakeHint(element, posx, posy, hint)
+		local hintbox = vgui.Create("DButton", element)
+		hintbox:SetText("?")
+		hintbox:SetPos(posx, posy)
+		hintbox:SetSize(16, 16)
+		hintbox:SetTextColor(color_white)
+		hintbox:SetContentAlignment(5)
+		hintbox:SetTooltip(hint)
+		function hintbox.Paint(w, h)
+			draw.RoundedBox(5, 0, 0, 16, 16, Color(157,161,165))
+		end
+	end
     
     local Derma = vgui.Create("DFrame")
     Derma:SetPos( leftwidehalf/1.25, topwidehalf/4 )
@@ -95,7 +108,7 @@ function DRCMenu( player )
 	--local pmodelname = player_manager.TranslatePlayerModel( pmodel )
 	local pmodelname = LocalPlayer():GetModel()
 	
-	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() print(pmodelname) end
+	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() end
 	
     local preview = vgui.Create("DAdjustableModelPanel", frame)
 	preview:SetSize(589,658)
@@ -228,10 +241,10 @@ function DRCMenu( player )
 	tab1PMs:SetBackgroundColor( Color(245, 245, 245, 0) )
 	tab1:AddSheet( "Playermodels", tab1PMs, "icon16/folder_user.png")
 	
-	local tab1Hands = vgui.Create( "DPanel", tab1 )
-	tab1Hands:DockPadding(0, 0, 0, 0)
-	tab1Hands:SetBackgroundColor( Color(245, 245, 245, 0) )
-	tab1:AddSheet( "Hands", tab1Hands, "icon16/folder_page.png")
+	tab1.tab1Hands = vgui.Create( "DPanel", tab1 )
+	tab1.tab1Hands:DockPadding(0, 0, 0, 0)
+	tab1.tab1Hands:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab1:AddSheet( "Hands", tab1.tab1Hands, "icon16/folder_page.png")
 				
 	local tab2 = vgui.Create( "DPanel", tabs )
 	tab2:SetBackgroundColor( Color(255, 255, 255, 255) )
@@ -267,15 +280,14 @@ function DRCMenu( player )
     end
 	
 	local arms = {
-		["c_"] = "E",
-		["v_"] = "E",  -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
-		["viewhands"] = "E", -- I HATE YOU.
+		["c_"] = "c_",
+		["v_"] = "v_",  -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
+		["viewhands"] = "viewhands" -- I HATE YOU.
 	}
-	
+		
 	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-		local substring = string.sub("model", 1, 2)
-		local substring_stupid = string.sub("model", 1, 9)
-		if !arms[substring] or !arms[substring_stupid] then
+		local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
+		if (!arms[c1] && !arms[c2] && !arms[c3]) then
 			local icon = vgui.Create( "SpawnIcon" )
 			icon:SetModel( model )
 			icon:SetSize( 64, 64 )
@@ -298,7 +310,7 @@ function DRCMenu( player )
 	PanelSelect:InvalidateLayout()
 	end
 	
-	local modelListPnl_Hands = tab1Hands:Add( "DPanel" )
+	local modelListPnl_Hands = tab1.tab1Hands:Add( "DPanel" )
 	modelListPnl_Hands:DockPadding( 8, 0, 8, 0 )
 	modelListPnl_Hands:Dock(FILL)
 	modelListPnl_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
@@ -316,18 +328,49 @@ function DRCMenu( player )
 	RemoveButton:SetColor(Color(255, 0, 0, 255))
 	PanelSelect_Hands:AddPanel(RemoveButton)
 	
+	PanelSelect_Hands.Defaults = {
+		["models/weapons/c_arms_chell.mdl"] = "models/player/p2_chell.mdl",
+		["models/weapons/c_arms_citizen.mdl"] = "models/player/group01/male_07.mdl",
+		["models/weapons/c_arms_combine.mdl"] = "models/player/combine_soldier.mdl",
+		["models/weapons/c_arms_cstrike.mdl"] = "models/player/t_leet.mdl",
+		["models/weapons/c_arms_dod.mdl"] = "models/player/dod_american.mdl",
+		["models/weapons/c_arms_hev.mdl"] = "models/items/hevsuit.mdl",
+		["models/weapons/c_arms_refugee.mdl"] = "models/player/group03/male_07.mdl",
+	}
+	
 	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-		if arms[substring] or arms[substring_stupid] then
+		local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
+		if arms[c1] or arms[c2] or arms[c3] then
 			local icon = vgui.Create( "SpawnIcon" )
 			icon:SetModel( model )
 			icon:SetSize( 64, 64 )
 			icon:SetTooltip( name )
 			icon.playerhands = name
 			icon.model_path = model
-			icon.tbl = player_manager.TranslatePlayerHands(name)
+			icon.tbl = {
+				["model"] = model,
+				["skin"] = 0,
+				["bodygroups"] = "00000000",
+			}
 			
-			PanelSelect_Hands:AddPanel( icon, { cl_playerhands = name } )
+			PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
 		end
+	end
+	
+	for name, model in SortedPairs( PanelSelect_Hands.Defaults ) do
+		local icon = vgui.Create( "SpawnIcon" )
+		icon:SetModel( model )
+		icon:SetSize( 64, 64 )
+		icon:SetTooltip( name )
+		icon.playerhands = name
+		icon.model_path = model
+		icon.tbl = {
+			["model"] = name,
+			["skin"] = 0,
+			["bodygroups"] = "00000000",
+		}
+			
+		PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
 	end
 	
     local ScrollPrim = vgui.Create("DScrollPanel", tab2)
@@ -476,27 +519,47 @@ function DRCMenu( player )
 			pmname = player_manager.TranslateToPlayerModelName(preview:GetModel())
 		end
 		local handstable = player_manager.TranslatePlayerHands(pmname)
-	
-		local tbl = {
-			["player"] = LocalPlayer(),
-			["model"] = preview:GetModel(),
-			["colours"] = {
-				["Energy"] = Color(energyColour:GetColor().r, energyColour:GetColor().g, energyColour:GetColor().b),
-				["Eye"] = Color(eyecolour:GetColor().r, eyecolour:GetColor().g, eyecolour:GetColor().b),
-				["Player"] = Color(playercolour:GetColor().r, playercolour:GetColor().g, playercolour:GetColor().b),
-				["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
-				["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
-				["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
-			},
-			["bodygroups"] = str,
-			["skin"] = preview:GetEntity():GetSkin(),
-			["voiceset"] = VSelection,
-			["hands"] = {
-				["model"] = handval,
-				["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
-				["skin"] = LocalPlayer():GetInfo("cl_playerhands_skin"),
+		if LocalPlayer():GetInfo("cl_playerhands") != "disabled" then 
+			handstable.model = LocalPlayer():GetInfo("cl_playerhands")
+			handval = handstable.model
+		end
+		
+		local tbl = {}
+		if DRC:GetCustomizationAllowed() != true then
+			tbl = {
+				["player"] = LocalPlayer(),
+				["model"] = preview:GetModel(),
+				["bodygroups"] = str,
+				["skin"] = preview:GetEntity():GetSkin(),
+				["voiceset"] = VSelection,
+				["hands"] = {
+					["model"] = handval,
+					["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
+					["skin"] = LocalPlayer():GetInfo("cl_playerhands_skin"),
+				}
 			}
-		}
+		else
+			tbl = {
+				["player"] = LocalPlayer(),
+				["model"] = preview:GetModel(),
+				["colours"] = {
+					["Energy"] = Color(energyColour:GetColor().r, energyColour:GetColor().g, energyColour:GetColor().b),
+					["Eye"] = Color(eyecolour:GetColor().r, eyecolour:GetColor().g, eyecolour:GetColor().b),
+					["Player"] = Color(playercolour:GetColor().r, playercolour:GetColor().g, playercolour:GetColor().b),
+					["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
+					["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
+					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
+				},
+				["bodygroups"] = str,
+				["skin"] = preview:GetEntity():GetSkin(),
+				["voiceset"] = VSelection,
+				["hands"] = {
+					["model"] = handval,
+					["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
+					["skin"] = LocalPlayer():GetInfo("cl_playerhands_skin"),
+				}
+			}
+		end
 		handstable.skin = tbl.hands.skin
 		handstable.bodygroups = tbl.hands.bodygroups
 		
@@ -1136,6 +1199,8 @@ function DRCMenu( player )
 				tabs:CloseTab(v.Tab)
 			elseif v.Name == "Colours" then
 				tabs:CloseTab(v.Tab)
+			elseif v.Name == "#smwidget.bodygroups" then
+				tabs:CloseTab(v.Tab)
 			end
 		end
 		tab1:Remove()
@@ -1200,14 +1265,14 @@ function DRCMenu( player )
 	local ControlsText = vgui.Create( "DLabel", controls1 )
 	ControlsText:Dock(TOP)
 	ControlsText:SetSize(1, 160)
-	ControlsText:SetText("Primary attack: \nSecondary attack / ironsights: \nReload / Vent: \nReload secondary: \nToggle passive: \nSwitch firemode: \nInspect weapon: \nMelee (guns) / Lunge (melees): \nQuick-toggle thirdperson: \nSwitch thirdperson shoulder side:")
+	ControlsText:SetText("Primary attack: \nSecondary attack / ironsights: \nReload / Vent: \nReload secondary: \nToggle passive: \nSwitch firemode: \nInspect weapon: \nMelee (guns) / Lunge (melees):")
 	ControlsText:SetColor(TextCol)
 	ControlsText:SetContentAlignment(4)
 	
 	local ControlsValue = vgui.Create( "DLabel", controls2 )
 	ControlsValue:Dock(TOP)
 	ControlsValue:SetSize(1, 160)
-	ControlsValue:SetText("".. m1key .."\n".. m2key .."\n".. reloadkey .."\n".. sprintkey .." + ".. reloadkey .."\n".. sprintkey .." + ".. usekey .." + ".. m2key .."\n".. usekey .." + ".. m2key .."\n".. usekey .. " + ".. reloadkey .."\n".. usekey .. " + ".. m1key .."\n".. usekey .." + ".. alt1key .."\n".. usekey .." + ".. alt2key .."")
+	ControlsValue:SetText("".. m1key .."\n".. m2key .."\n".. reloadkey .."\n".. sprintkey .." + ".. reloadkey .."\n".. sprintkey .." + ".. usekey .." + ".. m2key .."\n".. usekey .." + ".. m2key .."\n".. usekey .. " + ".. reloadkey .."\n".. usekey .. " + ".. m1key .."")
 	ControlsValue:SetColor(NotifyCol)
 	ControlsValue:SetContentAlignment(6)
 	
@@ -1217,6 +1282,81 @@ function DRCMenu( player )
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	t2tabs:AddSheet( "Client Settings", t2tab1, "icon16/wrench_orange.png")
+	
+	local AccessibilityTitle = vgui.Create( "DLabel", t2tab1)
+	AccessibilityTitle:SetText("Accessibility")
+	AccessibilityTitle:SetSize(200, 50)
+	AccessibilityTitle:SetPos(500, -8)
+	AccessibilityTitle:SetColor(Color(255, 255, 255, 255))
+	AccessibilityTitle:SetFont("DermaLarge")
+	AccessibilityTitle:SetContentAlignment(0)
+	
+	local DrcCrosshairs = vgui.Create( "DCheckBoxLabel", t2tab1 )
+	DrcCrosshairs:SetPos(516, 35)
+	DrcCrosshairs:SetSize(200, 20)
+	DrcCrosshairs:SetText( "Dim muzzle flashes (Photosensitivity)" )
+	DrcCrosshairs:SetConVar( "cl_drc_accessibility_photosensitivity_muzzle" )
+	DrcCrosshairs.Label:SetColor(TextCol)
+	DrcCrosshairs:SetEnabled(true)
+	
+	local ColourBlindSetting = vgui.Create( "DLabel", t2tab1)
+	ColourBlindSetting:SetPos(516, 60)
+	ColourBlindSetting:SetSize(100, 20)
+	ColourBlindSetting:SetText("Colour Blindness:")
+	ColourBlindSetting:SetColor(TextCol)
+				
+	local ColourBlindCombo = vgui.Create( "DComboBox", t2tab1 )
+	ColourBlindCombo:SetSortItems(false)
+	ColourBlindCombo:SetPos(600, 60)
+	ColourBlindCombo:SetSize(150, 20)
+	ColourBlindCombo:SetConVar( "cl_drc_accessibility_colourblind" )
+	ColourBlindCombo:AddChoice("None", 1)
+	ColourBlindCombo:AddChoice("Protanopia", 2)
+	ColourBlindCombo:AddChoice("Protanomaly", 3)
+	ColourBlindCombo:AddChoice("Deuteranopia", 4)
+	ColourBlindCombo:AddChoice("Deuteranomaly", 5)
+	ColourBlindCombo:AddChoice("Tritanopia", 6)
+	ColourBlindCombo:AddChoice("Tritanomaly", 7)
+	ColourBlindCombo:AddChoice("Achromatopsia", 8)
+	ColourBlindCombo:AddChoice("Achromatomaly", 9)
+	function ColourBlindCombo:OnSelect(index, value, data)
+		RunConsoleCommand("cl_drc_accessibility_colourblind", value)
+	end
+	
+	MakeHint(t2tab1, 750, 60, "This is colour correction intended to make it easier for colourblind/colour-deficient individuals to spot objects/differences that would be plainly visible to others, but not for themselves.\nThis does not 'make everything look normal' for those who use it and should not be considered as such.")
+	
+	local ColourBlindStrength = vgui.Create( "DNumSlider", t2tab1 )
+	ColourBlindStrength:SetPos(516, 85)
+	ColourBlindStrength:SetSize(300, 20)
+	ColourBlindStrength:SetText( "Col. Blind Filter Strength" )
+	ColourBlindStrength.Label:SetColor(TextCol)
+	ColourBlindStrength:SetMin( 0 )
+	ColourBlindStrength:SetMax( 100 )
+	ColourBlindStrength:SetDecimals( 0 )
+	ColourBlindStrength:SetConVar( "cl_drc_accessibility_colourblind_strength" )
+	ColourBlindStrength:SetEnabled(true)
+	
+	t2tab1.ColourBlindDisclaimer = vgui.Create( "DLabel", t2tab1)
+	t2tab1.ColourBlindDisclaimer:SetText("** I am not an optician and this is guesswork at best.")
+	t2tab1.ColourBlindDisclaimer:SetSize(300, 50)
+	t2tab1.ColourBlindDisclaimer:SetPos(516, 90)
+	t2tab1.ColourBlindDisclaimer:SetColor(SubtextCol)
+	
+	local DRCSway = vgui.Create( "DCheckBoxLabel", t2tab1 )
+	DRCSway:SetPos(516, 130)
+	DRCSway:SetSize(500, 20)
+	DRCSway:SetText( "Enable scripted weapon swaying (Motion sickness)" )
+	DRCSway:SetConVar( "cl_drc_sway" )
+	DRCSway.Label:SetColor(TextCol)
+	DRCSway:SetEnabled(true)
+	
+	local SettingsTitle_CL = vgui.Create( "DLabel", t2tab1)
+	SettingsTitle_CL:SetText("Client Settings")
+	SettingsTitle_CL:SetSize(200, 50)
+	SettingsTitle_CL:SetPos(16, -8)
+	SettingsTitle_CL:SetColor(Color(255, 255, 255, 255))
+	SettingsTitle_CL:SetFont("DermaLarge")
+	SettingsTitle_CL:SetContentAlignment(0)
 	
 	local DrcSoul = vgui.Create( "DCheckBoxLabel", t2tab1 )
 	DrcSoul:SetPos(25, 35)
@@ -1253,10 +1393,12 @@ function DRCMenu( player )
 	local DrcExperimentalFP = vgui.Create( "DCheckBoxLabel", t2tab1 )
 	DrcExperimentalFP:SetPos(25, 135)
 	DrcExperimentalFP:SetSize(500, 20)
-	DrcExperimentalFP:SetText( "Enable experimental first person mode" )
+	DrcExperimentalFP:SetText( "Enable ''Experimental First Person Camera'' mode" )
 	DrcExperimentalFP:SetConVar( "cl_drc_experimental_fp" )
 	DrcExperimentalFP.Label:SetColor(TextCol)
 	DrcExperimentalFP:SetEnabled(true)
+	
+	MakeHint(t2tab1, 285, 135, "This makes your camera function like a true full-body first person system while still using your viewmodel.")
 	
 	local DrcThirdperson = vgui.Create( "DCheckBoxLabel", t2tab1 )
 	DrcThirdperson:SetPos(25, 160)
@@ -1273,14 +1415,6 @@ function DRCMenu( player )
 	DrcThirdperson_Dyn:SetConVar( "cl_drc_thirdperson_disable_freelook" )
 	DrcThirdperson_Dyn.Label:SetColor(TextCol)
 	DrcThirdperson_Dyn:SetEnabled(true)
-	
-	local DRCSway = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DRCSway:SetPos(25, 210)
-	DRCSway:SetSize(500, 20)
-	DRCSway:SetText( "Scripted Weapon Swaying" )
-	DRCSway:SetConVar( "cl_drc_sway" )
-	DRCSway.Label:SetColor(TextCol)
-	DRCSway:SetEnabled(true)
 	
 	local VMOX = vgui.Create( "DNumSlider", t2tab1 )
 	VMOX:SetPos(25, 235)
@@ -1325,44 +1459,46 @@ function DRCMenu( player )
 				local DrcMovement = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcMovement:SetPos(25, 15)
 				DrcMovement:SetSize(20, 20)
-				DrcMovement:SetText( "Enable SWEP movement speed overrides" )
+				DrcMovement:SetText( "Draconic SWEP movement speed overrides" )
 				DrcMovement:SetConVar( "sv_drc_movement" )
 				DrcMovement.Label:SetColor(TextCol)
 				
 				local DrcMoveSounds = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcMoveSounds:SetPos(25, 35)
 				DrcMoveSounds:SetSize(20, 20)
-				DrcMoveSounds:SetText( "Enable SWEP movement sounds" )
+				DrcMoveSounds:SetText( "Draconic SWEP movement sounds" )
 				DrcMoveSounds:SetConVar( "sv_drc_movesounds" )
 				DrcMoveSounds.Label:SetColor(TextCol)
 				
 				local DrcInspections = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcInspections:SetPos(25, 55)
 				DrcInspections:SetSize(20, 20)
-				DrcInspections:SetText( "Enable SWEP Inspection Menu" )
+				DrcInspections:SetText( "Draconic SWEP Inspection Menu" )
 				DrcInspections:SetConVar( "sv_drc_inspections" )
 				DrcInspections.Label:SetColor(TextCol)
 				
 				local DrcPassive = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcPassive:SetPos(25, 75)
 				DrcPassive:SetSize(20, 20)
-				DrcPassive:SetText( "Enable SWEP Passives" )
+				DrcPassive:SetText( "Draconic SWEP Passives" )
 				DrcPassive:SetConVar( "sv_drc_passives" )
 				DrcPassive.Label:SetColor(TextCol)
 				
 				local DrcSprintOverride = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcSprintOverride:SetPos(25, 95)
 				DrcSprintOverride:SetSize(20, 20)
-				DrcSprintOverride:SetText( "Override all Draconic weapons to enable sprint passives" )
+				DrcSprintOverride:SetText( "All Draconic weapons use passive sprint" )
 				DrcSprintOverride:SetConVar( "sv_drc_force_sprint" )
 				DrcSprintOverride.Label:SetColor(TextCol)
 				
 				local SvThirdperson = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				SvThirdperson:SetPos(25, 115)
 				SvThirdperson:SetSize(20, 20)
-				SvThirdperson:SetText( "Disable access to Draconic's thirdperson system (Weapons that require it can still use it)" )
+				SvThirdperson:SetText( "Disable access to Draconic's thirdperson system" )
 				SvThirdperson:SetConVar( "sv_drc_disable_thirdperson" )
 				SvThirdperson.Label:SetColor(TextCol)
+				
+				MakeHint(t2tab2, 300, 115, "Draconic SWEPs which require thirdperson will still use Draconic thirdperson regardless of this setting.")
 				
 				local SvFreecam = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				SvFreecam:SetPos(25, 135)
@@ -1371,28 +1507,24 @@ function DRCMenu( player )
 				SvFreecam:SetConVar( "sv_drc_disable_thirdperson_freelook" )
 				SvFreecam.Label:SetColor(TextCol)
 				
-				local DrcCawadoody = vgui.Create( "DCheckBoxLabel", t2tab2 )
-				DrcCawadoody:SetPos(25, 155)
-				DrcCawadoody:SetSize(20, 20)
-				DrcCawadoody:SetText( "Allow weapons to use unrealistic 'Call of Duty' bullet spread" )
-				DrcCawadoody:SetConVar( "sv_drc_callofdutyspread" )
-				DrcCawadoody.Label:SetColor(TextCol)
+				t2tab2.SoundStretch = vgui.Create( "DCheckBoxLabel", t2tab2 )
+				t2tab2.SoundStretch:SetPos(25, 155)
+				t2tab2.SoundStretch:SetSize(20, 20)
+				t2tab2.SoundStretch:SetText( "Disable host_timescale sound alteration" )
+				t2tab2.SoundStretch:SetConVar( "sv_drc_soundtime_disabled" )
+				t2tab2.SoundStretch.Label:SetColor(TextCol)
 				
-				local LGTitle = vgui.Create( "DLabel", t2tab2)
-				LGTitle:SetPos(50, 175)
-				LGTitle:SetSize(w2, 20)
-				LGTitle:SetText("(This means 'Allow weapons to magically decrease bullet spread when down sights')")
-				LGTitle:SetColor(SubtextCol)
+				MakeHint(t2tab2.SoundStretch, 300, 0, "Enabling this setting will make it so sounds do not slow down/speed up when host_timescale changes are in effect.")
 				
 				local DiffSetting = vgui.Create( "DLabel", t2tab2)
-				DiffSetting:SetPos(25, 195)
+				DiffSetting:SetPos(400, 15)
 				DiffSetting:SetSize(100, 20)
 				DiffSetting:SetText("HL2 Difficulty:")
 				DiffSetting:SetColor(TextCol)
 				
 				local HL2Diff = vgui.Create( "DComboBox", t2tab2 )
 				HL2Diff:SetSortItems(false)
-				HL2Diff:SetPos(125, 195)
+				HL2Diff:SetPos(500, 15)
 				HL2Diff:SetSize(150, 20)
 				HL2Diff:SetConVar( "skill" )
 				HL2Diff:AddChoice("Easy", 1)
@@ -1403,19 +1535,19 @@ function DRCMenu( player )
 				end
 				
 				local DiffDescE = vgui.Create( "DLabel", t2tab2)
-				DiffDescE:SetPos(300, 195)
+				DiffDescE:SetPos(400, 35)
 				DiffDescE:SetSize(w2, 20)
 				DiffDescE:SetText("Easy: ".. GetConVarNumber("sk_dmg_inflict_scale1") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale1") * 100 .."% damage taken.")
 				DiffDescE:SetColor(SubtextCol)
 				
 				local DiffDescM = vgui.Create( "DLabel", t2tab2)
-				DiffDescM:SetPos(300, 210)
+				DiffDescM:SetPos(400, 55)
 				DiffDescM:SetSize(w2, 20)
 				DiffDescM:SetText("Medium: ".. GetConVarNumber("sk_dmg_inflict_scale2") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale2") * 100 .."% damage taken.")
 				DiffDescM:SetColor(SubtextCol)
 				
 				local DiffDescH = vgui.Create( "DLabel", t2tab2)
-				DiffDescH:SetPos(300, 225)
+				DiffDescH:SetPos(400, 75)
 				DiffDescH:SetSize(w2, 20)
 				DiffDescH:SetText("Hard: ".. GetConVarNumber("sk_dmg_inflict_scale3") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale3") * 100 .."% damage taken.")
 				DiffDescH:SetColor(SubtextCol)
@@ -1756,10 +1888,12 @@ function DRCMenu( player )
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
 	DebugSetting:SetPos(25, 30)
 	DebugSetting:SetSize(500, 20)
-	DebugSetting:SetText( "Legacy 'DSB Debug Assistant'" )
+	DebugSetting:SetText( "Legacy ''DSB Debug Assistant''" )
 	DebugSetting:SetConVar( "cl_drc_debug_legacyassistant" )
 	DebugSetting.Label:SetColor(TextCol)
 	DebugSetting:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 200, 30, "The OG debugging UI to display debug info.\nI just don't have the heart to remove it.")
 	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
 	DebugSetting:SetPos(25, 50)
@@ -1777,16 +1911,37 @@ function DRCMenu( player )
 	DebugSetting.Label:SetColor(TextCol)
 	DebugSetting:SetEnabled(true)
 	
+	t4tab2panel_left.Hitboxes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.Hitboxes:SetPos(25, 90)
+	t4tab2panel_left.Hitboxes:SetSize(500, 20)
+	t4tab2panel_left.Hitboxes:SetText( "Hitbox Renderer" )
+	t4tab2panel_left.Hitboxes:SetConVar( "cl_drc_debug_hitboxes" )
+	t4tab2panel_left.Hitboxes.Label:SetColor(TextCol)
+	t4tab2panel_left.Hitboxes:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 90, "Continuously renders your own hitboxes while not in first person.\nAlso renders hitboxes of whatever you are looking at.")
+	
+	t4tab2panel_left.Tracelines = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.Tracelines:SetPos(25, 110)
+	t4tab2panel_left.Tracelines:SetSize(500, 20)
+	t4tab2panel_left.Tracelines:SetText( "TraceLine Renderer" )
+	t4tab2panel_left.Tracelines:SetConVar( "cl_drc_debug_tracelines" )
+	t4tab2panel_left.Tracelines.Label:SetColor(TextCol)
+	t4tab2panel_left.Tracelines:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 110, "Renders TraceLines used by the Draconic Base.\nServer-sided traces will only render in singleplayer.\n\nWhite = Undefined/generic\nRed = Harmful hit connection\nYellow = DRC:TraceDir() trace.")
+	
+	
 	local DebugSetting = vgui.Create( "DLabel", t4tab2panel_left)
 	ControlsTitle:SetFont("DermaLarge")
-	DebugSetting:SetPos(25, 90)
+	DebugSetting:SetPos(400, 10)
 	DebugSetting:SetSize(100, 20)
 	DebugSetting:SetText("Debug Crosshair:")
 	DebugSetting:SetColor(TextCol)
 	
 	local DebugCrosshair = vgui.Create( "DComboBox", t4tab2panel_left )
 	DebugCrosshair:SetSortItems(false)
-	DebugCrosshair:SetPos(125, 90)
+	DebugCrosshair:SetPos(500, 10)
 	DebugCrosshair:SetSize(150, 20)
 	DebugCrosshair:SetConVar( "cl_drc_debug_crosshairmode" )
 	DebugCrosshair:AddChoice("Disabled", 0)
@@ -1794,7 +1949,7 @@ function DRCMenu( player )
 	DebugCrosshair:AddChoice("Melee travel only", 2)
 	DebugCrosshair:AddChoice("Full", 3)
 	function DebugCrosshair:OnSelect(index, value, data)
-		LocalPlayer():ConCommand("cl_drc_debug_crosshairmode ".. index - 1 .."")
+		RunConsoleCommand("cl_drc_debug_crosshairmode", index - 1)
 	end
 	
 	if LocalPlayer():IsAdmin() then

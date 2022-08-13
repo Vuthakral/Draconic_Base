@@ -426,8 +426,8 @@ function SWEP:DoPrimaryAttack()
 		if not self:GetOwner():IsValid() then return end
 		if not self:IsValid() then return end
 		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
-			if not self:GetOwner():IsValid() then return end
-			if not self:IsValid() then return end
+			if !IsValid(self:GetOwner()) then return end
+			if !IsValid(self) then return end
 			self:MeleeImpact(self.Primary.Range, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "primary")
 		end)
 	end

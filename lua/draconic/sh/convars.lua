@@ -9,10 +9,6 @@ if GetConVar("sv_drc_movesounds") == nil then
 	DRC.Convars_SV.MoveSounds = CreateConVar("sv_drc_movesounds", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.", 0, 1)
 end
 
-if GetConVar("sv_drc_callofdutyspread") == nil then
-	DRC.Convars_SV.CoDSpread = CreateConVar("sv_drc_callofdutyspread", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Do you hate 'Call of Duty aim' where weapon spread is unrealistically reduced when aiming down the sights? Me too! Unfortunately for you, people begged me to add it to my base anyways. But fortunately for you, I tied it all to a serverside config to disable it entirely!", 0, 1)
-end
-
 if GetConVar("sv_drc_force_sprint") == nil then
 	DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_force_sprint", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Forces all DSB weapons to use the passive-sprint system, regardless of SWEP author intention.", 0, 1)
 end
@@ -77,6 +73,10 @@ if GetConVar("sv_drc_playerrep_tweakonly") == nil then
 	DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_playerrep_tweakonly", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Limits players to only changing their colours/bodygroup/skin in the Draconic Menu.", 0, 1)
 end
 
+if GetConVar("sv_drc_soundtime_disabled") == nil then
+	DRC.Convars_SV.DisableTP = CreateConVar("sv_drc_soundtime_disabled", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_DEMO}, "Pitch of audio changing with host_timescale", 0, 1)
+end
+
 if CLIENT then
 	if GetConVar("cl_playerhands") == nil then CreateConVar("cl_playerhands", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
 	if GetConVar("cl_playerhands_bodygroups") == nil then CreateConVar("cl_playerhands_bodygroups", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
@@ -86,6 +86,8 @@ if CLIENT then
 	if GetConVar("cl_drc_debug_vmattachments") == nil then CreateConVar("cl_drc_debug_vmattachments", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the viewmodel attachment visualizations.", 0, 1) end
 	if GetConVar("cl_drc_debug_legacyassistant") == nil then CreateConVar("cl_drc_debug_legacyassistant", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the old legacy debug window 'DSB Debug Assisstant'.", 0, 1) end
 	if GetConVar("cl_drc_debug_crosshairmode") == nil then DRC.Convars_CL.Debug_Crosshair = CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3) end
+	if GetConVar("cl_drc_debug_hitboxes") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_hitboxes", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable hitbox rendering. Continuously draws the local player's hitboxes, and draws the hitboxes of whatever you are looking at.", 0, 1) end
+	if GetConVar("cl_drc_debug_tracelines") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_tracelines", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable traces used by the Draconic Base. Detailed information about what each colour means can be found on the wiki.", 0, 1) end
 	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
 	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
 	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.", 0, 1) end
@@ -122,4 +124,10 @@ if CLIENT then
 	if GetConVar("cl_drc_showspray_weapons") == nil then CreateConVar("cl_drc_showspray_weapons", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on weapons that support it.", 0, 1) end
 	if GetConVar("cl_drc_showspray_vehicles") == nil then CreateConVar("cl_drc_showspray_vehicles", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on vehicles that support it.", 0, 1)	end
 	if GetConVar("cl_drc_showspray_player") == nil then CreateConVar("cl_drc_showspray_player", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on your player if the model support it.", 0, 1) end
+
+	if GetConVar("cl_drc_accessibility_photosensitivity_muzzle") == nil then CreateConVar("cl_drc_accessibility_photosensitivity_muzzle", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Dim the effects of the dynamic-light muzzle flashes on Draconic weapons", 0, 1) end
+	if GetConVar("cl_drc_accessibility_colourblind") == nil then CreateConVar("cl_drc_accessibility_colourblind", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Probably a bad attempt at making game-wide colour correction for those who need it.") end
+	if GetConVar("cl_drc_accessibility_colourblind_strength") == nil then CreateConVar("cl_drc_accessibility_colourblind_strength", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100) end
+	
+	DRC.CalcView.LightColour = CreateConVar("drc_lightcolour", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100)
 end

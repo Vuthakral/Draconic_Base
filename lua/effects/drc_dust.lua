@@ -5,11 +5,8 @@ function EFFECT:Init( data )
 	self.Magnitude = data:GetMagnitude()
 	self.Normal = data:GetNormal()
 	
-	
-	
 	local emitter = ParticleEmitter( Pos )
 	for i = 0,math.Rand(5,math.Clamp(self.Magnitude, 5, 150)) do
-		local offset = math.Rand(-5, 5)
 		local particle = emitter:Add( "particle/smokesprites_0001", Pos)
 		if particle == nil then particle = emitter2:Add( "particle/smokesprites_0001", Pos) end
 		if (particle) then
@@ -30,26 +27,22 @@ function EFFECT:Init( data )
 			OGCol.z = math.Clamp(OGCol.z + (LighCol.b * 255), 0, 255)
 			
 			particle:SetLighting(false)
-			particle:SetPos(Pos + Vector(offset, offset, offset))
-			if i < 70 then
-				particle:SetVelocity(VectorRand() * (0.1 * self.Magnitude ) * (self.Normal * 0.5) * math.Rand(-2, 2) * self.Magnitude )
-			else
-				particle:SetVelocity((self.Normal * 0.5) * math.Rand(-2, 2) * self.Magnitude )
-			end
+			particle:SetPos(Pos + Vector(math.Rand(-self.Magnitude*2, self.Magnitude*2), math.Rand(-self.Magnitude*2, self.Magnitude*2), 1))
+			particle:SetVelocity((self.Normal * 0.5) * math.Rand(-2, 2) * self.Magnitude )
 			particle:SetLifeTime(math.Rand(0.1, 0.15)) 
-			particle:SetDieTime(math.Rand(0.3,2))
+			particle:SetDieTime(math.Rand(0.3,7))
 			particle:SetStartAlpha(100)
 			particle:SetEndAlpha(0)
-			particle:SetStartSize(0.0001 * self.Magnitude)
-			particle:SetEndSize(0.9 * self.Magnitude)
+			particle:SetStartSize(0.001 * self.Magnitude)
+			particle:SetEndSize(3 * self.Magnitude)
 			particle:SetStartLength(0)
 			particle:SetEndLength(0)
-			particle:SetAngleVelocity( Angle(4.2934407040912,14.149586106307,0.18606363772742) ) 
-			particle:SetRoll(math.Rand( 0, 360 ))
+			particle:SetAngleVelocity( Angle(0,3,0) ) 
+			particle:SetRoll(math.Rand( 0, 30 ))
 			particle:SetColor(OGCol.x, OGCol.y, OGCol.z)
-			particle:SetGravity( Vector(0,0,math.Rand(-50, 50)) ) 
+			particle:SetGravity( Vector(0,0,math.Rand(-200, 20)) ) 
 			particle:SetAirResistance(200)
-			particle:SetCollide(true)
+			particle:SetCollide(false)
 			particle:SetBounce(math.Rand(0.1,0.5))
 		end
 	end

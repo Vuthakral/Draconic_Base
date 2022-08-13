@@ -129,6 +129,20 @@ local function drc_Crosshair()
 		end
 	else end
 	
+	if DRC:IsCharacter(DRC.CalcView.Trace.Entity) && IsValid(DRC.CalcView.Trace.Entity) then
+		local box = DRC.CalcView.Trace.HitBox
+		local hitgroup = DRC.CalcView.Trace.Entity:GetHitBoxHitGroup(box, 0)
+		if hitgroup == HITGROUP_HEAD then
+			if curswep.CrosshairNoIronFade == false then
+				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphalerpch )
+			else
+				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
+			end
+			surface.SetMaterial( Material("vgui/circle") )
+			surface.DrawTexturedRectRotated(pos.x, pos.y, 3, 3, 0)
+		end
+	end
+	
 	if curswep.CrosshairStatic != nil then
 		if curswep.CrosshairShadow == true then
 			if curswep.CrosshairNoIronFade == false then

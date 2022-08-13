@@ -85,6 +85,7 @@ end
 function SWEP:BloomScore()
 	if self.Base != "draconic_melee_base" then
 		local ply = self:GetOwner()
+		if !IsValid(ply) then return end
 		local cv = ply:Crouching()
 		local sk = ply:KeyDown(IN_SPEED)
 		local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
@@ -323,21 +324,22 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		if timer.Exists("SwingImpact".. i .."") then timer.Destroy("SwingImpact".. i .."") end
 	end
-	if swingtrace.Entity:IsValid() and ( swingtrace.Entity:IsNextBot() or swingtrace.Entity:IsNPC() or swingtrace.Entity:IsPlayer() ) then
-	local damageinfo = DamageInfo()
-		damageinfo:SetAttacker( ply )
-		damageinfo:SetInflictor( self )
-		damageinfo:SetDamageType( self.DT )
+	if IsValid(swingtrace.Entity) && DRC:IsCharacter(swingtrace.Entity) then
+		local damageinfo = DamageInfo()
+		damageinfo:SetAttacker(ply)
+		damageinfo:SetInflictor(self)
+		damageinfo:SetDamageType(self.DT)
 		damageinfo:SetDamageForce((self.Owner:GetRight() * math.random(3568,4235)) + (self.Owner:GetForward() * math.random(6875,7523)))
-		damageinfo:SetDamage( self.Damage )
-	swingtrace.Entity:TakeDamageInfo( damageinfo )
+		damageinfo:SetDamage(self.Damage)
+		damageinfo:SetBaseDamage(2221208)
+		swingtrace.Entity:TakeDamageInfo( damageinfo )
 	elseif swingtrace.Entity:IsValid() and ( !swingtrace.Entity:IsNPC() or !swingtrace.Entity:IsPlayer() ) && !swingtrace.Entity:IsNextBot() && IsValid(swingtrace.Entity:GetPhysicsObject()) then
 		if i < rhm then
-			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 50 * i, swingtrace.HitPos )
+			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
 		elseif i == rhm then	
-			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 50 * i, swingtrace.HitPos )
+			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
 		elseif i > rhm then
-			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 50 * ( i / 10 ), swingtrace.HitPos )
+			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * ( i / 10 ), swingtrace.HitPos )
 		end
 		
 		if swingtrace.Entity:Health() > 0 then
@@ -445,6 +447,12 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	bullet.Spread = cone
 	bullet.Callback = function(ent, tr, takedamageinfo) -- https://imgur.com/a/FCDZOEx
 		if IsValid(self) then
+			if !tr.Entity:IsWorld() then
+				DRC:RenderTrace(tr, Color(255, 0, 0, 255), 1)
+			else
+				DRC:RenderTrace(tr, Color(255, 255, 255, 255), 1)
+			end
+		
 			takedamageinfo:SetAttacker(self:GetOwner())
 			takedamageinfo:SetInflictor(self)
 			takedamageinfo:SetDamageType( self:GetAttachmentValue("Ammunition", "DamageType") )
@@ -490,25 +498,18 @@ function SWEP:CalculateSpread(isprojectile)
 	if !IsValid(self) then return end
 	if isprojectile == nil then isprojectile = false end
 	local ply = self:GetOwner()
+	local SpreadMod = ply:GetNWInt("DRC_GunSpreadMod", 1)
 	local stats = self.StatsToPull
 	local calc = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv")))
 	
 	if isprojectile == false then
 		if ply:IsPlayer() then
-			if GetConVar("sv_drc_callofdutyspread"):GetString() == "1" then
-				if self.SightsDown == false then
-					return Vector( calc, calc, 0 ) * self.BloomValue
-				else
-					return Vector( calc, calc, 0) * self.BloomValue
-				end
-			else
-				return Vector( calc, calc, 0 ) * self.BloomValue
-			end
+			return (Vector( calc, calc, 0 ) * self.BloomValue) * SpreadMod
 		elseif ply:IsNPC() or ply:IsNextBot() then
-			return Vector(calc, calc, calc)
+			return (Vector(calc, calc, calc))
 		end
 	else
-		return Vector( calc, calc, 0 ) * self.BloomValue / 2 -- This isn't perfectly accurate to the spread cone but what the fuck ever, it's close enough.
+		return (Vector( calc, calc, 0 ) * self.BloomValue / 2) * SpreadMod -- This isn't perfectly accurate to the spread cone but what the fuck ever, it's close enough.
 	end
 end
 
@@ -547,6 +548,8 @@ function SWEP:DoShoot(mode)
 		firetime = self:SequenceDuration(fireseq3)
 	end
 	self.IdleTimer = CurTime() + firetime
+	self.LastFireTime = CurTime()
+	self.LastFireAnimTime = CurTime() + firetime
 	
 	local shotnum = self:GetAttachmentValue("Ammunition", "NumShots")
 	if mode == "primary" then
@@ -1040,8 +1043,12 @@ end
 function SWEP:MuzzleFlash()
 	if SERVER then return end
 	local col = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Colour")
+	local epileptic, mul = GetConVar("cl_drc_accessibility_photosensitivity_muzzle"):GetFloat(), 1
+	if epileptic == 1 then mul = 0.5 end
+		
 	if self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Dynamic") == true then
-		local bright = (col.a/5)* (math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1))
+		DRC.CalcView.MuzzleLamp_Time = CurTime() + math.Rand(0.005, 0.01)
+		local bright = (col.a/3) * (math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1)) * mul
 		local ent = DRC.CalcView.MuzzleLamp
 		ent.Texture = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Mask")
 		ent.Light:SetColor(Color(col.r, col.g, col.b))
@@ -1055,7 +1062,9 @@ function SWEP:MuzzleFlash()
 		local att = self:LookupAttachment("muzzle")
 		local attinfo = self:GetAttachment(att)
 		local pos, ang = attinfo.Pos, attinfo.Ang
-		DRC:DLight(self, pos, col, self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Size"), self:GetAttachmentValue("Ammunition", "MuzzleFlash", "LifeTime"))
+		local finalcol = Color(col.r, col.g, col.b, col.a * mul)
+		
+		DRC:DLight(self, pos, finalcol, self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Size"), self:GetAttachmentValue("Ammunition", "MuzzleFlash", "LifeTime"))
 	end
 end
 

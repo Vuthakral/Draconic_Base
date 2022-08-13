@@ -115,13 +115,14 @@ SWEP.IsBatteryBased			= true
 SWEP.IsMelee = false
 
 function SWEP:CanPrimaryAttack()
-local ply = self:GetOwner()
-local curFOV = ply:GetFOV()
-local IronFOV = self.Secondary.IronFOV
-local sk = ply:KeyDown(IN_SPEED)
-local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
-local issprinting = sk && mk
-local wl = ply:WaterLevel()
+	local ply = self:GetOwner()
+	local sk, mk, issprinting = nil, nil
+	if ply:IsPlayer() then
+		sk = ply:KeyDown(IN_SPEED)
+		mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
+		issprinting = sk && mk
+	end
+	local wl = ply:WaterLevel()
 
 	if self:GetNextPrimaryFire() > CurTime() then return false end
 

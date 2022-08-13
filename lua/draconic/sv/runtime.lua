@@ -15,6 +15,8 @@ util.AddNetworkString("DRC_UpdatePlayermodel")
 util.AddNetworkString("DRCSWEP_ClientHitReport")
 util.AddNetworkString("DRCVoiceSet_CL")
 util.AddNetworkString("DRC_UpdatePlayerHands")
+util.AddNetworkString("DRC_RequestLightColour")
+util.AddNetworkString("DRC_ReceiveLightColour")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -30,6 +32,16 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 	local inflictor = dmg:GetInflictor()
 	local attacker = dmg:GetAttacker()
 	local vehicle = false
+	
+	local function IsMeleeDamage(d)
+		if d:GetBaseDamage() == 2221208 then return true else return false end
+	end
+	
+	if !IsMeleeDamage(dmg) && inflictor.Draconic && DRC:IsCharacter(attacker) then
+		dmg:ScaleDamage(attacker:GetNWInt("DRC_GunDamageMod", 1))
+	elseif IsMeleeDamage(dmg) && inflictor.Draconic && DRC:IsCharacter(attacker) then
+		dmg:ScaleDamage(attacker:GetNWInt("DRC_MeleeDamageMod", 1))
+	end
 	
 	if tgt:GetNWBool("DRC_Shielded") == true then
 		if !tgt.DRCShield_UID then tgt.DRCShield_UID = "".. tgt:GetClass() .."_".. tostring(math.floor(math.Rand(0, 999999999))) .."_".. tgt:EntIndex() .."" end
@@ -257,3 +269,40 @@ net.Receive("DRCVoiceSet_CL", function()
 		DRC:SpeakSentence(ent, tostring(DRC.VoiceSetDefs[value]), nil, false)
 	end
 end)
+
+function DRC:GetBestPlayerConnection()
+	local players = player.GetAll()
+	for k,v in pairs(players) do
+		v:SetNWInt("Ping", v:Ping())
+	end
+	
+	table.sort( players, function(a, b) return a:GetNWInt("Ping") < b:GetNWInt("Ping") end )
+--	print(players[1], players[1]:GetNWInt("Ping"))
+	return players[1], players[1]:GetNWInt("Ping")
+end
+
+DRC.EntLightingInfo = {}
+
+net.Receive("DRC_ReceiveLightColour", function()
+	local tbl = net.ReadTable()
+	local ent, vec = tbl[1], tbl[2]
+	DRC.EntLightingInfo[ent] = vec
+end)
+
+function DRC:RequestLightColour(ent)
+	if ent:IsPlayer() then return Vector(ent:GetInfo("drc_lightcolour")) end
+	local ply, ping = DRC:GetBestPlayerConnection()
+	print(ply, ping)
+	local tbl = {true, ent}
+	net.Start("DRC_RequestLightColour")
+	net.WriteEntity(ent)
+	net.Send(ply)
+	
+	if DRC.EntLightingInfo[ent] then
+		return DRC.EntLightingInfo[ent]
+	else
+		timer.Simple(ping/750, function()
+			DRC:RequestLightColour(ent)
+		end)
+	end
+end

@@ -119,6 +119,7 @@ ENT.BulletTable = {
 		MAT_WARPSHIELD = 1,
 		MAT_ITEM = 1,
 		MAT_JALOPY = 1,
+		MAT_AIRBOAT = 1,
 		MAT_SLIME = 1,
 		MAT_WADE = 1,
 	},

@@ -23,7 +23,7 @@ concommand.Add("draconic_thirdperson_swapshoulder", function()
 	end
 end)
 
-concommand.Add("draconic_experimentalfirstperson_toggle", function()
+concommand.Add("draconic_firstperson_toggle", function()
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 0 then
 		RunConsoleCommand("cl_drc_experimental_fp", 1)
 	else

@@ -154,3 +154,79 @@ net.Receive("DRC_WeaponDropped", function()
 		weapon:DoCustomDrop()
 	end
 end)
+
+net.Receive("DRC_RequestLightColour", function()
+	local ent = net.ReadEntity()
+	if !IsValid(ent) then return end
+	local light = render.GetLightColor(ent:GetPos() + ent:OBBCenter())
+	
+	local tab = {ent, light}
+	net.Start("DRC_ReceiveLightColour")
+	net.WriteTable(tab)
+	net.SendToServer()
+end)
+
+local HideHUDElements = {
+	["CHudAmmo"] = "E",
+	["CHudBattery"] = "E",
+	["CHudChat"] = "E",
+	["CHudCrosshair"] = "E",
+	["CHudCloseCaption"] = "E",
+	["CHudDamageIndicator"] = "E",
+	["CHudDeathNotice"] = "E",
+	["CHudGeiger"] = "E",
+	["CHudHealth"] = "E",
+	["CHudHintDisplay"] = "E",
+	["CHudMenu"] = "E",
+	["CHudMessage"] = "E",
+	["CHudPoisonDamageIndicator"] = "E",
+	["CHudSecondaryAmmo"] = "E",
+	["CHudSquadStatus"] = "E",
+	["CHudTrain"] = "E",
+	["CHudVehicle"] = "E",
+	["CHudWeapon"] = "E",
+	["CHudZoom"] = "E",
+	["NetGraph"] = "E",
+	["CHUDQuickInfo"] = "E",
+	["CHudSuitPower"] = "E",
+	["CHudGMod"] = "E",
+}
+hook.Add("HUDShouldDraw", "DRC_Camera", function(n)
+	if !IsValid(LocalPlayer()) or !IsValid(LocalPlayer():GetActiveWeapon()) then return end
+	if LocalPlayer():GetActiveWeapon():GetClass() != "drc_camera" then return end
+	if HideHUDElements[n] then return false end
+end)
+
+--[[
+hook.Add("Think", "drc_testhook", function()
+	local ply = LocalPlayer()
+	local size = DRC:RoomSize(ply)
+	local dsp = DRC:GetRoomSizeDSP(size)
+	local speakers, stereo, vol = GetConVar("snd_surround_speakers"):GetFloat(), 0, 1
+	if speakers < 5 then
+		stereo = 1
+	else
+		vol = 0.1
+	end
+	
+	local muls = {
+		
+	}
+	
+	ply:ChatPrint(tostring(size))
+
+	local cmds = {
+--		["dsp_automatic"] = 38,
+		["dsp_room"] = dsp,
+		["dsp_db_mixdrop"] = 1,
+		["dsp_mix_min"] = (size/200),
+		["dsp_mix_max"] = size/100,
+		["dsp_enhance_stereo"] = stereo,
+		["dsp_volume"] = vol,
+	}
+	
+	for k,v in pairs(cmds) do
+		RunConsoleCommand(k, v)
+	end
+end)
+--]]

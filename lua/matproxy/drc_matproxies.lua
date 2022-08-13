@@ -9,6 +9,7 @@ It contains all of the settings, explanations on how to use them, tutorials, hel
 
 local HDR = render.GetHDREnabled()
 local LMCor = DRC.MapInfo.LMCorrection
+-- local addict = achievements.GetCount(5) >= achievements.GetGoal(5)
 
 if CLIENT then
 	hook.Add("Think", "Draconic_Base_Matproxy_Clientside_Think_Please_Just_Trust_Me_It_Isnt_Laggy", function()
@@ -176,7 +177,9 @@ matproxy.Add( {
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
 		local col, mul = nil
-		
+	--	if addict then
+	--		mat:SetVector(self.ResultTo, Vector(TimedSin(2.75, 0.5, 1, 0), TimedSin(1.83, 0.5, 1, 0), TimedSin(0.916, 0.5, 1, 0)))	
+	--	return end
 		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then
 			local col = LocalPlayer():GetActiveWeapon():GetNWVector("EyeTintVec") / 255
 			mat:SetVector( self.ResultTo, col )
@@ -205,6 +208,9 @@ matproxy.Add( {
 		if !IsValid(ent) then return end
 		local col, mul = nil
 		
+	--	if addict then
+	--		mat:SetVector(self.ResultTo, Vector(TimedSin(2.75, 0.5, 1, 0), TimedSin(1.83, 0.5, 1, 0), TimedSin(0.916, 0.5, 1, 0)))	
+	--	return end
 		if !self.PowerFloat then self.PowerFloat = 1 end
 		
 		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then

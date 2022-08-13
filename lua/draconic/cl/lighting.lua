@@ -1,3 +1,5 @@
+DRC.CalcView.MuzzleLamp_Time = 0
+
 hook.Add("Think", "DRC_Lighting", function()
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
@@ -10,6 +12,7 @@ hook.Add("Think", "DRC_Lighting", function()
 			DRC.CalcView.MuzzleLamp.Enabled = false
 		end
 	return end
+	if wpn:HasViewModel() != true then return end
 	if wpn.IsMelee == true then return end
 	
 	if !IsValid(DRC.CalcView.MuzzleLamp) then
@@ -34,14 +37,12 @@ hook.Add("Think", "DRC_Lighting", function()
 		if !IsValid(parent) then
 			ent:SetParent(wpn) parent = ent:GetParent()
 		end
-	--	print(parent, DRC.CalcView.MuzzleLamp:GetParent())
 		local att = parent:LookupAttachment("muzzle")
 		local attinfo = parent:GetAttachment(att)
 		if attinfo == nil then return end
 		ent:SetPos(attinfo.Pos)
 		ent:SetAngles(attinfo.Ang)
-		ent.Enabled = false
 		ent.Light:SetColor( Color(255, 150, 25) )
-	--	print(parent)
+		if DRC.CalcView.MuzzleLamp_Time < CurTime() then ent.Enabled = false end
 	end
 end)

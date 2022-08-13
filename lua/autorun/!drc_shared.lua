@@ -1,7 +1,10 @@
 DRC = {}
 DRC.MapInfo = {}
 DRC.VoiceSets = {}
-if SERVER then AddCSLuaFile("draconic/load.lua") end
+if SERVER then 
+	resource.AddWorkshop("1847505933") -- Makes the base auto-download for clients joining your server.
+	AddCSLuaFile("draconic/load.lua")
+end
 include("draconic/load.lua")
 
 function CTFK(tab, value)
@@ -53,14 +56,18 @@ function GetDRCColours(ent)
 end
 
 function DRCNotify(source, type, severity, msg, enum, time, sound)
+	DRC:Notify(source, type, severity, msg, enum, time, sound)
+end
+
+function DRC:Notify(source, type, severity, msg, enum, time, sound)
 	if source != nil && (severity == "warning" or severity == "error" or severity == "critical") then
-		MsgC( Color(255, 0, 0), "Error from ".. tostring(source:GetClass()) ..": \n" )
+		MsgC( Color(255, 0, 0), "Error from ".. tostring(source) ..": " )
 	end
 
 	local var = GetConVar("cl_drc_disable_errorhints"):GetFloat()
 	if var != 1 or severity == "critical" then
 		if sound != nil then surface.PlaySound( sound ) end
-		if type == "hint" then
+		if type == "hint" && CLIENT then
 			if enum == nil then enum = NOTIFY_HINT end
 			if time == nil then time = 10 end
 			notification.AddLegacy( msg, enum, time )
@@ -71,7 +78,11 @@ function DRCNotify(source, type, severity, msg, enum, time, sound)
 	
 	if enum == NOTIFY_ERROR then
 	if severity == "critical" then severity = "critical error" end
-	MsgC( Color(255, 0, 0), string.upper("[DRC ".. severity .."]"), Color(255, 255, 0), " ".. msg .." \n" )
+	if IsValid(source) then
+		MsgC( Color(255, 0, 0), string.upper("[".. severity .."]"), Color(255, 255, 0), " ".. msg .." \n" )
+	else
+		MsgC( Color(255, 0, 0), string.upper("[DRC ".. severity .."]"), Color(255, 255, 0), " ".. msg .." \n" )
+	end
 	end
 end
 
@@ -504,4 +515,108 @@ sound.Add( {
 	"ambient/energy/newspark08.wav",
 	"ambient/energy/newspark10.wav",
 	"ambient/energy/newspark11.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_rubble",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "ambient/materials/rock1.wav",
+	"ambient/materials/rock2.wav",
+	"ambient/materials/rock3.wav",
+	"ambient/materials/rock4.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_dirt",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 90,
+	pitch = { 95, 105 },
+	sound = { "ambient/machines/thumper_dust.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_wood",
+	channel = CHAN_AUTO,
+	volume = 0.4,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "physics/wood/wood_strain2.wav",
+	"physics/wood/wood_strain4.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_woodbreak",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "physics/wood/wood_plank_impact_hard1.wav",
+	"physics/wood/wood_plank_break1.wav",
+	"physics/wood/wood_furniture_break1.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_metalbend",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "physics/metal/metal_solid_strain1.wav",
+	"physics/metal/metal_solid_strain2.wav",
+	"physics/metal/metal_solid_strain3.wav",
+	"ambient/materials/metal_stress1.wav",
+	"ambient/materials/metal_stress2.wav",
+	"ambient/materials/metal_stress4.wav",
+	"ambient/materials/metal_stress5.wav",
+	"ambient/materials/metal_groan.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_metalbend_hollow",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "physics/metal/metal_box_strain1.wav",
+	"physics/metal/metal_box_strain2.wav",
+	"physics/metal/metal_box_strain3.wav",
+	"physics/metal/metal_box_strain4.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_glasscrack",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "physics/glass/glass_pottery_break4.wav",
+	"physics/glass/glass_sheet_break2.wav",
+	"physics/glass/glass_sheet_break3.wav",
+	"physics/glass/glass_largesheet_break1.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.particles_glassbounce",
+	channel = CHAN_AUTO,
+	volume = 0.5,
+	level = 80,
+	pitch = { 400, 600 },
+	sound = { "physics/glass/glass_bottle_impact_hard1.wav",
+	"physics/glass/glass_bottle_impact_hard2.wav",
+	"physics/glass/glass_bottle_impact_hard3.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.dynamics_glassbump",
+	channel = CHAN_AUTO,
+	volume = 1,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "physics/glass/glass_sheet_impact_soft1.wav",
+	"physics/glass/glass_sheet_impact_soft2.wav",
+	"physics/glass/glass_sheet_impact_soft3.wav" }
 } )

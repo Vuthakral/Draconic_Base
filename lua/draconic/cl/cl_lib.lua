@@ -76,6 +76,19 @@ function DRC:GetCustomizationAllowed()
 	if tweakGMs[gamemode] then return nil end
 end
 
+function DRC:DistFromLocalPlayer(pos, sqr)
+	if !pos or !IsValid(LocalPlayer()) then return nil end
+	if IsEntity(pos) then pos = pos:GetPos() + pos:OBBCenter() end
+	
+	local ply = LocalPlayer()
+	local plypos = ply:GetPos() + ply:OBBCenter()
+	if !sqr then
+		return pos:Distance(plypos)
+	else
+		return pos:DistToSqr(plypos)
+	end
+end
+
 net.Receive("DRC_UpdatePlayerHands", function()
 	if !IsValid(LocalPlayer()) then return end
 	local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))

@@ -1,7 +1,7 @@
 function EFFECT:Init( data )
 	local Pos = data:GetOrigin()
 	
-	sound.Play("draconic.particles_rubble", Pos)
+	sound.Play("draconic.particles_woodbreak", Pos)
 	
 	self.Position = data:GetStart()
 	self.Magnitude = data:GetMagnitude()
@@ -15,9 +15,9 @@ function EFFECT:Init( data )
 		if (particle) then
 			local chance = math.Round(math.Rand(1,2))
 			if chance == 1 then
-				particle:SetMaterial("effects/fleck_cement1")
+				particle:SetMaterial("effects/fleck_wood1")
 			else
-				particle:SetMaterial("effects/fleck_cement2")
+				particle:SetMaterial("effects/fleck_wood2")
 			end
 			
 			local LighCol = render.GetLightColor(Pos)
@@ -48,7 +48,7 @@ function EFFECT:Init( data )
 			
 			particle:SetCollideCallback(function(part, hitpos, normal)
 				local chance = math.Rand(1,100)
-				if chance > 90 && DRC:DistFromLocalPlayer(hitpos) < 1250 then sound.Play("draconic.particles_rubble", hitpos) end
+				if chance > 90 && DRC:DistFromLocalPlayer(hitpos) < 1250 then sound.Play("draconic.particles_wood", hitpos) end
 			end)
 		end
 	end
@@ -61,3 +61,4 @@ end
 
 function EFFECT:Render()
 end
+

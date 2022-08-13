@@ -281,7 +281,7 @@ SWEP.nZPAP = {
 	["ViewModelFOV"] = nil,
 }
 
--- Everything past this is code for DSB. DO NOT TOUCH OR USE IN YOUR WEAPONS.
+-- Everything past this is code for the SWEP base. DO NOT TOUCH OR USE IN YOUR WEAPONS.
 SWEP.Idle = 0
 SWEP.IdleTimer = CurTime()
 SWEP.IsTaunting = 0
@@ -315,6 +315,8 @@ SWEP.NPCCharging = false
 SWEP.DualSettings = {}
 SWEP.SightSwapCD = false
 SWEP.SightsSwapCD = 0
+SWEP.LastFireTime = 0
+SWEP.LastFireAnimTime = 0
 
 function SWEP:DoDrawCrosshair( x, y )
 	return true
@@ -659,8 +661,6 @@ function SWEP:Initialize()
 	
 	-- SCK Stuff
 	if CLIENT then
-	
-		-- Create a new table for every weapon instance
 		self.VElements = table.FullCopy( self.VElements )
 		self.WElements = table.FullCopy( self.WElements )
 		self.ViewModelBoneMods = table.FullCopy( self.ViewModelBoneMods )
@@ -671,20 +671,27 @@ function SWEP:Initialize()
 			local vm = self.Owner:GetViewModel()
 			if IsValid(vm) then
 				self:ResetBonePositions(vm)
-				
-				-- Init viewmodel visibility
 				if (self.ShowViewModel == nil or self.ShowViewModel) then
 					vm:SetColor(Color(255,255,255,255))
 				else
-					-- we set the alpha to 1 instead of 0 because else ViewModelDrawn stops being called
 					vm:SetColor(Color(255,255,255,1))
-					-- ^ stopped working in GMod 13 because you have to do Entity:SetRenderMode(1) for translucency to kick in
-					-- however for some reason the view model resets to render mode 0 every frame so we just apply a debug material to prevent it from drawing
 					vm:SetMaterial("Debug/hsv")			
 				end
 			end
 		end
-		
+	end
+	
+	if !self.IsMelee then
+		timer.Simple(engine.TickInterval() * 5, function()
+			if !IsValid(self) then return end
+			if !self:HasViewModel() then return end
+			local ply = self:GetOwner()
+			if !ply:IsPlayer() then return end
+			local vm = ply:GetViewModel()
+			local att = vm:LookupAttachment("muzzle")
+			local attinfo = vm:GetAttachment(att)
+			if !attinfo then DRC:Notify(self, "hint", "critical", "".. self.PrintName .." does not have a muzzle attachment, expect problems!", ENUM_ERROR, 10) end
+		end)
 	end
 end
 
@@ -732,7 +739,7 @@ function SWEP:Think()
 		--if ply:KeyPressed(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == false && self.Weapon:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
 		if ply:KeyPressed(IN_ATTACK2) == true && self.SightsDown == false && self.Weapon:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
 			self:SetIronsights(true, self.Owner)
-			ply:SetFOV(ply:GetFOV() * (self.Secondary.IronFOV / 90), self.Secondary.ScopeZoomTime)
+			ply:SetFOV(ply:GetFOV() * (self.Secondary.IronFOV / 90), 0.35)
 			self:AdjustMouseSensitivity()
 			self:IronCoolDown()
 			ply:EmitSound("draconic.IronInGeneric")
@@ -742,7 +749,7 @@ function SWEP:Think()
 		--elseif ply:KeyReleased(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == true && self.IronCD == false && !ply:KeyDown(IN_USE) then
 		elseif ply:KeyReleased(IN_ATTACK2) == true && self.SightsDown == true && self.IronCD == false && !ply:KeyDown(IN_USE) then
 			self:SetIronsights(false, self.Owner)
-			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
+			ply:SetFOV(0, 0.35)
 			self:IronCoolDown()
 			ply:EmitSound("draconic.IronOutGeneric")
 			if CLIENT && self.Secondary.IronOutFP != nil then
@@ -996,8 +1003,10 @@ function SWEP:ManageAnims()
 	if !IsFirstTimePredicted() then return end
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
+	if !self:HasViewModel() then return end
 	local vm = ply:GetViewModel()
 	if !IsValid(vm) then return end
+	if vm:GetModel() == "" or vm:GetModel() == nil then return end
 	local oa = self.OwnerActivity
 	local cv = ply:Crouching()
 	local slowvar = ply:Crouching() or ply:KeyDown(IN_WALK)
@@ -1006,11 +1015,13 @@ function SWEP:ManageAnims()
 	
 		if self.ManuallyReloading == true or self.Loading == true or self.Idle == 0 then return end
 	
-		local idleanim = vm:SelectWeightedSequence( ACT_VM_IDLE )
-		local walkanim = vm:SelectWeightedSequence( ACT_WALK )
-		local sprintanim = vm:SelectWeightedSequence( ACT_RUN )
-		local swimidleanim = vm:SelectWeightedSequence( ACT_SWIM_IDLE )
-		local swimminganim = vm:SelectWeightedSequence( ACT_SWIM )
+		local idleanim = vm:SelectWeightedSequence(ACT_VM_IDLE)
+		local walkanim = vm:SelectWeightedSequence(ACT_WALK)
+		local sprintanim = vm:SelectWeightedSequence(ACT_RUN)
+		local swimidleanim = vm:SelectWeightedSequence(ACT_SWIM_IDLE)
+		local swimminganim = vm:SelectWeightedSequence(ACT_SWIM)
+		local fireanim = vm:SelectWeightedSequence(ACT_VM_PRIMARYATTACK)
+		local firedur = vm:SequenceDuration(fireanim)
 		
 		local reloadanim = vm:SelectWeightedSequence( ACT_VM_RELOAD )
 		local walkanim = vm:SelectWeightedSequence( ACT_WALK )
@@ -1018,14 +1029,14 @@ function SWEP:ManageAnims()
 		local anim = vm:GetSequence()
 		local animdata = vm:GetSequenceInfo(anim)
 		
-		if self.SightsDown then
+		if self.SightsDown && CurTime() > self.LastFireAnimTime then
 			vm:SendViewModelMatchingSequence(idleanim)
 		return end
 		
 		if self.IsDoingMelee == true then 
 			self.FPAnimMul = 1
 		else
-			if slowvar then
+			if slowvar && CurTime() > self.LastFireAnimTime then
 				self.FPAnimMul = 0.5
 			else
 				self.FPAnimMul = 1
@@ -1437,7 +1448,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 		elseif ply:Crouching() then
 			rollmul = 0.75
 		else
-			rollmull = 1.35
+			rollmul = 1.35
 		end
 		
 		if ply:KeyDown(IN_MOVELEFT) then
@@ -1480,6 +1491,11 @@ function SWEP:GetViewModelPosition( pos, ang )
 	
 	self.VariablePos = self.VariablePos
 	self.VariableAng = self.VariableAng
+	
+	if ironBool == true then
+		self.VariablePos = self.VariablePos + Vector(-5, 0, -1)
+		self.VariableAng = self.VariableAng + Vector(0, -5, -15)
+	end
 	
 	if sd == false then
 		self.OffsetsCalc = LerpVector( self.MulI, self.VARSightPos_Lerped, self.VariablePos + self.VARPos)
@@ -2412,6 +2428,7 @@ end
 if CLIENT or game.SinglePlayer() then
 	SWEP.vRenderOrder = nil
 	function SWEP:ViewModelDrawn()
+		if !IsValid(self:GetOwner()) then return end
 
 		local vm = self.Owner:GetViewModel()
 		if !IsValid(vm) then return end
@@ -2857,6 +2874,11 @@ if CLIENT or game.SinglePlayer() then
 		
 	end
 	
+end
+
+function SWEP:HasViewModel()
+	if !IsValid(self) then return end
+	if self.ViewModel == "" or self.ViewModel == nil then return false else return true end
 end
 
 function SWEP:Precache()	

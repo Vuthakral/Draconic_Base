@@ -129,5 +129,5 @@ if CLIENT then
 	if GetConVar("cl_drc_accessibility_colourblind") == nil then CreateConVar("cl_drc_accessibility_colourblind", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Probably a bad attempt at making game-wide colour correction for those who need it.") end
 	if GetConVar("cl_drc_accessibility_colourblind_strength") == nil then CreateConVar("cl_drc_accessibility_colourblind_strength", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100) end
 	
-	DRC.CalcView.LightColour = CreateConVar("drc_lightcolour", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100)
+	if GetConVar("drc_lightcolour") == nil then CreateConVar("drc_lightcolour", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar used to easily pull your light level for serverside use.", 0, 100) end
 end

@@ -196,9 +196,11 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		local ht = "default"
 		if IsValid(wpn) then ht = wpn:GetHoldType() end
 		
-		local offset = DRC.ThirdPerson.DefaultOffsets[ht] or DRC.ThirdPerson.DefaultOffsets["duel"] * PSMul
+		local offset = (DRC.ThirdPerson.DefaultOffsets[ht] * PSMul) or (DRC.ThirdPerson.DefaultOffsets["duel"] * PSMul)
 		
-		if GetConVar("cl_drc_thirdperson_flipside"):GetFloat() == 1 then offset.y = -offset.y end
+		if GetConVar("cl_drc_thirdperson_flipside"):GetFloat() == 1 then
+			offset = (Vector(DRC.ThirdPerson.DefaultOffsets[ht].x, -DRC.ThirdPerson.DefaultOffsets[ht].y, DRC.ThirdPerson.DefaultOffsets[ht].z) * PSMul) or (Vector(DRC.ThirdPerson.DefaultOffsets["duel"].x, -DRC.ThirdPerson.DefaultOffsets["duel"].y, DRC.ThirdPerson.DefaultOffsets["duel"].z) * PSMul)
+		end
 		
 		if wpn.ThirdpersonOffset && (wpn:GetNWBool("Passive") != true) then offset = wpn.ThirdpersonOffset end
 		

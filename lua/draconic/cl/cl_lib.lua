@@ -26,6 +26,7 @@ DRC.ThirdPerson.DefaultOffsets = {
 	["revolver"] = Vector(50, -25, 0),
 }
 DRC.ThirdPerson.Offset = Vector()
+DRC.CurrentRPModelOptions = {}
 
 if game.SinglePlayer() then
 	if GetConVar("cl_drc_debug_alwaysshowshields") == nil then
@@ -59,6 +60,8 @@ function DRC:GetCustomizationAllowed()
 	local gamemode = tostring(engine.ActiveGamemode())
 	local svtoggle = GetConVar("sv_drc_playerrep_disallow"):GetFloat()
 	local svtweaktoggle = GetConVar("sv_drc_playerrep_tweakonly"):GetFloat()
+	
+	if !table.IsEmpty(DRC.CurrentRPModelOptions) then return true end
 	
 	if svtoggle == 1 then return false end
 	if svtweaktoggle == 1 then return nil end

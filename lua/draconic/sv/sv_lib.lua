@@ -143,6 +143,19 @@ function DRC:EMP(src, tgt, thyme, sound, effect)
 	end
 end
 
+function DRC:SetRoleplayPlayermodels(ply, tab)
+	net.Start("DRC_SetRPModels")
+	net.WriteTable(tab)
+	net.Send(ply)
+end
+
+function DRC:ClearRoleplayPlayermodels(ply)
+	local tab = {}
+	net.Start("DRC_SetRPModels")
+	net.WriteTable(tab)
+	net.Send(ply)
+end
+
 net.Receive("DRC_ApplyPlayermodel", function()
 	local tbl = net.ReadTable()
 	

@@ -284,6 +284,19 @@ function DRC:ConvertUnit(input, output)
 	return inches * ConversionRates[output]
 end
 
+function DRC:GetVelocityAngle(ent, absolute, flipy)
+	if !IsValid(ent) then return end
+	local vel = ent:GetVelocity()
+	if vel == Vector() then return Angle() end
+	local length = vel:Length()
+	local forwardang = ent:GetForward():Angle()
+	local velangxy = ent:WorldToLocalAngles(vel:Angle())
+	if flipy == true then velangxy:RotateAroundAxis(velangxy:Up(), 180) end
+	if absolute == true then velangxy.y = math.abs(velangxy.y) end
+	velangxy.x = -velangxy.x
+	return velangxy
+end
+
 function DRC:GetColours(ent, rgb)
 	if !IsValid(ent) then return end
 	local coltab = {}

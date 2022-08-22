@@ -73,8 +73,6 @@ hook.Add("HUDPaintBackground", "VoiceSets_HUD", function()
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
 	if DRC:GetVoiceSet(LocalPlayer()) == nil then return end
---	if DRC.VoiceSets[DRC:GetVoiceSet(LocalPlayer())] == nil then return end
---	if ply:GetInfoNum("cl_drawhud", 1) == 0 then return end
 	if !ply:Alive() then return end
 	if DRC.VoiceMenuState != true then return end
 	draw.RoundedBox(8, 16, ScrH() * 0.5, 148, 200, Color(127, 127, 127, 100))

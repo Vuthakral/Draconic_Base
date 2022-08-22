@@ -244,27 +244,41 @@ end
 function SWEP:MeleeImpact(range, x, y, i, att)
 	if not SERVER then return end
 	local ply = self:GetOwner()
-	local vm = ply:GetViewModel()
+	local vm = nil
 	local eyeang = ply:EyeAngles()
 	local eyepos = ply:EyePos()
+	local centerpos = ply:GetPos() + ply:OBBCenter()
+	local aimpos = ply:GetPos() + Vector(ply:OBBCenter().x, ply:OBBCenter().y, ply:OBBCenter().z * 1.4)
+	local rangemul = 1
+	local velang = DRC:GetVelocityAngle(ply, true, true)
+	if ply:IsPlayer() then
+		vm = ply:GetViewModel()
+		rangemul = math.Clamp((ply:GetWalkSpeed()/100 * (ply:GetWalkSpeed()/100) / 2) * velang.y / 180, 1, 2.5)
+	else
+		rangemul = 2
+	end
 	
 	local rhm = math.Round(1 / engine.TickInterval() - 1, 0) / 2
 	
 	if not IsValid(self) or not IsValid(ply) then return end
 
 	if i < rhm then
-		self.dist = eyepos + ( ply:GetAimVector() * range * ( i / 10) )
+		self.dist = eyepos + ( ply:GetAimVector() * range * ( i / 10) ) * rangemul
 	elseif i == rhm then
-		self.dist = eyepos + ( ply:GetAimVector() * range * 3.4 )
+		self.dist = eyepos + ( ply:GetAimVector() * range * 3.4 ) * rangemul
 	elseif i > rhm then
-		self.dist = eyepos + ( ply:GetAimVector() * range / (i / 100) )
+		self.dist = eyepos + ( ply:GetAimVector() * range / (i / 100) ) * rangemul
 	end
 	
-	local tl = {}
-		tl.start = self.Owner:GetShootPos()
-		tl.endpos = ( self.dist ) + ( ( eyeang:Up() * y ) + ( eyeang:Right() * x ) )
-		tl.filter = self.Owner
-		tl.mask = MASK_SHOT
+	local WhyDoesVJAimUpwards = Vector()
+	if ply.IsVJBaseSNPC then WhyDoesVJAimUpwards = Vector(0 ,0, -40) end
+	
+	local tl = {
+		["start"] = aimpos,
+		["endpos"] =  ( self.dist ) + ((eyeang:Up()*y) + (eyeang:Right()*x) + WhyDoesVJAimUpwards),
+		["filter"] = {self, ply},
+		["mask"] = MASK_SHOT
+	}
 	if ply:IsPlayer() then ply:LagCompensation(true) end
 	local swingtrace = util.TraceLine( tl )
 	if ply:IsPlayer() then ply:LagCompensation(false) end
@@ -316,53 +330,60 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	end
 	
 	if ( swingtrace.Hit ) then
-	self:SetNextPrimaryFire( CurTime() + self.DH )
-	self:SetNextSecondaryFire( CurTime() + self.DH )
-	
-	if self.HA != nil then self.Weapon:SendWeaponAnim( self.HA ) end
-	
-	for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		if timer.Exists("SwingImpact".. i .."") then timer.Destroy("SwingImpact".. i .."") end
-	end
-	if IsValid(swingtrace.Entity) && DRC:IsCharacter(swingtrace.Entity) then
-		local damageinfo = DamageInfo()
-		damageinfo:SetAttacker(ply)
-		damageinfo:SetInflictor(self)
-		damageinfo:SetDamageType(self.DT)
-		damageinfo:SetDamageForce((self.Owner:GetRight() * math.random(3568,4235)) + (self.Owner:GetForward() * math.random(6875,7523)))
-		damageinfo:SetDamage(self.Damage)
-		damageinfo:SetBaseDamage(2221208)
-		swingtrace.Entity:TakeDamageInfo( damageinfo )
-	elseif swingtrace.Entity:IsValid() and ( !swingtrace.Entity:IsNPC() or !swingtrace.Entity:IsPlayer() ) && !swingtrace.Entity:IsNextBot() && IsValid(swingtrace.Entity:GetPhysicsObject()) then
-		if i < rhm then
-			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
-		elseif i == rhm then	
-			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
-		elseif i > rhm then
-			swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * ( i / 10 ), swingtrace.HitPos )
-		end
+		self:SetNextPrimaryFire( CurTime() + self.DH )
+		self:SetNextSecondaryFire( CurTime() + self.DH )
 		
-		if swingtrace.Entity:Health() > 0 then
-		swingtrace.Entity:TakeDamage( self.Damage, self.Owner, self.Owner:GetActiveWeapon() )
+		if self.HA != nil then self.Weapon:SendWeaponAnim( self.HA ) end
+		
+		for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
+			if timer.Exists("".. tostring(self) .."SwingImpact".. i .."") then timer.Destroy("".. tostring(self) .."SwingImpact".. i .."") end
 		end
-	elseif swingtrace.Entity:IsWorld() then
-		util.Decal(self.ID, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
-		util.Decal(self.BD, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
-	end
+		if IsValid(swingtrace.Entity) && DRC:IsCharacter(swingtrace.Entity) then
+			local damageinfo = DamageInfo()
+			damageinfo:SetAttacker(ply)
+			damageinfo:SetInflictor(self)
+			damageinfo:SetDamageType(self.DT)
+			damageinfo:SetDamageForce((self.Owner:GetRight() * math.random(3568,4235)) + (self.Owner:GetForward() * math.random(6875,7523)))
+			damageinfo:SetDamage(self.Damage)
+			damageinfo:SetBaseDamage(2221208)
+			swingtrace.Entity:TakeDamageInfo( damageinfo )
+		elseif swingtrace.Entity:IsValid() and ( !swingtrace.Entity:IsNPC() or !swingtrace.Entity:IsPlayer() ) && !swingtrace.Entity:IsNextBot() && IsValid(swingtrace.Entity:GetPhysicsObject()) then
+			if i < rhm then
+				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
+			elseif i == rhm then	
+				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
+			elseif i > rhm then
+				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * ( i / 10 ), swingtrace.HitPos )
+			end
+			
+			if swingtrace.Entity:Health() > 0 then
+			swingtrace.Entity:TakeDamage( self.Damage, self.Owner, self.Owner:GetActiveWeapon() )
+			end
+		elseif swingtrace.Entity:IsWorld() then
+			util.Decal(self.ID, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
+			util.Decal(self.BD, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
+		end
 	end
 
 	if ( swingtrace.Hit ) then
 		self:DoCustomMeleeImpact(att, swingtrace)
-			if swingtrace.Entity:IsPlayer() or string.find(swingtrace.Entity:GetClass(),"npc") or string.find(swingtrace.Entity:GetClass(),"prop_ragdoll") or string.find(swingtrace.Entity:GetClass(),"prop_physics") then
-				if string.find(swingtrace.Entity:GetClass(),"prop_physics") then
-			self:EmitSound(Sound(self.HSE))
+		if swingtrace.Entity:IsPlayer() or string.find(swingtrace.Entity:GetClass(),"npc") or string.find(swingtrace.Entity:GetClass(),"prop_ragdoll") or string.find(swingtrace.Entity:GetClass(),"prop_physics") then
+			if string.find(swingtrace.Entity:GetClass(),"prop_physics") then
+				self:EmitSound(Sound(self.HSE))
 			else
 				self:EmitSound(Sound(self.HSF))
 			end
-			else
-				self:EmitSound(Sound(self.HSW))
-			end
+		else
+			self:EmitSound(Sound(self.HSW))
+		end
 	end
+	
+	if swingtrace.Hit && !swingtrace.Entity:IsWorld() then
+		DRC:RenderTrace(swingtrace, Color(255, 0, 0, 255), 1)
+	elseif !swingtrace.Hit then
+		DRC:RenderTrace(swingtrace, Color(255, 255, 255, 255), 1)
+	end
+	
 end
 
 function SWEP:TakePrimaryAmmo( num )
@@ -707,8 +728,8 @@ function SWEP:DoShoot(mode)
 				if !proj:IsValid() then return false end
 				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
 				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
-				local projang = ply:GetAimVector():Angle() + Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue
-				proj:SetAngles(projang  + stats.MuzzleAngle)
+				local projang = ply:GetAimVector():Angle() + Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue + stats.MuzzleAngle
+				proj:SetAngles(projang)
 				if ply:IsPlayer() && self.SightsDown == true then
 					if self.SightsDown == true && self.Secondary.Scoped == true then
 						proj:SetPos( ply:EyePos() )
@@ -720,6 +741,10 @@ function SWEP:DoShoot(mode)
 						proj:SetPos(muzzle.Pos)
 					else
 						proj:SetPos( ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25) )
+					end
+					if ply.IsVJBaseSNPC then
+						proj:SetPos( ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25) )
+						proj:SetAngles(projang - Angle(-5, 0 ,0)) -- wtf
 					end
 				else
 					proj:SetPos(ply:GetBonePosition(RightHand)) -- Unfortunately, muzzle pos does not work in singleplayer.

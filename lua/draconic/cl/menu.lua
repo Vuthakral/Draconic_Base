@@ -284,17 +284,31 @@ function DRCMenu( player )
 		["v_"] = "v_",  -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
 		["viewhands"] = "viewhands" -- I HATE YOU.
 	}
-		
-	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-		local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
-		if (!arms[c1] && !arms[c2] && !arms[c3]) then
+	
+	if table.IsEmpty(DRC.CurrentRPModelOptions) then
+		for name, model in SortedPairs( player_manager.AllValidModels() ) do
+			local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
+			if (!arms[c1] && !arms[c2] && !arms[c3]) then
+				local icon = vgui.Create( "SpawnIcon" )
+				icon:SetModel( model )
+				icon:SetSize( 64, 64 )
+				icon:SetTooltip( name )
+				icon.playermodel = name
+				icon.model_path = model
+				
+				PanelSelect:AddPanel( icon, { cl_playermodel = name } )
+			end
+		end
+	else
+		for k,v in SortedPairs(DRC.CurrentRPModelOptions) do
+			local name, model = player_manager.TranslateToPlayerModelName(v), v
 			local icon = vgui.Create( "SpawnIcon" )
 			icon:SetModel( model )
 			icon:SetSize( 64, 64 )
 			icon:SetTooltip( name )
 			icon.playermodel = name
 			icon.model_path = model
-			
+				
 			PanelSelect:AddPanel( icon, { cl_playermodel = name } )
 		end
 	end
@@ -310,37 +324,55 @@ function DRCMenu( player )
 	PanelSelect:InvalidateLayout()
 	end
 	
-	local modelListPnl_Hands = tab1.tab1Hands:Add( "DPanel" )
-	modelListPnl_Hands:DockPadding( 8, 0, 8, 0 )
-	modelListPnl_Hands:Dock(FILL)
-	modelListPnl_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
-	
-	local PanelSelect_Hands = modelListPnl_Hands:Add( "DPanelSelect" )
-	PanelSelect_Hands:Dock(FILL)
-	PanelSelect_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
-	PanelSelect_Hands.Paint = function(self, w, h)
-        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-    end
-	
-	local RemoveButton = vgui.Create("DImageButton")
-	RemoveButton:SetSize(64,64)
-	RemoveButton:SetImage("gui/cross.png", "gui/cross.png")
-	RemoveButton:SetColor(Color(255, 0, 0, 255))
-	PanelSelect_Hands:AddPanel(RemoveButton)
-	
-	PanelSelect_Hands.Defaults = {
-		["models/weapons/c_arms_chell.mdl"] = "models/player/p2_chell.mdl",
-		["models/weapons/c_arms_citizen.mdl"] = "models/player/group01/male_07.mdl",
-		["models/weapons/c_arms_combine.mdl"] = "models/player/combine_soldier.mdl",
-		["models/weapons/c_arms_cstrike.mdl"] = "models/player/t_leet.mdl",
-		["models/weapons/c_arms_dod.mdl"] = "models/player/dod_american.mdl",
-		["models/weapons/c_arms_hev.mdl"] = "models/items/hevsuit.mdl",
-		["models/weapons/c_arms_refugee.mdl"] = "models/player/group03/male_07.mdl",
-	}
-	
-	for name, model in SortedPairs( player_manager.AllValidModels() ) do
-		local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
-		if arms[c1] or arms[c2] or arms[c3] then
+	if table.IsEmpty(DRC.CurrentRPModelOptions) then
+		local modelListPnl_Hands = tab1.tab1Hands:Add( "DPanel" )
+		modelListPnl_Hands:DockPadding( 8, 0, 8, 0 )
+		modelListPnl_Hands:Dock(FILL)
+		modelListPnl_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
+		
+		local PanelSelect_Hands = modelListPnl_Hands:Add( "DPanelSelect" )
+		PanelSelect_Hands:Dock(FILL)
+		PanelSelect_Hands:SetBackgroundColor(Color(0, 0, 0, 0))
+		PanelSelect_Hands.Paint = function(self, w, h)
+			draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+		end
+		
+		local RemoveButton = vgui.Create("DImageButton")
+		RemoveButton:SetSize(64,64)
+		RemoveButton:SetImage("gui/cross.png", "gui/cross.png")
+		RemoveButton:SetColor(Color(255, 0, 0, 255))
+		PanelSelect_Hands:AddPanel(RemoveButton)
+		
+		PanelSelect_Hands.Defaults = {
+			["models/weapons/c_arms_chell.mdl"] = "models/player/p2_chell.mdl",
+			["models/weapons/c_arms_citizen.mdl"] = "models/player/group01/male_07.mdl",
+			["models/weapons/c_arms_combine.mdl"] = "models/player/combine_soldier.mdl",
+			["models/weapons/c_arms_cstrike.mdl"] = "models/player/t_leet.mdl",
+			["models/weapons/c_arms_dod.mdl"] = "models/player/dod_american.mdl",
+			["models/weapons/c_arms_hev.mdl"] = "models/items/hevsuit.mdl",
+			["models/weapons/c_arms_refugee.mdl"] = "models/player/group03/male_07.mdl",
+		}
+		
+		for name, model in SortedPairs( player_manager.AllValidModels() ) do
+			local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
+			if arms[c1] or arms[c2] or arms[c3] then
+				local icon = vgui.Create( "SpawnIcon" )
+				icon:SetModel( model )
+				icon:SetSize( 64, 64 )
+				icon:SetTooltip( name )
+				icon.playerhands = name
+				icon.model_path = model
+				icon.tbl = {
+					["model"] = model,
+					["skin"] = 0,
+					["bodygroups"] = "00000000",
+				}
+				
+				PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
+			end
+		end
+		
+		for name, model in SortedPairs( PanelSelect_Hands.Defaults ) do
 			local icon = vgui.Create( "SpawnIcon" )
 			icon:SetModel( model )
 			icon:SetSize( 64, 64 )
@@ -348,29 +380,13 @@ function DRCMenu( player )
 			icon.playerhands = name
 			icon.model_path = model
 			icon.tbl = {
-				["model"] = model,
+				["model"] = name,
 				["skin"] = 0,
 				["bodygroups"] = "00000000",
 			}
-			
+				
 			PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
 		end
-	end
-	
-	for name, model in SortedPairs( PanelSelect_Hands.Defaults ) do
-		local icon = vgui.Create( "SpawnIcon" )
-		icon:SetModel( model )
-		icon:SetSize( 64, 64 )
-		icon:SetTooltip( name )
-		icon.playerhands = name
-		icon.model_path = model
-		icon.tbl = {
-			["model"] = name,
-			["skin"] = 0,
-			["bodygroups"] = "00000000",
-		}
-			
-		PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
 	end
 	
     local ScrollPrim = vgui.Create("DScrollPanel", tab2)
@@ -840,17 +856,19 @@ function DRCMenu( player )
 		timer.Simple( 0.1, function() UpdateFromConvars(false) end )
 	end
 	
-	function PanelSelect_Hands:OnActivePanelChanged( old, new )
-		if ( old != new ) then -- Only reset if we changed the model
-			if new.GetImage then
-				RunConsoleCommand("cl_playerhands", "disabled")
-				RunConsoleCommand("cl_playerhands_bodygroups", "0")
-				RunConsoleCommand("cl_playerhands_skin", "0")
-			else
-				local hands = new.tbl
-				RunConsoleCommand("cl_playerhands", tostring(hands.model))
-				RunConsoleCommand("cl_playerhands_bodygroups", tostring(hands.body))
-				RunConsoleCommand("cl_playerhands_skin", tostring(hands.skin))
+	if IsValid(PanelSelect_Hands) then
+		function PanelSelect_Hands:OnActivePanelChanged( old, new )
+			if ( old != new ) then -- Only reset if we changed the model
+				if new.GetImage then
+					RunConsoleCommand("cl_playerhands", "disabled")
+					RunConsoleCommand("cl_playerhands_bodygroups", "0")
+					RunConsoleCommand("cl_playerhands_skin", "0")
+				else
+					local hands = new.tbl
+					RunConsoleCommand("cl_playerhands", tostring(hands.model))
+					RunConsoleCommand("cl_playerhands_bodygroups", tostring(hands.body))
+					RunConsoleCommand("cl_playerhands_skin", tostring(hands.skin))
+				end
 			end
 		end
 	end

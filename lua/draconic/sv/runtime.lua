@@ -17,6 +17,7 @@ util.AddNetworkString("DRCVoiceSet_CL")
 util.AddNetworkString("DRC_UpdatePlayerHands")
 util.AddNetworkString("DRC_RequestLightColour")
 util.AddNetworkString("DRC_ReceiveLightColour")
+util.AddNetworkString("DRC_SetRPModels")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -232,11 +233,40 @@ end)
 local updateentstime = 0
 local drcgroundents = {}
 
-hook.Add("PlayerDeath", "VoiceSets_Death", function(vic, infl, att)
+hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
+	local velocity = vic:GetVelocity():Length()
+	local enum = dmg:GetDamageType()
+	local att = dmg:GetAttacker()
+	local infl = dmg:GetInflictor()
+	
+	if enum == DMG_FALL then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_FallDamage") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_FallDamage")
+		end
+	return end
+	
+	if DRC:IsVehicle(infl) then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Splatter")
+		end
+	return end
+	
+	if velocity > 650 && (att:IsWorld() or att == vic) then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Falling") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Falling")
+		end
+	return end
+	
 	DRC:SpeakSentence(vic, "Pain", "Death")
 end)
 
-hook.Add("PlayerSpawn", "VoiceSets_Spawn", function(vic, infl, att)
+hook.Add("PlayerSpawn", "VoiceSets_Spawn", function(vic, trans)
 	local vs = DRC:GetVoiceSet(vic)
 	if vs == nil then return end
 	DRC:SpeakSentence(vic, "Respawn")

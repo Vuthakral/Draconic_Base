@@ -94,7 +94,7 @@ function DRCSound(source, near, far, distance, listener)
 end
 
 function DRCPlayGesture(ply, slot, gesture, b)
-	if ply:IsValid() then timer.Simple(engine.TickInterval(), function() ply:AnimRestartGesture(slot, gesture, b) end) end
+	if ply:IsValid() && ply:IsPlayer() then timer.Simple(engine.TickInterval(), function() ply:AnimRestartGesture(slot, gesture, b) end) end
 end
 
 function DRCCallGesture(ply, slot, act, akill)

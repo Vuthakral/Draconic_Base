@@ -2401,19 +2401,19 @@ function SWEP:ShootEffects()
 end
 
 -- VJ Base Compatibility
-
 function SWEP:SetupVJSupport()
 	local ply = self:GetOwner()
 	self.WorldModel_UseCustomPosition = true -- yeah no, I'll worry about this another time.
-	self.IsVJBaseWeapon = true
+	self.IsVJBaseWeapon = true -- This is just to shut up the error which says it "needs" a VJ base weapon to work properly.
 
 	if self.IsMelee == true then
 		self.IsMeleeWeapon = true
+		self.MeleeWeaponDistance = self.Primary.Range * 1
+	--	if self:GetHoldType() == "knife" then self:SetHoldType("melee") end
 	else
 		self.IsMeleeWeapon = false
 	end
 
-	-- NPC
 	self.NPC_NextPrimaryFire = 0.1
 	self.NPC_StandingOnly = false
 	self.NPC_FiringDistanceScale = 1

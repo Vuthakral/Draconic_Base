@@ -166,6 +166,12 @@ net.Receive("DRC_RequestLightColour", function()
 	net.SendToServer()
 end)
 
+net.Receive("DRC_SetRPModels", function(length, ply)
+	local models = net.ReadTable()
+	DRC.CurrentRPModelOptions = models
+	PrintTable(DRC.CurrentRPModelOptions)
+end)
+
 local HideHUDElements = {
 	["CHudAmmo"] = "E",
 	["CHudBattery"] = "E",

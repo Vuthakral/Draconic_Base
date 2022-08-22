@@ -1164,6 +1164,17 @@ function SWEP:NPC_ServerNextFire() -- VJ
 	end
 end
 
-function SWEP:NPC_Reload() -- VJ
+function SWEP:NPCAbleToShoot() -- VJ...
+	if self:CanPrimaryAttackNPC() then return true end
+end
+
+function SWEP:NPC_Reload() -- Still VJ.
+	local ply = self:GetOwner()
+	local ht = self:GetHoldType()
 	self:DoCustomReloadStartEvents()
+	ply.NextThrowGrenadeT = ply.NextThrowGrenadeT + 2
+	
+	if VJ_AnimationExists(ply, ply:TranslateToWeaponAnim(VJ_PICK(ply.AnimTbl_WeaponReload))) == true then
+		ply:VJ_ACT_PLAYACTIVITY(seq, true, 1, ply.WeaponReloadAnimationFaceEnemy, ply.WeaponReloadAnimationDelay, {SequenceDuration=dur, PlayBackRateCalculated=true})
+	end
 end

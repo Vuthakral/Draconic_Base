@@ -91,7 +91,7 @@ SWEP.Primary.MeleeDelayMiss		= 0.42
 SWEP.Primary.MeleeDelayHit 		= 0.54
 SWEP.Primary.CanAttackCrouched = false
 SWEP.Primary.MeleeHitActivity	= nil 
-SWEP.Primary.MeleeMissActivity	= ACT_VM_PRIMARYATTACK 
+SWEP.Primary.MeleeMissActivity	= ACT_VM_HITCENTER
 SWEP.Primary.MeleeHitDelay		= 0.1
 SWEP.Primary.MeleeStartX		= 25
 SWEP.Primary.MeleeEndX			= -25
@@ -476,49 +476,74 @@ function SWEP:FinishLoading()
 end
 
 function SWEP:DoMelee()
-if not IsValid(self) or not IsValid(self.Owner) then return end
+	if !IsValid(self) then return end
+	if !IsValid(self:GetOwner()) then return end
 	local ply = self:GetOwner()
-	local vm = ply:GetViewModel()
-	local eyeang = ply:EyeAngles()
+	local vm = nil
+	local eyeang = ply:GetAimVector()
 	local eyepos = ply:EyePos()
-	local cv = ply:Crouching()
+	local cv = false
+	
+	if ply:IsPlayer() then
+		vm = ply:GetViewModel()
+		eyeang = ply:EyeAngles()
+		cv = ply:Crouching()
+	else
+		self.NextMeleeAI = CurTime() + self.Primary.DelayMiss
+	end
+	
+	if cv == false then
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeAct)
+		end
+	elseif cv == true then
+		if SERVER then
+			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeActCrouch)
+		end
+	end
 	
 	local x1 = self.Primary.MeleeStartX
 	local x2 = self.Primary.MeleeEndX
 	local y1 = self.Primary.MeleeStartY
 	local y2 = self.Primary.MeleeEndY
-	
+		
 	local x1m = math.Rand(x1 * 0.9, x1 * 1.1)
 	local x2m = math.Rand(x2 * 0.9, x2 * 1.1)
 	local y1m = math.Rand(y1 * 0.9, y1 * 1.1)
 	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
 	
-	ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.MeleeShakeMul)
-	ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, -y1m * (5 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, 0))
-	timer.Simple(self.Primary.MeleeHitDelay, function()
-		if !IsValid(self) then return end
-		if !IsValid(self:GetOwner()) then return end
-		ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.MeleeShakeMul)
-	end)
-
-	self.IsDoingMelee = true
-	timer.Simple(self.Primary.MeleeDelayMiss, function() self.IsDoingMelee = false end)
-	self.BloomValue = 1
-
-	self:EmitSound(Sound(self.Primary.MeleeSwingSound))
-	self.Weapon:SendWeaponAnim( self.Primary.MeleeMissActivity )
-	self:SetNextPrimaryFire( CurTime() + self.Primary.MeleeDelayMiss )
-	self.IdleTimer = CurTime() + vm:SequenceDuration()
-	
-	if SERVER then 
-		net.Start("DRCPlayerMelee")
-		net.WriteEntity(self:GetOwner())
-		net.Broadcast()
-	end
-
-	for i=1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		timer.Create( "SwingImpact".. i .."", math.Round((self.Primary.MeleeHitDelay * 100) / 60 * i / 60, 3), 1, function()
+	if ply:IsPlayer() then
+		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.MeleeShakeMul)
+		ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, -y1m * (5 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, 0))
+		timer.Simple(self.Primary.MeleeHitDelay, function()
+			if !IsValid(self:GetOwner()) then return end
 			if !IsValid(self) then return end
+			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.MeleeShakeMul)
+		end)
+
+		local anim = self:SelectWeightedSequence( self.Primary.MeleeMissActivity )
+	--	if cv == true then anim = self:SelectWeightedSequence( self.Primary.MeleeCrouchMissActivity ) end
+		local animdur = self:SequenceDuration( anim )
+		self.IsDoingMelee = true
+		timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
+		
+		if SERVER && anim != -1 && self:HasViewModel() then self:SendWeaponAnim( self:GetSequenceActivity(anim) ) end
+		self:SetNextPrimaryFire( CurTime() + self.Primary.MeleeDelayMiss )
+		self.IdleTimer = CurTime() + vm:SequenceDuration()
+	else
+		self:SetNextPrimaryFire( CurTime() + self.Primary.MeleeDelayMiss )
+		self.IsDoingMelee = true
+		timer.Simple(1, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
+	end
+	
+	self:EmitSound(Sound(self.Primary.MeleeSwingSound))
+	
+	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
+		if !IsValid(self:GetOwner()) then return end
+		if !IsValid(self) then return end
+		timer.Create( "".. tostring(self) .."SwingImpact".. i .."", math.Round((self.Primary.MeleeHitDelay * 100) / 60 * i / 60, 3), 1, function()
+			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
 			self:MeleeImpact(self.Primary.MeleeRange, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "gunmelee")
 		end)
 	end

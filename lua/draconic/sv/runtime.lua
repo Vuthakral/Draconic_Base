@@ -235,9 +235,15 @@ local drcgroundents = {}
 
 hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 	local velocity = vic:GetVelocity():Length()
+	local damage = dmg:GetDamage()
 	local enum = dmg:GetDamageType()
 	local att = dmg:GetAttacker()
 	local infl = dmg:GetInflictor()
+	
+	local maxhp = vic:GetMaxHealth()
+	local halflife = maxhp/2
+	local quarterlife = maxhp/4
+	local microlife = maxhp/10
 	
 	if enum == DMG_FALL then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_FallDamage") then
@@ -260,6 +266,26 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 			DRC:SpeakSentence(vic, "Pain", "Death")
 		else
 			DRC:SpeakSentence(vic, "Pain", "Death_Falling")
+		end
+	return end
+	
+	if damage < microlife then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Light") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Light")
+		end
+	elseif damage > microlife && damage < quarterlife then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Medium") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Medium")
+		end
+	elseif damage >= quarterlife then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Major") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Major")
 		end
 	return end
 	

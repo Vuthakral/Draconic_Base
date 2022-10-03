@@ -1,4 +1,5 @@
 local function EFPChecks()
+	if DRC:SightsDown(LocalPlayer():GetActiveWeapon()) then return true end
 	if !DRC:ThirdPersonEnabled(LocalPlayer()) == true then return false else return true end
 end
 
@@ -6,7 +7,7 @@ local bobang = Angle()
 local offsetmul = 1
 hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, origin, ang, fov, zn, zf)
 --	if !IsValid(DRC.Convars_CL.EnableEFP) or !IsValid(DRC.Convars_CL.ForceEFP) then return end
-	if EFPChecks() then return end
+	if EFPChecks() == true then return end
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
 		if !IsValid(ply) then return end
 		if !ply:Alive() then return end
@@ -108,7 +109,9 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 		end
 		
 		local wep = ply:GetActiveWeapon()
-			if IsValid(wep) then
+		local base = nil
+		if IsValid(wep) then
+			base = DRC:GetBaseName(wep)
 			local ht = wep:GetHoldType()
 			local bobpower = {
 				[""] = 0.025,
@@ -154,28 +157,34 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 		angadd:RotateAroundAxis(angadd:Forward(), angdiff.z)
 		end
 		
+		if !DRC.CalcView.Ang then DRC.CalcView.Ang = ply:EyeAngles() end
+		if !DRC.CrosshairAngMod then DRC.CrosshairAngMod = Angle() end
 		if DRC.CalcView.Ang && DRC.CrosshairAngMod then
 			DRC.CalcView.AimCorrectAngle = angadd + (DRC.CalcView.Ang + DRC.CrosshairAngMod * DRC.CalcView.EFP_ISPow)
 			DRC.CalcView.WorldPos = pos + (DRC.CalcView.Pos * DRC.CalcView.EFP_ISPow)
 			
 			local view = {
-			origin = DRC.CalcView.WorldPos,
-			--angles = ang + DRC.CalcView.Ang,
-			angles = DRC.CalcView.AimCorrectAngle,
-			drawviewer = false,
-			fov = fov * 1,
-			znear = zn,
-			zfar = nil,
+				origin = DRC.CalcView.WorldPos,
+				--angles = ang + DRC.CalcView.Ang,
+				angles = DRC.CalcView.AimCorrectAngle,
+				drawviewer = false,
+				fov = fov * 1,
+				znear = zn,
+				zfar = nil,
 			}
-			
+
+			if base == "mwb" then
+				wep:CalcView(ply, DRC.CalcView.WorldPos, DRC.CalcView.AimCorrectAngle, ply:GetFOV())
+			end
 			return view
 		end
 	end
 end)
 
-hook.Add( "CalcViewModelView", "Draconic_Experimental_First_Person_CVMV", function(wpn, vm, oldpos, oldang, eyepos, eyeang)
+hook.Add( "CalcViewModelView", "!Draconic_Experimental_First_Person_CVMV", function(wpn, vm, oldpos, oldang, eyepos, eyeang)
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
-	if EFPChecks() then return end
+	if EFPChecks() == true then return end
+		local base = DRC:GetBaseName(wpn)
 		local ply = LocalPlayer()
 		local eyesatt = ply:LookupAttachment("eyes")
 		local eyes = ply:GetAttachment(eyesatt)
@@ -218,10 +227,14 @@ hook.Add( "CalcViewModelView", "Draconic_Experimental_First_Person_CVMV", functi
 		local calcvpos, calcvang = Vector(), Angle()
 		
 		if IsValid(wpn) then
-			if wpn.Draconic or wpn.ArcCW or wpn.IsTFAWeapon then
+			if base != nil && base != "mwb" then
 				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
 				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
 				newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
+			elseif base == "mwb" then
+			--	wpn:CalcViewModel(wpn.m_ViewModel, newpos, eyeang)
+		--	newpos, eyeang = newpos, ply:EyeAngles()
+		--	wpn.m_ViewModel:SetPos(newpos)
 			end
 		end
 		return newpos, eyeang
@@ -282,6 +295,12 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 		DRC.CSWeaponShadow:SetParent(DRC.CSShadowModel)
 		DRC.CSWeaponShadow:AddEffects(EF_BONEMERGE)
 	end
+	
+	if DRC.CSPlayerModel:GetMaterial() != LocalPlayer():GetMaterial() then
+		
+	end
+	DRC.CSPlayerModel:SetMaterial(LocalPlayer():GetMaterial())
+	DRC.CSPlayerModel:SetColor(LocalPlayer():GetColor())
 	
 	local parents = {DRC.CSPlayerModel, DRC.CSShadowModel}
 	

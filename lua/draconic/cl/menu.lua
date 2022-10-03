@@ -285,10 +285,12 @@ function DRCMenu( player )
 		["viewhands"] = "viewhands" -- I HATE YOU.
 	}
 	
+	PanelSelect.Models = {}
 	if table.IsEmpty(DRC.CurrentRPModelOptions) then
 		for name, model in SortedPairs( player_manager.AllValidModels() ) do
-			local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
-			if (!arms[c1] && !arms[c2] && !arms[c3]) then
+			local mdl, armbool = string.gsub(model, ".*/", ""), false
+			for k,v in pairs(arms) do if string.StartWith(mdl, v) == true then armbool = true end end
+			if !armbool then
 				local icon = vgui.Create( "SpawnIcon" )
 				icon:SetModel( model )
 				icon:SetSize( 64, 64 )
@@ -297,6 +299,7 @@ function DRCMenu( player )
 				icon.model_path = model
 				
 				PanelSelect:AddPanel( icon, { cl_playermodel = name } )
+				PanelSelect.Models[model] = model
 			end
 		end
 	else
@@ -354,21 +357,24 @@ function DRCMenu( player )
 		}
 		
 		for name, model in SortedPairs( player_manager.AllValidModels() ) do
-			local c1, c2, c3 = string.match(model, "c_"), string.match(model, "v_"), string.match(model, "viewhands")
-			if arms[c1] or arms[c2] or arms[c3] then
-				local icon = vgui.Create( "SpawnIcon" )
-				icon:SetModel( model )
-				icon:SetSize( 64, 64 )
-				icon:SetTooltip( name )
-				icon.playerhands = name
-				icon.model_path = model
-				icon.tbl = {
-					["model"] = model,
-					["skin"] = 0,
-					["bodygroups"] = "00000000",
-				}
-				
-				PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
+			local mdl, armbool = string.gsub(model, ".*/", ""), false
+			for k,v in pairs(arms) do if string.StartWith(mdl, v) == true then armbool = true end end
+			if !PanelSelect.Models[model] then
+				if armbool then
+					local icon = vgui.Create( "SpawnIcon" )
+					icon:SetModel( model )
+					icon:SetSize( 64, 64 )
+					icon:SetTooltip( name )
+					icon.playerhands = name
+					icon.model_path = model
+					icon.tbl = {
+						["model"] = model,
+						["skin"] = 0,
+						["bodygroups"] = "00000000",
+					}
+					
+					PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
+				end
 			end
 		end
 		
@@ -386,6 +392,21 @@ function DRCMenu( player )
 			}
 				
 			PanelSelect_Hands:AddPanel( icon, { cl_playerhands = icon.tbl.model } )
+		end
+		
+		function PanelSelect_Hands:OnActivePanelChanged( old, new )
+			if ( old != new ) then -- Only reset if we changed the model
+				if new.GetImage then
+					RunConsoleCommand("cl_playerhands", "disabled")
+					RunConsoleCommand("cl_playerhands_bodygroups", "0")
+					RunConsoleCommand("cl_playerhands_skin", "0")
+				else
+					local hands = new.tbl
+					RunConsoleCommand("cl_playerhands", tostring(hands.model))
+					RunConsoleCommand("cl_playerhands_bodygroups", tostring(hands.body))
+					RunConsoleCommand("cl_playerhands_skin", tostring(hands.skin))
+				end
+			end
 		end
 	end
 	
@@ -854,23 +875,6 @@ function DRCMenu( player )
 			RunConsoleCommand( "cl_playerskin", "0" )
 		end
 		timer.Simple( 0.1, function() UpdateFromConvars(false) end )
-	end
-	
-	if IsValid(PanelSelect_Hands) then
-		function PanelSelect_Hands:OnActivePanelChanged( old, new )
-			if ( old != new ) then -- Only reset if we changed the model
-				if new.GetImage then
-					RunConsoleCommand("cl_playerhands", "disabled")
-					RunConsoleCommand("cl_playerhands_bodygroups", "0")
-					RunConsoleCommand("cl_playerhands_skin", "0")
-				else
-					local hands = new.tbl
-					RunConsoleCommand("cl_playerhands", tostring(hands.model))
-					RunConsoleCommand("cl_playerhands_bodygroups", tostring(hands.body))
-					RunConsoleCommand("cl_playerhands_skin", tostring(hands.skin))
-				end
-			end
-		end
 	end
 
 	preview.Entity.Preview = true
@@ -1619,6 +1623,7 @@ function DRCMenu( player )
 					font-family: Verdana;
 					margin-left: 1em;
 					color: lightgrey;
+					margin-bottom: 0;
 				}
 				h4{
 					font-family: Verdana;
@@ -1626,19 +1631,20 @@ function DRCMenu( player )
 					color: lightgrey;
 					margin: 0;
 					margin-left: 2em;
-					margin-bottom: 1em;
+					margin-bottom: 0.5em;
 				}
 				ul{
 					font-family: "Lucida Console";
 					color: lightgrey;
 					margin-left: 3em;
 					margin-top: 0.1em;
-					margin-bottom: 0.1em;
+					margin-bottom: 0.5em;
 				}
 				li{
-					margin-top: 0.25em;
-					margin-bottom: 0.25em;
-					width: 65%;
+					font-size: 10pt;
+					margin-top: 0.1em;
+					margin-bottom: 0.1em;
+					width: 90vw;
 				}
 				.ultitle{
 					font-family: "Lucida Console";
@@ -1651,7 +1657,7 @@ function DRCMenu( player )
 				</style>
 			</head>
 					
-			<body style="background-color: rgba(11,11,33, 0.7); position: absolute; margin: 0 auto; width: 100%; height: auto;">
+			<body style="background-color: rgba(11,11,33, 0.7); position: absolute; margin: 0 auto; width: 100vw; height: auto; overflow-x: hidden;">
 				<br>
 				<h2>Draconic Base</h2>		
 				<h3>Credits</h3>
@@ -1660,28 +1666,29 @@ function DRCMenu( player )
 					<ul>
 						<li>Everything not listed below this credit</li>
 					</ul>
-					<br>
 					<p class="ultitle">Clavus</p>
 					<ul>
 						<li>SWEP Construction Kit code</li>
 					</ul>
-					<br>
 					<p class="ultitle">Kinyom</p>
 					<ul>
 						<li>BSP-Envmap reading function code.</lI>
 					</ul>
-					<br>
 				<h4>Bug testing</h4>
 					<p class="ultitle">Dopey, Snowy Snowtime, Valkyries733</p>
 					<ul>
 						<li>Very helpful individuals who often help me test out features of the base as I work on them.</li>
 					</ul>
-					<br>
 				<h4>Animations</h4>
-					<p class="ultitle">Twilight Sparkle - <a href="https://steamcommunity.com/profiles/76561198027899782">https://steamcommunity.com/profiles/76561198027899782</a></p>
+					<p class="ultitle">Twilight Sparkle</p>
 					<ul>
-						<li>"Unarmed" SWEP Animations.
-					</ul><br>
+						<li>"Unarmed" SWEP Animations.</li>
+					</ul>
+				<h4>Sounds</h4>
+					<p class="ultitle">Entropy Zero 2</p>
+					<ul>
+						<li>Weapon foley sample source</li>
+					</ul>
 				<h4>Special Thanks</h4>
 					<p class="ultitle">All of the people who have supported me through working on all of my projects.</p>
 					<ul>
@@ -1689,22 +1696,18 @@ function DRCMenu( player )
 						<li>My father, who has always been there for me with doing what I do, and putting up with my ramblings about all of it even if he doesn't understand them.</li>
 						<li>And of course, my <b>Patreon supporters</b> who have helped me for years now in being able to do what I do: 5oClock, Chillstice, and one Patron who wishes to remain anonymous.</li>
 					</ul>
-					<br>
-					<p class="ultitle">The people in TFA's Discord</p>
+					<p class="ultitle">The people in TFA's Discord (RIP)</p>
 					<ul>
 						<li>Tons of help when I ran into walls with code I was trying to do. Very helpful people.</li>
 					</ul>
-					<br>
 					<p class="ultitle">Wingblast</p>
 					<ul>
 						<li>Showed me how to originally implement the perspective change for weapons when looking up/down.</li>
 					</ul>
-					<br>
 					<p class="ultitle">Clavus</p>
 					<ul>
 						<li>Creator of the "SWEP Construction Kit" -- Seriously dude, your addon has greatly contributed to the Garry's Mod 13 community & experience. Thank you.</li>
 					</ul>
-					<br>
 			</body>
 		</html>
 				]] )
@@ -1895,8 +1898,16 @@ function DRCMenu( player )
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
     end
 	
+	t4tab2panel_left.DRCTitle = vgui.Create( "DLabel", t4tab2panel_left)
+	t4tab2panel_left.DRCTitle:SetText("DRC Debug Tools")
+	t4tab2panel_left.DRCTitle:SetSize(300, 50)
+	t4tab2panel_left.DRCTitle:SetPos(16, -8)
+	t4tab2panel_left.DRCTitle:SetColor(Color(255, 255, 255, 255))
+	t4tab2panel_left.DRCTitle:SetFont("DermaLarge")
+	t4tab2panel_left.DRCTitle:SetContentAlignment(0)
+	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
-	DebugSetting:SetPos(25, 10)
+	DebugSetting:SetPos(25, 35)
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Debug mode enabled (Requires sv_drc_allowdebug 1)" )
 	DebugSetting:SetConVar( "cl_drc_debugmode" )
@@ -1904,17 +1915,17 @@ function DRCMenu( player )
 	DebugSetting:SetEnabled(true)
 	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
-	DebugSetting:SetPos(25, 30)
+	DebugSetting:SetPos(25, 55)
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Legacy ''DSB Debug Assistant''" )
 	DebugSetting:SetConVar( "cl_drc_debug_legacyassistant" )
 	DebugSetting.Label:SetColor(TextCol)
 	DebugSetting:SetEnabled(true)
 	
-	MakeHint(t4tab2panel_left, 200, 30, "The OG debugging UI to display debug info.\nI just don't have the heart to remove it.")
+	MakeHint(t4tab2panel_left, 200, 55, "The OG debugging UI to display debug info.\nI just don't have the heart to remove it.")
 	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
-	DebugSetting:SetPos(25, 50)
+	DebugSetting:SetPos(25, 75)
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Invert near/far sound effects" )
 	DebugSetting:SetConVar( "cl_drc_debug_invertnearfar" )
@@ -1922,7 +1933,7 @@ function DRCMenu( player )
 	DebugSetting:SetEnabled(true)
 	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
-	DebugSetting:SetPos(25, 70)
+	DebugSetting:SetPos(25, 95)
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Show viewmodel attachments" )
 	DebugSetting:SetConVar( "cl_drc_debug_vmattachments" )
@@ -1930,36 +1941,111 @@ function DRCMenu( player )
 	DebugSetting:SetEnabled(true)
 	
 	t4tab2panel_left.Hitboxes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
-	t4tab2panel_left.Hitboxes:SetPos(25, 90)
+	t4tab2panel_left.Hitboxes:SetPos(25, 115)
 	t4tab2panel_left.Hitboxes:SetSize(500, 20)
 	t4tab2panel_left.Hitboxes:SetText( "Hitbox Renderer" )
 	t4tab2panel_left.Hitboxes:SetConVar( "cl_drc_debug_hitboxes" )
 	t4tab2panel_left.Hitboxes.Label:SetColor(TextCol)
 	t4tab2panel_left.Hitboxes:SetEnabled(true)
 	
-	MakeHint(t4tab2panel_left, 150, 90, "Continuously renders your own hitboxes while not in first person.\nAlso renders hitboxes of whatever you are looking at.")
+	MakeHint(t4tab2panel_left, 150, 115, "Continuously renders your own hitboxes while not in first person.\nAlso renders hitboxes of whatever you are looking at.")
 	
 	t4tab2panel_left.Tracelines = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
-	t4tab2panel_left.Tracelines:SetPos(25, 110)
+	t4tab2panel_left.Tracelines:SetPos(25, 135)
 	t4tab2panel_left.Tracelines:SetSize(500, 20)
 	t4tab2panel_left.Tracelines:SetText( "TraceLine Renderer" )
 	t4tab2panel_left.Tracelines:SetConVar( "cl_drc_debug_tracelines" )
 	t4tab2panel_left.Tracelines.Label:SetColor(TextCol)
 	t4tab2panel_left.Tracelines:SetEnabled(true)
 	
-	MakeHint(t4tab2panel_left, 150, 110, "Renders TraceLines used by the Draconic Base.\nServer-sided traces will only render in singleplayer.\n\nWhite = Undefined/generic\nRed = Harmful hit connection\nYellow = DRC:TraceDir() trace.")
+	MakeHint(t4tab2panel_left, 150, 135, "Renders TraceLines used by the Draconic Base.\nServer-sided traces will only render in singleplayer.\n\nWhite = Undefined/generic\nRed = Harmful hit connection\nYellow = DRC:TraceDir() trace.")
 	
+	t4tab2panel_left.Lights = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.Lights:SetPos(25, 155)
+	t4tab2panel_left.Lights:SetSize(500, 20)
+	t4tab2panel_left.Lights:SetText( "Light Visualizer" )
+	t4tab2panel_left.Lights:SetConVar( "cl_drc_debug_lights" )
+	t4tab2panel_left.Lights.Label:SetColor(TextCol)
+	t4tab2panel_left.Lights:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 155, "Visualizes lights created by the Draconic Base.\nThe outer circle shows the radius of the light.")
+	
+	t4tab2panel_left.CubemapRenderer = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.CubemapRenderer:SetPos(25, 175)
+	t4tab2panel_left.CubemapRenderer:SetSize(500, 20)
+	t4tab2panel_left.CubemapRenderer:SetText( "Cubemap Renderer" )
+	t4tab2panel_left.CubemapRenderer:SetConVar( "cl_drc_debug_cubemaps" )
+	t4tab2panel_left.CubemapRenderer.Label:SetColor(TextCol)
+	t4tab2panel_left.CubemapRenderer:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 175, "Renders env_cubemap entities.")
+	
+	t4tab2panel_left.SourceTitle = vgui.Create( "DLabel", t4tab2panel_left)
+	t4tab2panel_left.SourceTitle:SetText("Source Debug Tools")
+	t4tab2panel_left.SourceTitle:SetSize(300, 50)
+	t4tab2panel_left.SourceTitle:SetPos(500, -8)
+	t4tab2panel_left.SourceTitle:SetColor(Color(255, 255, 255, 255))
+	t4tab2panel_left.SourceTitle:SetFont("DermaLarge")
+	t4tab2panel_left.SourceTitle:SetContentAlignment(0)
+	
+	t4tab2panel_left.DrawPortals = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.DrawPortals:SetPos(516, 35)
+	t4tab2panel_left.DrawPortals:SetSize(500, 20)
+	t4tab2panel_left.DrawPortals:SetText( "Draw Portals (r_DrawPortals)" )
+	t4tab2panel_left.DrawPortals:SetConVar( "r_DrawPortals" )
+	t4tab2panel_left.DrawPortals.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawPortals:SetEnabled(true)
+	
+	t4tab2panel_left.DrawBrushes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.DrawBrushes:SetPos(516, 55)
+	t4tab2panel_left.DrawBrushes:SetSize(500, 20)
+	t4tab2panel_left.DrawBrushes:SetText( "Draw Clips (r_drawclipbrushes)" )
+	t4tab2panel_left.DrawBrushes:SetConVar( "r_drawclipbrushes" )
+	t4tab2panel_left.DrawBrushes.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawBrushes:SetEnabled(true)
+	
+	t4tab2panel_left.DrawEntityMessages = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.DrawEntityMessages:SetPos(516, 75)
+	t4tab2panel_left.DrawEntityMessages:SetSize(500, 20)
+	t4tab2panel_left.DrawEntityMessages:SetText( "Draw Entity Messages (ent_messages_draw)" )
+	t4tab2panel_left.DrawEntityMessages:SetConVar( "ent_messages_draw" )
+	t4tab2panel_left.DrawEntityMessages.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawEntityMessages:SetEnabled(true)
+	
+	t4tab2panel_left.DrawLightInfo = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.DrawLightInfo:SetPos(516, 95)
+	t4tab2panel_left.DrawLightInfo:SetSize(500, 20)
+	t4tab2panel_left.DrawLightInfo:SetText( "Draw Light Info (r_drawlightinfo)" )
+	t4tab2panel_left.DrawLightInfo:SetConVar( "r_drawlightinfo" )
+	t4tab2panel_left.DrawLightInfo.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawLightInfo:SetEnabled(true)
+	
+	t4tab2panel_left.DrawLightInfo = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.DrawLightInfo:SetPos(516, 115)
+	t4tab2panel_left.DrawLightInfo:SetSize(500, 20)
+	t4tab2panel_left.DrawLightInfo:SetText( "Draw Render Bounds (r_drawrenderboxes)" )
+	t4tab2panel_left.DrawLightInfo:SetConVar( "r_drawrenderboxes" )
+	t4tab2panel_left.DrawLightInfo.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawLightInfo:SetEnabled(true)
+	
+	t4tab2panel_left.DrawLightInfo = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.DrawLightInfo:SetPos(516, 135)
+	t4tab2panel_left.DrawLightInfo:SetSize(500, 20)
+	t4tab2panel_left.DrawLightInfo:SetText( "Draw Soundscapes (soundscape_debug)" )
+	t4tab2panel_left.DrawLightInfo:SetConVar( "soundscape_debug" )
+	t4tab2panel_left.DrawLightInfo.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawLightInfo:SetEnabled(true)
 	
 	local DebugSetting = vgui.Create( "DLabel", t4tab2panel_left)
 	ControlsTitle:SetFont("DermaLarge")
-	DebugSetting:SetPos(400, 10)
+	DebugSetting:SetPos(20, 600)
 	DebugSetting:SetSize(100, 20)
 	DebugSetting:SetText("Debug Crosshair:")
 	DebugSetting:SetColor(TextCol)
 	
 	local DebugCrosshair = vgui.Create( "DComboBox", t4tab2panel_left )
 	DebugCrosshair:SetSortItems(false)
-	DebugCrosshair:SetPos(500, 10)
+	DebugCrosshair:SetPos(120, 600)
 	DebugCrosshair:SetSize(150, 20)
 	DebugCrosshair:SetConVar( "cl_drc_debug_crosshairmode" )
 	DebugCrosshair:AddChoice("Disabled", 0)

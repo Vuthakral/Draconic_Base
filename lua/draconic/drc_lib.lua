@@ -204,6 +204,33 @@ function DRC:GetServerMode()
 	end
 end
 
+function DRC:Notify(source, type, severity, msg, enum, time, sound)
+	if source != nil && (severity == "warning" or severity == "error" or severity == "critical") then
+		MsgC( Color(255, 0, 0), "Error from ".. tostring(source) ..": " )
+	end
+
+	local var = GetConVar("cl_drc_disable_errorhints"):GetFloat()
+	if var != 1 or severity == "critical" then
+		if sound != nil then surface.PlaySound( sound ) end
+		if type == "hint" && CLIENT then
+			if enum == nil then enum = NOTIFY_HINT end
+			if time == nil then time = 10 end
+			notification.AddLegacy( msg, enum, time )
+		else
+		 -- Will implement a proper error logging system later
+		end
+	end
+	
+	if enum == NOTIFY_ERROR then
+	if severity == "critical" then severity = "critical error" end
+		if IsValid(source) then
+			MsgC( Color(255, 0, 0), string.upper("[".. severity .."]"), Color(255, 255, 0), " ".. msg .." \n" )
+		else
+			MsgC( Color(255, 0, 0), string.upper("[DRC ".. severity .."]"), Color(255, 255, 0), " ".. msg .." \n" )
+		end
+	end
+end
+
 function DRC:MismatchWarn(ply, ent)
 	if !ply or !ent then return end
 	
@@ -248,16 +275,19 @@ end
 function DRC:SightsDown(ent, irons)
 	if !IsValid(ent) then return end
 	if irons == nil then irons = false end
+	local base = DRC:GetBaseName(ent)
 	
 	if !irons then
-		if ent.Draconic then
-			if ent.Secondary.Scoped == true then return ent.SightsDown else return false end
-		elseif ent.IsTFAWeapon then
+		if base == "drc" then
+			return ent.SightsDown
+		elseif base == "tfa" then
 			return ent:GetIronSights()
-		elseif ent.ASTWTWO then
+		elseif base == "astw2" then
 			if ent.TrueScope == true && ent:GetNWBool("insights") == true then return true else return false end
-		elseif ent.ArcCW then
+		elseif base == "arccw" then
 			if ent.Sighted == true then return true else return false end
+		elseif base == "mwb" then
+			if ent:GetIsAiming() == true then return true else return false end
 		end
 	else
 		if ent.Draconic then
@@ -638,7 +668,7 @@ function DRC:RoomSize(pos)
 	end
 end
 
---- Credit: Kinyom -- https://github.com/Kinyom -- https://github.com/Facepunch/garrysmod-requests/issues/1779
+-- Credit: Kinyom -- https://github.com/Kinyom -- https://github.com/Facepunch/garrysmod-requests/issues/1779
 -- anything I slapped "drc" onto is just to ensure it remains unique and doesn't risk being incompatible with anything.
 if CLIENT then
 local drc_LUMP_CUBEMAPS = 42 -- THIS is the juicy stuff
@@ -692,10 +722,11 @@ end )
 end
 -- End cubemap collection code
 
-function DRC:DLight(ent, pos, col, size, lifetime, emissive)
+function DRC:DLight(ent, pos, col, size, lifetime, emissive, debugcolourmultiplier)
 	local HDR = render.GetHDREnabled()
 
 	if emissive == nil then emissive = false end
+	if !debugcolourmultiplier then debugcolourmultiplier = 1 end
 	if IsEntity(ent) then ent = ent:EntIndex() end
 	local dl = DynamicLight(ent, emissive)
 	dl.pos = pos
@@ -717,6 +748,10 @@ function DRC:DLight(ent, pos, col, size, lifetime, emissive)
 		el.Decay = (1000 / lifetime)
 		el.size = size
 		el.DieTime = CurTime() + lifetime
+	end
+	
+	if CLIENT && GetConVarNumber("cl_drc_debugmode") >= 1 && debugcolourmultiplier then
+		DRC:IDLight(pos, col, size, debugcolourmultiplier, FrameTime() * 3)
 	end
 end
 
@@ -794,6 +829,8 @@ hook.Add("PlayerInitialSpawn", "drc_InitialSpawnHook", function(ply)
 	local info = { ply, game.GetMapVersion() }
 	net.WriteTable(info)
 	net.Send(ply)
+	
+	
 end)
 
 hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
@@ -1342,6 +1379,30 @@ hook.Add("PlayerTick", "drc_movementhook", function(ply)
 		end
 end)
 
+function DRC:CallGesture(ply, slot, act, akill)
+	if !SERVER then return end
+	if !IsValid(ply) then return end
+	if !slot or slot == "" or slot == nil then slot = GESTURE_SLOT_CUSTOM end
+	if !act then return end
+	if !akill or akill == "" or akill == nil then akill = true end
+	
+	local nt = {}
+	nt.Player = ply
+	nt.Slot = slot
+	nt.Activity = act
+	nt.Autokill = akill
+	
+	if !ply:IsPlayer() then
+		timer.Simple(engine.TickInterval(), function()
+			if ply.RestartGesture then ply:RestartGesture(act, true, akill) end
+		end)
+	end
+	
+	net.Start("DRCNetworkGesture")
+	net.WriteTable(nt)
+	net.Broadcast()
+end
+
 local function PlayReadyAnim(ply, anim)
 	if !IsValid(ply) then 
 		DRC:Notify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
@@ -1357,7 +1418,7 @@ local function PlayReadyAnim(ply, anim)
 	if ply.DrcLastWeaponSwitch == nil then ply.DrcLastWeaponSwitch = CurTime() end
 	
 	if IsValid(ply) then
-		DRCCallGesture(ply, GESTURE_SLOT_CUSTOM, anim, true)
+		DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, anim, true)
 		ply.DrcLastWeaponSwitch = CurTime() + dur
 		
 		if SERVER then
@@ -1467,23 +1528,6 @@ net.Receive("OtherPlayerWeaponSwitch", function(len, ply)
 	local anim = net.ReadString()
 	
 	PlayReadyAnim(ply, anim)
-end)
-
-net.Receive("DRCPlayerMelee", function(len, ply)
-	local ply = net.ReadEntity()
-	if !IsValid(ply) then return end
-	local wpn = ply:GetActiveWeapon()
-	if !IsValid(wpn) then return end
-	local ht = wpn:GetHoldType()
-	
-	if !wpn.Draconic then return end
-	if !wpn:CanGunMelee() then return end
-	
-	if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
-		ply:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND, true)
-	elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
-		ply:AnimRestartGesture(GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE, true)
-	end
 end)
 
 net.Receive("DRC_Nuke", function(len, ply)
@@ -1714,25 +1758,24 @@ function DRC:TraceDir(origin, dir, dist)
 		end
 	})
 	
-	DRC:RenderTrace(tr, Color(255, 255, 0, 255), 3)
-	
-	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 then
-		local csent1 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
-		local csent2 = ClientsideModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
+	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 && GetConVarNumber("cl_drc_debug_tracelines") >= 1 then
+		if !gui.IsGameUIVisible() then
+		local csent1 = ClientsideModel("models/editor/axis_helper.mdl")
+		local csent2 = ClientsideModel("models/editor/axis_helper.mdl")
+		csent1:SetMaterial("models/wireframe")
+		csent2:SetMaterial("models/wireframe")
 		csent1:SetPos(tr.HitPos)
 		csent2:SetPos(tr.StartPos)
 		csent1:SetColor(Color(255, 0, 0, 255))
 		csent2:SetColor(Color(0, 255, 0, 255))
 		csent1:Spawn()
 		csent2:Spawn()
-		timer.Simple(3, function() csent1:Remove() csent2:Remove() end)
+		timer.Simple(FrameTime(), function() csent1:Remove() csent2:Remove() end)
+		DRC:RenderTrace(tr, Color(255, 255, 0, 255), FrameTime())
+		end
 	end
 	
 	return tr
-end
-
-function DRC:CallGesture(ply, slot, act, akill)
-	DRCCallGesture(ply, slot, act, akill)
 end
 
 function DRC:GetBones(ent)
@@ -1749,6 +1792,7 @@ function DRC:GetBones(ent)
 end
 
 function DRC:IsVehicle(ent)
+	if !IsValid(ent) then return false end
 	if ent:IsVehicle() or ent:GetClass() == "gmod_sent_vehicle_fphysics_base" or ent:GetClass() == "npc_helicopter" or ent:GetClass() == "npc_combinegunship" or ent.LFS or ent.Base == "haloveh_base" or ent.Base == "ma2_mech" or ent.Base == "ma2_battlesuit" then return true else return false end
 end
 
@@ -1941,11 +1985,33 @@ DRC.VoiceSetDefs = {
 	["spot"] = "Spotting",
 }
 
+DRC.VoiceSetResponses = {}
 function DRC:RegisterVoiceSet(vs)
 	if !vs then return end
 	local name = vs.ID
+	local responses = vs.Responses
+	
+	if responses then
+		for k,v in pairs(responses) do
+			for k,v in pairs(v) do -- omg please don't kill me
+				DRC.VoiceSetResponses[tostring(k)] = true
+			end
+		end
+	end
 	
 	DRC.VoiceSets[name] = vs
+end
+
+function DRC:RegisterVoiceSetDSPCopy(vs, dsp, subtitle)
+	if !vs or !dsp then return end
+	local newtab = table.Copy(vs)
+	local name = newtab.ID
+	newtab.DSP = dsp
+	newtab.ID = "".. newtab.ID .."_".. dsp ..""
+	name = newtab.ID
+	newtab.Name = "".. newtab.Name .." (".. subtitle ..")"
+	
+	DRC.VoiceSets[name] = newtab
 end
 
 function DRC:VoiceSpot(ply)
@@ -1998,7 +2064,7 @@ function DRC:GetVoiceSet(ent)
 	return vs
 end
 
-function DRC:IsVSentenceValid(vs, call, subcall)
+function DRC:IsVSentenceValid(vs, call, subcall, response)
 	if !vs or vs == nil then return end
 	local voice = DRC.VoiceSets[vs]
 	if !subcall or subcall == nil then
@@ -2006,6 +2072,12 @@ function DRC:IsVSentenceValid(vs, call, subcall)
 	elseif subcall then
 		if voice[call] then
 			if voice[call][subcall] then return true end
+		end
+	elseif response then
+		if voice[call] then
+			if voice[call][subcall] then 
+				if voice[call][subcall][response] then return true end
+			end
 		end
 	else return false
 	end
@@ -2053,19 +2125,171 @@ function DRC:SpeakSentence(ent, call, subcall, important)
 	end
 end
 
-function DRC:DamageSentence(ent, damage)
+function DRC:ResponseSentence(ent, trigger, response, delay)
+	ent.DRCSpeaking = false
+	local num, rng, sel = nil, nil, nil
+	local vs = DRC:GetVoiceSet(ent)
+	if !vs then return end
+	local voice = DRC.VoiceSets[DRC:GetVoiceSet(ent)]
+	local dsp = voice.DSP
+	if !DRC:IsVSentenceValid(vs, "Responses", trigger, response) then return end
+	num = #voice["Responses"][trigger][response]
+	rng = math.Round(math.Rand(1, num))
+	sel = voice["Responses"][trigger][response][rng]
+	if sel then
+		if ent:GetNWFloat("DRC_VoiceSetDSP", 0) != 0 then dsp = ent:GetNWFloat("DRC_VoiceSetDSP") end
+		local dur = SoundDuration(sel), 0, 0
+		ent.DRCSpeaking = true
+		timer.Simple(delay, function() if ent:IsValid() then ent:EmitSound(sel, nil, 100, 1, nil, SND_NOFLAGS, dsp) end end)
+		timer.Simple(dur, function() if ent:IsValid() then ent.DRCSpeaking = false end end)
+	end
+end
+
+function DRC:DamageSentence(ent, damage, dmg)
 	if !IsValid(ent) then return end
 	local hp, mhp = ent:Health(), ent:GetMaxHealth()
+	local percentage, newhp = damage/mhp, hp - damage
+	local attacker = dmg:GetAttacker()
 	
-	local percentage = damage/mhp
-	
-	if percentage >= 0.3 then
-		DRC:SpeakSentence(ent, "Pain", "Major")
-	elseif percentage < 0.3 && percentage >= 0.15 then
-		DRC:SpeakSentence(ent, "Pain", "Medium")
-	elseif percentage < 0.15 then
-		DRC:SpeakSentence(ent, "Pain", "Minor")
+	local function PostComplaint(dam, condition, attackerisnpc)
+		local str, thyme = "Minor_Post", math.Rand(1, 3)
+		
+		local function GetString()
+			if dam >= 0.2 then str = "Major_Post"
+			elseif dam < 0.2 && dam >= 0.1 then str = "Medium_Post"
+			elseif dam < 0.1 then str = "Minor_Post"
+			end
+			return str
+		end
+		str = GetString()
+		local important = false
+		if condition == "fall" then
+			str = "Fall_".. str ..""
+			thyme = math.Rand(0.1, 0.2)
+			important = true
+		elseif condition == "shock" then
+			str = "Shock_".. str ..""
+			thyme = 0
+			important = true
+		elseif condition == "fire" then
+			str = "Fire_".. str ..""
+			thyme = math.Rand(0.1, 0.2)
+			important = true
+		elseif condition == "acid" then
+			str = "Acid_".. str ..""
+		elseif condition == "radiation" then
+			str = "Rad_".. str ..""
+		elseif condition == "plasma" then
+			str = "Plasma_".. str ..""
+		elseif attackerisnpc == true && DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", attacker:GetClass()) then
+			str = attacker:GetClass()
+		end
+		
+		if DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", str) then 
+			timer.Simple(thyme, function()
+				if IsValid(ent) && ent:Health() > 0.01 then
+					DRC:SpeakSentence(ent, "Pain", str, important)
+				end
+			end)
+		else
+			str = GetString()
+			thyme = math.Rand(1, 3)
+			timer.Simple(thyme, function()
+				if IsValid(ent) && ent:Health() > 0.01 then
+					DRC:SpeakSentence(ent, "Pain", str)
+				end
+			end)
+		end
 	end
+	
+	local enum, conditionstring, npc = dmg:GetDamageType(), false, false
+	if enum == DMG_FALL then conditionstring = "fall" end
+	if enum == DMG_SHOCK then conditionstring = "shock" end
+	if enum == DMG_SLOWBURN then conditionstring = "fire" end
+	if enum == DMG_BURN then conditionstring = "fire" end
+	if enum == DMG_DIRECT then conditionstring = "fire" end
+	if enum == DMG_ACID then conditionstring = "acid" end
+	if enum == DMG_RADIATION then conditionstring = "radiation" end
+	if enum == DMG_PLASMA then conditionstring = "plasma" end
+	if attacker then npc = true end
+	
+	if conditionstring == "fall" && DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", "Fall") && newhp > 0.0001 then
+		if IsValid(ent) && ent:Health() > 0.01 then
+			DRC:SpeakSentence(ent, "Pain", "Fall", true)
+			PostComplaint(percentage, conditionstring)
+		end
+	return end
+
+	if percentage >= 0.2 then
+		DRC:SpeakSentence(ent, "Pain", "Major", true)
+		PostComplaint(percentage, conditionstring, npc)
+	elseif percentage < 0.2 && percentage >= 0.1 then
+		DRC:SpeakSentence(ent, "Pain", "Medium", true)
+		PostComplaint(percentage, conditionstring, npc)
+	elseif percentage < 0.1 then
+		DRC:SpeakSentence(ent, "Pain", "Minor", true)
+		PostComplaint(percentage, conditionstring, npc)
+	end
+end
+
+function DRC:DeathSentence(vic, att, dmg)
+	if !IsValid(vic) or !IsValid(att) or !IsValid(dmg) then return end
+	local velocity = vic:GetVelocity():Length()
+	local damage = dmg:GetDamage()
+	local enum = dmg:GetDamageType()
+	local att = dmg:GetAttacker()
+	local infl = dmg:GetInflictor()
+	
+	local hp, newhp, maxhp = vic:Health(), vic:Health() - damage, vic:GetMaxHealth()
+	local halflife = maxhp/2
+	local quarterlife = maxhp/4
+	local microlife = maxhp/10
+	
+	if enum == DMG_FALL && newhp > 0.0001 then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_FallDamage") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_FallDamage")
+		end
+	return end
+	
+	if DRC:IsVehicle(infl) then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Splatter")
+		end
+	return end
+	
+	if velocity > 650 && (att:IsWorld() or att == vic) then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Falling") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Falling")
+		end
+	return end
+	
+	if damage < microlife then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Light") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Light")
+		end
+	elseif damage > microlife && damage < quarterlife then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Medium") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Medium")
+		end
+	elseif damage >= quarterlife then
+		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Major") then
+			DRC:SpeakSentence(vic, "Pain", "Death")
+		else
+			DRC:SpeakSentence(vic, "Pain", "Death_Major")
+		end
+	return end
+	
+	DRC:SpeakSentence(vic, "Pain", "Death")
 end
 
 function DRC:FloorDist(e, sqr)
@@ -2100,6 +2324,28 @@ function DRC:ChangeCHandModel(tbl)
 	handsent:SetModel(tbl.model)
 	handsent:SetSkin(tbl.skin)
 	handsent:SetBodyGroups(tbl.bodygroups)
+end
+
+function DRC:GetBaseName(ent)
+	if !IsValid(ent) then return end
+	if !ent:IsScripted() then return nil end
+	if ent.Draconic == true then return "drc" end
+	if ent.LFS then return "lfs" end
+	if ent.IsTFAWeapon then return "tfa" end
+	if ent.ArcCW then return "arccw" end
+	if ent.ASTWTWO then return "astw2" end
+	if ent.mg_IsPlayerReverbOutside && ent.SprintBehaviourModule then return "mwb" end
+	if ent.IsSimfphyscar then return "sphys" end
+	return nil
+end
+
+function DRC:Health(ent) -- This is what happens when people try to reinvent the wheel.
+	if !IsValid(ent) then return end
+	local base = DRC:GetBaseName(ent)
+	if base == nil or base == "drc" then return ent:Health(), ent:GetMaxHealth()
+	elseif base == "lfs" then return ent:GetHP(), ent:GetMaxHP()
+	elseif base == "sf" then return ent:GetCurHealth()
+	end
 end
 
 hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply, weapon )
@@ -2276,6 +2522,14 @@ hook.Add("PlayerGiveSWEP", "drc_GivePickupOnlyWeapon", function(ply, wpn, swep)
 				ply:PickupWeapon(weapon)
 			else return false end
 		end
+	end
+end)
+
+hook.Add("PlayerSpawnedNPC", "drc_NPCWeaponOverride", function(ply, ent)
+	if !IsValid(ply) or !IsValid(ent) then return end
+	if !ent.DraconicNPC then return end
+	if ent:DraconicNPC() == true then
+		ent:SetOwner(ply)
 	end
 end)
 

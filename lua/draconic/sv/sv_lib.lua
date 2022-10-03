@@ -55,24 +55,26 @@ function DRC:EMP(src, tgt, thyme, sound, effect)
 		DRC:PopShield(tgt)
 	end
 	
+	tgt:SetNWBool("EMPed", true)
+	
 	if tgt.LFS == true then
 		if tgt:GetEngineActive() == true then
 			Effects()
 			tgt:StopEngine()
-			timer.Simple(thyme, function() tgt:StartEngine() end)
+			timer.Simple(thyme, function() tgt:StartEngine() tgt:SetNWBool("EMPed", false) end)
 		end
 	elseif tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" then 
 		if tgt:GetActive() == true then
 			Effects()
 			tgt:StopEngine()
 			tgt:SetActive( false )
-			timer.Simple(thyme, function() tgt:StartEngine() tgt:SetActive( true ) end)
+			timer.Simple(thyme, function() tgt:StartEngine() tgt:SetActive(true) tgt:SetNWBool("EMPed", false) end)
 		end
 	elseif tgt:GetClass() == "prop_vehicle_jeep" or tgt:GetClass() == "prop_vehicle_airboat" then
 		if tgt:IsEngineStarted() == true then
 			Effects()
 			tgt:StartEngine(false)
-			timer.Simple(thyme, function() tgt:StartEngine(true) end)
+			timer.Simple(thyme, function() tgt:StartEngine(true) tgt:SetNWBool("EMPed", false) end)
 		end
 	end
 	

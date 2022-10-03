@@ -23,6 +23,7 @@ ENT.Mass				= 5
 ENT.Force				= 0
 ENT.Gravity				= false
 ENT.DoesRadialDamage 	= true
+ENT.RadialDamagesOwner	= false
 ENT.ProjectileType		= "fire"
 
 ENT.AffectRadius	= 100
@@ -39,7 +40,6 @@ ENT.LightType		= 6 -- https://developer.valvesoftware.com/wiki/Light_dynamic#App
 -- Specific to this entity below
 ENT.DoParticle = true
 ENT.IgniteChance = 35
-
 
 function ENT:DoCustomInitialize()
 	if self.DoParticle == true then

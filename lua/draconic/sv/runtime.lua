@@ -1,7 +1,6 @@
 resource.AddFile ( 'materials/overlays/draconic_scope.vmt' )
 util.AddNetworkString("DRCSound")
 util.AddNetworkString("OtherPlayerWeaponSwitch")
-util.AddNetworkString("DRCPlayerMelee")
 util.AddNetworkString("DRCNetworkGesture")
 util.AddNetworkString("DRCNetworkedAddText")
 util.AddNetworkString("DRC_SyncSpray")
@@ -18,6 +17,8 @@ util.AddNetworkString("DRC_UpdatePlayerHands")
 util.AddNetworkString("DRC_RequestLightColour")
 util.AddNetworkString("DRC_ReceiveLightColour")
 util.AddNetworkString("DRC_SetRPModels")
+util.AddNetworkString("DRC_PlayerSquadHelp")
+util.AddNetworkString("DRC_PlayerSquadMove")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -242,7 +243,7 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 	
 	local maxhp = vic:GetMaxHealth()
 	local halflife = maxhp/2
-	local quarterlife = maxhp/4
+	local quarterlife = maxhp/5
 	local microlife = maxhp/10
 	
 	if enum == DMG_FALL then
@@ -253,13 +254,15 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 		end
 	return end
 	
-	if DRC:IsVehicle(infl) then
-		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
-		else
-			DRC:SpeakSentence(vic, "Pain", "Death_Splatter")
-		end
-	return end
+	if infl then
+		if DRC:IsVehicle(infl) or att:GetClass() == "npc_antlionguard" or infl:GetClass() == "npc_antlionguard" then
+			if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
+				DRC:SpeakSentence(vic, "Pain", "Death")
+			else
+				DRC:SpeakSentence(vic, "Pain", "Death_Splatter")
+			end
+		return end
+	end
 	
 	if velocity > 650 && (att:IsWorld() or att == vic) then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Falling") then
@@ -299,19 +302,63 @@ hook.Add("PlayerSpawn", "VoiceSets_Spawn", function(vic, trans)
 end)
 
 
-hook.Add("PostEntityTakeDamage", "VoiceSets_Damage", function(ent, dmg, took)
-	if took == true && DRC:GetVoiceSet(ent) != nil then DRC:DamageSentence(ent, dmg:GetDamage()) end
+hook.Add("PostEntityTakeDamage", "VoiceSets_Damage", function(ent, dmg, took)	
+	if took == true && DRC:GetVoiceSet(ent) != nil then
+		DRC:DamageSentence(ent, dmg:GetDamage(), dmg)
+	end
 end)
 
 hook.Add("PlayerStartTaunt", "VoiceSets_Taunts", function(ply, act, length)
 	if act == ACT_GMOD_TAUNT_CHEER then DRC:SpeakSentence(ply, "Taunts", "Cheer") end
 	if act == ACT_GMOD_TAUNT_LAUGH then DRC:SpeakSentence(ply, "Taunts", "Laugh") end
 	if act == ACT_GMOD_TAUNT_SALUTE then DRC:SpeakSentence(ply, "Taunts", "Salute") end
-	if act == ACT_GMOD_TAUNT_ZOMBIE then DRC:SpeakSentence(ply, "Taunts", "Zombie") end
+	if act == ACT_GMOD_GESTURE_TAUNT_ZOMBIE then DRC:SpeakSentence(ply, "Taunts", "Zombie") end
 	if act == ACT_GMOD_TAUNT_PERSISTENCE then DRC:SpeakSentence(ply, "Taunts", "Pers") end
 	if act == ACT_GMOD_TAUNT_MUSCLE then DRC:SpeakSentence(ply, "Taunts", "Muscle") end
 	if act == ACT_GMOD_TAUNT_DANCE then DRC:SpeakSentence(ply, "Taunts", "Dance") end
 	if act == ACT_GMOD_TAUNT_ROBOT then DRC:SpeakSentence(ply, "Taunts", "Robot") end
+end)
+
+hook.Add("EntityEmitSound", "VoiceSets_Responses", function(tab)
+	tab.SoundName = string.Replace(tab.SoundName, "*", "") -- For when dialogue is called by a scripted sequence; they're prefixed with *
+	if DRC.VoiceSetResponses[tab.SoundName] then
+		local class = tab.Entity:GetClass()
+		local ent = tab.Entity
+		
+		local entcheck = ents.FindInSphere(ent:GetPos(), 500)
+		for k,v in pairs(entcheck) do
+			if DRC:IsCharacter(v) then
+				local delay = SoundDuration(tab.SoundName)
+				DRC:ResponseSentence(v, class, tab.SoundName, delay)
+			end
+		end
+	end
+end)
+
+hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
+	if DRC:IsCharacter(tgt) && DRC:IsCharacter(dmg:GetAttacker()) then
+		local class = tgt:GetClass()
+		local str = "kill_".. class ..""
+		local hp = DRC:Health(tgt)
+		if hp <= 0 then
+			if !DRC:IsVSentenceValid(DRC:GetVoiceSet(dmg:GetAttacker()), "Reactions", str) then
+				DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", "kill_postgeneric")
+			else
+				DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", str)
+			end
+			
+			if class == "npc_barnacle" then
+				local tr = util.TraceLine({
+					start = tgt:GetPos(),
+					endpos = tgt:GetPos() - Vector(0, 0, 2000),
+					filter = function(ent) if ent == tgt then return false else return true end end
+				})
+				if DRC:IsCharacter(tr.Entity) then
+					DRC:SpeakSentence(tr.Entity, "Reactions", "Puke", true)
+				end
+			end
+		end
+	end
 end)
 
 net.Receive("DRCVoiceSet_CL", function()
@@ -319,11 +366,34 @@ net.Receive("DRCVoiceSet_CL", function()
 	local value = tbl[2]
 	local ent = tbl[1]
 	
+	if tbl[3] then
+		local ply, call, subcall = tbl[1], tbl[2], tbl[3]
+		DRC:SpeakSentence(ply, call, subcall)
+	end
+	
 	if value == "+use" then
 		DRC:VoiceSpot(ent)
 	else
 		DRC:SpeakSentence(ent, tostring(DRC.VoiceSetDefs[value]), nil, false)
 	end
+end)
+
+net.Receive("DRC_PlayerSquadHelp", function()
+	local ply = net.ReadEntity()
+	DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, ACT_SIGNAL_GROUP, true)
+	for k,v in pairs(ents.GetAll()) do
+		if v:IsNPC() then
+			if v:GetSquad() == "player_squad" then
+				v:MoveOrder(ply:GetPos())
+				v:AlertSound()
+			end
+		end
+	end
+end)
+net.Receive("DRC_PlayerSquadMove", function()
+	local ply = net.ReadEntity()
+	DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, ACT_SIGNAL_FORWARD, true)
+	ply:ConCommand("impulse 50")
 end)
 
 function DRC:GetBestPlayerConnection()
@@ -348,7 +418,6 @@ end)
 function DRC:RequestLightColour(ent)
 	if ent:IsPlayer() then return Vector(ent:GetInfo("drc_lightcolour")) end
 	local ply, ping = DRC:GetBestPlayerConnection()
-	print(ply, ping)
 	local tbl = {true, ent}
 	net.Start("DRC_RequestLightColour")
 	net.WriteEntity(ent)

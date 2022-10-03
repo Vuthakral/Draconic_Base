@@ -29,12 +29,12 @@ function SWEP:RegeneratingAmmo(self)
 		timer.Create(self.AmmoRegen, self.AmmoInterval, 0, function() 
 			if !SERVER or !self:IsValid()  or !timer.Exists( self.AmmoRegen ) then return end
 			
-			ammo = self.Weapon:Clip1()
+			ammo = self:Clip1()
 			maxammo = (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 			if maxammo < ammo then return end
 			if self.Loading == false then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
-				self.Weapon:SetClip1(self.Weapon:GetNWInt("LoadedAmmo"))
+				self:SetNWInt("LoadedAmmo", math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
+				self:SetClip1(self:GetNWInt("LoadedAmmo"))
 			end
 		end)
 end
@@ -56,9 +56,9 @@ function SWEP:DisperseHeat()
 			self:SetNWInt("Heat", 100)
 			ply:SetAmmo(self:GetNWInt("Heat"), "ammo_drc_battery")
 		elseif ply:GetAmmoCount( "ammo_drc_battery" ) >= 0 then
-			if self.Weapon:GetNWFloat("HeatDispersePower") == 0 then
+			if self:GetNWFloat("HeatDispersePower") == 0 then
 			else
-				self:SetNWInt("Heat", math.Clamp( (self:GetNWInt("Heat") - (self.HeatLossPerInterval * self.Weapon:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
+				self:SetNWInt("Heat", math.Clamp( (self:GetNWInt("Heat") - (self.HeatLossPerInterval * self:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
 				ply:SetAmmo(self:GetNWInt("Heat"), "ammo_drc_battery" )
 			end
 		end
@@ -152,31 +152,31 @@ function SWEP:DisperseCharge()
 		local m2d = ply:KeyDown(IN_ATTACK2)
 		local ukd = ply:KeyDown(IN_USE)
 		
-		if self.Weapon:GetNWInt("LoadedAmmo") >= 0 then
+		if self:GetNWInt("LoadedAmmo") >= 0 then
 			if self.Primary.UsesCharge == true then
-				if m1d && self:CanPrimaryAttack() && (self.Weapon:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self.Weapon:SetNWInt("Charge", math.Clamp( self.Weapon:GetNWInt("Charge") + self.ChargeRate, 0, 100))
-				else self.Weapon:SetNWInt("Charge", math.Clamp( self.Weapon:GetNWInt("Charge") - self.ChargeRate * 10, 0, 100)) end
+				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") + self.ChargeRate, 0, 100))
+				else self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") - self.ChargeRate * 10, 0, 100)) end
 			else end
 			
 			if self.Secondary.UsesCharge == true then
-				if m2d && self:CanSecondaryAttack() && (self.Weapon:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self.Weapon:SetNWInt("Charge", math.Clamp( self.Weapon:GetNWInt("Charge") + self.ChargeRate, 0, 100))
-				else self.Weapon:SetNWInt("Charge", math.Clamp( self.Weapon:GetNWInt("Charge") - self.ChargeRate * 10, 0, 100)) end
+				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") + self.ChargeRate, 0, 100))
+				else self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") - self.ChargeRate * 10, 0, 100)) end
 			else end
 			
-			if self.Weapon:GetNWInt("Charge") >= 101 then
-				self.Weapon:SetNWInt("Charge", 100)
+			if self:GetNWInt("Charge") >= 101 then
+				self:SetNWInt("Charge", 100)
 			end
 			
-			if self.Weapon:GetNWInt("Charge") > 99 then
-				self.Weapon:SetNWInt("LoadedAmmo", self.Weapon:GetNWInt("LoadedAmmo") - self.ChargeHoldDrain)
-				self.Weapon:SetClip1( self.Weapon:GetNWInt("LoadedAmmo") )
+			if self:GetNWInt("Charge") > 99 then
+				self:SetNWInt("LoadedAmmo", self:GetNWInt("LoadedAmmo") - self.ChargeHoldDrain)
+				self:SetClip1( self:GetNWInt("LoadedAmmo") )
 			end
 		else end
 	end)
 end
 
 function SWEP:CanOvercharge()
-	if self.Weapon:GetNWInt("Charge") > 99 then return true else return false end
+	if self:GetNWInt("Charge") > 99 then return true else return false end
 end
 
 function SWEP:UpdateBloom(mode)
@@ -283,6 +283,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	local swingtrace = util.TraceLine( tl )
 	if ply:IsPlayer() then ply:LagCompensation(false) end
 	
+	att = string.lower(att)
 	if att == "primary" then 
 		self.Force 	= self.Primary.Force
 		self.Damage = self.Primary.Damage
@@ -333,7 +334,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		self:SetNextPrimaryFire( CurTime() + self.DH )
 		self:SetNextSecondaryFire( CurTime() + self.DH )
 		
-		if self.HA != nil then self.Weapon:SendWeaponAnim( self.HA ) end
+		if self.HA != nil then self:SendWeaponAnim( self.HA ) end
 		
 		for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 			if timer.Exists("".. tostring(self) .."SwingImpact".. i .."") then timer.Destroy("".. tostring(self) .."SwingImpact".. i .."") end
@@ -388,19 +389,19 @@ end
 
 function SWEP:TakePrimaryAmmo( num )
 	if not SERVER then return end
-	if ( self.Weapon:Clip1() <= 0 ) && self.Owner:IsPlayer() then
+	if ( self:Clip1() <= 0 ) && self.Owner:IsPlayer() then
 		if ( self:Ammo1() <= 0 ) then return end
-		self.Owner:RemoveAmmo( num, self.Weapon:GetPrimaryAmmoType() )
+		self.Owner:RemoveAmmo( num, self:GetPrimaryAmmoType() )
 	return end
-	self.Weapon:SetClip1(self.Weapon:GetNWInt("LoadedAmmo"))
+	self:SetClip1(self:GetNWInt("LoadedAmmo"))
 end
 
 function SWEP:TakeSecondaryAmmo( num )
-	if ( self.Weapon:Clip2() <= 0 ) then
+	if ( self:Clip2() <= 0 ) then
 		if ( self:Ammo2() <= 0 ) then return end
-		self.Owner:RemoveAmmo( num, self.Weapon:GetSecondaryAmmoType() )
+		self.Owner:RemoveAmmo( num, self:GetSecondaryAmmoType() )
 	return end
-	self.Weapon:SetClip2( self.Weapon:Clip2() - num )
+	self:SetClip2( self:Clip2() - num )
 end
 
 function SWEP:DoCustomBulletImpact(pos, normal, dmg)
@@ -581,16 +582,16 @@ function SWEP:DoShoot(mode)
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
 			else
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumPerShot )
 		end
@@ -612,16 +613,16 @@ function SWEP:DoShoot(mode)
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
 			else
-				self.Weapon:SetNWInt("LoadedAmmo", math.Clamp((self.Weapon:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumPerShot )
 		end
@@ -673,8 +674,16 @@ function SWEP:DoShoot(mode)
 				end
 			end
 		end
-		ply:SetAnimation( PLAYER_ATTACK1 ) 
+		ply:SetAnimation( PLAYER_ATTACK1 )
 	else end
+	
+	if ply.DraconicNPC then
+		if ply:DraconicNPC() == true then
+			local holdtype = string.lower(self:GetHoldType())
+			local act = ply.HoldTypes[holdtype].range
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, act, true)
+		end
+	end
 	
 	if self.Base == "draconic_battery_base" then
 		local heat = self:GetNWInt("Heat")
@@ -714,14 +723,14 @@ function SWEP:DoShoot(mode)
 	elseif mode == "secondary" && self.Projectile == "scripted" then
 		timer.Simple(self.Secondary.ProjectileSpawnDelay, function()
 			self:DoScriptedSecondaryAttack()
-			self.Weapon:EmitSound(self.Secondary.Sound)
+			self:EmitSound(self.Secondary.Sound)
 			ply:SetAnimation( PLAYER_ATTACK1 )
-			self.Weapon:SendWeaponAnim( ACT_VM_SECONDARYATTACK )
+			self:SendWeaponAnim( ACT_VM_SECONDARYATTACK )
 		end)
 	else
 		if SERVER then
 			local muzzleattachment = self:LookupAttachment("muzzle")
-			local muzzle = self.Weapon:GetAttachment(muzzleattachment)
+			local muzzle = self:GetAttachment(muzzleattachment)
 			
 			for i=1,shotnum do
 				local proj = ents.Create(stats.Projectile)
@@ -747,7 +756,12 @@ function SWEP:DoShoot(mode)
 						proj:SetAngles(projang - Angle(-5, 0 ,0)) -- wtf
 					end
 				else
-					proj:SetPos(ply:GetBonePosition(RightHand)) -- Unfortunately, muzzle pos does not work in singleplayer.
+					if !DRC:ValveBipedCheck(ply) then -- Unfortunately, muzzle pos does not work in singleplayer unless the local player is being rendered.
+						local eyeheight = ply:EyePos().z - ply:GetPos().z
+						proj:SetPos(ply:GetPos() + Vector(0, 0, eyeheight/1.1) + ply:EyeAngles():Forward() * 10 + ply:EyeAngles():Right() * 5)
+					else
+						proj:SetPos(ply:GetBonePosition(RightHand))
+					end
 				end
 				proj:SetOwner(self.Owner)
 				proj:Spawn()
@@ -816,12 +830,12 @@ function SWEP:DoShoot(mode)
 		end
 	end
 	
-	if ply:IsNPC() then
+	if ply:IsNPC() or ply:IsNextBot() then
 		timer.Simple( 0.5, function() -- holy fUCK LET ME DETECT WHEN AN NPC RELOADS IN LUA NATIVELY PLEASE
 			if !IsValid(self) or !IsValid(ply) then return end
 			if ply:GetActivity() == ACT_RELOAD then
 				self:DoCustomReloadStartEvents()
-				self.Weapon:SetNWInt("LoadedAmmo", (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
+				self:SetNWInt("LoadedAmmo", (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
 			end
 		end)
 	end
@@ -831,14 +845,14 @@ function SWEP:DoShoot(mode)
 		if self.NPCBursting == true then return end
 		
 		local rpm = self.Primary.RPM
-		local fm = self.Weapon:GetNWString("FireMode")
+		local fm = self:GetNWString("FireMode")
 	end
 end
 
 function SWEP:DoEffects(mode, nosound, multishot)
 	local ply = self:GetOwner()
 	local muzzleattachment = self:LookupAttachment("muzzle")
-	local muzzle = self.Weapon:GetAttachment(muzzleattachment)
+	local muzzle = self:GetAttachment(muzzleattachment)
 	local fm = self:GetNWString("FireMode")
 		
 		if mode == "primary" then
@@ -886,7 +900,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		effectdata:SetOrigin( self.LastHitPos )
 	--	DRC_ParticleExplosion(self.LastHitPos, self.StatsToPull.Force * 75, 10)
 	else
-		effectdata:SetOrigin( self.Owner:GetShootPos() )
+		effectdata:SetOrigin( ply:GetShootPos() )
 	end
 
 
@@ -894,7 +908,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	if self.SightsDown == false then
 		effectdata:SetAttachment( muzzle )
 	elseif self.SightsDown == true && self.Secondary.Scoped == true then
-		effectdata:SetStart( self.Owner:EyePos() + Vector(0, 0, -2) )
+		effectdata:SetStart( ply:EyePos() + Vector(0, 0, -2) )
 		effectdata:SetAttachment( -1 )
 	end
 		
@@ -943,7 +957,7 @@ end
 function SWEP:DoMuzzleLight(mode)
 	local ply = self:GetOwner()
 	local muzzleattachment = self:LookupAttachment("muzzle")
-	local muzzle = self.Weapon:GetAttachment(muzzleattachment)
+	local muzzle = self:GetAttachment(muzzleattachment)
 		
 		if mode == "primary" then
 			self.FlareLightColor = self.Primary.LightColor
@@ -1032,28 +1046,28 @@ function SWEP:DoRecoil(mode)
 		self.IronRecoilMul = (self.OCIronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
 	end
 		
-	--if self.Weapon:GetNWBool("ironsights") == false && cv == false then
+	--if self:GetNWBool("ironsights") == false && cv == false then
 	if self.SightsDown == false && cv == false then
 		if CLIENT then
 			eyeang.pitch = eyeang.pitch - ((math.Rand(self.RecoilUp / 1.85, self.RecoilUp * 1.62)) - (math.Rand(self.RecoilDown / 1.85, self.RecoilDown * 1.85) * 0.01))
 			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -0.81) ) * 0.01)
 		end
 		self.Owner:ViewPunch(Angle( -self.Kick, math.Rand(-self.KickHoriz, self.KickHoriz), math.Rand(-self.KickHoriz, self.KickHoriz) / 200 ))
-		--elseif self.Weapon:GetNWBool("ironsights") == true && cv == false then
+		--elseif self:GetNWBool("ironsights") == true && cv == false then
 		elseif self.SightsDown == true && cv == false then
 		if CLIENT then
 			eyeang.pitch = eyeang.pitch - (((math.Rand(self.RecoilUp / 1.5, self.RecoilUp * 1.5)) - (math.Rand(self.RecoilDown / 1.5, self.RecoilDown * 1.5) * 0.01)) * self.IronRecoilMul)
 			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -1) ) * 0.01)
 		end
 		self.Owner:ViewPunch(Angle( (-self.Kick * 0.69) * self.IronRecoilMul, math.Rand(-self.KickHoriz, self.KickHoriz) / 100, math.Rand(-self.KickHoriz, self.KickHoriz) / 250 ) * self.Secondary.SightsKickMul)
-	--elseif self.Weapon:GetNWBool("ironsights") == false && cv == true then
+	--elseif self:GetNWBool("ironsights") == false && cv == true then
 	elseif self.SightsDown == false && cv == true then
 		if CLIENT then
 			eyeang.pitch = eyeang.pitch - ((math.Rand(self.RecoilUp / 1.5, self.RecoilUp * 1.5)) - (math.Rand(self.RecoilDown / 1.5, self.RecoilDown * 1.5) * 0.01))
 			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -1) ) * 0.01)
 		end
 		self.Owner:ViewPunch(Angle( -self.Kick * 0.75, math.Rand(-self.KickHoriz, self.KickHoriz) / 100, math.Rand(-self.KickHoriz, self.KickHoriz) / 250 ))
-		--elseif self.Weapon:GetNWBool("ironsights") == true && cv == true then
+		--elseif self:GetNWBool("ironsights") == true && cv == true then
 		elseif self.SightsDown == true && cv == true then
 		if CLIENT then
 			eyeang.pitch = eyeang.pitch - (((math.Rand(self.RecoilUp / 1.5, self.RecoilUp * 0.9)) - (math.Rand(self.RecoilDown / 1.9, self.RecoilDown * 0.9) * 0.01)) * self.IronRecoilMul)

@@ -117,6 +117,7 @@ SWEP.IsMelee = false
 function SWEP:CanPrimaryAttack()
 	local ply = self:GetOwner()
 	local sk, mk, issprinting = nil, nil
+	if !ply:IsNextBot() then if ply:GetActiveWeapon() != self then return false end end
 	if ply:IsPlayer() then
 		sk = ply:KeyDown(IN_SPEED)
 		mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
@@ -125,45 +126,51 @@ function SWEP:CanPrimaryAttack()
 	local wl = ply:WaterLevel()
 
 	if self:GetNextPrimaryFire() > CurTime() then return false end
-
 	if self.IsOverheated == true then return false end
-	
-	if self.Weapon:GetNWBool("Overheated") == true then return false end
+	if self:GetNWBool("Overheated") == true then return false end
 
-	if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
-		self:Overheat()
-		ply:SetFOV(0, 0.05)
-		return false
-	elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == false then
-		ply:SetFOV(0, 0.05)
-		return true
-	elseif self.Weapon:GetNWInt("LoadedAmmo") < 0.01 && self.InfAmmo == false then
-		self:EmitSound ( self.Primary.EmptySound )
-		self:SetNextPrimaryFire (( CurTime() + 0.3 ))
-		return false
-	elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && eself.Weapon:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == true then
-		self:Overheat()
-		ply:SetFOV(0, 0.05)
-		return false
-	elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self.Weapon:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == true then
-		ply:SetFOV(0, 0.05)
-		return true
-	elseif self.Weapon:GetNWInt("LoadedAmmo") <= 0.01 && self.InfAmmo == true && self.Loading == false && self.ManuallyReloading == false then
-		self:SetNextPrimaryFire (( CurTime() + 0.3 ))
-		return true
+	if ply:IsPlayer() then
+		if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
+			self:Overheat()
+			ply:SetFOV(0, 0.05)
+			return false
+		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == false then
+			ply:SetFOV(0, 0.05)
+			return true
+		elseif self:GetNWInt("LoadedAmmo") < 0.01 && self.InfAmmo == false then
+			self:EmitSound ( self.Primary.EmptySound )
+			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
+			return false
+		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && eself:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == true then
+			self:Overheat()
+			ply:SetFOV(0, 0.05)
+			return false
+		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == true then
+			ply:SetFOV(0, 0.05)
+			return true
+		elseif self:GetNWInt("LoadedAmmo") <= 0.01 && self.InfAmmo == true && self.Loading == false && self.ManuallyReloading == false then
+			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
+			return true
+		end
+	else
+		local heat = self:GetNWInt("Heat")
+		if heat >= 100 then
+			self:Overheat()
+			return false
+		end
 	end
 	
-	if self.Weapon:GetNWBool("Inspecting") == true then
+	if self:GetNWBool("Inspecting") == true then
 		return false
 	end
 	
-	if self.Weapon:GetNWBool("Passive") == true then
+	if self:GetNWBool("Passive") == true then
 		self:TogglePassive()
 		self:SetNextPrimaryFire(CurTime() + 0.3)
 		return false
 	end
 	
-	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self.Weapon:GetNWBool("Passive") == true or self.Weapon:GetNWBool("Inspecting") or ((self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) or (self.Overheated == true or self.IsOverheated == true) then
+	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") or ((self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) or (self.Overheated == true or self.IsOverheated == true) then
 		return false
 	else 
 		return true
@@ -171,9 +178,14 @@ function SWEP:CanPrimaryAttack()
 end
 
 function SWEP:CanPrimaryAttackNPC()
-local npc = self:GetOwner()
-
-	if self.Weapon:Clip1() <= 0 or npc:GetActivity() == ACT_RELOAD or self.Weapon:GetNWBool("NPCLoading") == true then
+	local npc = self:GetOwner()
+	
+	if self:Clip1() <= 0 then -- Prevent NPCs from running out of ammo
+		self:SetNWInt("LoadedAmmo", math.Round(math.Clamp(math.Rand(self.BatteryConsumPerShot, self.BatteryConsumPerShot * 10)/10, 0, 100)) * 10)
+		self:SetClip1(self:GetNWInt("LoadedAmmo"))
+	end
+	
+	if self:Clip1() <= 0 or npc:GetActivity() == ACT_RELOAD or self:GetNWBool("NPCLoading") == true then
 		self:LoadNextShot()
 		return false
 	end
@@ -182,16 +194,21 @@ local npc = self:GetOwner()
 end
 
 function SWEP:Reload()
-local ply = self:GetOwner()
-local usekey = ply:KeyDown(IN_USE)
-local reloadkey = ply:KeyDown(IN_RELOAD)
-local walkkey = ply:KeyDown(IN_WALK)
-local sprintkey = ply:KeyDown(IN_SPEED)
-local ventingsound = self.VentingSound
+	if !IsValid(self:GetOwner()) then return end
+	local ply = self:GetOwner()
+	if !ply:IsPlayer() then
+		self:SetNWInt("LoadedAmmo", 100)
+		self:SetClip1(self:GetNWInt("LoadedAmmo"))
+	return end
+	local usekey = ply:KeyDown(IN_USE)
+	local reloadkey = ply:KeyDown(IN_RELOAD)
+	local walkkey = ply:KeyDown(IN_WALK)
+	local sprintkey = ply:KeyDown(IN_SPEED)
+	local ventingsound = self.VentingSound
 
-local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
+	local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
 
-if not IsFirstTimePredicted() then return end
+	if not IsFirstTimePredicted() then return end
 
 	if usekey && reloadkeypressed then
 		if sprintkey then
@@ -203,24 +220,24 @@ if not IsFirstTimePredicted() then return end
 		self:Taunt()
 		elseif walkkey && reloadkey && self.IsTaunting == 1 then
 		self:SetHoldType(self.VentingHoldType)
-	elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.CanVent == true && ( self.Weapon:Clip1() < self.Primary.ClipSize ) then
-			if ( self.Weapon:Clip1() < self.Primary.ClipSize ) && self.Weapon:Ammo1() > 0 then
+	elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.CanVent == true && ( self:Clip1() < self.Primary.ClipSize ) then
+			if ( self:Clip1() < self.Primary.ClipSize ) && self:Ammo1() > 0 then
 				if self.DoVentingSound == true then
 					local ventstart = self.VentingStartSound
-					self.Weapon:EmitSound(ventstart)
+					self:EmitSound(ventstart)
 				else end
 				self:SetHoldType(self.VentingHoldType)
 				self:Vent()
 				ply:SetFOV(0, 0.05)
-				--self.Weapon:SetNWBool( "Ironsights", false )
+				--self:SetNWBool( "Ironsights", false )
 				self.SightsDown = false
 				if self.DoVentingSound == true then
-					self.Weapon:EmitSound(ventingsound)
+					self:EmitSound(ventingsound)
 				else end
 				return true
-			elseif ( self.Weapon:Clip1() < self.Primary.ClipSize ) && self.Weapon:Ammo1() > 1 then
+			elseif ( self:Clip1() < self.Primary.ClipSize ) && self:Ammo1() > 1 then
 			end
-	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self.Weapon:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
+	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
 		if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then
 		else
 			self:SetHoldType(self.Secondary.ReloadHoldType)
@@ -239,13 +256,13 @@ function SWEP:Vent()
 	vm:SetPlaybackRate( 1 )
 	
 	self.ManuallyReloading = true
-	self.Weapon:SetNWFloat("HeatDispersePower", self.VentingStrength)
-	self.Weapon:SetNWBool("Venting", true)
+	self:SetNWFloat("HeatDispersePower", self.VentingStrength)
+	self:SetNWBool("Venting", true)
 	self:SetIronsights(false, self.Owner)
 	
 	self:DoCustomVentEvents()
 
-	if CLIENT or SERVER && self.DoVentingAnimation == true &&self.VentHeld == false then
+	if CLIENT or SERVER && self.DoVentingAnimation == true && self.VentHeld == false then
 	self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
 	else end
 	
@@ -256,10 +273,8 @@ end
 function SWEP:VentHold()
 	self.VentHeld = true
 
-local ply = self:GetOwner()
-	if self.DoVentingAnimation == true then
-		self:SendWeaponAnim(ACT_VM_RELOAD)
-	else end
+	local ply = self:GetOwner()
+	if self.DoVentingAnimation == true then self:SendWeaponAnim(ACT_VM_RELOAD) end
 	if self:Clip1() <= self.Primary.ClipSize then
 		if ply:KeyDown(IN_RELOAD) && ply:GetAmmoCount("ammo_drc_battery") > 0 then
 			self:Vent()
@@ -277,36 +292,34 @@ function SWEP:FinishVent()
 	local ventingsound = self.VentingSound
 	local ventingend = self.VentingStopSound
 	
-	if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end
+	if !ply:IsPlayer() then self:SetNWInt("Heat", 0) end
+	if !IsValid(self) or !IsValid(ply) or ply:Health() < 0.01 then return end
 	
 	self:SetHoldType( self.HoldType )
-	self.Weapon:StopSound(ventingsound)
-	self.Weapon:EmitSound(ventingend)
+	self:StopSound(ventingsound)
+	self:EmitSound(ventingend)
 	self.VentHeld = false
 	self:DoCustomFinishVentEvents()
 	
 	if self.DoVentingAnimation == true && self.IsOverheated == false then
-		if CLIENT or SERVER then
-			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
-		end
+		self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
 	elseif self.IsOverheated == true && self.DoOverheatAnimation == true then
-		if CLIENT or SERVER then
-			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
-		end
+		self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
 	else end
 	self.BloomValue = 0.25
-	self.Weapon:SetNWFloat("HeatDispersePower", 1)
+	self:SetNWFloat("HeatDispersePower", 1)
 	
 	timer.Simple( looptime, function()
-		if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end
+		if !IsValid(self) or !IsValid(ply) or ply:Health() < 0.01 then return end
 		self.Idle = 1
 		self.ManuallyReloading = false
 		self.IsOverheated = false
 		self.IronCD = false	
-		self.Weapon:SetNWBool("Overheated", false)
-		self.Weapon:SetNWBool("Venting", false)
+		self:SetNWBool("Overheated", false)
+		self:SetNWBool("Venting", false)
+		self:SetNWBool("NPCLoading", false)
 	end)
-	timer.Simple( looptime, function() if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end self:ManuallyLoadAfterReload() end)
+	timer.Simple( looptime, function() if !IsValid(self) or !IsValid(ply) or ply:Health() < 0.01 then return end self:ManuallyLoadAfterReload() end)
 	self.IdleTimer = CurTime() + looptime
 end
 
@@ -319,21 +332,19 @@ function SWEP:Overheat()
 	self.IsOverheated = true
 	self:SetIronsights(false, self.Owner)
 	self:SetHoldType(self.OverheatHoldType)
-	ply:SetFOV(0, 0.05)
-	
-	if self.Weapon:Clip1() <= 0 && self.InfAmmo == false then
-	--	self:EmitSound ( "draconic.BatteryDepleted" )
+	if ply:IsPlayer() then ply:SetFOV(0, 0.05) end	
+	if self:Clip1() <= 0 && self.InfAmmo == false then
 		self:SetNextPrimaryFire (( CurTime() + (60 / self.Primary.RPM) ) * (self:GetNWInt("Heat") * 0.1))
 		return false
-	elseif self.Weapon:Clip1() <= 0 && self.InfAmmo == true then
-		self.Weapon:SetNWFloat("HeatDispersePower", self.OverheatStrength)
-		self.Weapon:SetNWBool("Overheated", true)
+	elseif self:Clip1() <= 0 && self.InfAmmo == true then
+		self:SetNWFloat("HeatDispersePower", self.OverheatStrength)
+		self:SetNWBool("Overheated", true)
 		if CLIENT or SERVER && self.DoOverheatAnimation == true then
 			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
 		else end
 		if self.DoOverheatSound == true then
 			local overheatsound = self.OverheatSound
-			self.Weapon:EmitSound(overheatsound)
+			self:EmitSound(overheatsound)
 			
 			if self.Primary.LoopingFireSound != nil then
 				self:EmitSound(self.Primary.LoopingFireSoundOut)
@@ -346,8 +357,8 @@ function SWEP:Overheat()
 		if self.DoVentingSound == true then
 			local ventingsound = self.VentingSound
 			local ventstart = self.VentingStartSound
-			self.Weapon:EmitSound(ventingsound)
-			self.Weapon:EmitSound(ventstart)
+			self:EmitSound(ventingsound)
+			self:EmitSound(ventstart)
 		else end
 		if self.DoOverheatAnimation == true then
 			timer.Simple( looptime, function() self:AutoVent() end)
@@ -355,14 +366,14 @@ function SWEP:Overheat()
 			timer.Simple( 0.3, function() self:AutoVent() end)
 		end
 	else
-		self.Weapon:SetNWFloat("HeatDispersePower", self.OverheatStrength)
-		self.Weapon:SetNWBool("Overheated", true)
+		self:SetNWFloat("HeatDispersePower", self.OverheatStrength)
+		self:SetNWBool("Overheated", true)
 		if CLIENT or SERVER && self.DoOverheatAnimation == true then
 			self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
 		else end
 		if self.DoOverheatSound == true then
 			local overheatsound = self.OverheatSound
-			self.Weapon:EmitSound(overheatsound)
+			self:EmitSound(overheatsound)
 			
 			if self.Primary.LoopingFireSound != nil then
 				self:EmitSound(self.Primary.LoopingFireSoundOut)
@@ -375,45 +386,64 @@ function SWEP:Overheat()
 		if self.DoVentingSound == true then
 			local ventingsound = self.VentingSound
 			local ventstart = self.VentingStartSound
-			self.Weapon:EmitSound(ventingsound)
-			self.Weapon:EmitSound(ventstart)
+			self:EmitSound(ventingsound)
+			self:EmitSound(ventstart)
 		else end
 		if self.DoOverheatAnimation == true then
-			timer.Simple( looptime, function() if IsValid(ply) && ply:Alive() then self:AutoVent() end end)
+			timer.Simple( looptime, function() if IsValid(ply) then self:AutoVent() end end)
 		else 
-			timer.Simple( 0.3, function() if ply:IsValid() && ply:Alive() then self:AutoVent() end end)
+			timer.Simple( 0.3, function() if ply:IsValid() then self:AutoVent() end end)
 		end
 	end
 	if SERVER then
-		self.Weapon:SetNWBool("NPCLoading", true)
+		self:SetNWBool("NPCLoading", true)
 	else end
 	
 	self:DoCustomOverheatEvents()
 end
 
 function SWEP:AutoVent()
-local ply = self:GetOwner()
-local AmmoName = self.Primary.Ammo
-
-	if self:IsValid() then  else return end
+	if !IsValid(self) then return end
+	local ply = self:GetOwner()
+	local heat = ply:GetNWInt("Heat")
+	local valused = heat
+	if ply:IsPlayer() then 
+		valused = ply:GetAmmoCount("ammo_drc_battery") 
+	else
+		timer.Simple(1, function()
+			if IsValid(self) then self:FinishVent() end
+		end)
+	end
 
 	self.Idle = 0
 	self:DoCustomVentEvents()
-	if ply:GetAmmoCount(AmmoName) > 0 then
-		if ply:GetAmmoCount(AmmoName) >= (100 - (100 * self.OverHeatFinishPercent)) then
+	if valused > 0 then
+		if valused >= (100 - (100 * self.OverHeatFinishPercent)) then
 			self:AutoVentLoop()
 		else
 			self:FinishVent()
-			if SERVER then self.Weapon:SetNWBool("NPCLoading", true) end
 		end
 	else 
-		timer.Simple(1, function() if !IsValid(self) or !IsValid(ply) or !ply:Alive() then return end self:FinishVent() end)
-		if SERVER then self.Weapon:SetNWBool("NPCLoading", true) end
+		timer.Simple(1, function() if IsValid(self) && !IsValid(ply) then
+			self:FinishVent()
+			end 
+		end)
 	end
 end
 
 function SWEP:AutoVentLoop()
 	self.Idle = 0
-	self.Weapon:SetNWFloat("HeatDispersePower", self.OverheatStrength)
+	self:SetNWFloat("HeatDispersePower", self.OverheatStrength)
+	
+	local ply = self:GetOwner()
+	if ply:IsPlayer() then
+		local vm = ply:GetViewModel()
+		local seqdur = vm:SequenceDuration(vm:SelectWeightedSequence(ACT_VM_RELOAD))
+		if !self.VentLoopAnimTime or self.VentLoopAnimTime < CurTime() then
+			self.VentLoopAnimTime = CurTime() + seqdur
+			if self.DoVentingAnimation == true then self:SendWeaponAnim(ACT_VM_RELOAD) end
+		end
+	end
+	
 	timer.Simple(0.05, function() if !self:IsValid() then return end self:AutoVent() end)
 end

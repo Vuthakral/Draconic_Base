@@ -74,7 +74,7 @@ SWEP.Primary.LungeMissActCrouch	= ACT_VM_PRIMARYATTACK
 SWEP.Primary.LungeDelayMiss		= 1.3
 SWEP.Primary.LungeDelayHit		= 0.7
 SWEP.Primary.LungeHitDelay		= 0.26
-SWEP.Primary.LungeDamage		= 72
+SWEP.Primary.LungeDamage		= 0
 SWEP.Primary.LungeDamageType	= DMG_ALWAYSGIB
 SWEP.Primary.LungeRange			= 25
 SWEP.Primary.LungeForce			= 20
@@ -93,7 +93,7 @@ SWEP.Secondary.HoldTypeCrouch	 = "melee2"
 SWEP.Secondary.ImpactDecal 	 = ""
 SWEP.Secondary.BurnDecal 	 = ""
 SWEP.Secondary.Automatic 	 = false
-SWEP.Secondary.Damage 	  	 = 47
+SWEP.Secondary.Damage 	  	 = 0
 SWEP.Secondary.DamageType	 = DMG_ALWAYSGIB
 SWEP.Secondary.Range       	 = 30
 SWEP.Secondary.Force	   	 = 15
@@ -340,6 +340,8 @@ function SWEP:DoPrimaryLunge()
 	local cv = false
 	local target = self:GetConeTarget()
 	
+	DRC:SpeakSentence(ply, "Actions", "Melee")
+	
 	if target then
 		if plypos:Distance(target:GetPos()) < self.Primary.LungeMaxDist then
 			ply:SetVelocity(ply:GetForward() * 8 * plypos:Distance(target:GetPos()))
@@ -356,11 +358,11 @@ function SWEP:DoPrimaryLunge()
 	
 	if cv == false then
 		if SERVER then
-			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.LungeMeleeAct)
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.LungeMeleeAct)
 		end
 	elseif cv == true then
 		if SERVER then
-			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.LungeMeleeActCrouch)
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.LungeMeleeActCrouch)
 		end
 	end
 	
@@ -378,8 +380,8 @@ function SWEP:DoPrimaryLunge()
 		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
 		ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.HitDelay) * self.Primary.ShakeMul, -y1m * (5 + self.Primary.HitDelay) * self.Primary.ShakeMul, 0))
 		timer.Simple(self.Primary.HitDelay, function()
-			if !IsValid(self:GetOwner()) then return end
 			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
 			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
 		end)
 
@@ -401,8 +403,8 @@ function SWEP:DoPrimaryLunge()
 	self:EmitSound(Sound(self.Primary.SwingSound))
 	
 	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		if !IsValid(self:GetOwner()) then return end
 		if !IsValid(self) then return end
+		if !IsValid(self:GetOwner()) then return end
 		timer.Create( "".. tostring(self) .."SwingImpact".. i .."", math.Round((self.Primary.LungeHitDelay * 100) / 60 * i / 60, 3), 1, function()
 			if !IsValid(self) then return end
 			if !IsValid(self:GetOwner()) then return end
@@ -422,6 +424,8 @@ function SWEP:DoPrimaryAttack()
 	local eyepos = ply:EyePos()
 	local cv = false
 	
+	DRC:SpeakSentence(ply, "Actions", "Melee")
+	
 	if ply:IsPlayer() then
 		vm = ply:GetViewModel()
 		eyeang = ply:EyeAngles()
@@ -432,11 +436,11 @@ function SWEP:DoPrimaryAttack()
 	
 	if cv == false then
 		if SERVER then
-			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeAct)
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeAct)
 		end
 	elseif cv == true then
 		if SERVER then
-			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeActCrouch)
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeActCrouch)
 		end
 	end
 	
@@ -454,8 +458,8 @@ function SWEP:DoPrimaryAttack()
 		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.ShakeMul)
 		ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.HitDelay) * self.Primary.ShakeMul, -y1m * (5 + self.Primary.HitDelay) * self.Primary.ShakeMul, 0))
 		timer.Simple(self.Primary.HitDelay, function()
-			if !IsValid(self:GetOwner()) then return end
 			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
 			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.ShakeMul)
 		end)
 
@@ -477,8 +481,8 @@ function SWEP:DoPrimaryAttack()
 	self:EmitSound(Sound(self.Primary.SwingSound))
 	
 	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		if !IsValid(self:GetOwner()) then return end
 		if !IsValid(self) then return end
+		if !IsValid(self:GetOwner()) then return end
 		timer.Create( "".. tostring(self) .."SwingImpact".. i .."", math.Round((self.Primary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
 			if !IsValid(self) then return end
 			if !IsValid(self:GetOwner()) then return end
@@ -544,6 +548,8 @@ function SWEP:DoSecondaryAttack()
 	local eyepos = ply:EyePos()
 	local cv = false
 	
+	DRC:SpeakSentence(ply, "Actions", "Melee")
+	
 	if ply:IsPlayer() then
 		vm = ply:GetViewModel()
 		eyeang = ply:EyeAngles()
@@ -554,11 +560,11 @@ function SWEP:DoSecondaryAttack()
 	
 	if cv == false then
 		if SERVER then
-			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.MeleeAct)
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.MeleeAct)
 		end
 	elseif cv == true then
 		if SERVER then
-			DRCCallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.MeleeActCrouch)
+			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.MeleeActCrouch)
 		end
 	end
 	
@@ -576,8 +582,8 @@ function SWEP:DoSecondaryAttack()
 		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Secondary.ShakeMul)
 		ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Secondary.HitDelay) * self.Secondary.ShakeMul, -y1m * (5 + self.Secondary.HitDelay) * self.Secondary.ShakeMul, 0))
 		timer.Simple(self.Secondary.HitDelay, function()
-			if !IsValid(self:GetOwner()) then return end
 			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
 			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Secondary.ShakeMul)
 		end)
 
@@ -599,8 +605,8 @@ function SWEP:DoSecondaryAttack()
 	self:EmitSound(Sound(self.Secondary.SwingSound))
 	
 	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		if !IsValid(self:GetOwner()) then return end
 		if !IsValid(self) then return end
+		if !IsValid(self:GetOwner()) then return end
 		timer.Create( "".. tostring(self) .."SwingImpact".. i .."", math.Round((self.Secondary.HitDelay * 100) / 60 * i / 60, 3), 1, function()
 			if !IsValid(self) then return end
 			if !IsValid(self:GetOwner()) then return end

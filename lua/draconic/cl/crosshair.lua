@@ -190,14 +190,14 @@ local function drc_Crosshair()
 	
 	if curswep.CrosshairStatic != nil or curswep.CrosshairDynamic != nil then return end
 	
-	draw.RoundedBox( 0, pos.x + LerpC + smath + smathoffset, pos.y -2, 22, 3, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, pos.x + LerpC + 1 + smath + smathoffset, pos.y -1, 20, 1, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x + LerpC + smath + smathoffset, pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphalerpch))
+	draw.RoundedBox( 0, pos.x + LerpC + smath + smathoffset, pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphalerpch))
 	
-	draw.RoundedBox( 0, pos.x - LerpC - 20 - smath - smathoffset, pos.y -2, 22, 3, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, pos.x - LerpC - 19 - smath - smathoffset, pos.y -1, 20, 1, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x - LerpC - smath - (smathoffset*2), pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphalerpch))
+	draw.RoundedBox( 0, pos.x - LerpC - smath - (smathoffset*2), pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphalerpch))
 	
-	draw.RoundedBox( 0, pos.x -1, pos.y + LerpC + smath + smathoffset -1, 3, 22, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, pos.x, pos.y + LerpC + smath + smathoffset, 1, 20, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x -1, pos.y + LerpC + smath + smathoffset -1, 3, smathoffset, Color(0, 0, 0, 200 * alphalerpch))
+	draw.RoundedBox( 0, pos.x, pos.y + LerpC + smath + smathoffset, 1, smathoffset, Color(255, 255, 255, 255 * alphalerpch))
 	
 	surface.DrawCircle((pos.x), (pos.y), 64 * LerpC / 50, LerpC * 5, LerpC * 5, LerpC * 5, LerpC * 2.5)
 	

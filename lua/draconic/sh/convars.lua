@@ -87,7 +87,10 @@ if CLIENT then
 	if GetConVar("cl_drc_debug_legacyassistant") == nil then CreateConVar("cl_drc_debug_legacyassistant", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the old legacy debug window 'DSB Debug Assisstant'.", 0, 1) end
 	if GetConVar("cl_drc_debug_crosshairmode") == nil then DRC.Convars_CL.Debug_Crosshair = CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3) end
 	if GetConVar("cl_drc_debug_hitboxes") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_hitboxes", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable hitbox rendering. Continuously draws the local player's hitboxes, and draws the hitboxes of whatever you are looking at.", 0, 1) end
-	if GetConVar("cl_drc_debug_tracelines") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_tracelines", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable traces used by the Draconic Base. Detailed information about what each colour means can be found on the wiki.", 0, 1) end
+	if GetConVar("cl_drc_debug_tracelines") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_tracelines", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering traces used by the Draconic Base. Detailed information about what each colour means can be found on the wiki.", 0, 1) end
+	if GetConVar("cl_drc_debug_lights") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_lights", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
+	if GetConVar("cl_drc_debug_sounds") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_sounds", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
+	if GetConVar("cl_drc_debug_cubemaps") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_cubemaps", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering the locations of env_cubemap entities.", 0, 1) end
 	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
 	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
 	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.", 0, 1) end
@@ -130,4 +133,9 @@ if CLIENT then
 	if GetConVar("cl_drc_accessibility_colourblind_strength") == nil then CreateConVar("cl_drc_accessibility_colourblind_strength", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100) end
 	
 	if GetConVar("drc_lightcolour") == nil then CreateConVar("drc_lightcolour", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar used to easily pull your light level for serverside use.", 0, 100) end
+	
+	if GetConVar("r_fogcolour") == nil then CreateConVar("r_fogcolour", "127 127 127", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar added by the Draconic Base for serverside to be able to get fog information about the current map.") end
+	if GetConVar("r_fogstart") == nil then CreateConVar("r_fogstart", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar added by the Draconic Base for serverside to be able to get fog information about the current map.") end
+	if GetConVar("r_fogend") == nil then CreateConVar("r_fogend", 10000, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar added by the Draconic Base for serverside to be able to get fog information about the current map.") end
+	if GetConVar("r_fogdensity") == nil then CreateConVar("r_fogdensity", 0.9, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar added by the Draconic Base for serverside to be able to get fog information about the current map.") end
 end

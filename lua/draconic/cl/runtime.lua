@@ -99,7 +99,7 @@ net.Receive("DRCNetworkGesture", function(len, ply)
 	local act = tbl.Activity
 	local akill = tbl.Autokill
 
-	DRCPlayGesture(plyr, slot, act, akill)
+	DRC:PlayGesture(plyr, slot, act, akill)
 	
 	if plyr:IsPlayer() then
 		if IsValid(DRC.CSPlayerModel) then -- TODO: Find a way to make this actually work
@@ -150,7 +150,7 @@ end)
 
 net.Receive("DRC_WeaponDropped", function()
 	local weapon = net.ReadEntity()
-	if IsValid(weapon) then
+	if IsValid(weapon) && weapon.DoCustomDrop then
 		weapon:DoCustomDrop()
 	end
 end)
@@ -202,6 +202,14 @@ hook.Add("HUDShouldDraw", "DRC_Camera", function(n)
 	if LocalPlayer():GetActiveWeapon():GetClass() != "drc_camera" then return end
 	if HideHUDElements[n] then return false end
 end)
+
+local fogr, fogg, fogb = render.GetFogColor()
+local fogcol = "".. fogr .." ".. fogg .." ".. fogb ..""
+local fogstart, fogend = render.GetFogDistances()
+
+RunConsoleCommand("r_fogcolour", fogcol)
+RunConsoleCommand("r_fogstart", fogstart)
+RunConsoleCommand("r_fogend", fogend)
 
 --[[
 hook.Add("Think", "drc_testhook", function()

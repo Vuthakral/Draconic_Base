@@ -27,14 +27,24 @@ function DRC:SendVoiceCall(call)
 	DRC:VoiceMenuKill()
 end
 
+function DRC:SendVoiceLineRequest(ply, call, subcall)
+	timer.Simple(engine.TickInterval(), function()
+		local t={ply, call, subcall}
+		net.Start("DRCVoiceSet_CL")
+		net.WriteTable(t)
+		net.SendToServer()
+		DRC:VoiceMenuKill()
+	end)
+end
+
 hook.Add("Tick", "VoiceSets_MenuTimeout", function()
 	if DRC.VoiceMenuState == true && CurTime() > DRC.VoiceMenuTimeout then DRC.VoiceMenuState = false end
 end)
 
 local slots = {
 	["+use"] = "",
-	["slot1"] = "",
-	["slot2"] = "",
+	["slot1"] = "move",
+	["slot2"] = "move",
 	["slot3"] = "",
 	["slot4"] = "",
 	["slot5"] = "",
@@ -53,6 +63,18 @@ hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 		end
 	end
 	
+	if game.SinglePlayer() then
+		if bind == "slot1" && DRC.VoiceMenuState == true then 
+			net.Start("DRC_PlayerSquadHelp")
+			net.WriteEntity(LocalPlayer())
+			net.SendToServer()
+		end
+		if bind == "slot2" && DRC.VoiceMenuState == true then 
+			net.Start("DRC_PlayerSquadMove")
+			net.WriteEntity(LocalPlayer())
+			net.SendToServer()
+		end
+	end
 	if slots[bind] && DRC.VoiceMenuState == true then DRC:SendVoiceCall(bind) return true end
 	
 	if bind == "+reload" then
@@ -63,8 +85,31 @@ hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 			local ammo = wpn:GetPrimaryAmmoType()
 			local reserve = ply:GetAmmoCount(ammo)
 			if clip < maxclip && reserve > 0 then
-				if game.GetAmmoName(ammo) != "ammo_drc_battery" then DRC:SendVoiceCall(bind) end
+				if game.GetAmmoName(ammo) != "ammo_drc_battery" then DRC:SendVoiceLineRequest(LocalPlayer(), "Actions", "Reload") end
 			end
+		end
+	end
+	
+	if bind == "+attack" then
+		local wpn = ply:GetActiveWeapon()
+		if IsValid(wpn) then
+			local function IsMeleeWeapon(wep)
+				local hardcoded = {
+					["weapon_crowbar"] = true,
+					["weapon_crowbar_hl1"] = true,
+					["weapon_stunstick"] = true
+				}
+				if !wep:IsScripted() && hardcoded[wep:GetClass()] then return true else return false end
+				-- Other bases will need to add their own support, I draw the line of helping everyone out here.
+				-- It would be insanity to check every base on this.
+			end
+			
+			if IsMeleeWeapon(wpn) then DRC:SendVoiceLineRequest(LocalPlayer(), "Actions", "Melee") end
+			
+			local clip = wpn:Clip1()
+			local maxclip = wpn:GetMaxClip1()
+			
+			if maxclip > 0 && clip <= 0 && !LocalPlayer():KeyDown(IN_USE) then DRC:SendVoiceLineRequest(LocalPlayer(), "Reactions", "NoAmmo") end
 		end
 	end
 end)

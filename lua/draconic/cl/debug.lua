@@ -76,14 +76,14 @@ local function drc_DebugUI()
 	local ll = render.GetLightColor(eyepos)
 	local llhp = render.GetLightColor(LocalPlayer():GetEyeTrace().HitPos)
 	
-	draw.DrawText( "Thirdperson detection: ".. tostring(DRC:ThirdPersonEnabled(LocalPlayer())) .."", "TargetID", ScrW() * 0.02, ScrH() * 0.06, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "Room size: ".. roomname .."", "TargetID", ScrW() * 0.02, ScrH() * 0.075, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "Weather mod: ", "TargetID", ScrW() * 0.02, ScrH() * 0.1, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.095, 24, 24, Color(DRC.WeathermodScalar.x * 255, DRC.WeathermodScalar.y * 255, DRC.WeathermodScalar.z * 255))
-	draw.DrawText( "Light level: ", "TargetID", ScrW() * 0.02, ScrH() * 0.12, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.118, 24, 24, Color(ll.r * 255, ll.g * 255, ll.b * 255))
-	draw.DrawText( "( ^ Hitpos): ", "TargetID", ScrW() * 0.02, ScrH() * 0.14, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.141, 24, 24, Color(llhp.r * 255, llhp.g * 255, llhp.b * 255))
+	draw.DrawText( "Thirdperson detection: ".. tostring(DRC:ThirdPersonEnabled(LocalPlayer())) .."", "TargetID", ScrW() * 0.02, ScrH() * 0.022, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Room size: ".. roomname .."", "TargetID", ScrW() * 0.02, ScrH() * 0.04, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Weather mod: ", "TargetID", ScrW() * 0.02, ScrH() * 0.06, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.0575, 24, 24, Color(DRC.WeathermodScalar.x * 255, DRC.WeathermodScalar.y * 255, DRC.WeathermodScalar.z * 255))
+	draw.DrawText( "Light level: ", "TargetID", ScrW() * 0.02, ScrH() * 0.08, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.08, 24, 24, Color(ll.r * 255, ll.g * 255, ll.b * 255))
+	draw.DrawText( "( ^ Hitpos): ", "TargetID", ScrW() * 0.02, ScrH() * 0.1, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.1, 24, 24, Color(llhp.r * 255, llhp.g * 255, llhp.b * 255))
 	
 	draw.DrawText( "".. game.GetMap() .." @ Vector(".. tostring(LocalPlayer():GetPos()) ..")", "TargetID", ScrW() * 0.02, ScrH() * 0.978, color_white, TEXT_ALIGN_LEFT )
 	
@@ -116,8 +116,7 @@ local function drc_TraceInfo()
 	surface.DrawText(tostring(ent))
 	
 	if hp && IsValid(ent) then 
-		hp = ent:Health()
-		local maxhp = ent:GetMaxHealth()
+		local hp, maxhp = DRC:Health(ent)
 		
 		if ent:IsScripted() then
 			if ent.LFS then hp = math.Round(ent:GetHP()) maxhp = ent:GetMaxHP() end
@@ -172,18 +171,66 @@ end
 hook.Add("HUDPaint", "drc_TraceInfo", drc_TraceInfo)
 
 DRC.Debug.TraceLines = {}
+DRC.Debug.Lights = {}
+DRC.Debug.Sounds = {}
 
 hook.Add("PostDrawTranslucentRenderables", "drc_DebugStuff", function()
 	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
 	
-	for k,v in pairs(DRC.Debug.TraceLines) do
-		if v != nil then
-			local p1, p2, col = v[1], v[2], v[3]
-			render.DrawLine(p1, p2, col, true)
+	if GetConVar("cl_drc_debug_tracelines"):GetFloat() != 0 then
+		for k,v in pairs(DRC.Debug.TraceLines) do
+			if v != nil then
+				local p1, p2, col = v[1], v[2], v[3]
+				render.DrawLine(p1, p2, col, true)
+			end
 		end
 	end
 	
+	if GetConVar("cl_drc_debug_lights"):GetFloat() != 0 then
+		for k,v in pairs(DRC.Debug.Lights) do
+			if v != nil then
+				local pos, col, size, colmul = v[1], v[2], v[3], v[4]
+				col = Color(col.r * colmul, col.g * colmul, col.b * colmul, 255)
+				cam.Start3D()
+					render.SetMaterial(Material("icon64/light.png"))
+					render.DrawSprite(pos, 16, 16, col)
+				cam.End3D()
+				render.SetColorMaterial()
+				render.DrawWireframeSphere( pos, size, 16, 16, Color( col.r, col.g, col.b ), true )
+			end
+		end
+	end
+	
+	if GetConVar("cl_drc_debug_sounds"):GetFloat() != 0 then
+		for k,v in pairs(DRC.Debug.Sounds) do
+			if v != nil then
+				local pos = v[1]
+				if pos then
+				local col = Color(160, 160, 160, 255)
+				cam.Start3D()
+					render.SetMaterial(Material("icon64/ambient_generic.png"))
+					render.DrawSprite(pos, 16, 16, col)
+				cam.End3D()
+				end
+			end
+		end
+	end
+	
+	if GetConVar("cl_drc_debug_cubemaps"):GetFloat() != 0 then
+		for k,v in pairs(drc_cubesamples) do
+			if v != nil then
+				local pos = v
+				local col = Color(160, 160, 160, 255)
+				cam.Start3D()
+					render.SetMaterial(Material("icon64/env_cubemap.png"))
+					render.DrawSprite(pos, 16, 16, col)
+				cam.End3D()
+			--	render.SetColorMaterial()
+			--	render.DrawWireframeSphere( pos, size, 16, 16, Color( col.r, col.g, col.b ), true )
+			end
+		end
+	end
 	
 	if GetConVar("cl_drc_debug_hitboxes"):GetFloat() == 0 then return end
 	
@@ -245,9 +292,16 @@ end)
 function DRC:RenderTrace(tr, colour, thyme)
 	if GetConVar("cl_drc_debug_tracelines"):GetFloat() != 1 then return end
 	local id = math.Round(math.Rand(1, 999999999))
---	if DRC.Debug.TraceLines[id] != nil then DRC:RenderTrace(tr, colour, thyme) return end -- prevent overwriting trace slot in use
 	local p1, p2 = tr.StartPos, tr.HitPos
 	
 	DRC.Debug.TraceLines[id] = {p1, p2, colour}
 	timer.Simple(thyme, function() DRC.Debug.TraceLines[id] = nil end)
+end
+
+function DRC:IDLight(pos, colour, size, colmul, thyme)
+	if GetConVar("cl_drc_debug_lights"):GetFloat() != 1 then return end
+	local id = math.Round(math.Rand(1, 999999999))
+	colmul = colmul * 2
+	DRC.Debug.Lights[id] = {pos, colour, size, colmul}
+	timer.Simple(thyme, function() DRC.Debug.Lights[id] = nil end)
 end

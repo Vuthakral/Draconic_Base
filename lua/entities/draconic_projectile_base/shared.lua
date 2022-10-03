@@ -29,6 +29,7 @@ ENT.DamageType				= DMG_GENERIC
 ENT.Force					= 5
 ENT.Gravity					= true
 ENT.DoesRadialDamage 		= false
+ENT.RadialDamagesOwner		= true
 ENT.ProjectileType 			= "point"
 ENT.Explosive				= false
 ENT.ExplosionType			= "hl2"
@@ -192,12 +193,9 @@ function ENT:Think()
 		timer.Create(self.TimerName, self.TimerFrequency, 0, function()
 			if not SERVER then return end
 			for f, v in pairs(ents.FindInSphere(self.LastPos, self.AffectRadius)) do
-				if !IsValid(v) then return end
-				if v:EntIndex() == self:EntIndex() then return end
-				if v:IsWorld() then return end
+				if IsValid(v) && v:EntIndex() == self:EntIndex() && !v:IsWorld() then
 
-				local dmg69 = DamageInfo()
-					
+					local dmg69 = DamageInfo()
 					dmg69:SetDamage(self.Damage / 5 / (v:GetPos()):Distance(self.LastPos) * 20)
 					if IsValid(owner) then
 						dmg69:SetAttacker(owner)
@@ -208,15 +206,21 @@ function ENT:Think()
 					dmg69:SetDamageForce(self:EyeAngles():Forward())
 					dmg69:SetDamagePosition(self.LastPos)
 					dmg69:SetDamageType(self.DamageType)
-				
-				if IsValid(v:GetPhysicsObject()) && !DRC:IsCharacter(v) then
-					if self.GravitySpherePower != 0 then v:GetPhysicsObject():SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
-					if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
-				elseif DRC:IsCharacter(v) then
-					if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
-					if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
-				else
-					if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+					
+					if IsValid(v:GetPhysicsObject()) && !DRC:IsCharacter(v) then
+						if self.GravitySpherePower != 0 then v:GetPhysicsObject():SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+						if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
+					elseif DRC:IsCharacter(v) then
+						if v == self:GetOwner() && self.RadialDamagesOwner == true then 
+							if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
+						elseif v == self:GetOwner() && self.RadialDamagesOwner == false then
+						elseif v != self:GetOwner() then
+							if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
+						end
+						if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+					else
+						if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+					end
 				end
 			end
 		end)
@@ -235,12 +239,17 @@ function ENT:Think()
 	self:DoCustomThink()
 	
 	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
-	local tr = util.TraceLine({start=self:GetPos(), endpos=self:GetPos() + vel:GetNormal() * 100, filter={self, self:GetOwner(), self:GetCreator()}, mask=MASK_SHOT_HULL})
+	local tr = util.TraceLine({
+		start = self:GetPos(), 
+		endpos = self:GetPos() + vel:GetNormal() * 100, 
+		filter = function(ent) if ent == self or ent == self:GetOwner() or ent == self:GetCreator() then return false else return true end end,
+		mask = MASK_SHOT_HULL
+	})
 	
 	if tr.Entity == nil then return end
 	if self.Triggered == true then return end
-	if IsValid(tr.Entity) && IsValid(self) && IsValid(self:GetCreator()) && self.Triggered == false && tr.Entity:IsNPC() then
-		if table.HasValue(self.ManualDetect, tr.Entity:GetClass()) then
+	if IsValid(tr.Entity) && IsValid(self) && IsValid(self:GetCreator()) && self.Triggered == false && DRC:IsCharacter(tr.Entity) then
+		if table.HasValue(self.ManualDetect, tr.Entity:GetClass()) or tr.Entity:IsNextBot() then
 			self:Touch(tr.Entity)
 		end
 	end
@@ -513,7 +522,7 @@ function ENT:Touch(ent)
 			["TheirOldVelocity"] = ent:GetVelocity()
 		}
 	
-		if CollData.HitEntity:IsPlayer() or CollData.HitEntity:IsNPC() or CollData.HitEntity:IsNextBot() then
+		if DRC:IsCharacter(CollData.HitEntity) && CollData.HitEntity != self:GetOwner() then
 			self:PhysicsCollide(CollData, self:GetPhysicsObject())
 		end
 	end

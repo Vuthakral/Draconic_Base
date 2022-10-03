@@ -9,6 +9,7 @@ It contains all of the settings, explanations on how to use them, tutorials, hel
 
 local HDR = render.GetHDREnabled()
 local LMCor = DRC.MapInfo.LMCorrection
+DRC.WeathermodScalar = Vector(1,1,1)
 -- local addict = achievements.GetCount(5) >= achievements.GetGoal(5)
 
 if CLIENT then
@@ -16,10 +17,8 @@ if CLIENT then
 		if StormFox2 then
 			DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, GetSF2LightLevel(0.05), GetSF2LightLevel(0.05))
 			DRC.WeathermodScalar = Vector(DRC.WeathermodScalar, DRC.WeathermodScalar, DRC.WeathermodScalar)
-		elseif SW then
+		elseif SW && DRC:GetSWLightMod() != nil then
 			DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, DRC:GetSWLightMod(), DRC:GetSWLightMod())
-		else
-			DRC.WeathermodScalar = Vector(1,1,1)
 		end
 		
 		if !DRC.MapInfo.MapAmbient then DRC.MapInfo.MapAmbient = render.GetAmbientLightColor() end
@@ -239,7 +238,12 @@ matproxy.Add( {
 			if col == Vector(0, 0, 0) then col = Vector(LocalPlayer():GetInfo("cl_drc_energycolour_r"), LocalPlayer():GetInfo("cl_drc_energycolour_g"), LocalPlayer():GetInfo("cl_drc_energycolour_b")) end
 			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
 		end
-		mat:SetVector( self.ResultTo, col + col * mul )	
+		
+		local flickerflicker = TimedSin(2, 0.6, 1, 0)
+		local deathflicker = TimedSin(4, 0.7, flickerflicker, 0)
+		if ent:Health() > 0.01 then deathflicker = 1 end
+		
+		mat:SetVector( self.ResultTo, (col + col * mul) * deathflicker )	
 	end
 } )
 
@@ -1858,12 +1862,12 @@ matproxy.Add( {
 		
 		if self.FlipVar == 0 then
 			local magmath = (mag / maxmag) / 2 * self.VarMult
-			ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
-			mat:SetVector( self.ResultTo, Vector(ent.drc_scrollmaglerp, 0, 0) )
+			ent.drc_scrollheatlerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollheatlerp or magmath, magmath)
+			mat:SetVector( self.ResultTo, Vector(ent.drc_scrollheatlerp, 0, 0) )
 		else
 			local magmath = (mag / maxmag) / 2 * self.VarMult
-			ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
-			mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
+			ent.drc_scrollheatlerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollheatlerp or magmath, magmath)
+			mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollheatlerp, 0, 0) )
 		end
 	end
 } )

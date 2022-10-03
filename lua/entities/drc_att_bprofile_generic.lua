@@ -62,6 +62,7 @@ ENT.BulletTable = {
 		MAT_WATERMELON = 1,
 		MAT_ALIENFLESH = 1,
 		MAT_CLIP = 1, -- Unused but defined to avoid potential errors
+		MAT_NO_DECAL = 1, -- Only used by stuff that shouldn't be taking damage to begin with.
 		MAT_PLASTIC = 1,
 		MAT_PLASTIC_BARREL = 1,
 		MAT_PLASTIC_BOX = 1,

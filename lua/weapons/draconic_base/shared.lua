@@ -25,6 +25,7 @@ SWEP.InfoDescription	= nil
 
 SWEP.Spawnable			= false
 SWEP.AdminSpawnable		= false
+SWEP.NPCSpawnable		= true
 SWEP.AutoSwitchTo		= false
 SWEP.AutoSwitchFrom		= false
 SWEP.KeepUpright		= false
@@ -425,7 +426,6 @@ function SWEP:Initialize()
 			self.NPCBurstShots = self.Primary.ClipSize * (60 / self.Primary.RPM)
 		else
 			self.NPCBurstShots = (25 / self.BatteryConsumPerShot) * (60 / self.Primary.RPM)
-			--print(self.NPCBurstShots)
 		end
 	end
 	
@@ -681,6 +681,7 @@ function SWEP:Initialize()
 		end
 	end
 	
+	--[[
 	if !self.IsMelee then
 		timer.Simple(engine.TickInterval() * 5, function()
 			if !IsValid(self) then return end
@@ -692,7 +693,9 @@ function SWEP:Initialize()
 			local attinfo = vm:GetAttachment(att)
 			if !attinfo then DRC:Notify(self, "hint", "critical", "".. self.PrintName .." does not have a muzzle attachment, expect problems!", ENUM_ERROR, 10) end
 		end)
-	end
+	end ]]
+	
+	self.Initialized = true
 end
 
 function SWEP:DoCustomInitialize()
@@ -711,6 +714,8 @@ function SWEP:Think()
 	if self.Loading == false && self.ManuallyReloading == false && self.Inspecting == false && self.IsOverheated == false then
 		self:ManageAnims()
 	end
+	
+	if self:HasViewModel() && string.lower(vm:GetModel()) != string.lower(self.ViewModel) then vm:SetModel(self.ViewModel) end
 
 	if CLIENT then
 		local wl = ply:WaterLevel()
@@ -734,6 +739,27 @@ function SWEP:Think()
 		end
 	end
 	
+	local ironsounds = {
+		["ar2"] = {"draconic.IronInRifle", "draconic.IronOutRifle"},
+		["smg"] = {"draconic.IronInSMG", "draconic.IronOutSMG"},
+		["duel"] = {"draconic.IronInSMG", "draconic.IronOutSMG"},
+		["pistol"] = {"draconic.IronInPistol", "draconic.IronOutPistol"},
+		["revolver"] = {"draconic.IronInPistol", "draconic.IronOutPistol"},
+		["shotgun"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+		["crossbow"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+		["rpg"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+		["physgun"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+		["grenade"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["slam"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["melee"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["melee2"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["passive"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["normal"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["knife"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["camera"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+		["magic"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	}
+	
 	if self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
 		if self.SightsDown != self:GetNWBool("SightsDown") then self.SightsDown = self:GetNWBool("SightsDown") end
 		--if ply:KeyPressed(IN_ATTACK2) == true && self.Weapon:GetNWBool("ironsights") == false && self.Weapon:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
@@ -742,7 +768,7 @@ function SWEP:Think()
 			ply:SetFOV(ply:GetFOV() * (self.Secondary.IronFOV / 90), 0.35)
 			self:AdjustMouseSensitivity()
 			self:IronCoolDown()
-			ply:EmitSound("draconic.IronInGeneric")
+			ply:EmitSound(ironsounds[string.lower(self:GetHoldType())][1])
 			if CLIENT && self.Secondary.IronInFP != nil then
 				surface.PlaySound(Sound(self.Secondary.IronInFP))
 			end
@@ -751,7 +777,7 @@ function SWEP:Think()
 			self:SetIronsights(false, self.Owner)
 			ply:SetFOV(0, 0.35)
 			self:IronCoolDown()
-			ply:EmitSound("draconic.IronOutGeneric")
+			ply:EmitSound(ironsounds[string.lower(self:GetHoldType())][2])
 			if CLIENT && self.Secondary.IronOutFP != nil then
 				surface.PlaySound(Sound(self.Secondary.IronOutFP))
 			end
@@ -895,7 +921,7 @@ function SWEP:Think()
 		self.glowlight = DynamicLight(self, false)
 		if self.glowlight then
 			if ply then
-				if RightHand != -1 then
+				if RightHand != 0 then
 					self.glowlight.pos = ply:GetAttachment(RightHand).Pos
 				else
 					self.glowlight.pos = ply:LocalToWorld(ply:OBBCenter() + Vector(15, -15, 0))
@@ -1641,12 +1667,14 @@ function SWEP:OnRemove()
 			timer.Remove( self.BloomScoreName )
 		else end
 		if self.Primary.Ammo == "ammo_drc_battery" then
-			if IsValid(self) && !timer.Exists(self.HeatDisperseTimer) then return end
-			timer.Remove( self.HeatDisperseTimer )
+			if IsValid(self) && IsValid(self.HeatDisperseTimer) then
+				if timer.Exists(self.HeatDisperseTimer) then timer.Remove( self.HeatDisperseTimer ) end
+			end
 		else end
 		if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
-			if IsValid(self) && !timer.Exists(self.ChargeDisperseTimer) then return end
-			timer.Remove( self.ChargeDisperseTimer )
+			if IsValid(self) && IsValid(self.ChargeDisperseTimer) then
+				if timer.Exists(self.ChargeDisperseTimer) then timer.Remove( self.ChargeDisperseTimer ) end
+			end
 		else end
 		
 		if self.ChargeSound != nil then self:StopSound(self.ChargeSound) end
@@ -1680,6 +1708,7 @@ function SWEP:Holster()
 	self:DoCustomHolster()
 	--self.Weapon:SetNWBool("Ironsights", false )
 	self.SightsDown = false
+	self:SetNWBool("Inspecting", false)
 	
 	if self.ChargeSound then self:StopSound(self.ChargeSound) end
 	if self.Primary.LoopingFireSound then self:StopSound(self.Primary.LoopingFireSound) end
@@ -1709,10 +1738,10 @@ function SWEP:Holster()
 		if self.BloomScoreName != nil then
 			timer.Remove( self.BloomScoreName )
 		else end
-		if self.Primary.Ammo == "ammo_drc_battery" then
+		if self.Primary.Ammo == "ammo_drc_battery" && IsValid(self.HeatDisperseTimer) then
 			timer.Remove( self.HeatDisperseTimer )
 		else end
-		if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
+		if (self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true) && IsValid(self.ChargeDisperseTimer) then
 			timer.Remove( self.ChargeDisperseTimer )
 		else end
 		
@@ -2290,7 +2319,16 @@ function SWEP:GetNPCBurstSettings()
 	end
 	
 	local burstlength = (math.Rand(mini, maxi))
---	print(mini, maxi, delay, burstlength)
+	if ply.DraconicNPC then
+		if ply:DraconicNPC() == true then
+			local div = 1
+			if self.Primary.Ammo != "ammo_drc_battery" then div = 25 end
+			local mul = 0.25 * GetConVar("skill"):GetFloat()
+			mini = mini * 15 * mul / div
+			maxi = maxi * 50 * mul / div
+			burstlength = burstlength * 100 * mul / div
+		end
+	end
 	return mini, maxi, delay, burstlength
 end
 

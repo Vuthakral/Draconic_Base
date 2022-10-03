@@ -34,6 +34,10 @@ if game.SinglePlayer() then
 	end
 end
 
+function DRC:PlayGesture(ply, slot, gesture, b)
+	if ply:IsValid() && ply:IsPlayer() then timer.Simple(engine.TickInterval(), function() ply:AnimRestartGesture(slot, gesture, b) end) end
+end
+
 function DRC:MakeShield(ent)
 	if !IsValid(ent.ShieldEntity) then
 		local shield = ents.CreateClientside("drc_shieldmodel")

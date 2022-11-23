@@ -129,6 +129,7 @@ function SWEP:CanPrimaryAttack()
 	if self.IsOverheated == true then return false end
 	if self:GetNWBool("Overheated") == true then return false end
 
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() < 1 then
 	if ply:IsPlayer() then
 		if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
 			self:Overheat()
@@ -158,6 +159,7 @@ function SWEP:CanPrimaryAttack()
 			self:Overheat()
 			return false
 		end
+	end
 	end
 	
 	if self:GetNWBool("Inspecting") == true then
@@ -324,6 +326,8 @@ function SWEP:FinishVent()
 end
 
 function SWEP:Overheat()
+	if !IsValid(self) then return end
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 1 then return end
 	local ply = self:GetOwner()
 	local loopseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_START )
 	local looptime = self:SequenceDuration( loopseq )

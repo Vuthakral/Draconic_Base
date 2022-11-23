@@ -57,6 +57,10 @@ if GetConVar("sv_drc_forcebasegameammo") == nil then
 	DRC.Convars_SV.BaseGameAmmo = CreateConVar("sv_drc_forcebasegameammo", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Force Draconic weaapons to use standard base-game ammunition. (Requires weapon respawn on toggle)", 0, 1)
 end
 
+if GetConVar("sv_drc_infiniteammo") == nil then
+	DRC.Convars_SV.InfiniteAmmo = CreateConVar("sv_drc_infiniteammo", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "0 off | 1 Infinite | 2 Bottomless Mag", 0, 2)
+end
+
 if GetConVar("cl_drc_disable_errorhints") == nil then
 	DRC.Convars_SV.ErrorHitns = CreateConVar("cl_drc_disable_errorhints", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disables error hints from displaying.", 0, 1)	
 end
@@ -87,10 +91,11 @@ if CLIENT then
 	if GetConVar("cl_drc_debug_legacyassistant") == nil then CreateConVar("cl_drc_debug_legacyassistant", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Show/hide the old legacy debug window 'DSB Debug Assisstant'.", 0, 1) end
 	if GetConVar("cl_drc_debug_crosshairmode") == nil then DRC.Convars_CL.Debug_Crosshair = CreateConVar("cl_drc_debug_crosshairmode", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "0: No debug crosshair \n 1: Standard debug crosshair /n 2: Melee travel path only /n 3: Full debug crosshair", 0, 3) end
 	if GetConVar("cl_drc_debug_hitboxes") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_hitboxes", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable hitbox rendering. Continuously draws the local player's hitboxes, and draws the hitboxes of whatever you are looking at.", 0, 1) end
-	if GetConVar("cl_drc_debug_tracelines") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_tracelines", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering traces used by the Draconic Base. Detailed information about what each colour means can be found on the wiki.", 0, 1) end
-	if GetConVar("cl_drc_debug_lights") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_lights", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
-	if GetConVar("cl_drc_debug_sounds") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_sounds", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
-	if GetConVar("cl_drc_debug_cubemaps") == nil then DRC.Convars_CL.Debug_Hitboxes = CreateConVar("cl_drc_debug_cubemaps", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering the locations of env_cubemap entities.", 0, 1) end
+	if GetConVar("cl_drc_debug_tracelines") == nil then DRC.Convars_CL.Debug_Tracelines = CreateConVar("cl_drc_debug_tracelines", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering traces used by the Draconic Base. Detailed information about what each colour means can be found on the wiki.", 0, 1) end
+	if GetConVar("cl_drc_debug_lights") == nil then DRC.Convars_CL.Debug_Lights = CreateConVar("cl_drc_debug_lights", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
+	if GetConVar("cl_drc_debug_sounds") == nil then DRC.Convars_CL.Debug_Sounds = CreateConVar("cl_drc_debug_sounds", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
+	if GetConVar("cl_drc_debug_cubemaps") == nil then DRC.Convars_CL.Debug_Cubemaps = CreateConVar("cl_drc_debug_cubemaps", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering the locations of env_cubemap entities.", 0, 1) end
+	if GetConVar("cl_drc_debug_alwaysshowshields") == nil then DRC.Convars_CL.Debug_Shields = CreateConVar("cl_drc_debug_alwaysshowshields", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "When set to 1 all DRC shields will constantly render.", 0, 1) end
 	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
 	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
 	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.", 0, 1) end

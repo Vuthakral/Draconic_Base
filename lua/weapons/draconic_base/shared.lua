@@ -648,9 +648,6 @@ function SWEP:Initialize()
 		end
 	end
 	
-	self:DoCustomInitialize()
-	self:InitialFireMode()
-	
 	if self.LoopFireSound == nil && self.Primary.LoopingFireSound != nil then
 		self.LoopFireSound = CreateSound(self, self.Primary.LoopingFireSound)
 	end
@@ -658,6 +655,9 @@ function SWEP:Initialize()
 	if self.Primary.Ammo != nil then
 		self.Weapon:SetNWInt("LoadedAmmo", self.Weapon:Clip1() )
 	end
+	
+	self:InitialFireMode()
+	self:DoCustomInitialize()
 	
 	-- SCK Stuff
 	if CLIENT then
@@ -913,51 +913,6 @@ function SWEP:Think()
 					if (!game.SinglePlayer()) then self:CallOnClient("PlayCloseSound", "") end
 				end
 			else self.LoopingFireSoundSecondary:Stop() end
-		end
-	end
-	
-	if self.Glow == true && CLIENT then
-		local RightHand = ply:LookupAttachment("anim_attachment_RH")
-		self.glowlight = DynamicLight(self, false)
-		if self.glowlight then
-			if ply then
-				if RightHand != 0 then
-					self.glowlight.pos = ply:GetAttachment(RightHand).Pos
-				else
-					self.glowlight.pos = ply:LocalToWorld(ply:OBBCenter() + Vector(15, -15, 0))
-				end
-			else
-				self.glowlight.pos = self:GetPos()
-			end
-			self.glowlight.r = self.GlowColor.r
-			self.glowlight.g = self.GlowColor.g
-			self.glowlight.b = self.GlowColor.b
-			self.glowlight.Brightness = self.GlowBrightness
-			self.glowlight.Decay = self.GlowDecay
-			self.glowlight.Size = self.GlowSize
-			self.glowlight.Style = self.GlowStyle
-			self.glowlight.DieTime = CurTime()
-		end
-		
-		self.entlight = DynamicLight(self, true)
-		if self.entlight then
-			if ply then
-				if RightHand != nil then
-					self.entlight.pos = ply:GetBonePosition(RightHand)
-				else
-					self.entlight.pos = ply:LocalToWorld(ply:OBBCenter() + Vector(15, -15, 0))
-				end
-			else
-				self.entlight.pos = self:GetPos()
-			end
-			self.entlight.r = self.GlowColor.r
-			self.entlight.g = self.GlowColor.g
-			self.entlight.b = self.GlowColor.b
-			self.entlight.Brightness = math.abs(self.GlowBrightness / (self.GlowBrightness / 2))
-			self.entlight.Decay = self.GlowDecay
-			self.entlight.Size = self.GlowSize / 16
-			self.entlight.Style = self.GlowStyle
-			self.entlight.DieTime = CurTime() + 0.1
 		end
 	end
 
@@ -1823,7 +1778,7 @@ function SWEP:Inspect()
 	
 	self.IdleTimer = CurTime() + inspectdur
 	
-	timer.Simple( inspectdur, function() self:EnableInspection() end)
+	timer.Simple( inspectdur, function() if IsValid(self) then self:EnableInspection() end end)
 end
 
 function SWEP:EnableInspection()

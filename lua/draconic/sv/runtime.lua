@@ -227,7 +227,7 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 		if vehicle == true then damagevalue = damagevalue * inflictor:GetCreatorAttachmentValue("Ammunition" ,"VehicleDamageMul") end
 	end
 	
-	if DRC:IsCharacter(tgt) && tgt:Health() - damagevalue <= 0 then dmg:SetDamageForce(dmg:GetDamageForce() * 25) end
+--	if DRC:IsCharacter(tgt) && tgt:Health() - damagevalue <= 0 then dmg:SetDamageForce(dmg:GetDamageForce() * 25) end
 	dmg:SetDamage(damagevalue)
 end)
 
@@ -360,6 +360,61 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 		end
 	end
 end)
+
+hook.Add("PlayerTick", "DRC_BarnacleGrabDetection", function(ply, cmd)
+	local b = ply:GetNWBool("BarnacleHeld")
+	if b != ply:IsEFlagSet(EFL_IS_BEING_LIFTED_BY_BARNACLE) then
+		ply:SetNWBool("BarnacleHeld", ply:IsEFlagSet(EFL_IS_BEING_LIFTED_BY_BARNACLE))
+	end -- This engine flag always returns false on client, so I make it usable for client players here.
+end)
+
+-- haha I wrote this whole thing before being told there's an engine flag for this, kms
+-- keeping it here in case I need it for reference for anything similar in the future.
+--[[
+local barnaclechecktime = 0
+hook.Add("PlayerTick", "DRC_BarnacleGrabDetection", function(ply, cmd)
+	if CurTime() < barnaclechecktime then return end
+	barnaclechecktime = CurTime() + 1
+	
+	local tr = DRC:TraceDir(ply:EyePos(), Angle(-90, 0, 0), 2000)
+	local checker = ents.FindInSphere(tr.HitPos, 50)
+	if table.IsEmpty(checker) or DRC:FloorDist(ply) < 10 then 
+		ply:SetNWBool("BarnacleHeld", false)
+--	else
+--		for k,v in pairs(checker) do
+--			if IsValid(v) && (v:GetClass() == "npc_barnacle") then
+--				local ent = v
+--				if v:GetNWEntity("BarnacleHolding") == ply then
+				--	ply:SetNWBool("BarnacleHeld", true)
+--				end
+--			end
+--		end 
+	end
+end)
+
+hook.Add("Tick", "DRC_BarnacleGrabDetection_Barnacles", function()
+	if CurTime() < barnaclechecktime then return end
+	for k,v in pairs(ents.FindByClass("npc_barnacle")) do
+		local tr = DRC:TraceDir(v, Angle(90, 0, 0), 2000)
+
+		local tab = {}
+		local v1, v2 = Vector(tr.HitPos.x-64, tr.HitPos.y-64,tr.HitPos.z), Vector(tr.HitPos.x+64, tr.HitPos.y+64, tr.StartPos.z)
+		for k,ent in pairs(ents.FindInBox(v1, v2)) do
+			if ent:IsPlayer() then
+				local dist = {ent, ent:GetPos():Distance(v:GetPos())}
+				table.insert(tab, dist)
+			end
+		end
+		
+		if #tab > 1 then table.sort(tab, function(a, b) return a[2] > b[2] end) end
+		
+		if !table.IsEmpty(tab) then
+			v:SetNWEntity("BarnacleHolding", tab[1][1])
+			tab[1][1]:SetNWBool("BarnacleHeld", true)
+		--	tab[1][1]:SetPos(Vector(v:GetPos().x, v:GetPos().y, tab[1][1]:GetPos().z))
+		end
+	end
+end) ]]
 
 net.Receive("DRCVoiceSet_CL", function()
 	local tbl = net.ReadTable()

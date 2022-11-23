@@ -1,8 +1,36 @@
 DRC.CalcView.MuzzleLamp_Time = 0
 
+
 hook.Add("Think", "DRC_Lighting", function()
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
+	
+	for k,v in pairs(DRC.ActiveWeapons) do
+		ply = v:GetParent()
+		if IsValid(v) then
+			if v.Glow == true then
+				if !IsValid(ply) then
+					DRC:DLight(v, v:GetPos(), v.GlowColor, v.GlowSize, 0.1, false, 1, v.GlowStyle)
+				else
+					if v:GetParent():GetActiveWeapon() == v then
+						if v.Glow == true && CLIENT then
+							local RightHand = ply:LookupAttachment("anim_attachment_RH")
+							local pos = Vector()
+							if RightHand != 0 then
+								pos = ply:GetAttachment(RightHand).Pos
+							else
+								pos = ply:LocalToWorld(ply:OBBCenter() + Vector(15, -15, 0))
+							end
+							
+							DRC:DLight(v, pos, v.GlowColor, v.GlowSize, 0.1, false, 1, v.GlowStyle)
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	ply = LocalPlayer()
 	local vm = ply:GetViewModel()
 	if !IsValid(vm) then return end
 	local wpn = ply:GetActiveWeapon()

@@ -93,6 +93,7 @@ ENT.BulletTable = {
 		MAT_RUBBER = 1,
 		MAT_RUBBERTIRE = 1,
 		MAT_DIRT = 1,
+		MAT_STONE = 1,
 		MAT_ROCK = 1,
 		MAT_BOULDER = 1,
 		MAT_SAND = 1,

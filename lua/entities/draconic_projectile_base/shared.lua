@@ -344,7 +344,7 @@ function ENT:Initialize()
 	if IsValid(ply) then
 		if DRC:IsVehicle(ply) then
 			self:SetCreator(ply)
-		elseif ply:IsPlayer() or ply:IsNPC() or ply:IsNextBot() then
+		elseif DRC:IsCharacter(ply) then
 			if ply:IsPlayer() then
 				if ply:InVehicle() then
 					self:SetCreator(ply:GetVehicle())

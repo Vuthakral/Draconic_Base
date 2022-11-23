@@ -8,6 +8,30 @@ if SERVER then AddCSLuaFile("sh/convars.lua") end
 include("sh/convars.lua")
 
 DRC.MapInfo.Name = game.GetMap()
+DRC.MapInfo.Versions = {
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"Unknown",
+	"HL2 Beta SDK",
+	"HL2 Beta SDK",
+	"SDK 2004-2006",
+	"SDK 2007-2009",
+	"SDK 2013",
+	"SDK 2013",
+}
 
 if SERVER then
 	DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas()
@@ -38,9 +62,9 @@ DRC.Skel = {
 	["Spine1"] = { ["Name"] = "ValveBiped.Bip01_Spine1", ["Scale"] = Vector(1,0.65,1) },
 	["Spine2"] = { ["Name"] = "ValveBiped.Bip01_Spine2", ["Scale"] = Vector(1,0.5,1) },
 	["Spine4"] = { ["Name"] = "ValveBiped.Bip01_Spine4", ["Scale"] = Vector(1,0.5,1) },
-	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(-100,-25,0) },
-	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -200, 0) },
-	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -200, 0) },
+	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(0,-50,0) },
+	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -50, 0) },
+	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -50, 0) },
 	["LeftHand"] = { ["Name"] = "ValveBiped.Bip01_L_Hand", ["Offset"] = Vector(0, 0, 0) },
 	["RightHand"] = { ["Name"] = "ValveBiped.Bip01_R_Hand", ["Offset"] = Vector(0, 0, 0) },
 }
@@ -460,7 +484,7 @@ function DRC:EmitSound(source, near, far, distance, hint, listener)
 	if near == nil && far == nil then return end
 	if far == nil && near != nil then source:EmitSound(near) return end
 	
-	source:EmitSound(near)
+	source:EmitSound(near, nil, nil, nil, nil, nil, nil)
 
 	if CLIENT then return end
 	local nt = {}
@@ -609,7 +633,6 @@ function DRC:EyeCone(ply, dist, degree)
 	return cone
 end
 
-
 function DRC:GetRoomSizeDSP(size) -- an experiment
 	local tab = DRC.RoomDefinitions
 	if size <= tab.Vent then return 106
@@ -658,7 +681,6 @@ function DRC:RoomSize(pos)
 		})
 		
 		local dist = math.Round(trace.StartPos:Distance(trace.HitPos))
---		print(i, Angle(angx, angy, 0), dist)
 		
 		score = score + dist
 		if i == 4 then
@@ -717,12 +739,12 @@ function DRC_CollectCubemaps( filename )
 end
 
 hook.Add( "InitPostEntity", "DRC_GetCubemapInfo", function()
-    DRC_CollectCubemaps( game.GetMap() )
+	DRC_CollectCubemaps(game.GetMap())
 end )
 end
 -- End cubemap collection code
 
-function DRC:DLight(ent, pos, col, size, lifetime, emissive, debugcolourmultiplier)
+function DRC:DLight(ent, pos, col, size, lifetime, emissive, debugcolourmultiplier, style)
 	local HDR = render.GetHDREnabled()
 
 	if emissive == nil then emissive = false end
@@ -736,6 +758,7 @@ function DRC:DLight(ent, pos, col, size, lifetime, emissive, debugcolourmultipli
 	dl.brightness = col.a
 	dl.Decay = (1000 / lifetime)
 	dl.size = size
+	dl.Style = style
 	dl.DieTime = CurTime() + lifetime
 	
 	if HDR == false && emissive == false then
@@ -747,6 +770,7 @@ function DRC:DLight(ent, pos, col, size, lifetime, emissive, debugcolourmultipli
 		el.brightness = col.a
 		el.Decay = (1000 / lifetime)
 		el.size = size
+		el.Style = style
 		el.DieTime = CurTime() + lifetime
 	end
 	
@@ -780,6 +804,14 @@ function DRC:GetSpray(ply, dowrite)
 	
 	local vtf = "draconic/sprays/".. ply:SteamID64() ..""
 	return vtf
+end
+
+function DRC:GetSubMaterials(ent)
+	local mats = {}
+	for i=0,#ent:GetMaterials() do
+		mats[i] = ent:GetSubMaterial(i)
+	end
+	return mats
 end
 
 net.Receive("DRC_RequestSprayInfo", function()
@@ -826,11 +858,16 @@ hook.Add("PlayerInitialSpawn", "drc_InitialSpawnHook", function(ply)
 	net.Broadcast()
 	
 	net.Start("DRC_MapVersion")
-	local info = { ply, game.GetMapVersion() }
+	
+	local bsp = file.Open( "maps/" .. game.GetMap() .. ".bsp", "rb", "GAME" )
+	bsp:Seek(4)
+	local ver = bsp:ReadByte()
+	bsp:Close()
+	-- game.GetMapVersion() seems to be broken at the time of writing this
+	
+	local info = { ply, ver }
 	net.WriteTable(info)
 	net.Send(ply)
-	
-	
 end)
 
 hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
@@ -1403,6 +1440,29 @@ function DRC:CallGesture(ply, slot, act, akill)
 	net.Broadcast()
 end
 
+function DRC:CopyLayerSequenceInfo(layer, ent1, ent2)	
+	ent2:SetLayerSequence(layer, ent1:GetLayerSequence(layer))
+	ent2:SetLayerDuration(layer, ent1:GetLayerDuration(layer))
+	ent2:SetLayerPlaybackRate(layer, ent1:GetLayerPlaybackRate(layer))
+	ent2:SetLayerWeight(layer, ent1:GetLayerWeight(layer))
+	ent2:SetLayerCycle(layer, ent1:GetLayerCycle(layer))
+end
+
+function DRC:CopyPoseParams(ent1, ent2)
+		if SERVER then
+			for i=0,ent1:GetNumPoseParameters()-1 do
+				local poseparam = ent1:GetPoseParameterName(i)
+				ent2:SetPoseParameter(poseparam, ent1:GetPoseParameter(poseparam))
+			end
+		else
+			for i=0,ent1:GetNumPoseParameters()-1 do
+				local mini, maxi = ent1:GetPoseParameterRange(i)
+				local poseparam = ent1:GetPoseParameterName(i)
+				ent2:SetPoseParameter(poseparam, math.Remap(ent1:GetPoseParameter(poseparam), 0, 1, mini, maxi))
+			end
+		end
+	end
+
 local function PlayReadyAnim(ply, anim)
 	if !IsValid(ply) then 
 		DRC:Notify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
@@ -1479,22 +1539,25 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 	local m2seq = ply:SelectWeightedSequence(melee2)
 	local m2dur = ply:SequenceDuration(m2seq)
 	
-	if nw:IsScripted() then
+	local onehand = { "pistol", "slam", "magic", "revolver" }
+	local twohand = { "smg", "ar2", "shotgun", "crossbow" }
+	local dualtypes = { "duel", "camera" }
+	local lowtypes = { "physgun" }
+	local hightypes = { "rpg" }
+	local meleetypes = { "melee", "knife", "grenade", "slam" }
+	local meleetwohand = {"melee2"}
+	
+	if nw:GetClass() == "gmod_camera" or nw:GetClass() == "gmod_tool" then -- bruh
+		if nw:GetClass() == "gmod_camera" then PlayReadyAnim(ply, melee) else PlayReadyAnim(ply, pistol) end
+	elseif nw:IsScripted() then
 		local newstats = weapons.GetStored(neww)
-		local newht = newstats.HoldType
+		local newht = string.lower(tostring(newstats.HoldType))
+		if newht == "" then newht = "ar2" end
 		
 		if nw.ASTWTWO == true then
 			if nw.Melee == true then newht = newstats.HoldType_Lowered end
 			if nw.Melee != true then newht = newstats.HoldType_Hipfire end
 		end
-		
-		local onehand = { "pistol", "slam", "magic" }
-		local twohand = { "smg", "ar2", "shotgun", "crossbow", "camera", "revolver" }
-		local dualtypes = { "duel" }
-		local lowtypes = { "physgun" }
-		local hightypes = { "rpg" }
-		local meleetypes = { "melee", "knife", "grenade", "slam" }
-		local meleetwohand = {"melee2"}
 		
 		if CTFK(onehand, newht) then PlayReadyAnim(ply, pistol)
 		elseif CTFK(twohand, newht) then PlayReadyAnim(ply, rifle)
@@ -1505,12 +1568,12 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 		elseif CTFK(meleetwohand, newht) then PlayReadyAnim(ply, melee2)
 		end
 	else
-		local onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine", "weapon_alyxgun" }
-		local twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
-		local dualtypes = { "weapon_cubemap" }
-		local lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
-		local hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
-		local meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
+		onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine", "weapon_alyxgun" }
+		twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
+		dualtypes = { "weapon_cubemap" }
+		lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
+		hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
+		meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
 
 		if CTFK(onehand, neww) then PlayReadyAnim(ply, pistol)
 		elseif CTFK(twohand, neww) then PlayReadyAnim(ply, rifle)
@@ -1537,9 +1600,11 @@ net.Receive("DRC_Nuke", function(len, ply)
 		ent:Kill()
 		print("".. ent:Nick() .." (".. ent:SteamID64() ..") is likely using exploits and tried to run the DRC Nuke dev tool!")
 	return end
-	for k,v in pairs(ents.GetAll()) do
-		if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then v:TakeDamage(999999999, ent) v:Remove()
-		elseif v:IsPlayer() then v:ScreenFade(SCREENFADE.IN, Color(255, 255, 255), 3, 0)
+	if ent:IsAdmin() then 
+		for k,v in pairs(ents.GetAll()) do
+			if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then v:TakeDamage(999999999, ent) v:Remove()
+			elseif v:IsPlayer() then v:ScreenFade(SCREENFADE.IN, Color(255, 255, 255), 3, 0)
+			end
 		end
 	end
 end)
@@ -2336,6 +2401,7 @@ function DRC:GetBaseName(ent)
 	if ent.ASTWTWO then return "astw2" end
 	if ent.mg_IsPlayerReverbOutside && ent.SprintBehaviourModule then return "mwb" end
 	if ent.IsSimfphyscar then return "sphys" end
+	if ent:GetClass() == "decal" then return "decal" end
 	return nil
 end
 
@@ -2344,7 +2410,23 @@ function DRC:Health(ent) -- This is what happens when people try to reinvent the
 	local base = DRC:GetBaseName(ent)
 	if base == nil or base == "drc" then return ent:Health(), ent:GetMaxHealth()
 	elseif base == "lfs" then return ent:GetHP(), ent:GetMaxHP()
-	elseif base == "sf" then return ent:GetCurHealth()
+	elseif base == "sphys" then return ent:GetCurHealth(), ent:GetMaxHealth()
+	end
+end
+
+function DRC:SetHealth(ent, amount, maxamount)
+	if !IsValid(ent) then return end
+	local base = DRC:GetBaseName(ent)
+	if base == nil or base == "drc" then ent:SetHealth(amount)
+	elseif base == "lfs" then ent:SetHP(amount)
+	elseif base == "sphys" then ent:SetCurHealth(amount)
+	end
+	
+	if maxamount then
+		if base == nil or base == "drc" then ent:SetMaxHealth(maxamount)
+		elseif base == "lfs" then ent:SetMaxHP(maxamount)
+		elseif base == "sphys" then ent:SetMaxHealth(maxamount)
+		end
 	end
 end
 
@@ -2661,3 +2743,36 @@ hook.Add( "EntityEmitSound", "drc_timewarpsnd", function( t )
 		return true
 	end
 end )
+
+DRC.ActiveWeapons = {}
+hook.Add("OnEntityCreated", "DRC_WeaponTracker", function(ent)
+	if ent:IsWeapon() then
+		if weapons.IsBasedOn(ent:GetClass(), "draconic_base") then
+			DRC.ActiveWeapons[tostring(ent)] = ent
+		end
+	return end
+end)
+
+hook.Add("EntityRemoved", "DRC_WeaponTracker_Remove", function(ent)
+	if DRC.ActiveWeapons[tostring(ent)] then DRC.ActiveWeapons[tostring(ent)] = nil end
+end)
+
+hook.Add("CalcMainActivity", "DRC_BarnacleXDR", function(ply, vel)
+	if !IsValid(ply) then return end
+	if ply:GetNWBool("BarnacleHeld", false) == true then
+--	if ply:IsEFlagSet(EFL_IS_BEING_LIFTED_BY_BARNACLE) == true then -- doesn't return true on client
+		local wpn = ply:GetActiveWeapon()
+		if !IsValid(wpn) then
+			local seq = ply:LookupSequence("barnacle_unarmed")
+			if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
+		else
+			if wpn:GetHoldType() != "normal" then
+				local seq = ply:LookupSequence("barnacle_armed")
+				if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
+			else
+				local seq = ply:LookupSequence("barnacle_unarmed")
+				if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
+			end
+		end
+	end
+end)

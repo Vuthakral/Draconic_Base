@@ -177,7 +177,9 @@ local function drc_Inspect()
 		DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
 			
 		if wpn.PrimaryStats.Projectile != nil then
-			local projectile = scripted_ents.GetStored(wpn.PrimaryStats.Projectile)
+			local projectile = {}
+			if istable(wpn.PrimaryStats.Projectile) then projectile = scripted_ents.GetStored(wpn.PrimaryStats.Projectile[1]) else
+		 projectile = scripted_ents.GetStored(wpn.PrimaryStats.Projectile) end
 			if projectile.t.ProjectileType == "supercombine" then
 				DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "Base: ".. projectile.t.Damage .." | Supercombine: ".. projectile.t.SuperDamage .."")
 			else

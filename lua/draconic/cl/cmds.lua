@@ -37,4 +37,5 @@ end)
 
 concommand.Add("drc_refreshcsents", function()
 	if IsValid(DRC.CSPlayerModel) then DRC.CSPlayerModel:Remove() end
+	if IsValid(DRC.CSPlayerHandShield) then DRC.CSPlayerHandShield:Remove() end
 end)

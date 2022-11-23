@@ -571,8 +571,8 @@ local function DrawVMAttachments(att, ent)
 	render.DrawLine( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false), FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Forward() * 2.5, Color( 255, 0, 0, 100 ) )
 	render.DrawSphere( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Forward() * 2.5, 0.125, 16, 16, Color(255, 0, 0, 100))
 	
-	render.DrawLine( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false), FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Right() * 2.5, Color( 0, 255, 0, 100 ) )
-	render.DrawSphere( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Right() * 2.5, 0.125, 16, 16, Color(0, 255, 0, 100))
+	render.DrawLine( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false), FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Right() * -2.5, Color( 0, 255, 0, 100 ) )
+	render.DrawSphere( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Right() * -2.5, 0.125, 16, 16, Color(0, 255, 0, 100))
 	
 	render.DrawLine( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false), FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Up() * 2.5, Color( 0, 0, 255, 100 ) )
 	render.DrawSphere( FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false) + ang:Up() * 2.5, 0.125, 16, 16, Color(0, 0, 255, 100))

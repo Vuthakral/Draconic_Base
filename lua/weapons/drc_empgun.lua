@@ -11,7 +11,9 @@ SWEP.Instructions		= "Point & Click."
  
 SWEP.Spawnable      = false
 SWEP.AdminSpawnable = false
+SWEP.NPCSpawnable	= false
 SWEP.DrawCrosshair  = false
+
 SWEP.Slot           = 2
 SWEP.SlotPos        = 0
 

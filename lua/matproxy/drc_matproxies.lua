@@ -63,6 +63,16 @@ matproxy.Add( {
 	end
 } )
 
+local function GetPlayerColour(src)
+	if !IsValid(src) then return end
+	local col = Vector(0.5, 0.5, 0.5)
+	if src.Preview == true then col = Vector(LocalPlayer():GetInfo("cl_playercolor")) end
+	if src:GetNWVector("PlayerColour_DRC", Vector(0,0,0)) != Vector(0,0,0) then col = src:GetNWVector("PlayerColour_DRC") end
+	if src:EntIndex() == LocalPlayer():GetHands():EntIndex() then col = LocalPlayer():GetNWVector("PlayerColour_DRC") end
+	if src:GetNWVector("PlayerColour_DRC", Vector(0,0,0)) == Vector(0,0,0) then col = LocalPlayer():GetNWVector("PlayerColour_DRC") end
+	return col
+end
+
 matproxy.Add( {
 	name = "drc_PlayerColours",
 	init = function( self, mat, values )
@@ -72,13 +82,8 @@ matproxy.Add( {
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
 		if !IsValid(LocalPlayer()) then return end
-		local owner = ent:GetOwner()
-		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
-		local col = owner:GetPlayerColor()
-		if ( !isvector( col )) then return end
-
-		local mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0
-		mat:SetVector( self.ResultTo, col + col * mul )
+		local col = GetPlayerColour(ent)
+		mat:SetVector( self.ResultTo, col )
 	end
 } )
 
@@ -89,22 +94,10 @@ matproxy.Add( {
 	end,
 
 	bind = function( self, mat, ent )
-		if !IsValid(ent) then return end
-		local col, mul = nil, 1
-		if ent.Preview == true then
-			col = Vector(LocalPlayer():GetInfo("cl_playercolor"))
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		elseif ent:EntIndex() == LocalPlayer():GetHands():EntIndex() then
-			col = LocalPlayer():GetNWVector("PlayerColour_DRC")
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		else
-			col = ent:GetNWVector("PlayerColour_DRC")
-			if col == Vector(0, 0, 0) then col = Vector(LocalPlayer():GetInfo("cl_playercolor")) end
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		end
-		
-		if !self.ResultTo then self.ResultTo = "$color2" end
-		mat:SetVector( self.ResultTo, col + col * mul )	
+		if ( !IsValid( ent )) then return end
+		if !IsValid(LocalPlayer()) then return end
+		local col = GetPlayerColour(ent)
+		mat:SetVector( self.ResultTo, col )
 	end
 } )
 
@@ -212,38 +205,40 @@ matproxy.Add( {
 	--	return end
 		if !self.PowerFloat then self.PowerFloat = 1 end
 		
-		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then
-			local col = LocalPlayer():GetActiveWeapon():GetNWVector("EnergyTintVec") / 255
-			local mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0
-			mat:SetVector( self.ResultTo, col + col * mul )
-		return end
-		
 		if ent:GetClass() == "drc_shieldmodel" then
 			local col = ent:GetOwner():GetNWVector("EnergyTintVec")
 			if col == Vector(0, 0, 0) then col = Vector(0.3, 0.7, 1) end
 			mat:SetVector(self.ResultTo, col * self.PowerFloat)
 		return end
 		
+		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then
+			local col = LocalPlayer():GetActiveWeapon():GetNWVector("EnergyTintVec") / 255
+			mat:SetVector( self.ResultTo, col )
+		return end
+		
 		if ent.Preview == true then
-			col = LocalPlayer():GetNWVector("EnergyTintVec")
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		elseif ent:EntIndex() == LocalPlayer():GetHands():EntIndex() then
-			col = LocalPlayer():GetNWVector("EnergyTintVec")
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		elseif ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot() or ent:IsRagdoll() then
-			col = ent:GetNWVector("EnergyTintVec")
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		else
-			col = ent:GetNWVector("EnergyTintVec") / 255
-			if col == Vector(0, 0, 0) then col = Vector(LocalPlayer():GetInfo("cl_drc_energycolour_r"), LocalPlayer():GetInfo("cl_drc_energycolour_g"), LocalPlayer():GetInfo("cl_drc_energycolour_b")) end
-			mul = ( 1 + math.sin( CurTime() * 5 ) ) * 0	
-		end
+			local col = LocalPlayer():GetNWVector("EnergyTintVec")
+			if col == Vector(0, 0, 0) then col = Vector(0.3, 0.7, 1) end
+			mat:SetVector(self.ResultTo, col * self.PowerFloat)
+		return end
 		
 		local flickerflicker = TimedSin(2, 0.6, 1, 0)
 		local deathflicker = TimedSin(4, 0.7, flickerflicker, 0)
 		if ent:Health() > 0.01 then deathflicker = 1 end
 		
-		mat:SetVector( self.ResultTo, (col + col * mul) * deathflicker )	
+		if ent:EntIndex() == LocalPlayer():GetHands():EntIndex() then
+			col = LocalPlayer():GetNWVector("EnergyTintVec")
+			deathflicker = 1
+		else
+			col = ent:GetNWVector("EnergyTintVec")
+			if col == Vector(0, 0, 0) then 
+				col = Vector(LocalPlayer():GetInfo("cl_drc_energycolour_r")/255, LocalPlayer():GetInfo("cl_drc_energycolour_g")/255, LocalPlayer():GetInfo("cl_drc_energycolour_b")/255)
+			end
+		end
+		
+		
+		
+		mat:SetVector( self.ResultTo, (col) * deathflicker )	
 	end
 } )
 
@@ -523,28 +518,21 @@ matproxy.Add( {
 		if !IsValid(LocalPlayer()) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
+		
+		if self.PowerFloat == nil then self.PowerFloat = 1 end
+		if self.LerpPower == nil then self.LerpPower = 1 end
+		
 		if ent.Preview == true then
-			mat:SetFloat("$rimlightboost", self.PowerFloat * DRC.MapInfo.MapAmbientAvg)
+			mat:SetFloat("$rimlightboost", (self.PowerFloat * DRC.MapInfo.MapAmbientAvg) /10)
 		else
 			local lightlevel = render.GetLightColor(ent:GetPos())
 			local median = (lightlevel.x + lightlevel.y + lightlevel.z) / 3
 			
-			if self.PowerFloat == nil then self.PowerFloat = 1 end
-			if self.LerpPower == nil then self.LerpPower = 1 end
-			
-			ent.val = self.PowerFloat * median * DRC.MapInfo.MapAmbientAvg
+			ent.val = (self.PowerFloat * median) * DRC.MapInfo.MapAmbientAvg
 			if HDR then ent.val = ent.val else ent.val = ent.val * 0.117 end
 			
 			ent.final = Lerp(RealFrameTime() * 2.5, mat:GetFloat("$rimlightboost"), ent.val) * ((DRC.WeathermodScalar.x + DRC.WeathermodScalar.y + DRC.WeathermodScalar.z) /3)
-			mat:SetFloat( "$rimlightboost", ent.final )
-			
-
-			local lply = LocalPlayer()
-			local eyc = render.GetLightColor(lply:EyePos()) * 2
-			local colvec = Vector(eyc.r, eyc.g, eyc.b)
-
-			render.SuppressEngineLighting(false)
-			render.SetColorModulation(math.Clamp(0.5 + eyc.r, 0, 1), math.Clamp(0.5 + eyc.g, 0, 1), math.Clamp(0.5 + eyc.b, 0, 1))
+			mat:SetFloat( "$rimlightboost", ent.val )
 		end
 	end
 } )
@@ -687,7 +675,7 @@ matproxy.Add( {
 		if ent.Preview == true then
 			local mul = Vector(1, 1, 1)
 			if HDR then mul = self.HDRCorrectionLevel else mul = (10 * self.LDRCorrectionLevel) end
-			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * (LocalPlayer():GetNWVector("EyeTintVec") / 255) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
+			mat:SetVector( self.ResultTo, (self.TintVector * self.PowerFloat * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar )
 		end
 		
 		local pcr_hands, pcg_hands, pcb_hands, lightlevel_hands = 0, 0, 0, Vector(0, 0, 0)
@@ -708,8 +696,8 @@ matproxy.Add( {
 			local finalz = math.Clamp(interp.z, self.MinFloat, self.MaxFloat)
 			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
-				
-			mat:SetVector( self.ResultTo, (final * self.PowerFloat) * (self.TintVector * self.PowerFloat) * final )
+			local val = (final * DRC.WeathermodScalar * self.TintVector) * self.PowerFloat
+			mat:SetVector( self.ResultTo, val )
 		elseif ent:IsRagdoll() then
 			lightlevel_ragdoll = render.GetLightColor(ent:GetPos())
 			local col = Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b)
@@ -725,8 +713,9 @@ matproxy.Add( {
 			local finaly = math.Clamp(mul.y, self.MinFloat, self.MaxFloat)
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
 			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
-				
-			mat:SetVector( self.ResultTo, (final * self.PowerFloat) * (self.TintVector * self.PowerFloat) * final )
+			
+			local val = (final * DRC.WeathermodScalar * self.TintVector) * self.PowerFloat
+			mat:SetVector( self.ResultTo, val )
 		else
 			lightlevel = render.GetLightColor(ent:GetPos())
 			local col = Vector(lightlevel.r, lightlevel.g, lightlevel.b)
@@ -743,7 +732,8 @@ matproxy.Add( {
 			local finalz = math.Clamp(mul.z, self.MinFloat, self.MaxFloat)
 			local final = Vector(finalx, finaly, finalz) * LMCor * DRC.WeathermodScalar
 			
-			local val = (final * self.PowerFloat) * (self.TintVector * self.PowerFloat) * final
+			local val = (final * DRC.WeathermodScalar * self.TintVector) * self.PowerFloat
+		--	val = ((final * DRC.WeathermodScalar) * self.TintVector) * self.PowerFloat
 			mat:SetVector( self.ResultTo, val )
 		end
 	end
@@ -1789,18 +1779,19 @@ matproxy.Add( {
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
+		if !IsValid(wpn) then return end
 		
 		local mag = nil
 		local maxmag = nil
 		if wpn.Draconic != nil then
-			mag = wpn.Weapon:Clip1()
+			mag = wpn:Clip1()
 			maxmag = wpn.Primary.ClipSize
 		elseif (wpn.ArcCW == true && wep.ArcCW_Halo_Battery == true) then
 			mag = wpn:GetBatteryLevel() * 10
 			maxmag = 100
 		else
-			mag = wpn.Weapon:Clip1()
-			maxmag = wpn.Primary.ClipSize
+			mag = wpn:Clip1()
+			maxmag = wpn.ClipSize
 		end
 		
 		if mag == nil or maxmag == nil then return end
@@ -2324,26 +2315,12 @@ matproxy.Add( {
 		
 		if DRC:GetShieldInvulnerability(parent) == true then ent.DRCShieldVis = 1 end
 		
-		if game.SinglePlayer() then
-			if GetConVar("cl_drc_debugmode"):GetFloat() != 0 && GetConVar("cl_drc_debug_alwaysshowshields"):GetFloat() == 1 then
-				ent.RenderOverride = function()
-					render.SetBlend(0)
-					mat:SetFloat("$emissiveBlendStrength", 1)
-					ent:DrawModel()
-				end
-			else
-				ent.RenderOverride = function()
-					render.SetBlend(0)
-					mat:SetFloat("$emissiveBlendStrength", ent.DRCShieldVis)
-					ent:DrawModel()
-				end
-			end
-		else
-			ent.RenderOverride = function()
-				render.SetBlend(0)
-				mat:SetFloat("$emissiveBlendStrength", ent.DRCShieldVis)
-				ent:DrawModel()
-			end
+		if GetConVar("cl_drc_debugmode"):GetFloat() != 0 && GetConVar("cl_drc_debug_alwaysshowshields"):GetFloat() == 1 then ent.DRCShieldVis = 1 end
+		
+		ent.RenderOverride = function()
+			render.SetBlend(0)
+			mat:SetFloat("$emissiveBlendStrength", ent.DRCShieldVis)
+			ent:DrawModel()
 		end
 	end
 } )

@@ -46,7 +46,7 @@ function DRCMenu( player )
 	Derma:SetIcon("icon16/draconic_base.png")
 	Derma:MakePopup()
 	Derma:SetBackgroundBlur(true)
-	Derma:SetScreenLock(true)
+	Derma:SetScreenLock(false)
     Derma.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 200))
     end
@@ -113,24 +113,45 @@ function DRCMenu( player )
     local preview = vgui.Create("DAdjustableModelPanel", frame)
 	preview:SetSize(589,658)
     preview:SetPos(0, 0)
-    preview:SetFOV(72)
+    preview:SetFOV(50)
 	preview:SetModel(tostring(pmodelname))
 	preview:SetAnimated( true )
     preview:SetAnimationEnabled(true)
 	preview:SetAmbientLight(Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
 	preview:SetDirectionalLight(BOX_TOP, Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
---	preview:SetDirectionalLight(BOX_FRONT, Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
-	preview:SetLookAng(Angle(0, 180, 0))
-	preview:SetCamPos(Vector(72, 0, 36))
+	preview:SetLookAng(Angle(20, 190, 0))
+	preview:SetCamPos(Vector(72, 15, 66))
 	
 	function preview:LayoutEntity( ent )
 		ent:SetLOD(0)
 		local idle = ent:SelectWeightedSequence(ACT_HL2MP_IDLE)
 		if ent:LookupSequence("drc_menu") != -1 then
 			ent:SetSequence("drc_menu")
+		elseif ent:LookupSequence("drc_menu_xdr_default") != -1 then
+			ent:SetSequence("drc_menu_xdr_default")
 		else
 			ent:SetSequence(idle)	
 		end
+		
+		if !ent.blonk then ent.blonk = 0 end
+		if !ent.blinktime then ent.blinktime = 0 end
+		local function Blink()
+			local blinkparam = ent:GetFlexIDByName("blink") or ent:GetFlexIDByName("Blink")
+			if blinkparam == nil then return end
+			ent.blinkval = Lerp(FrameTime() * 10, ent.blinkval or ent.blonk, ent.blonk)
+			ent:SetFlexWeight(blinkparam, ent.blinkval)
+			if CurTime() < ent.blinktime then return end	
+			ent.blinktime = CurTime() + math.Rand(5, 12)
+			ent.blonk = 0
+			timer.Simple(math.Rand(0.1, 0.5), function() 
+				ent.blonk = 1.5
+				timer.Simple(math.Rand(0.05, 0.25), function()
+					ent.blonk = 0
+				end)
+			end)
+		end
+		Blink()
+		
 		ent:SetAngles( Angle(0, 0, 0) )
 		ent:SetPos( Vector() )
 		ent:SetEyeTarget(preview:GetCamPos())
@@ -1574,6 +1595,24 @@ function DRCMenu( player )
 				DiffDescH:SetText("Hard: ".. GetConVarNumber("sk_dmg_inflict_scale3") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale3") * 100 .."% damage taken.")
 				DiffDescH:SetColor(SubtextCol)
 				
+				t2tab2.AmmoSetting = vgui.Create( "DLabel", t2tab2)
+				t2tab2.AmmoSetting:SetPos(400, 110)
+				t2tab2.AmmoSetting:SetSize(100, 20)
+				t2tab2.AmmoSetting:SetText("DRC Infinite Ammo:")
+				t2tab2.AmmoSetting:SetColor(TextCol)
+				
+				t2tab2.InfiniteAmmo = vgui.Create( "DComboBox", t2tab2 )
+				t2tab2.InfiniteAmmo:SetSortItems(false)
+				t2tab2.InfiniteAmmo:SetPos(500, 110)
+				t2tab2.InfiniteAmmo:SetSize(150, 20)
+				t2tab2.InfiniteAmmo:SetConVar( "sv_drc_infiniteammo" )
+				t2tab2.InfiniteAmmo:AddChoice("Disabled", 0)
+				t2tab2.InfiniteAmmo:AddChoice("Enabled", 1)
+				t2tab2.InfiniteAmmo:AddChoice("Bottomless Mag", 2)
+				function t2tab2.InfiniteAmmo:OnSelect(index, value, data)
+					LocalPlayer():ConCommand("sv_drc_infiniteammo ".. index - 1 .."")
+				end
+				
 --[[			local DrcDistGunfire = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				DrcDistGunfire:SetPos(25, 145)
 				DrcDistGunfire:SetSize(20, 20)
@@ -1828,7 +1867,7 @@ function DRCMenu( player )
 	DebugInfo:SetPos(15, 160)
 	DebugInfo:SetSize(300, 20)
 	if CTFK(drc_badlightmaps, game.GetMap()) then
-		DebugInfo:SetText("Fail Reason: Incorrect lightmapping method(s).")
+		DebugInfo:SetText("Fail Reason: Bad/Invalid lightmapping method(s).")
 	elseif CTFK(drc_singlecubemaps, game.GetMap()) then
 		DebugInfo:SetText("Fail Reason: Map has only one cubemap.")
 	elseif CTFK(drc_fullbrightcubemaps, game.GetMap()) then
@@ -1851,10 +1890,12 @@ function DRCMenu( player )
 	DebugInfo:SetText("g")
 	DebugInfo:SetColor(Color(render.GetAmbientLightColor().x * 255, render.GetAmbientLightColor().y * 255, render.GetAmbientLightColor().z * 255, 255))
 	
+	local versionname = tostring(DRC.MapInfo.Versions[DRC.MapInfo.Version]) or "Unknown"
+	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
 	DebugInfo:SetPos(15, 200)
 	DebugInfo:SetSize(300, 20)
-	DebugInfo:SetText("Map version: ".. DRC.MapInfo.Version .."")
+	DebugInfo:SetText("Compiled for: ".. versionname .." (BSP V".. DRC.MapInfo.Version ..")")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)

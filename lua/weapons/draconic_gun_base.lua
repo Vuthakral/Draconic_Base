@@ -211,11 +211,11 @@ function SWEP:CanPrimaryAttack()
 	
 	if CurTime() < self:GetNextPrimaryFire() then return end
 		
-	if ( self:Clip1() <= 0 ) && self.InfAmmo == false then
+	if ( self:Clip1() <= 0 ) then
 		self:EmitSound ( self.Primary.EmptySound )
 		self:SetNextPrimaryFire(CurTime() + 0.3)
 		return false
-	elseif ( self:Clip1() <= 0 ) && self.SecondaryAttacking == false && self.InfAmmo == true then
+	elseif ( self:Clip1() <= 0 ) && self.SecondaryAttacking == false then
 		return true
 	end
 	
@@ -307,14 +307,14 @@ function SWEP:PrimaryAttack()
 					self:DoMelee()
 				else
 				
-				if self:GetNWString("FireMode") == "Semi" or self:GetNWString("FireMode") == "Auto" then
+				if fm == "Semi" or fm == "Auto" then
 					self:CallShoot("primary")
-				elseif self:GetNWString("FireMode") == "Burst" && self.Bursting == false then
+				elseif fm == "Burst" && self.Bursting == false then
 				self.Bursting = true
 				timer.Simple(((60 / self.Primary.RPM) * self.FireModes_BurstShots * 2), function() self.Bursting = false end)
 					for i=1, (self.FireModes_BurstShots) do
 						timer.Simple(i * (60 / self.Primary.RPM) + 0.02, function()
-							if not IsValid(self) or not IsValid(self.Owner) then return end
+							if !IsValid(self) or !IsValid(self.Owner) then return end
 							if self:Clip1() <= 0 then return end
 							if self.Loading == false then
 								self:CallShoot("primary", true)
@@ -339,14 +339,14 @@ function SWEP:PrimaryAttack()
 				end
 			end
 			elseif self.Primary.CanMelee == false && self.Loading == false then
-				if self:GetNWString("FireMode") == "Semi" or self:GetNWString("FireMode") == "Auto" then
+				if fm == "Semi" or fm == "Auto" then
 					self:CallShoot("primary")
-				elseif self:GetNWString("FireMode") == "Burst" && self.Bursting == false then
+				elseif fm == "Burst" && self.Bursting == false then
 				self.Bursting = true
 				timer.Simple(((60 / self.Primary.RPM) * self.FireModes_BurstShots + 0.05), function() self.Bursting = false end)
 					for i=0, (self.FireModes_BurstShots - 1) do
 						timer.Simple(i * (60 / self.Primary.RPM), function()
-							if not IsValid(self) or not IsValid(self.Owner) then return end
+							if !IsValid(self) or !IsValid(self.Owner) then return end
 							if self.Loading == false then
 								self:CallShoot("primary", true)
 							end
@@ -511,7 +511,7 @@ function SWEP:DoMelee()
 	if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
 		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
 	elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
-		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE)
+		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND)
 	end
 	
 	local x1 = self.Primary.MeleeStartX
@@ -875,7 +875,6 @@ function SWEP:DoReload()
 		self:SetIronsights(false)
 		self.SightsDown = false
 		
-	--	ply:SetAnimation( PLAYER_RELOAD )
 		if SERVER then DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, self.Primary.ReloadAct) end
 		
 		self:SetIronsights(false, self.Owner)
@@ -955,10 +954,13 @@ function SWEP:EndReload()
 	self.BloomValue = 0.25
 	
 	if !ply:IsPlayer() then return end
-	if self.Primary.DropMagReload == false then
-		ply:RemoveAmmo( (CM - self:Clip1()), self.Primary.Ammo)
-	else
-		ply:RemoveAmmo( CM, self.Primary.Ammo)
+	
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() < 1 then
+		if self.Primary.DropMagReload == false then
+			ply:RemoveAmmo( (CM - self:Clip1()), self.Primary.Ammo)
+		else
+			ply:RemoveAmmo( CM, self.Primary.Ammo)
+		end
 	end
 		
 	if self.Passive == true then
@@ -1105,6 +1107,7 @@ function SWEP:Taunt()
 end
 
 function SWEP:DoImpactEffect(tr, dt)
+	if !game.SinglePlayer() && SERVER then return true end
 	if self.HideImpacts == true then return true else return false end
 end
 

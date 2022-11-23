@@ -33,7 +33,7 @@ function SWEP:RegeneratingAmmo(self)
 			maxammo = (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 			if maxammo < ammo then return end
 			if self.Loading == false then
-				self:SetNWInt("LoadedAmmo", math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
+				self:SetLoadedAmmo(math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
 				self:SetClip1(self:GetNWInt("LoadedAmmo"))
 			end
 		end)
@@ -168,7 +168,7 @@ function SWEP:DisperseCharge()
 			end
 			
 			if self:GetNWInt("Charge") > 99 then
-				self:SetNWInt("LoadedAmmo", self:GetNWInt("LoadedAmmo") - self.ChargeHoldDrain)
+				self:SetLoadedAmmo(self:GetNWInt("LoadedAmmo") - self.ChargeHoldDrain)
 				self:SetClip1( self:GetNWInt("LoadedAmmo") )
 			end
 		else end
@@ -388,7 +388,10 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 end
 
 function SWEP:TakePrimaryAmmo( num )
-	if not SERVER then return end
+	if !SERVER then return end
+	
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() == 2 then return end
+	
 	if ( self:Clip1() <= 0 ) && self.Owner:IsPlayer() then
 		if ( self:Ammo1() <= 0 ) then return end
 		self.Owner:RemoveAmmo( num, self:GetPrimaryAmmoType() )
@@ -402,9 +405,6 @@ function SWEP:TakeSecondaryAmmo( num )
 		self.Owner:RemoveAmmo( num, self:GetSecondaryAmmoType() )
 	return end
 	self:SetClip2( self:Clip2() - num )
-end
-
-function SWEP:DoCustomBulletImpact(pos, normal, dmg)
 end
 
 function SWEP:GetConeTarget()
@@ -448,7 +448,7 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	local ply = self:GetOwner()
 	local stats = self.StatsToPull
 	local fm = self:GetNWString("FireMode")
-	if fm == "Burst" && !IsFirstTimePredicted() then return end
+--	if !IsFirstTimePredicted() then return end
 	
 	force = self.Primary.Force * self:GetAttachmentValue("Ammunition", "Force")
 	
@@ -535,6 +535,14 @@ function SWEP:CalculateSpread(isprojectile)
 	end
 end
 
+function SWEP:SetLoadedAmmo(amount)
+	if !IsValid(self) then return end
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 1 then return end
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 0 && self.IsBatteryBased == true then return end
+	self:SetNWInt("LoadedAmmo", amount)
+	self:SetClip1(amount)
+end
+
 function SWEP:DoShoot(mode)
 	local stats = self.StatsToPull
 	local batstats = self.BatteryStats
@@ -582,16 +590,16 @@ function SWEP:DoShoot(mode)
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
 			else
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumPerShot )
 		end
@@ -613,16 +621,16 @@ function SWEP:DoShoot(mode)
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
 			else
-				self:SetNWInt("LoadedAmmo", math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumPerShot )
 		end
@@ -654,23 +662,26 @@ function SWEP:DoShoot(mode)
 		if self.SightsDown == true && self.Secondary.SightsSuppressAnim == true then else
 			local vm = ply:GetViewModel()
 			if mode == "primary" then
-				vm:SendViewModelMatchingSequence(fireseq)
-				self:SetCycle(0)
+				if SERVER or game.SinglePlayer() then 
+					vm:SendViewModelMatchingSequence(fireseq)
+				end
 				self:ResetSequence(fireseq)
-				self:ResetSequenceInfo(fireseq)
+				self:ResetSequenceInfo()
+				self:SetCycle(0)
+				self:SetSequence(fireseq)
 			elseif mode == "secondary" then
 				vm:SendViewModelMatchingSequence(fireseq2)
 				self:ResetSequence(fireseq2)
-				self:ResetSequenceInfo(fireseq2)
+				self:ResetSequenceInfo()
 			elseif mode == "overcharge" then
 				if fireseq3 == -1 then
 					vm:SendViewModelMatchingSequence(fireseq)
 					self:ResetSequence(fireseq)
-					self:ResetSequenceInfo(fireseq)
+					self:ResetSequenceInfo()
 				else
 					vm:SendViewModelMatchingSequence(fireseq3)
 					self:ResetSequence(fireseq3)
-					self:ResetSequenceInfo(fireseq3)
+					self:ResetSequenceInfo()
 				end
 			end
 		end
@@ -733,8 +744,10 @@ function SWEP:DoShoot(mode)
 			local muzzle = self:GetAttachment(muzzleattachment)
 			
 			for i=1,shotnum do
-				local proj = ents.Create(stats.Projectile)
-				if !proj:IsValid() then return false end
+				local class = ""
+				if istable(stats.Projectile) then class = stats.Projectile[math.Round(math.Rand(1, #stats.Projectile))] else class = stats.Projectile end
+				local proj = ents.Create(class)
+				if !IsValid(proj) then return false end
 				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
 				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
 				local projang = ply:GetAimVector():Angle() + Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue + stats.MuzzleAngle
@@ -835,7 +848,7 @@ function SWEP:DoShoot(mode)
 			if !IsValid(self) or !IsValid(ply) then return end
 			if ply:GetActivity() == ACT_RELOAD then
 				self:DoCustomReloadStartEvents()
-				self:SetNWInt("LoadedAmmo", (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
+				self:SetLoadedAmmo((self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
 			end
 		end)
 	end
@@ -1201,9 +1214,6 @@ function SWEP:ValveBipedCheck()
 	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh then return false else return true end
 end
 
-function SWEP:DoCustomMeleeImpact(att, tr)
-end
-
 function SWEP:GetAttachmentValue(att, val, subval)
 	local AA = self.ActiveAttachments
 	local base = scripted_ents.GetStored("drc_att_bprofile_generic")
@@ -1225,8 +1235,14 @@ function SWEP:GetAttachmentValue(att, val, subval)
 	end
 end
 
+function SWEP:DoCustomMeleeImpact(att, tr)
+end
+
 function SWEP:DoCustomOverchargeAttackEvents()
 end
 
 function SWEP:PassToProjectile(ent)
+end
+
+function SWEP:DoCustomBulletImpact(pos, normal, dmg)
 end

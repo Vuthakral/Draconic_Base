@@ -100,20 +100,6 @@ net.Receive("DRCNetworkGesture", function(len, ply)
 	local akill = tbl.Autokill
 
 	DRC:PlayGesture(plyr, slot, act, akill)
-	
-	if plyr:IsPlayer() then
-		if IsValid(DRC.CSPlayerModel) then -- TODO: Find a way to make this actually work
-		--	local seq = DRC.CSPlayerModel:SelectWeightedSequence(act)
-		--	local thyme = DRC.CSPlayerModel:SequenceDuration(seq)
-		--	DRC.CSPlayerModel.Turning = true
-		--	DRC.CSPlayerModel:ResetSequence(DRC.CSPlayerModel:GetSequenceName(seq))
-		--	DRC.CSPlayerModel:ResetSequenceInfo(DRC.CSPlayerModel:GetSequenceName(seq))
-		--	DRC.CSPlayerModel:SetSequence(DRC.CSPlayerModel:GetSequenceName(seq))
-		--	timer.Simple(thyme, function()
-		--		DRC.CSPlayerModel.Turning = false
-		--	end)
-		end
-	end
 end)
 
 net.Receive("DRCSound", function(len, ply)
@@ -244,3 +230,16 @@ hook.Add("Think", "drc_testhook", function()
 	end
 end)
 --]]
+
+hook.Add("PlayerTick", "DRC_SpeakingPoseParam", function(ply)
+	ply:SetPoseParameter("drc_speaking", TimedSin(1, 0, 1, 0))
+	if IsValid(ply.IsUsingVoice) then
+		local vol = ply:VoiceVolume()
+		local curpp = ply:GetPoseParameter("drc_speaking")
+		
+		ply:SetPoseParameter("drc_speaking", TimedSin(1, 0, 1, 0))
+	end
+end)
+
+hook.Add("PlayerStartVoice", "DRC_SpeakingPoseParam_MarkTrue", function(ply) ply.IsUsingVoice = true end)
+hook.Add("PlayerEndVoice", "DRC_SpeakingPoseParam_MarkFalse", function(ply) ply.IsUsingVoice = false end)

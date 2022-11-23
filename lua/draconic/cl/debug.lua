@@ -116,13 +116,10 @@ local function drc_TraceInfo()
 	surface.DrawText(tostring(ent))
 	
 	if hp && IsValid(ent) then 
+		local base = DRC:GetBaseName(ent)
 		local hp, maxhp = DRC:Health(ent)
-		
-		if ent:IsScripted() then
-			if ent.LFS then hp = math.Round(ent:GetHP()) maxhp = ent:GetMaxHP() end
-			if ent.IsSimfphyscar then hp = ent:GetCurHealth() end
-		end
-		-- Can y'all just use the standard health system when making your bases? You don't need to reinvent the wheel.
+		if hp == nil then hp = 0 end
+		if maxhp == nil then maxhp = 0 end
 		
 		surface.SetTextPos(pos.x - pos.x/2, pos.y + 32)
 		surface.SetTextColor(0, 255, 100)

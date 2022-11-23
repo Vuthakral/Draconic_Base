@@ -170,7 +170,7 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 				drawviewer = false,
 				fov = fov * 1,
 				znear = zn,
-				zfar = nil,
+				zfar = zfar,
 			}
 
 			if base == "mwb" then
@@ -247,20 +247,6 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
 	if !ply:Alive() then return end
-	local function CopyPoseParams(pEntityFrom, pEntityTo)
-		if (SERVER) then
-			for i = 0, pEntityFrom:GetNumPoseParameters() - 1 do
-				local sPose = pEntityFrom:GetPoseParameterName(i)
-				pEntityTo:SetPoseParameter(sPose, pEntityFrom:GetPoseParameter(sPose))
-			end
-		else
-			for i = 0, pEntityFrom:GetNumPoseParameters() - 1 do
-				local flMin, flMax = pEntityFrom:GetPoseParameterRange(i)
-				local sPose = pEntityFrom:GetPoseParameterName(i)
-				pEntityTo:SetPoseParameter(sPose, math.Remap(pEntityFrom:GetPoseParameter(sPose), 0, 1, flMin, flMax))
-			end
-		end
-	end
 
 	local CSPos = ply:GetPos()
 	if !IsValid(ply:GetVehicle()) then
@@ -301,6 +287,7 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	end
 	DRC.CSPlayerModel:SetMaterial(LocalPlayer():GetMaterial())
 	DRC.CSPlayerModel:SetColor(LocalPlayer():GetColor())
+	if DRC.CSPlayerModel:GetSkin() != LocalPlayer():GetSkin() then DRC.CSPlayerModel:SetSkin(LocalPlayer():GetSkin()) end
 	
 	local parents = {DRC.CSPlayerModel, DRC.CSShadowModel}
 	
@@ -310,14 +297,20 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 		ent:SetModelScale(LocalPlayer():GetModelScale())
 		ent:SetPos(CSPos)
 		ent:SetAngles(ply:GetRenderAngles())
-		if ent.Turning != true then ent:SetSequence(ply:GetSequence()) end
+		ent:SetSequence(ply:GetSequence())
+		DRC:CopyLayerSequenceInfo(0, LocalPlayer(), ent)
+		DRC:CopyLayerSequenceInfo(1, LocalPlayer(), ent)
+		DRC:CopyLayerSequenceInfo(2, LocalPlayer(), ent)
+		DRC:CopyLayerSequenceInfo(3, LocalPlayer(), ent)
+		DRC:CopyLayerSequenceInfo(4, LocalPlayer(), ent)
+		DRC:CopyLayerSequenceInfo(5, LocalPlayer(), ent) -- WHY DOESNT THIS WORK AAAAAA
 		ent:SetCycle(ply:GetCycle())
 		
 		for k,val in pairs(ply:GetBodyGroups()) do
 			ent:SetBodygroup(val.id, ply:GetBodygroup(val.id))
 		end
 		
-		CopyPoseParams(ply, ent)
+		DRC:CopyPoseParams(ply, ent)
 	end
 	
 	

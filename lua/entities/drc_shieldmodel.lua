@@ -106,7 +106,7 @@ function ENT:Draw()
 	end
 	
 	if DRC:GetShieldInvulnerability(parent) == true then
-		if parent == LocalPlayer() then print(parent:GetNWString("DRC_Shield_InvulnMaterial")) end
+	--	if parent == LocalPlayer() then print(parent:GetNWString("DRC_Shield_InvulnMaterial")) end
 		if parent:GetNWString("DRC_Shield_InvulnMaterial") != "" then
 		self.mat_to_use = parent:GetNWString("DRC_Shield_InvulnMaterial")
 		end

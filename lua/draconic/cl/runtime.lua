@@ -233,11 +233,13 @@ end)
 
 hook.Add("PlayerTick", "DRC_SpeakingPoseParam", function(ply)
 	ply:SetPoseParameter("drc_speaking", TimedSin(1, 0, 1, 0))
-	if IsValid(ply.IsUsingVoice) then
+	if ply.IsUsingVoice == true then
 		local vol = ply:VoiceVolume()
 		local curpp = ply:GetPoseParameter("drc_speaking")
 		
-		ply:SetPoseParameter("drc_speaking", TimedSin(1, 0, 1, 0))
+		ply:SetPoseParameter("drc_speaking", vol) --TimedSin(1, 0, 1, 0))
+	else
+		ply:SetPoseParameter("drc_speaking", 0)
 	end
 end)
 

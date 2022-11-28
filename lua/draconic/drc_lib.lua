@@ -1599,7 +1599,7 @@ net.Receive("DRC_Nuke", function(len, ply)
 	if !ent:IsAdmin() then
 		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_Nuke' net message but they aren't an admin! This is a known (and now patched) exploit which has been reported implemented into a few scripts.") end
 	return end
-	if ent:IsAdmin() then 
+	if ply:IsAdmin() then 
 		for k,v in pairs(ents.GetAll()) do
 			if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then v:TakeDamage(999999999, ent) v:Remove()
 			elseif v:IsPlayer() then v:ScreenFade(SCREENFADE.IN, Color(255, 255, 255), 3, 0)

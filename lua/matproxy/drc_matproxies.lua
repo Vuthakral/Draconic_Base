@@ -82,6 +82,7 @@ matproxy.Add( {
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
 		if !IsValid(LocalPlayer()) then return end
+		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		local col = GetPlayerColour(ent)
 		mat:SetVector( self.ResultTo, col )
 	end
@@ -96,6 +97,7 @@ matproxy.Add( {
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
 		if !IsValid(LocalPlayer()) then return end
+		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		local col = GetPlayerColour(ent)
 		mat:SetVector( self.ResultTo, col )
 	end

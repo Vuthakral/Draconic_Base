@@ -48,8 +48,6 @@ SWEP.ViewModelFOV		= 54
 SWEP.ViewModelFlip		= true
 SWEP.DrawAmmo			= true
 
-SWEP.InfAmmo	= false
-
 SWEP.UseHands			= true
 SWEP.DoesPassiveSprint	= false
 SWEP.ViewModel			= ""
@@ -716,6 +714,7 @@ function SWEP:Think()
 	end
 	
 	if self:HasViewModel() && string.lower(vm:GetModel()) != string.lower(self.ViewModel) then vm:SetModel(self.ViewModel) end
+	if self.ShowWorldModel == true && (self.WorldModel != nil or self.WorldModel != "") then self:SetModel(self.WorldModel) end
 
 	if CLIENT then
 		local wl = ply:WaterLevel()

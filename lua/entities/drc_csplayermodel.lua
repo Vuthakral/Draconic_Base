@@ -21,6 +21,10 @@ function ENT:Think()
 	self:DestroyShadow()
 end
 
+function ENT:SetModel(model)
+	self:Remove()
+end
+
 function ENT:Draw()
 	local ply = LocalPlayer()
 	if !IsValid(ply) or !ply:Alive() then return end
@@ -28,7 +32,7 @@ function ENT:Draw()
 	if DRC:SightsDown(ply:GetActiveWeapon()) then return end
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 0 then return end
 	
-	if self:GetModel() != ply:GetModel() then self:SetModel(ply:GetModel()) end
+--	if self:GetModel() != ply:GetModel() then self:SetModel(ply:GetModel()) end
 	self:DrawShadow(false)
 	self:DestroyShadow()
 	self:SetRenderMode(RENDERMODE_NORMAL)

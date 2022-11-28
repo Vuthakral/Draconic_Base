@@ -50,7 +50,7 @@ ENT.SuperExplodeShakeTime  		= 0.5
 ENT.SuperExplodeShakeDistance 	= 500
 
 ENT.FuseTime	= 5
-ENT.SafeTime 	= 1
+ENT.LifeTime 	= 60
 
 ENT.ExplodeShakePower 		= 5
 ENT.ExplodeShakeTime  		= 0.5	
@@ -452,7 +452,7 @@ local phys = self:GetPhysicsObject()
 	
 	self:DoCustomInitialize()
 	if SERVER then
-		timer.Simple(60, function()
+		timer.Simple(self.LifeTime, function()
 			if self:IsValid() then
 				if self.Explosive == true then
 					self:TriggerExplosion()
@@ -646,7 +646,6 @@ function ENT:PhysicsCollide( data, phys )
 		elseif type == "fire" then
 			
 			if CurTime() > cooldown then
-			--	print("attempting decal")
 				local startpos = self:GetPos()
 				local endpos = self:GetVelocity():Angle():Forward() * 25
 				util.Decal("Scorch", startpos, endpos, {self})
@@ -698,7 +697,6 @@ function ENT:DoImpactEffect()
 		end
 		
 --[[	if CLIENT && self.ExplodeLight != false then
-			print("FUCK")
 			local dlight = DynamicLight(self:EntIndex())
 			if (dlight) then
 				dlight.Pos 			= self:GetPos()

@@ -1514,14 +1514,14 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 		end -- holy shit why can there not just be a select weapon function that is predicted/shared?
 	end
 	
-	local generic 	= ACT_DEPLOY
-	local low 		= ACT_DOD_DEPLOY_MG
-	local high 		= ACT_DOD_DEPLOY_TOMMY
-	local rifle 	= ACT_RUN_AIM_RIFLE
-	local dual		= ACT_VM_DEPLOY_1
-	local pistol 	= ACT_RUN_AIM_PISTOL
-	local melee 	= ACT_DOD_STAND_AIM_KNIFE
-	local melee2 	= ACT_MP_STAND_MELEE
+	local generic 	= ACT_DEPLOY -- unused for now
+	local low 		= ACT_VM_DEPLOY_4
+	local high 		= ACT_VM_DEPLOY_3
+	local rifle 	= ACT_VM_DEPLOY_2
+	local dual		= ACT_VM_DEPLOY_7
+	local pistol 	= ACT_VM_DEPLOY_1
+	local melee 	= ACT_VM_DEPLOY_5
+	local melee2 	= ACT_VM_DEPLOY_6
 	local reset 	= ACT_RESET
 	
 	local geseq = ply:SelectWeightedSequence(generic)
@@ -1539,12 +1539,12 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 	local m2seq = ply:SelectWeightedSequence(melee2)
 	local m2dur = ply:SequenceDuration(m2seq)
 	
-	local onehand = { "pistol", "slam", "magic", "revolver" }
-	local twohand = { "smg", "ar2", "shotgun", "crossbow" }
-	local dualtypes = { "duel", "camera" }
-	local lowtypes = { "physgun" }
-	local hightypes = { "rpg" }
-	local meleetypes = { "melee", "knife", "grenade", "slam" }
+	local onehand = {"pistol", "revolver"}
+	local twohand = {"smg", "ar2", "shotgun", "crossbow"}
+	local dualtypes = {"duel"}
+	local lowtypes = {"physgun"}
+	local hightypes = {"rpg"}
+	local meleetypes = {"melee", "knife", "grenade", "slam", "magic", "camera"}
 	local meleetwohand = {"melee2"}
 	
 	if nw:GetClass() == "gmod_camera" or nw:GetClass() == "gmod_tool" then -- bruh
@@ -1597,8 +1597,7 @@ net.Receive("DRC_Nuke", function(len, ply)
 	local ent = net.ReadEntity()
 	if !IsValid(ent) then return end
 	if !ent:IsAdmin() then
-		ent:Kill()
-		print("".. ent:Nick() .." (".. ent:SteamID64() ..") is likely using exploits and tried to run the DRC Nuke dev tool!")
+		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_Nuke' net message but they aren't an admin! This is a known (and now patched) exploit which has been reported implemented into a few scripts.") end
 	return end
 	if ent:IsAdmin() then 
 		for k,v in pairs(ents.GetAll()) do
@@ -2430,6 +2429,22 @@ function DRC:SetHealth(ent, amount, maxamount)
 	end
 end
 
+function DRC:CreateProjectile(class, pos, ang, force, owner, inherit)
+	local proj = ents.Create(class)
+	if owner then proj:SetOwner(owner) end
+	proj:SetPos(pos)
+	proj:SetAngles(ang)
+	proj:Spawn()
+	proj:Activate()
+	
+	local speed = ang:Forward() * force
+	if owner && inherit == true then speed = ((ang:Forward() * force) + owner:GetVelocity()) end
+	local phys = proj:GetPhysicsObject()
+	phys:SetVelocity(speed)
+
+	return proj
+end
+
 hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply, weapon )
 	if !IsValid(ply) or !IsValid(weapon) then return end
 	if weapon.IsBatteryBased == true then
@@ -2757,7 +2772,7 @@ hook.Add("EntityRemoved", "DRC_WeaponTracker_Remove", function(ent)
 	if DRC.ActiveWeapons[tostring(ent)] then DRC.ActiveWeapons[tostring(ent)] = nil end
 end)
 
-hook.Add("CalcMainActivity", "DRC_BarnacleXDR", function(ply, vel)
+hook.Add("CalcMainActivity", "DRC_BarnacleGrab", function(ply, vel)
 	if !IsValid(ply) then return end
 	if ply:GetNWBool("BarnacleHeld", false) == true then
 --	if ply:IsEFlagSet(EFL_IS_BEING_LIFTED_BY_BARNACLE) == true then -- doesn't return true on client
@@ -2774,5 +2789,11 @@ hook.Add("CalcMainActivity", "DRC_BarnacleXDR", function(ply, vel)
 				if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
 			end
 		end
+	end
+end)
+
+hook.Add("Tick", "FUCKYOU", function()
+	for k,v in pairs(DRC.ActiveWeapons) do
+		v.Muzzle = v:GetAttachment(v:LookupAttachment("muzzle"))
 	end
 end)

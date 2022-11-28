@@ -100,13 +100,14 @@ net.Receive("DRC_UpdatePlayerHands", function()
 	if !IsValid(LocalPlayer()) then return end
 	local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
 	local pmname = player_manager.TranslateToPlayerModelName(handval)
-	if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then 
+	if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then
 		pmname = player_manager.TranslateToPlayerModelName(LocalPlayer():GetModel())
+	else
+		local handstable = player_manager.TranslatePlayerHands(pmname)
+		handstable.skin = LocalPlayer():GetInfo("cl_playerhands_skin")
+		handstable.bodygroups = LocalPlayer():GetInfo("cl_playerhands_bodygroups")
+		DRC:ChangeCHandModel(handstable)
 	end
-	local handstable = player_manager.TranslatePlayerHands(pmname)
-	handstable.skin = LocalPlayer():GetInfo("cl_playerhands_skin")
-	handstable.bodygroups = LocalPlayer():GetInfo("cl_playerhands_bodygroups")
-	DRC:ChangeCHandModel(handstable)
 end)
 
 net.Receive("DRC_UpdatePlayermodel", function()
@@ -122,5 +123,5 @@ net.Receive("DRC_UpdatePlayermodel", function()
 	ent:SetSkin(skin)
 	ent:SetBodyGroups(bgs)
 	DRC:RefreshColours(ent)
-	RunConsoleCommand("drc_refreshcsents")
+	
 end)

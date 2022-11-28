@@ -18,6 +18,12 @@ surface.CreateFont("ApercuStatsTitle", {
 	outline	= true
 })
 
+surface.CreateFont("DripIcons_Menu", {
+	font 	= "dripicons-v2",
+	size	= 16,
+	weight	= 300,	
+})
+
 	if GetConVar("cl_drc_sell_soul") == nil then
 		CreateClientConVar("cl_drc_sell_soul", 1, {FCVAR_DEMO, FCVAR_USERINFO}, "Give unto the dragon.", 0, 1)
 	end
@@ -232,16 +238,21 @@ end)
 --]]
 
 hook.Add("PlayerTick", "DRC_SpeakingPoseParam", function(ply)
-	ply:SetPoseParameter("drc_speaking", TimedSin(1, 0, 1, 0))
+	if game.SinglePlayer() then return end
+	local vol = math.Clamp(ply:VoiceVolume(), 0.05, 1)
+	if ply.DesiredVoiceVal != nil then
+		ply.LerpedVoiceSmoother = Lerp(0.9, ply.LerpedVoiceSmoother or vol, vol)
+		ply.LerpedVoiceVal = Lerp(1 * ply.LerpedVoiceSmoother, ply.LerpedVoiceVal or ply.DesiredVoiceVal, ply.DesiredVoiceVal)
+	end
 	if ply.IsUsingVoice == true then
-		local vol = ply:VoiceVolume()
-		local curpp = ply:GetPoseParameter("drc_speaking")
-		
-		ply:SetPoseParameter("drc_speaking", vol) --TimedSin(1, 0, 1, 0))
+		ply.DesiredVoiceVal = Lerp(0.5, ply.DesiredVoiceVal or vol * 3, vol * 3)
 	else
-		ply:SetPoseParameter("drc_speaking", 0)
+		ply.DesiredVoiceVal = -0.05
+	end
+	if ply.LerpedVoiceVal then 
+		if ply:LookupPoseParameter("drc_speaking") != -1 then ply:SetPoseParameter("drc_speaking", ply.LerpedVoiceVal) end
 	end
 end)
 
-hook.Add("PlayerStartVoice", "DRC_SpeakingPoseParam_MarkTrue", function(ply) ply.IsUsingVoice = true end)
-hook.Add("PlayerEndVoice", "DRC_SpeakingPoseParam_MarkFalse", function(ply) ply.IsUsingVoice = false end)
+hook.Add("PlayerStartVoice", "DRC_SpeakingPoseParam_MarkTrue", function(ply) if game.SinglePlayer() then return end ply.IsUsingVoice = true end)
+hook.Add("PlayerEndVoice", "DRC_SpeakingPoseParam_MarkFalse", function(ply) if game.SinglePlayer() then return end ply.IsUsingVoice = false end)

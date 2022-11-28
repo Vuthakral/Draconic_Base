@@ -668,7 +668,6 @@ function SWEP:DoShoot(mode)
 				self:ResetSequence(fireseq)
 				self:ResetSequenceInfo()
 				self:SetCycle(0)
-				self:SetSequence(fireseq)
 			elseif mode == "secondary" then
 				vm:SendViewModelMatchingSequence(fireseq2)
 				self:ResetSequence(fireseq2)
@@ -746,53 +745,42 @@ function SWEP:DoShoot(mode)
 			for i=1,shotnum do
 				local class = ""
 				if istable(stats.Projectile) then class = stats.Projectile[math.Round(math.Rand(1, #stats.Projectile))] else class = stats.Projectile end
-				local proj = ents.Create(class)
-				if !IsValid(proj) then return false end
+				if IsValid(class) && class != "" then return false end
 				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
 				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
-				local projang = ply:GetAimVector():Angle() + Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue + stats.MuzzleAngle
-				proj:SetAngles(projang)
+				local FinalSpread = Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue + stats.MuzzleAngle
+				local projang = ply:GetAimVector():Angle() + FinalSpread
+				local projpos = Vector()
 				if ply:IsPlayer() && self.SightsDown == true then
 					if self.SightsDown == true && self.Secondary.Scoped == true then
-						proj:SetPos( ply:EyePos() )
+						projpos = ply:EyePos()
 					else
-						proj:SetPos( ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25) )
+						projpos = ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25)
 					end
 				elseif ply:IsNPC() or ply:IsNextBot() then
 					if muzzle != nil then
-						proj:SetPos(muzzle.Pos)
+						projpos = muzzle.Pos
 					else
-						proj:SetPos( ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25) )
+						projpos = ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25)
 					end
 					if ply.IsVJBaseSNPC then
-						proj:SetPos( ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25) )
-						proj:SetAngles(projang - Angle(-5, 0 ,0)) -- wtf
+						projpos = ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25)
+						projang = projang - Angle(-5, 0 ,0) -- wtf
 					end
 				else
 					if !DRC:ValveBipedCheck(ply) then -- Unfortunately, muzzle pos does not work in singleplayer unless the local player is being rendered.
 						local eyeheight = ply:EyePos().z - ply:GetPos().z
-						proj:SetPos(ply:GetPos() + Vector(0, 0, eyeheight/1.1) + ply:EyeAngles():Forward() * 10 + ply:EyeAngles():Right() * 5)
+						projpos = ply:GetPos() + Vector(0, 0, eyeheight/1.1) + ply:EyeAngles():Forward() * 10 + ply:EyeAngles():Right() * 5
 					else
-						proj:SetPos(ply:GetBonePosition(RightHand))
+						projpos = ply:GetBonePosition(RightHand)
 					end
 				end
-				proj:SetOwner(self.Owner)
-				proj:Spawn()
-				proj.Owner = self.Owner
-				proj:Activate()
 				
+				local proj = DRC:CreateProjectile(class, projpos, projang, stats.ProjSpeed, ply, stats.ProjInheritVelocity)
 				self:PassToProjectile(proj)
 				
 				if !self.PTable then self.PTable = {} end
 				if proj.Draconic == true then table.insert(self.PTable, proj) end
-				
-				local phys = proj:GetPhysicsObject()
-				local sped = phys:GetAngles():Forward() * (stats.ProjSpeed)
-				if stats.ProjInheritVelocity == true then
-					phys:SetVelocity(sped + ply:GetVelocity())
-				else
-					phys:SetVelocity(sped)
-				end
 			end
 		end
 	end
@@ -863,6 +851,7 @@ function SWEP:DoShoot(mode)
 end
 
 function SWEP:DoEffects(mode, nosound, multishot)
+	if !IsValid(self) then return end
 	local ply = self:GetOwner()
 	local muzzleattachment = self:LookupAttachment("muzzle")
 	local muzzle = self:GetAttachment(muzzleattachment)
@@ -1111,12 +1100,8 @@ function SWEP:MuzzleFlash()
 	end
 	
 	if self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Simple") == true then
-		local att = self:LookupAttachment("muzzle")
-		local attinfo = self:GetAttachment(att)
-		local pos, ang = attinfo.Pos, attinfo.Ang
 		local finalcol = Color(col.r, col.g, col.b, col.a * mul)
-		
-		DRC:DLight(self, pos, finalcol, self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Size"), self:GetAttachmentValue("Ammunition", "MuzzleFlash", "LifeTime"))
+		DRC:DLight(self, self:GetShootPos(), finalcol, self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Size"), self:GetAttachmentValue("Ammunition", "MuzzleFlash", "LifeTime"))
 	end
 end
 

@@ -355,6 +355,7 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 				})
 				if DRC:IsCharacter(tr.Entity) then
 					DRC:SpeakSentence(tr.Entity, "Reactions", "Puke", true)
+					if tr.Entity:IsPlayer() then DRC:CallGesture(tr.Entity, GESTURE_SLOT_CUSTOM, ACT_VM_UNDEPLOY_1, true) end
 				end
 			end
 		end
@@ -416,10 +417,12 @@ hook.Add("Tick", "DRC_BarnacleGrabDetection_Barnacles", function()
 	end
 end) ]]
 
-net.Receive("DRCVoiceSet_CL", function()
+net.Receive("DRCVoiceSet_CL", function(len, ply)
 	local tbl = net.ReadTable()
 	local value = tbl[2]
 	local ent = tbl[1]
+	
+	if ply != ent then return end
 	
 	if tbl[3] then
 		local ply, call, subcall = tbl[1], tbl[2], tbl[3]

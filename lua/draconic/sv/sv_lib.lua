@@ -21,6 +21,11 @@ if game.SinglePlayer() then
 	end)
 end
 
+function DRC:CheaterWarning(ply, str)
+	local ID64 = ply:SteamID64()
+	MsgC(Color(255, 0, 0), "\n[DRACONIC BASE - CHEATER WARNING]\n", Color(255,255,255), "> ", Color(255, 255, 0), "Player: ", Color(255, 255, 255), "".. ply:Name() .."\n> ", Color(255, 255, 0), "ID64: ", Color(255, 255, 255), "".. ID64 .."\n\n> ".. str .."\n\n")
+end
+
 local DisableEnts = {
 	["npc_turret_floor"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Medium"},
 	["npc_turret_ceiling"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Medium"},
@@ -158,10 +163,14 @@ function DRC:ClearRoleplayPlayermodels(ply)
 	net.Send(ply)
 end
 
-net.Receive("DRC_ApplyPlayermodel", function()
+net.Receive("DRC_ApplyPlayermodel", function(len, ply)
 	local tbl = net.ReadTable()
 	
 	local ent = tbl.player
+	if !IsValid(ent) or !IsValid(ply) then return end
+	if ply != ent then
+		DRC:CheaterWarning(ply, "This client attempted to call the 'DRC_ApplyPlayermodel' net message with a target other than their own player, this is normally completely impossible & only achievable through using an exploited client and/or injected scripts.")
+	return end
 	local skin = tbl.skin
 	local bgs = tbl.bodygroups
 	local colours = tbl.colours
@@ -176,7 +185,7 @@ net.Receive("DRC_ApplyPlayermodel", function()
 	ent:SetModel(model)
 	ent:SetSkin(skin)
 	ent:SetBodyGroups(bgs)
-	ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model)
+	if ent:GetInfo("cl_playerhands") == "disabled" then ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model) end
 	DRC:RefreshColours(ent)
 	ent:SetNWString("DRCVoiceSet", vs)
 	

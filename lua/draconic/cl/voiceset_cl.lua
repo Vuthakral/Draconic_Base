@@ -112,6 +112,10 @@ hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 			if maxclip > 0 && clip <= 0 && !LocalPlayer():KeyDown(IN_USE) then DRC:SendVoiceLineRequest(LocalPlayer(), "Reactions", "NoAmmo") end
 		end
 	end
+	
+	if bind == "+jump" && DRC:FloorDist(ply) < 10 then
+		DRC:SendVoiceLineRequest(LocalPlayer(), "Actions", "Jump")
+	end
 end)
 
 hook.Add("HUDPaintBackground", "VoiceSets_HUD", function()

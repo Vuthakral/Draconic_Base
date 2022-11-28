@@ -264,15 +264,18 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 		DRC.CSPlayerModel = ents.CreateClientside("drc_csplayermodel")
 		DRC.CSPlayerModel:SetModel(LocalPlayer():GetModel())
 		DRC.CSPlayerModel:SetParent(LocalPlayer())
-		DRC.CSPlayerModel.Skel = DRC:GetBones(DRC.CSPlayerModel)
+		DRC.CSPlayerModel.Skel = DRC:GetBones(LocalPlayer())
+	else
+		if DRC.CSPlayerModel:GetModel() != LocalPlayer():GetModel() then DRC.CSPlayerModel:Remove() end
 	end
 	
 	if !IsValid(DRC.CSShadowModel) then
 		DRC.CSShadowModel = ents.CreateClientside("drc_csshadowmodel")
 		DRC.CSShadowModel:SetModel(LocalPlayer():GetModel())
 		DRC.CSShadowModel:SetParent(LocalPlayer())
-		DRC.CSShadowModel.Skel = DRC:GetBones(DRC.CSShadowModel)
-		
+		DRC.CSShadowModel.Skel = DRC:GetBones(LocalPlayer())
+	else
+		if DRC.CSShadowModel:GetModel() != LocalPlayer():GetModel() then DRC.CSShadowModel:Remove() end
 	end
 	
 	if !IsValid(DRC.CSWeaponShadow) then

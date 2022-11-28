@@ -76,7 +76,7 @@ function DRCMenu( player )
 	maintabs:AddSheet( "Player Representation", mt1, "icon16/user.png")
     
     local frame = vgui.Create("DPanel", mt1)
-	frame:SetWide(windowwide/2)
+	frame:SetSize(590, 658)
 	frame:Dock(LEFT)
 	frame:DockPadding(0, 0, 0, 0)
 --    frame:SetSize(512, topwide/1.5-24)
@@ -104,26 +104,34 @@ function DRCMenu( player )
 	bg:SetImage("vgui/drc_playerbg")
 	bg:SetZPos(-10)
 	
+	frame.tools = vgui.Create("DPanel", frame)
+	frame.tools:SetSize(589,658)
+	frame.tools:Dock(FILL)
+	frame.tools:SetVisible(false)
+	frame.tools:SetEnabled(false)
+	frame.tools:SetBackgroundColor(Color(0,0,0,0))
+	
 	--local pmodel = LocalPlayer():GetInfo( "cl_playermodel" )
 	--local pmodelname = player_manager.TranslatePlayerModel( pmodel )
 	local pmodelname = LocalPlayer():GetModel()
 	
 	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() end
 	
-    local preview = vgui.Create("DAdjustableModelPanel", frame)
-	preview:SetSize(589,658)
-    preview:SetPos(0, 0)
-    preview:SetFOV(50)
-	preview:SetModel(tostring(pmodelname))
-	preview:SetAnimated( true )
-    preview:SetAnimationEnabled(true)
-	preview:SetAmbientLight(Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
-	preview:SetDirectionalLight(BOX_TOP, Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
-	preview:SetLookAng(Angle(20, 190, 0))
-	preview:SetCamPos(Vector(72, 15, 66))
+    frame.preview = vgui.Create("DAdjustableModelPanel", frame)
+	frame.preview:SetSize(589,658)
+    frame.preview:SetPos(0, 0)
+    frame.preview:SetFOV(47)
+	frame.preview:SetModel(tostring(pmodelname))
+	frame.preview:SetAnimated( true )
+    frame.preview:SetAnimationEnabled(true)
+	frame.preview:SetAmbientLight(Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
+	frame.preview:SetDirectionalLight(BOX_TOP, Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
+	frame.preview:SetLookAng(Angle(10.278, 203.334, 0))
+	frame.preview:SetCamPos(Vector(80.69, 36.7, 52.02))
 	
-	function preview:LayoutEntity( ent )
+	function frame.preview:LayoutEntity( ent )
 		ent:SetLOD(0)
+		frame.preview:SetFOV(math.Clamp(frame.preview:GetFOV(), 10, 100))
 		local idle = ent:SelectWeightedSequence(ACT_HL2MP_IDLE)
 		if ent:LookupSequence("drc_menu") != -1 then
 			ent:SetSequence("drc_menu")
@@ -132,6 +140,20 @@ function DRCMenu( player )
 		else
 			ent:SetSequence(idle)	
 		end
+		
+		ent.BGNum = 0
+		for k,v in pairs(ent:GetBodyGroups()) do
+			ent.BGNum = ent.BGNum + v.num
+		end
+		local pos = frame.preview:GetCamPos()
+		local ang = frame.preview:GetLookAng()
+		if frame.tools.bgs then frame.tools.bgs:SetText("Bodygroups: ".. ent.BGNum .."") end
+		if frame.tools.skins then frame.tools.skins:SetText("Skins: ".. ent:SkinCount() .."") end
+		if frame.tools.mats then frame.tools.mats:SetText("Materials: ".. #ent:GetMaterials() .."") end
+		if frame.tools.bones then frame.tools.bones:SetText("Bones: ".. ent:GetBoneCount() .."") end
+		if frame.tools.pos then frame.tools.pos:SetText("Cam Position: "..math.Round(pos.x, 2)..", ".. math.Round(pos.y, 2)..", ".. math.Round(pos.z, 2) .."") end
+		if frame.tools.ang then frame.tools.ang:SetText("Cam Angle: "..math.Round(ang.x, 2)..", ".. math.Round(ang.y, 2)..", ".. math.Round(ang.z, 2) .."") end
+		if frame.tools.fov then frame.tools.fov:SetText("FOV: ".. math.Round(frame.preview:GetFOV(), 2) .."") end
 		
 		if !ent.blonk then ent.blonk = 0 end
 		if !ent.blinktime then ent.blinktime = 0 end
@@ -154,68 +176,19 @@ function DRCMenu( player )
 		
 		ent:SetAngles( Angle(0, 0, 0) )
 		ent:SetPos( Vector() )
-		ent:SetEyeTarget(preview:GetCamPos())
-		preview:RunAnimation()
+		ent:SetEyeTarget(frame.preview:GetCamPos())
+		frame.preview:RunAnimation()
     end
 	
-	local toolpanel = vgui.Create("DPanel", preview)
-	toolpanel:SetPos(0,0)
-	toolpanel:SetSize(preview:GetWide(), 16)
-	toolpanel:SetBackgroundColor(Color(0, 0, 0, 0))
-	
-	local toolsbutton = vgui.Create("DButton", frame)
-	toolsbutton:SetText("Tools")
-	toolsbutton:SetPos(0,0)
-	toolsbutton:SetSize(32, 16)
-	toolsbutton:SetTextColor(color_white)
-	toolsbutton:SetContentAlignment(5)
-	toolsbutton:SetTooltip(false)
-	function toolsbutton:Paint(w, h)
-		draw.RoundedBox(5, 0, 0, w, h, Color(157,161,165))
-	end
-	function toolsbutton:DoClick()
-		local toolsmenu = vgui.Create("DPanel", frame)
-		toolsmenu:SetPos(0, 0)
-		toolsmenu:SetSize(128, 40)
-		
-		local header = vgui.Create("DPanel", toolsmenu)
-		header:Dock(TOP)
-		header:SetSize(128, 16)
-		
-		local faketoolsbutton = vgui.Create("DButton", header)
-		faketoolsbutton:SetText("Tools")
-		faketoolsbutton:SetPos(0, 0)
-		faketoolsbutton:SetSize(32, 16)
-		faketoolsbutton:SetTextColor(color_white)
-		faketoolsbutton:SetContentAlignment(5)
-		faketoolsbutton:SetTooltip(false)
-		function faketoolsbutton:Paint(w, h)
-			draw.RoundedBox(5, 0, 0, w, h, Color(157,161,165))
-		end
-		function faketoolsbutton:DoClick()
-			toolsmenu:Remove()
-		end		
-		
-		local t1 = vgui.Create("DButton", toolsmenu)
-		t1:Dock(TOP)
-		t1:SetText("Copy model path")
-		t1:SetTooltip("Copies current model path to clipboard.")
-		function t1:DoClick()
-			t1:SetText("Copied!")
-			SetClipboardText(preview:GetModel())
-			timer.Simple(1, function() t1:SetText("Copy model path") end)
-		end
-	end
-	
-	local bottompanel = vgui.Create("DPanel", preview)
-	bottompanel:SetPos(0,preview:GetTall() - 16)
-	bottompanel:SetSize(preview:GetWide(), 16)
-	bottompanel:SetBackgroundColor(Color(0, 0, 0, 0))
+	local bottompanel = vgui.Create("DPanel", frame.preview)
+	bottompanel:SetPos(0,frame.preview:GetTall() - 50)
+	bottompanel:SetSize(frame.preview:GetWide(), 50)
+	bottompanel:SetBackgroundColor(Color(0, 0, 0, 50))
 	
 	local applybutton = vgui.Create("DButton", bottompanel)
 	applybutton:SetText("Apply Changes")
-	applybutton:SetPos(230,0)
-	applybutton:SetSize(128, 16)
+	applybutton:SetPos(230,10)
+	applybutton:SetSize(128, 32)
 	applybutton:SetTextColor(color_white)
 	applybutton:SetContentAlignment(5)
 	applybutton:SetTooltip(false)
@@ -228,14 +201,121 @@ function DRCMenu( player )
 	end
 	
 	local hint = vgui.Create("DButton", frame)
-	hint:SetText("?")
-	hint:SetPos(0,preview:GetTall() - 16)
-	hint:SetSize(16, 16)
+	hint:SetText("Controls")
+	hint:SetPos(frame.preview:GetWide() - 80,frame.preview:GetTall() - 42)
+	hint:SetSize(64, 32)
 	hint:SetTextColor(color_white)
 	hint:SetContentAlignment(5)
 	hint:SetTooltip("Left click to pan.\nRight click for FPS controls.\n\nWASD/Arrow keys, Space, and Ctrl to move FPS camera.\nShift to increase camera speed.\nScroll wheel to zoom in/out.")
 	function hint:Paint(w, h)
-		draw.RoundedBox(5, 0, 0, w, h, Color(157,161,165))
+		draw.RoundedBox(5, 0, 0, w, h, Color(157,161,165, 127))
+	end
+	
+	local toolsbutton = vgui.Create("DButton", bottompanel)
+	toolsbutton:SetFont("DripIcons_Menu")
+	toolsbutton:SetText("~")
+	toolsbutton:SetPos(16,8)
+	toolsbutton:SetSize(32, 32)
+	toolsbutton:SetTextColor(color_white)
+	toolsbutton:SetContentAlignment(5)
+	toolsbutton:SetTooltip(false)
+	function toolsbutton:Paint(w, h)
+		draw.RoundedBox(5, 0, 0, w, h, Color(157,161,165,127))
+	end
+	function toolsbutton:DoClick()
+		local tools = {
+			frame.tools,
+			bottompanel.copy,
+		}
+		for k,v in pairs(tools) do
+			v:SetVisible(true)
+			v:SetEnabled(true)
+		end
+		toolsbutton:SetVisible(false)
+		toolsbutton.faketoolsbutton = vgui.Create("DButton", bottompanel)
+		toolsbutton.faketoolsbutton:SetFont("DripIcons_Menu")
+		toolsbutton.faketoolsbutton:SetText("~")
+		toolsbutton.faketoolsbutton:SetPos(16,8)
+		toolsbutton.faketoolsbutton:SetSize(32, 32)
+		toolsbutton.faketoolsbutton:SetTextColor(color_black)
+		toolsbutton.faketoolsbutton:SetContentAlignment(5)
+		toolsbutton.faketoolsbutton:SetTooltip(false)
+		function toolsbutton.faketoolsbutton:Paint(w, h)
+			draw.RoundedBox(5, 0, 0, w, h, Color(157,161,165,127))
+		end
+		function toolsbutton.faketoolsbutton:DoClick()
+			local tools = {
+				frame.tools,
+				bottompanel.copy,
+			}
+			for k,v in pairs(tools) do
+				v:SetVisible(false)
+				v:SetEnabled(false)
+			end
+			toolsbutton:SetVisible(true)
+			toolsbutton.faketoolsbutton:Remove()
+		end
+		--[[
+		local t1 = vgui.Create("DButton", toolsmenu)
+		t1:SetSize(128,16)
+		t1:SetPos(128,16)
+		t1:SetText("Copy model path")
+		t1:SetTooltip("Copies current model path to clipboard.")
+		function t1:DoClick()
+			t1:SetText("Copied!")
+			SetClipboardText(frame.preview:GetModel())
+			timer.Simple(1, function() t1:SetText("Copy model path") end)
+		end
+		]]
+	end
+	
+	frame.tools.bgs = vgui.Create("DLabel", frame.tools)
+	frame.tools.bgs:SetText("Bodygroups: 0")
+	frame.tools.bgs:SetSize(256, 16)
+	frame.tools.bgs:SetPos(16, 8)
+	
+	frame.tools.skins = vgui.Create("DLabel", frame.tools)
+	frame.tools.skins:SetText("Skins: 0")
+	frame.tools.skins:SetSize(256, 16)
+	frame.tools.skins:SetPos(16, 22)
+	
+	frame.tools.mats = vgui.Create("DLabel", frame.tools)
+	frame.tools.mats:SetText("Materials: 0")
+	frame.tools.mats:SetSize(256, 16)
+	frame.tools.mats:SetPos(16, 36)
+	
+	frame.tools.bones = vgui.Create("DLabel", frame.tools)
+	frame.tools.bones:SetText("Bones: 0")
+	frame.tools.bones:SetSize(256, 16)
+	frame.tools.bones:SetPos(16, 50)
+	
+	frame.tools.pos = vgui.Create("DLabel", frame.tools)
+	frame.tools.pos:SetText("Position: 0,0,0")
+	frame.tools.pos:SetSize(256, 16)
+	frame.tools.pos:SetPos(16, 64)
+	
+	frame.tools.ang = vgui.Create("DLabel", frame.tools)
+	frame.tools.ang:SetText("Angle: 0,0,0")
+	frame.tools.ang:SetSize(256, 16)
+	frame.tools.ang:SetPos(16, 78)
+	
+	frame.tools.fov = vgui.Create("DLabel", frame.tools)
+	frame.tools.fov:SetText("FOV: 0")
+	frame.tools.fov:SetSize(256, 16)
+	frame.tools.fov:SetPos(16, 92)
+	
+	bottompanel.copy = vgui.Create("DButton", bottompanel)
+	bottompanel.copy:SetSize(128,16)
+	bottompanel.copy:SetPos(64,bottompanel:GetTall() - 40)
+	bottompanel.copy:SetText("Copy model path")
+	bottompanel.copy:SetTooltip("Copies current model path to clipboard.")
+	bottompanel.copy:SetEnabled(false)
+	bottompanel.copy:SetVisible(false)
+	
+	function bottompanel.copy:DoClick()
+		bottompanel.copy:SetText("Copied!")
+		SetClipboardText(frame.preview:GetModel())
+		timer.Simple(1, function() bottompanel.copy:SetText("Copy model path") end)
 	end
 	
 	local tabs = vgui.Create( "DPropertySheet", frame2 )
@@ -566,15 +646,15 @@ function DRCMenu( player )
 	
 	function applybutton:DoClick()
 		local str = ""
-		for k,v in pairs(preview:GetEntity():GetBodyGroups()) do
-			local num = preview:GetEntity():GetBodygroup(k-1)
+		for k,v in pairs(frame.preview:GetEntity():GetBodyGroups()) do
+			local num = frame.preview:GetEntity():GetBodygroup(k-1)
 			str = "".. str .."".. tostring(num) ..""
 		end
 	
 		local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
 		local pmname = player_manager.TranslateToPlayerModelName(handval)
 		if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then 
-			pmname = player_manager.TranslateToPlayerModelName(preview:GetModel())
+			pmname = player_manager.TranslateToPlayerModelName(frame.preview:GetModel())
 		end
 		local handstable = player_manager.TranslatePlayerHands(pmname)
 		if LocalPlayer():GetInfo("cl_playerhands") != "disabled" then 
@@ -586,9 +666,9 @@ function DRCMenu( player )
 		if DRC:GetCustomizationAllowed() != true then
 			tbl = {
 				["player"] = LocalPlayer(),
-				["model"] = preview:GetModel(),
+				["model"] = frame.preview:GetModel(),
 				["bodygroups"] = str,
-				["skin"] = preview:GetEntity():GetSkin(),
+				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
 				["hands"] = {
 					["model"] = handval,
@@ -599,7 +679,7 @@ function DRCMenu( player )
 		else
 			tbl = {
 				["player"] = LocalPlayer(),
-				["model"] = preview:GetModel(),
+				["model"] = frame.preview:GetModel(),
 				["colours"] = {
 					["Energy"] = Color(energyColour:GetColor().r, energyColour:GetColor().g, energyColour:GetColor().b),
 					["Eye"] = Color(eyecolour:GetColor().r, eyecolour:GetColor().g, eyecolour:GetColor().b),
@@ -609,7 +689,7 @@ function DRCMenu( player )
 					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
 				},
 				["bodygroups"] = str,
-				["skin"] = preview:GetEntity():GetSkin(),
+				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
 				["hands"] = {
 					["model"] = handval,
@@ -692,16 +772,16 @@ function DRCMenu( player )
 	Sprays_Player.Label:SetColor(Color(0, 0, 0, 255))
 	Sprays_Player:SetEnabled(true)
 	
-	local SprayPreviewText = vgui.Create("DLabel", tab5)
-	SprayPreviewText:SetPos(16, 105)
-	SprayPreviewText:SetTextColor(Color(0, 0, 0, 255))
-	SprayPreviewText:SetText("Your spray:")
+	local SpraypreviewText = vgui.Create("DLabel", tab5)
+	SpraypreviewText:SetPos(16, 105)
+	SpraypreviewText:SetTextColor(Color(0, 0, 0, 255))
+	SpraypreviewText:SetText("Your spray:")
 	
-	local SprayPreview = vgui.Create("DImage", tab5)
-	SprayPreview:SetPos(16, 115)
-	SprayPreview:SetSize(320, 320)
-	SprayPreview:SetImageColor(Color(255, 255, 255, 255))
-	SprayPreview:SetMaterial("vgui/drc_spraypreview")
+	local Spraypreview = vgui.Create("DImage", tab5)
+	Spraypreview:SetPos(16, 115)
+	Spraypreview:SetSize(320, 320)
+	Spraypreview:SetImageColor(Color(255, 255, 255, 255))
+	Spraypreview:SetMaterial("vgui/drc_spraypreview")
 	
 	local SprayDisclaimer = vgui.Create("DLabel", tab5)
 	SprayDisclaimer:SetPos(16, 430)
@@ -753,7 +833,7 @@ function DRCMenu( player )
 	
 	
 --	local weaponlabel = vgui.Create("DLabel", tab6)
---	weaponlabel:SetText("Preview Weapon Model:")
+--	weaponlabel:SetText("frame.preview Weapon Model:")
 --	weaponlabel:SetSize(128, 16)
 	
 --	local weapon = vgui.Create("DTextEntry", tab6)
@@ -808,7 +888,7 @@ function DRCMenu( player )
 		local function UpdateBodyGroups( pnl, val )
 			if ( pnl.type == "bgroup" ) then
 
-				preview.Entity:SetBodygroup( pnl.typenum, math.Round( val ) )
+				frame.preview.Entity:SetBodygroup( pnl.typenum, math.Round( val ) )
 
 				local str = string.Explode( " ", GetConVarString( "cl_playerbodygroups" ) )
 				if ( #str < pnl.typenum + 1 ) then for i = 1, pnl.typenum + 1 do str[ i ] = str[ i ] or 0 end end
@@ -817,7 +897,7 @@ function DRCMenu( player )
 
 			elseif ( pnl.type == "skin" ) then
 
-				preview.Entity:SetSkin( math.Round( val ) )
+				frame.preview.Entity:SetSkin( math.Round( val ) )
 				ply:SetSkin( math.Round( val ) )
 				RunConsoleCommand( "cl_playerskin", math.Round( val ) )
 
@@ -829,7 +909,7 @@ function DRCMenu( player )
 
 			tab3.Tab:SetVisible( false )
 
-			local nskins = preview.Entity:SkinCount() - 1
+			local nskins = frame.preview.Entity:SkinCount() - 1
 			if ( nskins > 0 ) then
 				local skins = vgui.Create( "DNumSlider", t3p )
 				skins:Dock( TOP )
@@ -844,30 +924,30 @@ function DRCMenu( player )
 
 				t3p:AddItem( skins )
 
-				preview.Entity:SetSkin( GetConVarNumber( "cl_playerskin" ) )
+				frame.preview.Entity:SetSkin( GetConVarNumber( "cl_playerskin" ) )
 
 				tab3.Tab:SetVisible( true )
 			end
 
 			local groups = string.Explode( " ", GetConVarString( "cl_playerbodygroups" ) )
-			for k = 0, preview.Entity:GetNumBodyGroups() - 1 do
-				if ( preview.Entity:GetBodygroupCount( k ) <= 1 ) then continue end
+			for k = 0, frame.preview.Entity:GetNumBodyGroups() - 1 do
+				if ( frame.preview.Entity:GetBodygroupCount( k ) <= 1 ) then continue end
 
 				local bgroup = vgui.Create( "DNumSlider" )
 				bgroup:Dock( TOP )
-				bgroup:SetText( preview.Entity:GetBodygroupName( k ) )
+				bgroup:SetText( frame.preview.Entity:GetBodygroupName( k ) )
 				bgroup:SetDark( true )
 				bgroup:SetTall( 50 )
 				bgroup:SetDecimals( 0 )
 				bgroup.type = "bgroup"
 				bgroup.typenum = k
-				bgroup:SetMax( preview.Entity:GetBodygroupCount( k ) - 1 )
+				bgroup:SetMax( frame.preview.Entity:GetBodygroupCount( k ) - 1 )
 				bgroup:SetValue( groups[ k + 1 ] or 0 )
 				bgroup.OnValueChanged = UpdateBodyGroups
 
 				t3p:AddItem( bgroup )
 
-				preview.Entity:SetBodygroup( k, groups[ k + 1 ] or 0 )
+				frame.preview.Entity:SetBodygroup( k, groups[ k + 1 ] or 0 )
 
 				tab3.Tab:SetVisible( true )
 			end
@@ -880,13 +960,13 @@ function DRCMenu( player )
 			modelname = player_manager.TranslatePlayerModel( model )
 			if DRC:GetCustomizationAllowed() == true then
 				util.PrecacheModel( modelname )
-				preview:SetModel( modelname )
+				frame.preview:SetModel( modelname )
 			end
 			RebuildBodygroupTab()
-			if preview.Entity then preview.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end end
+			if frame.preview.Entity then frame.preview.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end end
 			playercolour:SetVector( Vector( GetConVarString( "cl_playercolor" ) ) )
 			weaponcolour:SetVector( Vector( GetConVarString( "cl_weaponcolor" ) ) )
-		--	PlayPreviewAnimation( preview, model )
+		--	Playframe.previewAnimation( frame.preview, model )
 		end
 	UpdateFromConvars(false)
 	
@@ -898,7 +978,7 @@ function DRCMenu( player )
 		timer.Simple( 0.1, function() UpdateFromConvars(false) end )
 	end
 
-	preview.Entity.Preview = true
+	frame.preview.Entity.preview = true
 	
 	local SelectedAvatar = nil
 	local drc_loadedavatarfile = nil
@@ -924,17 +1004,17 @@ function DRCMenu( player )
 		RunConsoleCommand( "cl_playerbodygroups", tostring(tbl.Bodygroups) )
 		RunConsoleCommand( "cl_playerskin", tostring(tbl.Skin) )
 		
-		preview:SetModel(tbl.Model)
-		preview.Entity:SetModel(tbl.Model)
-		preview.Entity:SetBodyGroups(string.gsub(tbl.Bodygroups, "%s+", ""))
-		preview.Entity:SetSkin(GetConVarNumber("cl_playerskin"))
+		frame.preview:SetModel(tbl.Model)
+		frame.preview.Entity:SetModel(tbl.Model)
+		frame.preview.Entity:SetBodyGroups(string.gsub(tbl.Bodygroups, "%s+", ""))
+		frame.preview.Entity:SetSkin(GetConVarNumber("cl_playerskin"))
 		
-		playercolourpreview:SetBackgroundColor(playercolour:GetColor())
-		weaponcolourpreview:SetBackgroundColor(weaponcolour:GetColor())
-		eyecolourpreview:SetBackgroundColor(eyecolour:GetColor())
-		energyColourpreview:SetBackgroundColor(energyColour:GetColor())
-		accentColour1preview:SetBackgroundColor(accentColour1:GetColor())
-		accentColour2preview:SetBackgroundColor(accentColour2:GetColor())
+		playercolourframe.preview:SetBackgroundColor(playercolour:GetColor())
+		weaponcolourframe.preview:SetBackgroundColor(weaponcolour:GetColor())
+		eyecolourframe.preview:SetBackgroundColor(eyecolour:GetColor())
+		energyColourframe.preview:SetBackgroundColor(energyColour:GetColor())
+		accentColour1frame.preview:SetBackgroundColor(accentColour1:GetColor())
+		accentColour2frame.preview:SetBackgroundColor(accentColour2:GetColor())
 		
 		DRC:RefreshColours(LocalPlayer())
 		timer.Simple(0.1, function() RebuildBodygroupTab() end)
@@ -1158,7 +1238,7 @@ function DRCMenu( player )
 		SaveButton:SetEnabled(false)
 		SaveButton:SetText("[ Save ]")
 		SaveButton.DoClick = function()
-			vals.Model = preview:GetModel()
+			vals.Model = frame.preview:GetModel()
 			vals.Playermodel = player_manager.TranslateToPlayerModelName(vals.Model)
 			SaveAvatar(vals, false)
 			Frame:Remove()

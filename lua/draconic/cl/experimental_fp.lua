@@ -112,7 +112,7 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 		local base = nil
 		if IsValid(wep) then
 			base = DRC:GetBaseName(wep)
-			local ht = wep:GetHoldType()
+			local ht = string.lower(wep:GetHoldType())
 			local bobpower = {
 				[""] = 0.025,
 				["pistol"] = 0.03,
@@ -328,8 +328,18 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	if DRC:ValveBipedCheck(DRC.CSPlayerModel) then
 	DRC.CSPlayerModel:ManipulateBoneScale(spine0, DRC.Skel.Spine.Scale)
 	DRC.CSPlayerModel:ManipulateBoneScale(spine1, DRC.Skel.Spine1.Scale)
-	if spine2 != nil then DRC.CSPlayerModel:ManipulateBoneScale(spine2, DRC.Skel.Spine2.Scale) end
-	if spine4 != nil then DRC.CSPlayerModel:ManipulateBoneScale(spine4, DRC.Skel.Spine4.Scale) end
+	if spine2 != nil then
+		for k,v in pairs(ply:GetChildBones(spine2)) do
+			DRC.CSPlayerModel:ManipulateBoneScale(v, DRC.Skel.Spine4.Scale)
+		end
+		DRC.CSPlayerModel:ManipulateBoneScale(spine2, DRC.Skel.Spine2.Scale)
+	end
+	if spine4 != nil then
+		for k,v in pairs(ply:GetChildBones(spine4)) do
+			DRC.CSPlayerModel:ManipulateBoneScale(v, DRC.Skel.Spine4.Scale)
+		end
+		DRC.CSPlayerModel:ManipulateBoneScale(spine4, DRC.Skel.Spine4.Scale)
+	end
 	
 	if neck != nil then DRC.CSPlayerModel:ManipulateBonePosition(neck, DRC.Skel.Neck.Offset) end
 	

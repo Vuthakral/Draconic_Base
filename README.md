@@ -15,4 +15,4 @@ _____
 
 > License: [https://github.com/Vuthakral/Draconic_Base/blob/master/LICENSE.md](https://github.com/Vuthakral/Draconic_Base/blob/master/LICENSE.md)
 
-**Draconic Base (c) 2022 Vuthakral. All Rights Reserved.**
+**Draconic Base (c) 2023 Vuthakral. All Rights Reserved.**

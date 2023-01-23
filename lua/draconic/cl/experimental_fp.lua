@@ -215,9 +215,9 @@ hook.Add( "CalcViewModelView", "!Draconic_Experimental_First_Person_CVMV", funct
 		if wpn.Draconic == true && GetConVar("cl_drc_lowered_crosshair"):GetFloat() == 1 then
 			DRC.CrosshairAngMod = Angle(-10, 0, 0)
 			if DRC:SightsDown(wpn) then 
-				DRC.CalcView.LoweredAng = Angle(7, 0, 0)
+				DRC.CalcView.LoweredAng = Angle(5, 0, 0)
 			else
-				DRC.CalcView.LoweredAng = Angle(7, 0, 0)
+				DRC.CalcView.LoweredAng = Angle(5, 0, 0)
 			end
 		else
 			DRC.CrosshairAngMod = Angle(0, 0, 0)
@@ -295,7 +295,6 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	local parents = {DRC.CSPlayerModel, DRC.CSShadowModel}
 	
 	for k,ent in pairs(parents) do
-	--	ent:SetMaterial("")
 		ent:SetNoDraw(false)
 		ent:SetModelScale(LocalPlayer():GetModelScale())
 		ent:SetPos(CSPos)

@@ -103,6 +103,7 @@ SWEP.Secondary.Ironsights			= false
 SWEP.Secondary.SightsSuppressAnim 	= false
 SWEP.Secondary.Scoped				= false
 SWEP.Secondary.ScopeHideVM			= false
+SWEP.Secondary.ScopeMat				= "overlays/draconic_scope.png"
 SWEP.Secondary.IronFOV				= 60
 SWEP.Secondary.IronFOVAlt			= 60
 SWEP.Secondary.IronInFP				= nil
@@ -200,7 +201,7 @@ function SWEP:CanPrimaryAttack()
 	if self.Primary.Disabled == true then return end
 	
 	local ply = self:GetOwner()
-	local charge = self:GetNWInt("Charge")
+	local charge = self:GetCharge()
 	local sk = ply:KeyDown(IN_SPEED)
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 	local issprinting = sk && mk
@@ -276,7 +277,6 @@ end
 
 function SWEP:PrimaryAttack()
 	if !IsValid(self) then return end
-	if self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomPrimaryAttackEvents() end
 	
 	self:DoCustomPrimary()
 	
@@ -290,9 +290,9 @@ function SWEP:PrimaryAttack()
 	local passive = self:GetNWBool("Passive")
 	local dc = self.Primary.UsesCharge
 	local fm = self:GetNWString("FireMode")
-	local charge = self:GetNWInt("Charge")
+	local charge = self:GetCharge()
 	
-	if (self.Primary.UsesCharge == true && ply:IsPlayer()) && ply:KeyDown(IN_USE) then self:DoMelee() else end
+	if (self.Primary.UsesCharge == true && ply:IsPlayer()) && ply:KeyDown(IN_USE) then self:DoMeleeSwing("gunmelee") else end
 	if self.Loading == true or self.NPCLoading == true or self.ManuallyReloading == true then return end
 	
 	if ply:IsPlayer() && dc && self.ChargeType == "default" && charge < 99 then
@@ -304,7 +304,7 @@ function SWEP:PrimaryAttack()
 			
 			if self.Primary.CanMelee == true then
 				if ply:KeyDown(IN_USE) && self:CanGunMelee() == true then
-					self:DoMelee()
+					self:DoMeleeSwing("gunmelee")
 				else
 				
 				if fm == "Semi" or fm == "Auto" then
@@ -414,11 +414,11 @@ end
 function SWEP:NPCCharge()
 	local ply = self:GetOwner()
 	local amount = self.ChargeRate
-	local charge = self:GetNWInt("Charge")
+	local charge = self:GetCharge()
 	local chargetype = self.ChargeType
 	local fraction = (100 / amount)
 	
-	if charge == nil then self:SetNWInt("Charge", 0) end
+	if charge == nil then self:SetCharge(0) end
 	if self.NPCCharging == nil then self.NPCCharging = false end
 	
 	if self.NPCCharging == false then
@@ -429,17 +429,17 @@ function SWEP:NPCCharge()
 			timer.Simple( i * 0.1, function()
 				if !IsValid(self) then return end
 				if !IsValid(ply) then return end
-			--	print(self:GetNWInt("Charge") + self.ChargeRate)
-				self:SetNWInt("Charge", self:GetNWInt("Charge") + self.ChargeRate)
+			--	print(self:GetCharge() + self.ChargeRate)
+				self:SetCharge(self:GetCharge() + self.ChargeRate)
 				
 				
-		--		print("Charging: ".. self:GetNWInt("Charge") .."")
+		--		print("Charging: ".. self:GetCharge() .."")
 			end)
 		end
 	else
 		if charge >= 100 then
 			self:CallShoot("overcharge")
-			self:SetNWInt("Charge", 0)
+			self:SetCharge(0)
 			self:StopSound(self.ChargeSound)
 			self.NPCCharging = false
 		end
@@ -478,89 +478,6 @@ function SWEP:FinishLoading()
 	self.Loading = false
 end
 
-function SWEP:DoMelee()
-	if !IsValid(self) then return end
-	if !IsValid(self:GetOwner()) then return end
-	local ply = self:GetOwner()
-	local vm = nil
-	local eyeang = ply:GetAimVector()
-	local eyepos = ply:EyePos()
-	local cv = false
-	local ht = self:GetHoldType()
-	
-	DRC:SpeakSentence(ply, "Actions", "Melee")
-	
-	if ply:IsPlayer() then
-		vm = ply:GetViewModel()
-		eyeang = ply:EyeAngles()
-		cv = ply:Crouching()
-	else
-		self.NextMeleeAI = CurTime() + self.Primary.DelayMiss
-	end
-	
-	if cv == false then
-		if SERVER then
-			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeAct)
-		end
-	elseif cv == true then
-		if SERVER then
-			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.MeleeActCrouch)
-		end
-	end
-	
-	if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
-		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
-	elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
-		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND)
-	end
-	
-	local x1 = self.Primary.MeleeStartX
-	local x2 = self.Primary.MeleeEndX
-	local y1 = self.Primary.MeleeStartY
-	local y2 = self.Primary.MeleeEndY
-		
-	local x1m = math.Rand(x1 * 0.9, x1 * 1.1)
-	local x2m = math.Rand(x2 * 0.9, x2 * 1.1)
-	local y1m = math.Rand(y1 * 0.9, y1 * 1.1)
-	local y2m = math.Rand(y2 * 0.9, y2 * 1.1)
-	
-	if ply:IsPlayer() then
-		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * self.Primary.MeleeShakeMul)
-		ply:SetViewPunchVelocity(Angle(-x1m * (1 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, -y1m * (5 + self.Primary.MeleeHitDelay) * self.Primary.MeleeShakeMul, 0))
-		timer.Simple(self.Primary.MeleeHitDelay, function()
-			if !IsValid(self:GetOwner()) then return end
-			if !IsValid(self) then return end
-			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * self.Primary.MeleeShakeMul)
-		end)
-
-		local anim = self:SelectWeightedSequence( self.Primary.MeleeMissActivity )
-	--	if cv == true then anim = self:SelectWeightedSequence( self.Primary.MeleeCrouchMissActivity ) end
-		local animdur = self:SequenceDuration( anim )
-		self.IsDoingMelee = true
-		timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
-		
-		if SERVER && anim != -1 && self:HasViewModel() then self:SendWeaponAnim( self:GetSequenceActivity(anim) ) end
-		self:SetNextPrimaryFire( CurTime() + self.Primary.MeleeDelayMiss )
-		self.IdleTimer = CurTime() + vm:SequenceDuration()
-	else
-		self:SetNextPrimaryFire( CurTime() + self.Primary.MeleeDelayMiss )
-		self.IsDoingMelee = true
-		timer.Simple(1, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
-	end
-	
-	self:EmitSound(Sound(self.Primary.MeleeSwingSound))
-	
-	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		if !IsValid(self:GetOwner()) then return end
-		if !IsValid(self) then return end
-		timer.Create( "".. tostring(self) .."SwingImpact".. i .."", math.Round((self.Primary.MeleeHitDelay * 100) / 60 * i / 60, 3), 1, function()
-			if !IsValid(self) then return end
-			if !IsValid(self:GetOwner()) then return end
-			self:MeleeImpact(self.Primary.MeleeRange, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, "gunmelee")
-		end)
-	end
-end
-
 function SWEP:SecondaryAttack()
 local ply = self:GetOwner()
 local cv = ply:Crouching()
@@ -596,7 +513,6 @@ elseif dc && self.ChargeType != "default" then
 				self:TogglePassive()
 			else
 				self:CallShoot("secondary")
-				self:DoCustomSecondaryAttackEvents()
 			end
 		end
 	end
@@ -604,7 +520,7 @@ end
 
 function SWEP:TogglePassive()
 	if !IsFirstTimePredicted() then return end
-	if SERVER then self:CallOnClient("TogglePassive") end
+--	if SERVER then self:CallOnClient("TogglePassive") end
 	local ply = self:GetOwner()
 	self:EmitSound(self.FireModes_SwitchSound)
 	
@@ -751,7 +667,7 @@ end
 
 function SWEP:Reload()
 	self:DoCustomReload()
-	if game.SinglePlayer() then self:CallOnClient("Reload") end -- why
+--	if game.SinglePlayer() then self:CallOnClient("Reload") end -- why
 	local ply = self:GetOwner()
 	if !ply:IsPlayer() then self:DoReload() return end
 	local usekey = ply:KeyDown(IN_USE)
@@ -942,7 +858,7 @@ function SWEP:EndReload()
 	local ply = self:GetOwner()
 	
 	if !(self:IsValid() && ply:IsValid() && ply:Health() > 0.001) then return end
-	if SERVER then self:CallOnClient("EndReload") end
+--	if SERVER then self:CallOnClient("EndReload") end
 	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
 	local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	
@@ -1044,7 +960,7 @@ function SWEP:ManualReloadLoop()
 				if ply:KeyDown(IN_RELOAD) && self:Clip1() < CM then
 					if ( ply:GetAmmoCount(self.Primary.Ammo) ) > 0 then
 						self:DoManualReload(true)
-						self:CallOnClient("PlayManualReloadAnimation")
+--						self:CallOnClient("PlayManualReloadAnimation")
 					else
 						self:FinishManualReload()
 					end
@@ -1131,12 +1047,6 @@ function SWEP:DoCustomPrimaryAttackEvents()
 end
 
 function SWEP:DoCustomSecondaryAttackEvents()
-end
-
-function SWEP:DoCustomPrimary() -- called regardless of whether or not CanPrimaryAttack passes.
-end
-
-function SWEP:DoCustomSecondary() -- called regardless of whether or not CanSecondaryAttack passes, even if secondary is disabled.
 end
 
 function SWEP:DoScriptedSecondaryAttack()

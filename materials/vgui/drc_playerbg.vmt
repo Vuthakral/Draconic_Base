@@ -1,6 +1,6 @@
 "UnlitGeneric"
 {
-	"$basetexture"		"hlmv/background"
+	"$basetexture"		"hlmv\background"
 	"$vertexcolor" 		1
 	"$vertexalpha" 		1
 	"$nolod" 			1

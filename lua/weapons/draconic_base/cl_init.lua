@@ -3,7 +3,7 @@ if CLIENT then
 	include("sh_funcs.lua")
 end
 
-local function FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
+function SWEP:FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
 	local vEyePos = EyePos()
 	local aEyesRot = EyeAngles()
 	local vOffset = vOrigin - vEyePos
@@ -48,4 +48,20 @@ local function FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
 	vEyePos:Add(vForward)
 
 	return vEyePos
+end
+
+function SWEP:GetWeaponAttachment(att)
+	local ply = self:GetOwner()
+	local ent = self
+	if ply == LocalPlayer() && !DRC:ThirdPersonEnabled(ply) then ent = ply:GetViewModel() end
+	
+	local attinfo = ent:GetAttachment(ent:LookupAttachment(att))
+	if ply:IsPlayer() then 
+		if ent == ply:GetViewModel() then
+			attinfo.Pos = self:FormatViewModelAttachment(self.ViewModelFOV, attinfo.Pos, false)
+		end
+	end
+	attinfo.ID = ent:LookupAttachment(att)
+	
+	return attinfo
 end

@@ -1,4 +1,215 @@
-resource.AddFile ( 'materials/overlays/draconic_scope.vmt' )
+-- ###Library
+-- ###Runtime
+-- ###Debug
+
+
+
+
+
+-- ###Library
+if game.SinglePlayer() then
+	function DRC:MakeWeaponProp(ply)
+		local swep = ply:GetActiveWeapon()
+		local model = swep:GetModel()
+		
+		local pos = ply:GetPos() + ply:OBBCenter() + ply:GetAngles():Forward() * 50
+		
+		local ent = ents.Create("prop_physics")
+		ent:SetModel(model)
+		ent:SetPos(pos)
+		ent:Spawn()
+		
+		undo.Create("prop")
+			undo.AddEntity(ent)
+			undo.SetPlayer(ply)
+		undo.Finish()
+	end
+	
+	concommand.Add("drc_debug_spawnweaponmodel", function(ply, cmd, args)
+		DRC:MakeWeaponProp(ply)
+	end)
+end
+
+function DRC:CheaterWarning(ply, str)
+	local ID64 = ply:SteamID64()
+	MsgC(Color(255, 0, 0), "\n[DRACONIC BASE - CHEATER WARNING]\n", Color(255,255,255), "> ", Color(255, 255, 0), "Player: ", Color(255, 255, 255), "".. ply:Name() .."\n> ", Color(255, 255, 0), "ID64: ", Color(255, 255, 255), "".. ID64 .."\n\n> ".. str .."\n\n")
+end
+
+local DisableEnts = {
+	["npc_turret_floor"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Medium"},
+	["npc_turret_ceiling"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Medium"},
+	["npc_turret_ground"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Medium"},
+	["npc_combine_camera"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Medium"},
+	["gmod_lamp"] = {"ambient/energy/power_off1.wav", nil},
+	["gmod_light"] = {"ambient/energy/power_off1.wav", nil},
+	["prop_thumper"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Violent"},
+	["hl2_thumper_large"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Violent"},
+}
+
+local RagdollEnts = {
+	["npc_cscanner"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Light"},
+	["npc_manhack"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Light"},
+	["npc_clawscanner"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Light"},
+	["monster_sentry"] = {"turret/tu_die3.wav", "draconic.Spark_Light"},
+	["monster_miniturret"] = {"turret/tu_die2.wav", "draconic.Spark_Light"},
+}
+
+local Inert = {
+	["npc_rollermine"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Violent", "models/roller.mdl"},
+	["combine_mine"] = {"npc/roller/code2.wav", "draconic.Spark_Light", "models/props_combine/combine_mine01.mdl"},
+}
+
+function DRC:EMP(src, tgt, thyme, sound, effect)
+	if !IsValid(tgt) then return end
+	if tgt.ResistsEMP == true then return end -- shut the fuck up already
+	local function Effects()
+		if sound != nil then DRC:EmitSound(src, Sound(sound)) end
+	end
+	
+	if tgt:GetNWBool("DRC_Shielded") == true then
+		DRC:PopShield(tgt)
+	end
+	
+	tgt:SetNWBool("EMPed", true)
+	
+	if tgt.LFS == true or tgt.LVS == true then
+		if tgt:GetEngineActive() == true then
+			Effects()
+			tgt:StopEngine()
+			timer.Simple(thyme, function() if IsValid(tgt) then tgt:StartEngine() tgt:SetNWBool("EMPed", false) end end)
+		end
+	elseif tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" then 
+		if tgt:GetActive() == true then
+			Effects()
+			tgt:StopEngine()
+			tgt:SetActive( false )
+			timer.Simple(thyme, function() if IsValid(tgt) then tgt:StartEngine() tgt:SetActive(true) tgt:SetNWBool("EMPed", false) end end)
+		end
+	elseif tgt:GetClass() == "prop_vehicle_jeep" or tgt:GetClass() == "prop_vehicle_airboat" then
+		if tgt:IsEngineStarted() == true then
+			Effects()
+			tgt:StartEngine(false)
+			timer.Simple(thyme, function() if IsValid(tgt) then tgt:StartEngine(true) tgt:SetNWBool("EMPed", false) end end)
+		end
+	end
+	
+	if DisableEnts[tgt:GetClass()] then
+		local tbl = DisableEnts[tgt:GetClass()]
+		tgt:Fire("Disable", nil, 0, src, src)
+		if tbl[1] != nil then tgt:EmitSound(tbl[1]) end
+		if tbl[2] != nil then
+			for i=0,math.Rand(0, 17) do
+				timer.Simple(i*0.3, function()
+					if !IsValid(tgt) then return end
+					tgt:EmitSound(tbl[2]) 
+					local ed = EffectData()
+					ed:SetOrigin(tgt:GetPos() + tgt:OBBCenter())
+					util.Effect("cball_explode", ed)
+				end)
+			end
+		end
+	end
+	
+	if Inert[tgt:GetClass()] then
+		local tbl = Inert[tgt:GetClass()]
+		local rag = ents.Create("prop_physics")
+		rag:SetModel(tbl[3])
+		rag:SetPos(tgt:GetPos())
+		rag:SetAngles(tgt:GetAngles())
+	--	rag:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
+		rag:Spawn()
+		rag:SetVelocity(tgt:GetVelocity())
+		tgt:Remove()
+		if tbl[1] != nil then tgt:EmitSound(tbl[1]) end
+		if tbl[2] != nil then
+			for i=0,math.Rand(0, 17) do
+				timer.Simple(i*0.3, function()
+					if !IsValid(rag) then return end
+					rag:EmitSound(tbl[2]) 
+					local ed = EffectData()
+					ed:SetOrigin(rag:GetPos() + rag:OBBCenter())
+					util.Effect("cball_explode", ed)
+				end)
+			end
+		end
+	end
+	
+	if RagdollEnts[tgt:GetClass()] then
+		local tbl = RagdollEnts[tgt:GetClass()]
+		local rag = ents.Create("prop_ragdoll")
+		rag:SetModel(tgt:GetModel())
+		rag:SetPos(tgt:GetPos())
+		rag:SetAngles(tgt:GetAngles())
+		rag:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
+		rag:Spawn()
+		if tbl[1] != nil then tgt:EmitSound(tbl[1]) end
+		if tbl[2] != nil then
+			for i=0,math.Rand(0, 17) do
+				timer.Simple(i*0.3, function()
+					if !IsValid(rag) then return end
+					rag:EmitSound(tbl[2]) 
+					local ed = EffectData()
+					ed:SetOrigin(rag:GetPos() + rag:OBBCenter())
+					util.Effect("cball_explode", ed)
+				end)
+			end
+		end
+		tgt:Remove()
+	end
+end
+
+function DRC:SetRoleplayPlayermodels(ply, tab)
+	net.Start("DRC_SetRPModels")
+	net.WriteTable(tab)
+	net.Send(ply)
+end
+
+function DRC:ClearRoleplayPlayermodels(ply)
+	local tab = {}
+	net.Start("DRC_SetRPModels")
+	net.WriteTable(tab)
+	net.Send(ply)
+end
+
+net.Receive("DRC_ApplyPlayermodel", function(len, ply)
+	local tbl = net.ReadTable()
+	
+	local ent = tbl.player
+	if !IsValid(ent) or !IsValid(ply) then return end
+	if ply != ent then
+		DRC:CheaterWarning(ply, "This client attempted to call the 'DRC_ApplyPlayermodel' net message with a target other than their own player, this is normally completely impossible & only achievable through using an exploited client and/or injected scripts.")
+	return end
+	local skin = tbl.skin
+	local bgs = tbl.bodygroups
+	local colours = tbl.colours
+	local model = tbl.model
+	local vs = tbl.voiceset
+	local hands = tbl.hands
+	
+	if !util.IsValidModel(model) then return end
+	local pname = player_manager.TranslateToPlayerModelName(model)
+	
+	ent:SetModel(model)
+	ent:SetSkin(skin)
+	for k,v in pairs(bgs) do
+		ent:SetBodygroup(k-1, v)
+	end
+	if ent:GetInfo("cl_playerhands") == "disabled" then ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model) end
+	DRC:RefreshColours(ent)
+	ent:SetNWString("DRCVoiceSet", vs)
+	ent:SetNWString("DRC_SpawnModel", model)
+	
+	net.Start("DRC_UpdatePlayermodel")
+	net.WriteTable(tbl)
+	net.Broadcast()
+end)
+
+
+
+
+
+-- ###Runtime
+resource.AddFile ( 'materials/overlays/draconic_scope.png' )
 util.AddNetworkString("DRCSound")
 util.AddNetworkString("OtherPlayerWeaponSwitch")
 util.AddNetworkString("DRCNetworkGesture")
@@ -306,6 +517,10 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_Damage", function(ent, dmg, took)
 	if took == true && DRC:GetVoiceSet(ent) != nil then
 		DRC:DamageSentence(ent, dmg:GetDamage(), dmg)
 	end
+	
+	if ent:IsPlayer() && dmg:GetDamageType() == DMG_BLAST then
+		DRC:CallGesture(ent, GESTURE_SLOT_CUSTOM, ACT_GESTURE_FLINCH_BLAST, true)
+	end
 end)
 
 hook.Add("PlayerStartTaunt", "VoiceSets_Taunts", function(ply, act, length)
@@ -355,7 +570,7 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 				})
 				if DRC:IsCharacter(tr.Entity) then
 					DRC:SpeakSentence(tr.Entity, "Reactions", "Puke", true)
-					if tr.Entity:IsPlayer() then DRC:CallGesture(tr.Entity, GESTURE_SLOT_CUSTOM, ACT_VM_UNDEPLOY_1, true) end
+					if tr.Entity:IsPlayer() then DRC:CallGesture(tr.Entity, GESTURE_SLOT_CUSTOM, ACT_GESTURE_BARNACLE_STRANGLE, true) end
 				end
 			end
 		end
@@ -438,7 +653,7 @@ end)
 
 net.Receive("DRC_PlayerSquadHelp", function()
 	local ply = net.ReadEntity()
-	DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, ACT_SIGNAL_GROUP, true)
+	if GetConVar("sv_drc_voicesets_noanimations"):GetFloat() == 0 then DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, ACT_SIGNAL_GROUP, true) end
 	for k,v in pairs(ents.GetAll()) do
 		if v:IsNPC() then
 			if v:GetSquad() == "player_squad" then
@@ -450,7 +665,7 @@ net.Receive("DRC_PlayerSquadHelp", function()
 end)
 net.Receive("DRC_PlayerSquadMove", function()
 	local ply = net.ReadEntity()
-	DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, ACT_SIGNAL_FORWARD, true)
+	if GetConVar("sv_drc_voicesets_noanimations"):GetFloat() == 0 then DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, ACT_SIGNAL_FORWARD, true) end
 	ply:ConCommand("impulse 50")
 end)
 
@@ -488,4 +703,18 @@ function DRC:RequestLightColour(ent)
 			DRC:RequestLightColour(ent)
 		end)
 	end
+end
+
+
+
+-- ###Debug
+util.AddNetworkString("DRC_RenderTrace")
+
+function DRC:RenderTrace(tr, colour, thyme)
+	if !game.SinglePlayer() then return end
+	
+	local tbl = {tr, colour, thyme}
+	net.Start("DRC_RenderTrace")
+	net.WriteTable(tbl)
+	net.Broadcast()
 end

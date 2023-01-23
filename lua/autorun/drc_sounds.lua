@@ -299,6 +299,66 @@ sound.Add( {
 } )
 
 sound.Add( {
+	name = "draconic.PunchFoley",
+	channel = CHAN_AUTO,
+	volume = 0.96,
+	level = 60,
+	pitch = { 85, 125 },
+	sound = { "weapons/slam/throw.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.PunchImpact",
+	channel = CHAN_WEAPON,
+	volume = 0.96,
+	level = 60,
+	pitch = { 85, 125 },
+	sound = { "weapons/crossbow/hitbod2.wav",
+	"npc/zombie/zombie_hit.wav",
+	"npc/vort/foot_hit.wav",
+	"physics/body/body_medium_impact_hard1.wav",
+	"physics/body/body_medium_impact_hard5.wav",
+	"physics/body/body_medium_impact_hard6.wav",
+	"weapons/crossbow/hitbod1.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.PunchImpact_obj",
+	channel = CHAN_WEAPON,
+	volume = 0.96,
+	level = 60,
+	pitch = { 85, 125 },
+	sound = { "physics/body/body_medium_impact_soft1.wav",
+	"physics/body/body_medium_impact_soft4.wav",
+	"physics/body/body_medium_impact_soft2.wav",
+	"physics/body/body_medium_impact_soft4.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.ClawFoley",
+	channel = CHAN_AUTO,
+	volume = 0.96,
+	level = 60,
+	pitch = { 100, 125 },
+	sound = { "npc/zombie/claw_miss1.wav",
+	"npc/zombie/claw_miss2.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.ClawImpact",
+	channel = CHAN_WEAPON,
+	volume = 0.96,
+	level = 60,
+	pitch = { 85, 125 },
+	sound = { "ambient/machines/slicer3.wav",
+	"npc/fast_zombie/claw_strike1.wav",
+	"npc/fast_zombie/claw_strike2.wav",
+	"npc/fast_zombie/claw_strike3.wav" }
+} )
+
+
+
+sound.Add( {
 	name = "draconic.Spark_Light",
 	channel = CHAN_AUTO,
 	volume = 1,

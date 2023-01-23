@@ -101,11 +101,19 @@ function DRCMenu( player )
 	bg:SetPos(0, 0)
 	bg:Dock(FILL)
 	bg:SetSize(589, 658)
-	bg:SetImage("vgui/drc_playerbg")
+--	bg:SetImage("vgui/drc_playerbg")
 	bg:SetZPos(-10)
 	
+	local bgloading = vgui.Create("DImage", frame)
+	bgloading:SetPos(0, 0)
+	bgloading:Dock(FILL)
+	bgloading:SetSize(589, 658)
+	bgloading:SetImage("vgui/drc_playerbg_loading1")
+	bgloading:SetZPos(-10)
+	bgloading:SetVisible(false)
+	
 	frame.tools = vgui.Create("DPanel", frame)
-	frame.tools:SetSize(589,658)
+	frame.tools:SetSize(590,666)
 	frame.tools:Dock(FILL)
 	frame.tools:SetVisible(false)
 	frame.tools:SetEnabled(false)
@@ -117,20 +125,57 @@ function DRCMenu( player )
 	
 	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() end
 	
+	MapAmbient.r = math.Clamp(MapAmbient.r, 127, 255)
+	MapAmbient.g = math.Clamp(MapAmbient.g, 127, 255)
+	MapAmbient.b = math.Clamp(MapAmbient.b, 127, 255)
+	
+	frame.previewfloor = vgui.Create("DAdjustableModelPanel", frame)
+	frame.previewfloor:SetSize(590,680)
+    frame.previewfloor:SetPos(0, 0)
+    frame.previewfloor:SetFOV(47)
+	frame.previewfloor:SetModel("models/props_phx/construct/glass/glass_angle360.mdl")
+	frame.previewfloor:SetAnimated( true )
+    frame.previewfloor:SetAnimationEnabled(true)
+	frame.previewfloor:SetAmbientLight(MapAmbient)
+	frame.previewfloor:SetDirectionalLight(BOX_TOP, MapAmbient*2)
+	frame.previewfloor:SetDirectionalLight(BOX_FRONT, MapAmbient*1.5)
+	frame.previewfloor:SetDirectionalLight(BOX_BOTTOM, Color(0, 0, 0))
+	frame.previewfloor:SetDirectionalLight(BOX_BACK, MapAmbient/8)
+	frame.previewfloor:SetDirectionalLight(BOX_LEFT, MapAmbient/3)
+	frame.previewfloor:SetDirectionalLight(BOX_RIGHT, MapAmbient/3)
+	frame.previewfloor:SetLookAng(Angle(10.278, 203.334, 0))
+	frame.previewfloor:SetCamPos(Vector(80.69, 36.7, 52.02))
+	
     frame.preview = vgui.Create("DAdjustableModelPanel", frame)
-	frame.preview:SetSize(589,658)
+	frame.preview:SetSize(589,666)
     frame.preview:SetPos(0, 0)
     frame.preview:SetFOV(47)
 	frame.preview:SetModel(tostring(pmodelname))
 	frame.preview:SetAnimated( true )
     frame.preview:SetAnimationEnabled(true)
-	frame.preview:SetAmbientLight(Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
-	frame.preview:SetDirectionalLight(BOX_TOP, Color(MapAmbient.r, MapAmbient.g, MapAmbient.b))
+	frame.preview:SetAmbientLight(MapAmbient)
+	frame.preview:SetDirectionalLight(BOX_TOP, MapAmbient*2)
+	frame.preview:SetDirectionalLight(BOX_FRONT, MapAmbient*1.5)
+	frame.preview:SetDirectionalLight(BOX_BOTTOM, Color(0, 0, 0))
+	frame.preview:SetDirectionalLight(BOX_BACK, MapAmbient/8)
+	frame.preview:SetDirectionalLight(BOX_LEFT, MapAmbient/3)
+	frame.preview:SetDirectionalLight(BOX_RIGHT, MapAmbient/3)
 	frame.preview:SetLookAng(Angle(10.278, 203.334, 0))
 	frame.preview:SetCamPos(Vector(80.69, 36.7, 52.02))
 	
-	function frame.preview:LayoutEntity( ent )
+	local function SetupScene(mod2)
+		local tab = DRC:GetPlayerModelInfo(mod2)
+		if !tab.Background or tab.Background == "" then bg:SetImage("vgui/drc_playerbg") else bg:SetImage(tab.Background) end
+		if !tab.Podium or tab.Podium == "" then tab = DRC:GetPlayerModelInfo(nil) end
+		frame.previewfloor:SetModel(tab.Podium[1])
+		frame.previewfloor.PodiumOffset = tab.Podium[2]
+	end
+	SetupScene(pmodelname)
+	
+	function frame.preview:LayoutEntity(ent)
 		ent:SetLOD(0)
+		ent.preview = true
+		ent.Preview = true
 		frame.preview:SetFOV(math.Clamp(frame.preview:GetFOV(), 10, 100))
 		local idle = ent:SelectWeightedSequence(ACT_HL2MP_IDLE)
 		if ent:LookupSequence("drc_menu") != -1 then
@@ -178,7 +223,23 @@ function DRCMenu( player )
 		ent:SetPos( Vector() )
 		ent:SetEyeTarget(frame.preview:GetCamPos())
 		frame.preview:RunAnimation()
+		
+		pos.x = math.Clamp(pos.x, -200, 200)
+		pos.y = math.Clamp(pos.y, -200, 200)
+		pos.z = math.Clamp(pos.z, 0, 100)
+		frame.preview:SetCamPos(pos)
+		
+		frame.previewfloor:SetLookAng(ang)
+		frame.previewfloor:SetCamPos(pos)
+		frame.previewfloor:SetFOV(frame.preview:GetFOV())
     end
+	
+	function frame.previewfloor:LayoutEntity(ent)
+		ent:SetLOD(0)
+		ent.preview = true
+		ent.Preview = true
+		ent:SetPos(frame.previewfloor.PodiumOffset)
+	end
 	
 	local bottompanel = vgui.Create("DPanel", frame.preview)
 	bottompanel:SetPos(0,frame.preview:GetTall() - 50)
@@ -226,6 +287,7 @@ function DRCMenu( player )
 		local tools = {
 			frame.tools,
 			bottompanel.copy,
+			bottompanel.hidepodium,
 		}
 		for k,v in pairs(tools) do
 			v:SetVisible(true)
@@ -247,6 +309,7 @@ function DRCMenu( player )
 			local tools = {
 				frame.tools,
 				bottompanel.copy,
+				bottompanel.hidepodium,
 			}
 			for k,v in pairs(tools) do
 				v:SetVisible(false)
@@ -307,15 +370,51 @@ function DRCMenu( player )
 	bottompanel.copy = vgui.Create("DButton", bottompanel)
 	bottompanel.copy:SetSize(128,16)
 	bottompanel.copy:SetPos(64,bottompanel:GetTall() - 40)
-	bottompanel.copy:SetText("Copy model path")
-	bottompanel.copy:SetTooltip("Copies current model path to clipboard.")
+	bottompanel.copy:SetText("Copy model information")
+	bottompanel.copy:SetTooltip("Copies current model path, name, c_arm path, etc to clipboard.")
 	bottompanel.copy:SetEnabled(false)
 	bottompanel.copy:SetVisible(false)
 	
 	function bottompanel.copy:DoClick()
 		bottompanel.copy:SetText("Copied!")
-		SetClipboardText(frame.preview:GetModel())
-		timer.Simple(1, function() bottompanel.copy:SetText("Copy model path") end)
+		local tbl = {
+			["path"] = frame.preview:GetModel(),
+			["name"] = player_manager.TranslateToPlayerModelName(frame.preview:GetModel()),
+			["hands"] = player_manager.TranslatePlayerHands(player_manager.TranslateToPlayerModelName(frame.preview:GetModel())).model,
+			["vs"] = "None",
+		}
+		if DRC.Playermodels[tbl.name] then if DRC.Playermodels[tbl.name].VoiceSet != "" then tbl.vs = DRC.Playermodels[tbl.name].VoiceSet end end
+		tbl.path = "Model Path: ".. tbl.path ..""
+		tbl.name = "Model Name: ".. tbl.name ..""
+		tbl.hands = "c_arm Path: ".. tbl.hands ..""
+		tbl.vs = "VoiceSet: ".. tbl.vs ..""
+		local str = "".. tbl.name .."\n".. tbl.path .."\n".. tbl.hands .."\n".. tbl.vs ..""
+		SetClipboardText(str)
+		timer.Simple(1, function() bottompanel.copy:SetText("Copy model information") end)
+	end
+	
+	bottompanel.hidepodium = vgui.Create("DButton", bottompanel)
+	bottompanel.hidepodium:SetSize(128,16)
+	bottompanel.hidepodium:SetPos(64,bottompanel:GetTall() - 22)
+	bottompanel.hidepodium:SetText("Hide podium")
+	bottompanel.hidepodium:SetTooltip("Toggles the podium model on/off in the preview window.")
+	bottompanel.hidepodium:SetEnabled(false)
+	bottompanel.hidepodium:SetVisible(false)
+	local hidepodium = false
+	
+	function bottompanel.hidepodium:DoClick()
+		if hidepodium == false then
+		hidepodium = true
+		frame.previewfloor.Entity:SetMaterial("models/vuthakral/nodraw")
+		bottompanel.hidepodium:SetText("Show podium")
+		else
+		hidepodium = false
+		frame.previewfloor.Entity:SetMaterial("")
+		bottompanel.hidepodium:SetText("Hide podium")
+		end
+	--	bottompanel.hidepodium:SetText("Copied!")
+	--	SetClipboardText(frame.preview:GetModel())
+	--	timer.Simple(1, function() bottompanel.hidepodium:SetText("Copy model path") end)
 	end
 	
 	local tabs = vgui.Create( "DPropertySheet", frame2 )
@@ -536,10 +635,10 @@ function DRCMenu( player )
 	row3:SetBackgroundColor(Color(255, 255, 255, 0))
 	
 	local clabel = vgui.Create("DLabel", tab2)
-	clabel:SetPos(16, 600)
+	clabel:SetPos(8, 600)
 	clabel:SetSize(600, 32)
 	clabel:SetTextColor(Color(0, 0, 0, 255))
-	clabel:SetText("**These colours update for everyone when you respawn or press the 'Apply Changes' button on the left.")
+	clabel:SetText("These colours update for everyone when you respawn or press the 'Apply Changes' button on the left.")
 	
 	local playercol = Vector(GetConVarString("cl_playercolor")) * 255
 	local weaponcol = Vector(GetConVarString("cl_weaponcolor")) * 255
@@ -645,12 +744,13 @@ function DRCMenu( player )
 	accentColour2preview:SetBackgroundColor(Color(accent2col.x, accent2col.y, accent2col.z, 255))
 	
 	function applybutton:DoClick()
-		local str = ""
+	--[[	local str = ""
 		for k,v in pairs(frame.preview:GetEntity():GetBodyGroups()) do
 			local num = frame.preview:GetEntity():GetBodygroup(k-1)
 			str = "".. str .."".. tostring(num) ..""
 		end
-	
+	]]
+		local bgs = DRC:GetBodyGroups(frame.preview:GetEntity())
 		local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
 		local pmname = player_manager.TranslateToPlayerModelName(handval)
 		if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then 
@@ -667,7 +767,7 @@ function DRCMenu( player )
 			tbl = {
 				["player"] = LocalPlayer(),
 				["model"] = frame.preview:GetModel(),
-				["bodygroups"] = str,
+				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
 				["hands"] = {
@@ -688,7 +788,7 @@ function DRCMenu( player )
 					["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
 					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
 				},
-				["bodygroups"] = str,
+				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
 				["hands"] = {
@@ -724,121 +824,197 @@ function DRCMenu( player )
 		end)
 	end
 	
-	local tab5 = vgui.Create( "DPanel", tabs )
-	tab5:SetBackgroundColor( Color(255, 255, 255, 255) )
---	tab5:Dock(FILL)
+	local tab5 = vgui.Create( "DPropertySheet", tabs )
+	tab5:DockPadding(0, 0, 0, 0)
+	tab5.Paint = function(self, w, h)
+        draw.RoundedBox(0, 0, 0, w, h, Color(234, 234, 234, 255))
+    end
 	tabs:AddSheet( "Extra", tab5, "icon16/draconic_base.png" )
+	
+	tab5.SpraySettings = vgui.Create( "DPanel", tab1 )
+	tab5.SpraySettings:DockPadding(0, 0, 0, 0)
+	tab5.SpraySettings:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab5:AddSheet( "Spray Settings", tab5.SpraySettings, "icon16/layers.png")
+	
+	tab5.VoiceSetSettings = vgui.Create( "DPanel", tab1 )
+	tab5.VoiceSetSettings:DockPadding(0, 0, 0, 0)
+	tab5.VoiceSetSettings:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab5:AddSheet( "VoiceSet", tab5.VoiceSetSettings, "icon16/sound.png")
 	
 	local tab4 = vgui.Create( "DPanel", tabs )
 	tab4:SetBackgroundColor( Color(255, 255, 255, 255) )
 --	tab4:Dock(FILL)
 	tabs:AddSheet( "Saved Avatars", tab4, "icon16/award_star_gold_1.png" )
 	
-	local SprayLabel = vgui.Create("DLabel", tab5)
-	SprayLabel:SetPos(16,12)
-	SprayLabel:SetSize(500,20)
-	SprayLabel:SetText("Spray settings:")
-	SprayLabel:SetColor(Color(0, 0, 0, 255))
-	
-	local Sprays_General = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_General:SetPos(16, 32)
+	local Sprays_General = vgui.Create( "DCheckBoxLabel", tab5.SpraySettings )
+	Sprays_General:SetPos(8, 0)
 	Sprays_General:SetSize(500, 20)
-	Sprays_General:SetText( "Show spray on spawned props/entities" )
+	Sprays_General:SetText( "Display spray on spawned props/entities" )
 	Sprays_General:SetConVar( "cl_drc_showspray" )
 	Sprays_General.Label:SetColor(Color(0, 0, 0, 255))
 	Sprays_General:SetEnabled(true)
+	Sprays_General:Dock(TOP)
 	
-	local Sprays_Vehicles = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_Vehicles:SetPos(16, 50)
+	local Sprays_Vehicles = vgui.Create( "DCheckBoxLabel", tab5.SpraySettings )
+	Sprays_Vehicles:SetPos(8, 18)
 	Sprays_Vehicles:SetSize(500, 20)
-	Sprays_Vehicles:SetText( "Show spray on vehicles" )
+	Sprays_Vehicles:SetText( "Display spray on vehicles" )
 	Sprays_Vehicles:SetConVar( "cl_drc_showspray_vehicles" )
 	Sprays_Vehicles.Label:SetColor(Color(0, 0, 0, 255))
 	Sprays_Vehicles:SetEnabled(true)
+	Sprays_Vehicles:Dock(TOP)
 	
-	local Sprays_Weapons = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_Weapons:SetPos(16, 68)
+	local Sprays_Weapons = vgui.Create( "DCheckBoxLabel", tab5.SpraySettings )
+	Sprays_Weapons:SetPos(8, 36)
 	Sprays_Weapons:SetSize(500, 20)
-	Sprays_Weapons:SetText( "Show spray on weapons" )
+	Sprays_Weapons:SetText( "Display spray on weapons" )
 	Sprays_Weapons:SetConVar( "cl_drc_showspray_weapons" )
 	Sprays_Weapons.Label:SetColor(Color(0, 0, 0, 255))
 	Sprays_Weapons:SetEnabled(true)
+	Sprays_Weapons:Dock(TOP)
 	
-	local Sprays_Player = vgui.Create( "DCheckBoxLabel", tab5 )
-	Sprays_Player:SetPos(16, 86)
+	local Sprays_Player = vgui.Create( "DCheckBoxLabel", tab5.SpraySettings )
+	Sprays_Player:SetPos(8, 54)
 	Sprays_Player:SetSize(500, 20)
-	Sprays_Player:SetText( "Show spray on yourself" )
+	Sprays_Player:SetText( "Display spray on yourself (playermodel)" )
 	Sprays_Player:SetConVar( "cl_drc_showspray_player" )
 	Sprays_Player.Label:SetColor(Color(0, 0, 0, 255))
 	Sprays_Player:SetEnabled(true)
+	Sprays_Player:Dock(TOP)
 	
-	local SpraypreviewText = vgui.Create("DLabel", tab5)
-	SpraypreviewText:SetPos(16, 105)
+	local SpraypreviewText = vgui.Create("DLabel", tab5.SpraySettings)
+	SpraypreviewText:SetPos(8, 78)
+	SpraypreviewText:SetSize(500, 32)
 	SpraypreviewText:SetTextColor(Color(0, 0, 0, 255))
 	SpraypreviewText:SetText("Your spray:")
+	SpraypreviewText:SetFont("DermaLarge")
+	SpraypreviewText:Dock(TOP)
 	
-	local Spraypreview = vgui.Create("DImage", tab5)
-	Spraypreview:SetPos(16, 115)
+	local Spraypreview = vgui.Create("DImage", tab5.SpraySettings)
+	Spraypreview:SetPos(8, 115)
 	Spraypreview:SetSize(320, 320)
 	Spraypreview:SetImageColor(Color(255, 255, 255, 255))
 	Spraypreview:SetMaterial("vgui/drc_spraypreview")
+	Spraypreview:Dock(FILL)
+	Spraypreview:DockPadding(0, 0, 0, 0)
+	Spraypreview:DockMargin(70, 0, 70, 0)
 	
-	local SprayDisclaimer = vgui.Create("DLabel", tab5)
+	local SprayDisclaimer = vgui.Create("DLabel", tab5.SpraySettings)
 	SprayDisclaimer:SetPos(16, 430)
-	SprayDisclaimer:SetSize(400, 32)
+	SprayDisclaimer:SetSize(400, 64)
 	SprayDisclaimer:SetTextColor(Color(0, 0, 0, 255))
-	SprayDisclaimer:SetText("**sprays only appear on content that support it")
+	SprayDisclaimer:Dock(BOTTOM)
+	SprayDisclaimer:SetText("To set a spray, go to your options menu and check the ''Multiplayer'' tab.\nSprays only update on session initialization. \n\nYour spray will only appear on content with support for it.")
 	
-	local VoiceLabel = vgui.Create("DLabel", tab5)
-	VoiceLabel:SetPos(300,12)
-	VoiceLabel:SetSize(500,20)
-	VoiceLabel:SetText("Voiceset settings:")
-	VoiceLabel:SetColor(Color(0, 0, 0, 255))
-	
-	local CVLabel = vgui.Create("DLabel", tab5)
-	CVLabel:SetPos(300,30)
-	CVLabel:SetSize(500,20)
-	if DRC.VoiceSets[LocalPlayer():GetNWString("DRCVoiceSet")] == nil then
-		CVLabel:SetText("> Current VS: None")
-	else
-		CVLabel:SetText("> Current VS: ".. DRC.VoiceSets[LocalPlayer():GetNWString("DRCVoiceSet")].Name .."")
-	end
-	CVLabel:SetColor(Color(0, 0, 0, 255))
-	
-	local VoiceSelector = vgui.Create( "DComboBox", tab5 )
-	VoiceSelector:SetSortItems(true)
-	VoiceSelector:SetPos(306, 50)
-	VoiceSelector:SetSize(150, 20)
-	VoiceSelector:SetConVar( "cl_drc_voiceset" )
-	VoiceSelector:AddChoice("[!] None", "none")
+--[[	tab5.VoiceSetSettings.VoiceSelector = vgui.Create( "DComboBox", tab5.VoiceSetSettings )
+	tab5.VoiceSetSettings.VoiceSelector:SetSortItems(true)
+	tab5.VoiceSetSettings.VoiceSelector:SetPos(8, 32)
+	tab5.VoiceSetSettings.VoiceSelector:SetSize(150, 20)
+	tab5.VoiceSetSettings.VoiceSelector:SetConVar( "cl_drc_voiceset" )
+	tab5.VoiceSetSettings.VoiceSelector:AddChoice("[!] None", "none")
 	for k,v in pairs(DRC.VoiceSets) do
 		local tbl = DRC.VoiceSets[k]
-		VoiceSelector:AddChoice(tbl.Name, tbl.ID)
+		tab5.VoiceSetSettings.VoiceSelector:AddChoice(tbl.Name, tbl.ID)
 	end
-	function VoiceSelector:OnSelect(index, value, data)
-		LocalPlayer():ConCommand("cl_drc_voiceset ".. data .."")
-		VSelection = data
+	function tab5.VoiceSetSettings.VoiceSelector:OnSelect(index, value, data)
+		
+	end ]]
+	
+	local function RefreshVoiceSets()
+		DRCMenu_VoiceSelector = vgui.Create("DScrollPanel", tab5.VoiceSetSettings)
+		DRCMenu_VoiceSelector:SetSize(tab5:GetWide(), tab5:GetTall())
+		DRCMenu_VoiceSelector:SetPos(0, 0)
+		DRCMenu_VoiceSelector:Dock(FILL)
+		DRCMenu_VoiceSelector:DockMargin(4, 4, 4, 4)
+		DRCMenu_VoiceSelector:SetBackgroundColor(Color(32, 32, 32, 255))
+		
+		DRCMenu_VoiceSelector.DisableButton = vgui.Create("DButton", DRCMenu_VoiceSelector)
+		DRCMenu_VoiceSelector.DisableButton:SetText("None (Disable)")
+		DRCMenu_VoiceSelector.DisableButton:Dock(TOP)
+		DRCMenu_VoiceSelector.DisableButton:DockMargin(0, 0, 0, 1)
+		DRCMenu_VoiceSelector.DisableButton.DoClick = function()
+			LocalPlayer():ConCommand("cl_drc_voiceset None")
+			VSelection = "None"
+			DRCMenu_VoiceSelector.DisableButton:SetEnabled(false)
+			timer.Simple(0.1, function()
+				LocalPlayer():ConCommand("cl_drc_voiceset None")
+				DRCMenu_VoiceSelector:Remove()
+				RefreshVoiceSets()
+			end)
+		end
+		if LocalPlayer():GetInfo("cl_drc_voiceset") == "None" then DRCMenu_VoiceSelector.DisableButton:SetEnabled(false) end
+	
+		for k,v in SortedPairsByMemberValue(DRC.VoiceSets, "Name", false) do
+		--[[	local container = vgui.Create("DPanel", DRCMenu_VoiceSelector)
+			container:SetSize(DRCMenu_VoiceSelector:GetWide(), 20)
+			container:SetPos(0, 0)
+			container:Dock(TOP)
+			container:DockMargin(0, 2, 0, 2)
+			container:SetBackgroundColor(Color(0, 0, 0, 255)) ]]
+			
+			local label = vgui.Create("DButton", DRCMenu_VoiceSelector)
+			label:SetText(v.Name)
+			label:Dock(TOP)
+			label:DockMargin(0, 0, 0, 1)
+			if string.lower(LocalPlayer():GetInfo("cl_drc_voiceset")) != "none" && DRC.VoiceSets[LocalPlayer():GetInfo("cl_drc_voiceset")] then
+				if v.Name == DRC.VoiceSets[LocalPlayer():GetInfo("cl_drc_voiceset")].Name then
+					label:SetEnabled(false)
+				end
+			end
+			label.DoClick = function()
+				LocalPlayer():ConCommand("cl_drc_voiceset ".. v.ID .."")
+				VSelection = v.ID
+				label:SetEnabled(false)
+				timer.Simple(0, function()
+					LocalPlayer():ConCommand("cl_drc_voiceset ".. v.ID .."")
+					DRCMenu_VoiceSelector:Remove()
+					RefreshVoiceSets()
+				end)
+			end
+		end
+	end
+	RefreshVoiceSets()
+	
+	tab5.VoiceSetSettings.Enforced = ""
+	if LocalPlayer():GetNWInt("DRCVoiceSet_Enforced", "None") == "None" then
+		tab5.VoiceSetSettings.Enforced = "\n\nYou are NOT currently being enforced to use a specific VS."
+	else
+		tab5.VoiceSetSettings.Enforced = "\n\nYou ARE currently being enforced to use a specific VS."
 	end
 	
---[[	local VoicePitch = vgui.Create("DNumSlider", tab5)
-	VoicePitch:SetPos(306,80)
-	VoicePitch:SetSize(200,20)
-	VoicePitch:SetConVar("cl_drc_voicepitch")
-	VoicePitch:SetValue(ply:GetInfoNum("cl_drc_voicepitch", 1))
-	VoicePitch:SetMin(0.9)
-	VoicePitch:SetMax(1.1)
-	VoicePitch:SetDecimals(2)
-	VoicePitch:SetText("Voice Pitch")
-	VoicePitch.Label:SetTextColor(Color(0, 0, 0, 255)) --]]
+	tab5.VoiceSetSettings.Binding = vgui.Create("DLabel", tab5.VoiceSetSettings)
+	tab5.VoiceSetSettings.Binding:SetSize(300, tab5:GetTall())
+	tab5.VoiceSetSettings.Binding:SetPos(300, 0)
+	tab5.VoiceSetSettings.Binding:SetTextColor(Color(0, 0, 0, 255))
+	tab5.VoiceSetSettings.Binding:Dock(RIGHT)
+	tab5.VoiceSetSettings.Binding:DockMargin(4, 8, 4, 4)
+	tab5.VoiceSetSettings.Binding:SetContentAlignment(7)
+	tab5.VoiceSetSettings.Binding:SetText("''What is VoiceSets?''\nVoiceSets is a system whichs adds a CS/TF2-like voice panel to\nmake your character say certain things, among many other\nuseful tools for devs to add player dialogue to the game.\n\n''How do I use the menu?''\nYour menu will currently toggle with the ".. DRC:VoiceSetGetMenuKey() .. " key.\nYou can change this by binding the console command\n''draconic_voicesets_menu_toggle'' to a key.\n\n''How do I make a VoiceSet?''\nPlease refer to the Draconic Base Wiki, as there is a page\ndedicated to explaining this. It is very easy to do,\nand I'm confident that anyone is able to do it.\n\nIf a gamemode, server, or etc has enforced a specific VS on\nyou, you will not be able to change nor disable VoiceSets.".. tab5.VoiceSetSettings.Enforced .."")
 	
 	
---	local weaponlabel = vgui.Create("DLabel", tab6)
---	weaponlabel:SetText("frame.preview Weapon Model:")
---	weaponlabel:SetSize(128, 16)
+	-- 
 	
---	local weapon = vgui.Create("DTextEntry", tab6)
---	weapon:SetPos(128, 0)
---	weapon:SetSize(256, 16)
+	tab5.VoiceSetSettings.AutoVS = vgui.Create("DCheckBoxLabel", tab5.VoiceSetSettings)
+	tab5.VoiceSetSettings.AutoVS:SetPos(280, 295)
+	tab5.VoiceSetSettings.AutoVS:SetSize(200, 20)
+	tab5.VoiceSetSettings.AutoVS:SetText( "Use Playermodel VoiceSets" )
+	tab5.VoiceSetSettings.AutoVS:SetConVar( "cl_drc_voiceset_automatic" )
+	tab5.VoiceSetSettings.AutoVS.Label:SetColor(color_black)
+	tab5.VoiceSetSettings.AutoVS:SetEnabled(true)
+	
+	MakeHint(tab5.VoiceSetSettings, 435, 295, "When enabled this will automatically utilize a VoiceSet tied to a playermodel, should it have one.")
+	
+	tab5.VoiceSetSettings.copy = vgui.Create("DButton", tab5.VoiceSetSettings)
+	tab5.VoiceSetSettings.copy:SetSize(300,20)
+	tab5.VoiceSetSettings.copy:SetPos(280,270)
+	tab5.VoiceSetSettings.copy:SetText("Copy selected VoiceSet ID to clipboard")
+	tab5.VoiceSetSettings.copy:SetTooltip("Copies select VoiceSet's ID to clipboard.")
+	
+	function tab5.VoiceSetSettings.copy:DoClick()
+		tab5.VoiceSetSettings.copy:SetText("Copied!")
+		SetClipboardText(VSelection)
+		timer.Simple(1, function() tab5.VoiceSetSettings.copy:SetText("Copy selected VoiceSet ID to clipboard") end)
+	end
 	
 	local function UpdateGmodColours()
 		RunConsoleCommand( "cl_playercolor", tostring( playercolour:GetVector() ))
@@ -966,16 +1142,18 @@ function DRCMenu( player )
 			if frame.preview.Entity then frame.preview.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end end
 			playercolour:SetVector( Vector( GetConVarString( "cl_playercolor" ) ) )
 			weaponcolour:SetVector( Vector( GetConVarString( "cl_weaponcolor" ) ) )
-		--	Playframe.previewAnimation( frame.preview, model )
 		end
 	UpdateFromConvars(false)
 	
+	-- @@@@@@@@@@
 	function PanelSelect:OnActivePanelChanged( old, new )
-		if ( old != new ) then -- Only reset if we changed the model
+		if ( old != new ) then
+			bgloading:SetVisible(true)
+			SetupScene(new:GetModelName())
 			RunConsoleCommand( "cl_playerbodygroups", "0" )
 			RunConsoleCommand( "cl_playerskin", "0" )
 		end
-		timer.Simple( 0.1, function() UpdateFromConvars(false) end )
+		timer.Simple( 0.1, function() UpdateFromConvars(false) bgloading:SetVisible(false) end )
 	end
 
 	frame.preview.Entity.preview = true
@@ -1017,7 +1195,9 @@ function DRCMenu( player )
 		accentColour2preview:SetBackgroundColor(accentColour2:GetColor())
 		
 		DRC:RefreshColours(LocalPlayer())
+		SetupScene(tbl.Model)
 		timer.Simple(0.1, function() RebuildBodygroupTab() end)
+		timer.Simple(0.5, function() DRC:RefreshColours(LocalPlayer()) end)
 	end
 	
 	local SaveLoad = vgui.Create("DPanel", tab4)
@@ -1081,11 +1261,11 @@ function DRCMenu( player )
 		for k,v in pairs(AvatarTable) do
 			if v != "dummyfile.json" then
 				local container = vgui.Create("DPanel", drcMenu_ScrollAvatars)
-				container:SetSize(drcMenu_ScrollAvatars:GetWide(), 32)
+				container:SetSize(drcMenu_ScrollAvatars:GetWide(), 24)
 				container:SetPos(0, 0)
 				container:Dock(TOP)
-				container:DockMargin(0, 2, 0, 2)
-				container:SetBackgroundColor(Color(0, 0, 0, 255))
+				container:DockMargin(0, 0, 0, 1)
+				container:SetBackgroundColor(Color(0, 0, 0, 0))
 				
 				drc_loadedavatarfile = file.Read("Draconic/Avatars/".. v .."", "DATA")
 				local tbl = util.JSONToTable(drc_loadedavatarfile)
@@ -1099,29 +1279,31 @@ function DRCMenu( player )
 					tbl.Colours.Player,
 				}
 				
-				for k,v in pairs(tbl.Colours) do
+			--[[	for k,v in pairs(tbl.Colours) do
 					local collabel = vgui.Create("DPanel", container)
 					local colvec = Vector(v)
-					collabel:SetSize(40, 32)
+					collabel:SetSize(40, 20)
 					collabel:SetPos( 600 - k * 40, 0)
 					collabel:SetBackgroundColor(Color(colvec.x, colvec.y, colvec.z, 255))
-				end
+				end ]]
 				
 				local ModelPanel = vgui.Create("DPanel", container)
-				ModelPanel:SetSize(230, 30)
+				ModelPanel:SetSize(230, 24)
 				ModelPanel:SetPos(129, 1)
 				ModelPanel:SetBackgroundColor(Color(255, 255, 255, 255))
+				ModelPanel:Dock(FILL)
 				
 				local ModelLabel = vgui.Create("DLabel", ModelPanel)
-				ModelLabel:SetSize(230, 30)
+				ModelLabel:SetSize(230, 24)
 				ModelLabel:SetPos(0, 0)
 				ModelLabel:SetText(tbl.Playermodel)
-				ModelLabel:SetContentAlignment(5)
+				ModelLabel:SetContentAlignment(6)
 				ModelLabel:SetColor(Color(0, 0, 0, 255))
+				ModelLabel:Dock(FILL)
 				
 				local label = vgui.Create("DButton", container)
 				label:SetText(tbl.Name)
-				label:SetSize(128, 32)
+				label:SetSize(240, 24)
 				if tbl.Name == SelectedAvatar then
 					label:SetEnabled(false)
 				end
@@ -1288,16 +1470,17 @@ function DRCMenu( player )
 	local AvatarTitle = vgui.Create("DLabel", AvatarTitleContainer)
 	AvatarTitle:SetText("Save name")
 	AvatarTitle:Dock(LEFT)
-	AvatarTitle:DockMargin(6, 1, 1, 0)
+	AvatarTitle:DockMargin(8, 0, 0, 0)
 	AvatarTitle:SetColor(Color(0, 0, 0, 255))
 	
 	local PCPanel = vgui.Create("DPanel", AvatarTitleContainer)
 	PCPanel:SetSize(AvatarTitleContainer:GetWide(), 20)
 	PCPanel:Dock(FILL)
 	local PCLabel = vgui.Create("DLabel", PCPanel)
-	PCLabel:SetText("Model name, Player, Weapon, Eye, Energy, Tint1, Tint2 colours.   ")
+	PCLabel:SetText("Model name")
 	PCLabel:SetSize(AvatarTitleContainer:GetWide(), 20)
-	PCLabel:Dock(FILL)
+	PCLabel:Dock(RIGHT)
+	PCLabel:DockMargin(0, 0, 8, 0)
 	PCLabel:SetContentAlignment(6)
 	PCLabel:SetColor(Color(0, 0, 0, 255))
 	
@@ -1311,7 +1494,7 @@ function DRCMenu( player )
 		end
 		tab1:Remove()
 		tab4:Remove()
-		VoiceSelector:SetEnabled(false)
+		tab5.VoiceSetSettings:Remove()
 		
 		tabs:SetActiveTab(tabs:GetItems()[1].Tab)
 	elseif DRC:GetCustomizationAllowed() == false then
@@ -1329,7 +1512,7 @@ function DRCMenu( player )
 		tab1:Remove()
 		tab2:Remove()
 		tab4:Remove()
-		VoiceSelector:SetEnabled(false)
+		tab5.VoiceSetSettings:Remove()
 	end
 	
 	RefreshAvatars()
@@ -1481,6 +1664,20 @@ function DRCMenu( player )
 	SettingsTitle_CL:SetFont("DermaLarge")
 	SettingsTitle_CL:SetContentAlignment(0)
 	
+	local SettingsSubTitle_CL = vgui.Create( "DLabel", t2tab1)
+	SettingsSubTitle_CL:SetText("User Preferences")
+	SettingsSubTitle_CL:SetSize(200, 50)
+	SettingsSubTitle_CL:SetPos(16, 200)
+	SettingsSubTitle_CL:SetColor(Color(255, 255, 255, 255))
+	SettingsSubTitle_CL:SetFont("DermaLarge")
+	SettingsSubTitle_CL:SetContentAlignment(0)
+	
+	local DisclaimerSettings = vgui.Create( "DLabel", t2tab1)
+	DisclaimerSettings:SetPos(20, 600)
+	DisclaimerSettings:SetSize(w2, 20)
+	DisclaimerSettings:SetText("* Some settings & preferences can be overridden by server settings.")
+	DisclaimerSettings:SetColor(TextCol)
+	
 	local DrcSoul = vgui.Create( "DCheckBoxLabel", t2tab1 )
 	DrcSoul:SetPos(25, 35)
 	DrcSoul:SetSize(500, 20)
@@ -1490,15 +1687,15 @@ function DRCMenu( player )
 	DrcSoul:SetEnabled(false)
 	
 	local DrcCrosshairs = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcCrosshairs:SetPos(25, 60)
+	DrcCrosshairs:SetPos(25, 310)
 	DrcCrosshairs:SetSize(500, 20)
-	DrcCrosshairs:SetText( "Disable crosshairs" )
+	DrcCrosshairs:SetText( "Disable crosshairs*" )
 	DrcCrosshairs:SetConVar( "cl_drc_disable_crosshairs" )
 	DrcCrosshairs.Label:SetColor(TextCol)
 	DrcCrosshairs:SetEnabled(true)
 	
 	local DrcErrorHints = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcErrorHints:SetPos(25, 85)
+	DrcErrorHints:SetPos(25, 55)
 	DrcErrorHints:SetSize(500, 20)
 	DrcErrorHints:SetText( "Disable error hints" )
 	DrcErrorHints:SetConVar( "cl_drc_disable_errorhints" )
@@ -1506,33 +1703,23 @@ function DRCMenu( player )
 	DrcErrorHints:SetEnabled(true)
 	
 	local DrcLoweredCrosshair = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcLoweredCrosshair:SetPos(25, 110)
+	DrcLoweredCrosshair:SetPos(25, 330)
 	DrcLoweredCrosshair:SetSize(500, 20)
-	DrcLoweredCrosshair:SetText( "Enable lowered crosshair" )
+	DrcLoweredCrosshair:SetText( "Enable lowered crosshair on Draconic SWEPs" )
 	DrcLoweredCrosshair:SetConVar( "cl_drc_lowered_crosshair" )
 	DrcLoweredCrosshair.Label:SetColor(TextCol)
 	DrcLoweredCrosshair:SetEnabled(true)
 	
-	local DrcExperimentalFP = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcExperimentalFP:SetPos(25, 135)
-	DrcExperimentalFP:SetSize(500, 20)
-	DrcExperimentalFP:SetText( "Enable ''Experimental First Person Camera'' mode" )
-	DrcExperimentalFP:SetConVar( "cl_drc_experimental_fp" )
-	DrcExperimentalFP.Label:SetColor(TextCol)
-	DrcExperimentalFP:SetEnabled(true)
-	
-	MakeHint(t2tab1, 285, 135, "This makes your camera function like a true full-body first person system while still using your viewmodel.")
-	
 	local DrcThirdperson = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcThirdperson:SetPos(25, 160)
+	DrcThirdperson:SetPos(25, 75)
 	DrcThirdperson:SetSize(500, 20)
-	DrcThirdperson:SetText( "Enable Draconic Thirdperson" )
+	DrcThirdperson:SetText( "Enable Draconic Thirdperson*" )
 	DrcThirdperson:SetConVar( "cl_drc_thirdperson" )
 	DrcThirdperson.Label:SetColor(TextCol)
 	DrcThirdperson:SetEnabled(true)
 	
 	local DrcThirdperson_Dyn = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcThirdperson_Dyn:SetPos(25, 185)
+	DrcThirdperson_Dyn:SetPos(25, 95)
 	DrcThirdperson_Dyn:SetSize(500, 20)
 	DrcThirdperson_Dyn:SetText( "Disable Thirdperson Free-look" )
 	DrcThirdperson_Dyn:SetConVar( "cl_drc_thirdperson_disable_freelook" )
@@ -1540,7 +1727,7 @@ function DRCMenu( player )
 	DrcThirdperson_Dyn:SetEnabled(true)
 	
 	local VMOX = vgui.Create( "DNumSlider", t2tab1 )
-	VMOX:SetPos(25, 235)
+	VMOX:SetPos(25, 240)
 	VMOX:SetSize(300, 20)
 	VMOX:SetText( "Global viewmodel offset X" )
 	VMOX.Label:SetColor(TextCol)
@@ -1551,7 +1738,7 @@ function DRCMenu( player )
 	VMOX:SetEnabled(true)
 	
 	local VMOY = vgui.Create( "DNumSlider", t2tab1 )
-	VMOY:SetPos(25, 255)
+	VMOY:SetPos(25, 260)
 	VMOY:SetSize(300, 20)
 	VMOY:SetText( "Global viewmodel offset Y" )
 	VMOY.Label:SetColor(TextCol)
@@ -1562,7 +1749,7 @@ function DRCMenu( player )
 	VMOY:SetEnabled(true)
 	
 	local VMOZ = vgui.Create( "DNumSlider", t2tab1 )
-	VMOZ:SetPos(25, 275)
+	VMOZ:SetPos(25, 280)
 	VMOZ:SetSize(300, 20)
 	VMOZ:SetText( "Global viewmodel offset Y" )
 	VMOZ.Label:SetColor(TextCol)
@@ -1716,7 +1903,38 @@ function DRCMenu( player )
 				LGTitle:SetSize(w2, 60)
 				LGTitle:SetText("Handicap of how much an NPCs accuracy should be with Draconic guns. \n 0 = Seal Team 6 accuracy (perfect) \n 2 - Half-Life 2 AI Accuracy \n 10 = Can't hit shit.")
 				LGTitle:SetColor(TextCol) --]]
-				
+	
+	local t2tab3 = vgui.Create( "DPanel" )
+	t2tab3:Dock(FILL)
+	t2tab3.Paint = function(self, w, h)
+        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+    end
+	t2tabs:AddSheet( "Experimental Settings", t2tab3, "icon16/script_error.png")
+	
+	local DisclaimerExperimental = vgui.Create( "DLabel", t2tab3)
+	DisclaimerExperimental:SetPos(20, -8)
+	DisclaimerExperimental:SetSize(300, 50)
+	DisclaimerExperimental:SetText("Experimental Settings")
+	--DisclaimerExperimental:SetText("Anything in this tab is either an unstable personal project ([>),\nor a work-in-progress feature in need of testing (<])")
+	DisclaimerExperimental:SetFont("DermaLarge")
+	DisclaimerExperimental:SetColor(Color(255, 255, 255, 255))
+	
+	local DisclaimerExperimental = vgui.Create( "DLabel", t2tab3)
+	DisclaimerExperimental:SetPos(24, 20)
+	DisclaimerExperimental:SetSize(w2, 50)
+	DisclaimerExperimental:SetText("Anything in this tab is either an unstable personal project or a work-in-progress feature in need of testing.\nAnything enabled in this tab will not persist between sessions, as they use placeholder convars. (with exception of ''Experimental First Person''.)")
+	DisclaimerExperimental:SetColor(TextCol)
+	
+	local DrcExperimentalFP = vgui.Create( "DCheckBoxLabel", t2tab3 )
+	DrcExperimentalFP:SetPos(25, 90)
+	DrcExperimentalFP:SetSize(500, 20)
+	DrcExperimentalFP:SetText( "Enable ''Experimental First Person'' mode" )
+	DrcExperimentalFP:SetConVar( "cl_drc_experimental_fp" )
+	DrcExperimentalFP.Label:SetColor(TextCol)
+	DrcExperimentalFP:SetEnabled(true)
+	
+	MakeHint(t2tab3, 300, 90, "<< Work in Progress Feature >>\n\n''Experimental First Person'' is a true full-body first person camera system which still utilizes the player's viewmodel.\n\nEFP Does:\n> Show your body in first person, accurate to how it is seen in third-person.\n> Show your character's arms when in a vehicle\n> Add a small amount of viewbobbing based on your character's head\n> Still uses the player's viewmodel, allowing you to see your weapon properly as intended by its creators.\n\nEFP Does NOT:\n> Change the aiming angle to match the new camera position (yet)\n\nCurrent known issues:\n> Body desyncs when game is paused in singleplayer")
+
 	local mt3 = vgui.Create( "DPanel", maintabs )
 	mt3:SetBackgroundColor(Color(255, 255, 255, 5))
 	maintabs:AddSheet( "Credits", mt3, "icon16/text_indent.png")
@@ -1982,16 +2200,17 @@ function DRCMenu( player )
 	ControlsTitle:SetFont("DermaLarge")
 	DebugInfo:SetPos(25, 10)
 	DebugInfo:SetSize(400, 20)
-	DebugInfo:SetText("HDR Support >> Hardware: ".. tostring(render.SupportsHDR()) .." | Map: ".. tostring(render.GetHDREnabled()) .."")
+	DebugInfo:SetText("HDR Support | Hardware: ".. tostring(render.SupportsHDR()) .." | Map: ".. tostring(render.GetHDREnabled()) .."")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)
 	ControlsTitle:SetFont("DermaLarge")
 	DebugInfo:SetPos(25, 25)
 	DebugInfo:SetSize(400, 20)
-	DebugInfo:SetText("DirectX Level >> ".. render.GetDXLevel() .."")
+	DebugInfo:SetText("DirectX Level | ".. render.GetDXLevel() .."")
 	DebugInfo:SetColor(TextCol)
-	
+
+--[[	
 	local col = render.GetLightColor(LocalPlayer():EyePos()) * 255
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)
 	DebugInfo:SetPos(25, 40)
@@ -2005,6 +2224,7 @@ function DRCMenu( player )
 	DebugInfo:SetSize(50, 20)
 	DebugInfo:SetText("g")
 	DebugInfo:SetColor(Color(col.x, col.y, col.z, 255))
+	]]
 	
 	local t4tab2 = vgui.Create( "DPanel" )
 	t4tab2:Dock(FILL)
@@ -2100,6 +2320,16 @@ function DRCMenu( player )
 	t4tab2panel_left.CubemapRenderer:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 175, "Renders env_cubemap entities.")
+	
+	t4tab2panel_left.BoundingBoxes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.BoundingBoxes:SetPos(25, 195)
+	t4tab2panel_left.BoundingBoxes:SetSize(500, 20)
+	t4tab2panel_left.BoundingBoxes:SetText( "Bounds Renderer" )
+	t4tab2panel_left.BoundingBoxes:SetConVar( "cl_drc_debug_bounds" )
+	t4tab2panel_left.BoundingBoxes.Label:SetColor(TextCol)
+	t4tab2panel_left.BoundingBoxes:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 195, "Continuously renders your own collision (yellow) & render (purple) bounds while not in first person.\nAlso renders bounds of whatever you are looking at.")
 	
 	t4tab2panel_left.SourceTitle = vgui.Create( "DLabel", t4tab2panel_left)
 	t4tab2panel_left.SourceTitle:SetText("Source Debug Tools")

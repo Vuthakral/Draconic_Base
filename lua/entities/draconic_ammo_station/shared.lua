@@ -78,6 +78,7 @@ function ENT:Initialize()
 
 	if self.Destroyable == true then
 		self:SetHealth(self.SpawnHealth)
+		if SERVER then self:SetMaxHealth(self.SpawnHealth) end
 	end
 end
 
@@ -152,13 +153,22 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 	
 		if v:GetClass() == self:GetClass() then
 			if !IsValid(v:GetPhysicsObject()) then return end
-			if v:EntIndex() != self:EntIndex() then v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*ep/(v:GetPos()):Distance(pos) * 100) end
+			if v:EntIndex() != self:EntIndex() then v:GetPhysicsObject():AddVelocity((v:GetPos()-pos)*ep/(v:GetPos()):Distance(pos) * 100) end
 			if SERVER then v:TakeDamageInfo(dmg2) end
 		else
 			if IsValid(v:GetPhysicsObject()) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
-				v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*ep/(v:GetPos()):Distance(pos) * 100)
-			elseif v:IsPlayer() or v:IsNPC() or v:IsNextBot() then
-				v:SetVelocity((v:OBBCenter()-pos)*ep/(v:OBBCenter()):Distance(pos) * 50)
+				v:GetPhysicsObject():AddVelocity((v:GetPos()-pos)*ep/(v:GetPos()):Distance(pos) * 100)
+			elseif DRC:IsCharacter(v) then
+				pos = pos + self:OBBCenter()
+				local dist = (v:GetPos() + v:OBBCenter()):Distance(pos)
+				local tr = util.TraceLine({
+					start = pos,
+					endpos = (v:GetPos() + v:OBBCenter()),
+					filter = function(ent) if ent != v then return false else return true end end,
+				})
+				local ang = tr.Normal:Angle()
+				v:SetVelocity(ang:Forward() * dist * 3)
+			--	v:SetVelocity((v:OBBCenter()-pos)*ep/(v:OBBCenter()):Distance(pos) * 50)
 			end
 			if SERVER then v:TakeDamageInfo(dmg2) end
 		end

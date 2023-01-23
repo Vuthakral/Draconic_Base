@@ -15,20 +15,22 @@ SWEP.SlotPos			= 0
 
 SWEP.ViewModel			= "models/vuthakral/drc_unarmed.mdl"
 SWEP.ViewModelFOV		= 90
-SWEP.VMPos				= Vector(0, 0, 0)
-SWEP.VMAng				= Vector(0, 0, 0)
+SWEP.VMPos				= Vector(0, 0, -5)
+SWEP.VMAng				= Vector(5, 0, 0)
 SWEP.SprintPos			= Vector(0, 0, 0)
 SWEP.SprintAng			= Vector(0, 0, 0)
 SWEP.PassivePos			= Vector(0, 0, 0)
 SWEP.PassiveAng			= Vector(0, 0, 0)
 SWEP.UseHands			= true
 
+SWEP.InfoDescription = "When your rounds are spent, blades dull, and patience diminished;\nall you have left is your own two hands.\n\nRip and tear, until it is done."
+
 SWEP.HoldType	= "normal"
 
-SWEP.Primary.SwingSound			= Sound( "draconic.FistSwingFast" )
-SWEP.Primary.HitSoundWorld 		= Sound( "" )
-SWEP.Primary.HitSoundFlesh 		= Sound( "" )
-SWEP.Primary.HitSoundEnt 		= Sound( "" )
+SWEP.Primary.SwingSound			= Sound( "draconic.PunchFoley" )
+SWEP.Primary.HitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
+SWEP.Primary.HitSoundFlesh 		= Sound( "draconic.PunchImpact" )
+SWEP.Primary.HitSoundEnt 		= Sound( "draconic.PunchImpact_obj" )
 SWEP.Primary.HoldType			= "fist"
 SWEP.Primary.CrouchHoldType		= "melee"
 SWEP.Primary.ImpactDecal 		= ""
@@ -37,13 +39,13 @@ SWEP.Primary.Automatic			= false
 SWEP.Primary.Damage				= 25
 SWEP.Primary.DamageType			= DMG_CLUB
 SWEP.Primary.Range				= 25
-SWEP.Primary.Force				= 2
+SWEP.Primary.Force				= 10
 SWEP.Primary.DelayMiss			= 0.65
 SWEP.Primary.DelayHit 			= 0.65
 SWEP.Primary.CanAttackCrouched = true
 SWEP.Primary.HitActivity		= ACT_VM_IDLE
 SWEP.Primary.CrouchHitActivity	= nil
-SWEP.Primary.MissActivity		= ACT_VM_PRIMARYATTACK 
+SWEP.Primary.MissActivity		= ACT_VM_SECONDARYATTACK
 SWEP.Primary.CrouchMissActivity	= ACT_VM_HITLEFT
 SWEP.Primary.HitDelay			= 0.07
 SWEP.Primary.StartX				= -50
@@ -57,10 +59,10 @@ SWEP.Primary.LungeAutomatic		= false
 SWEP.Primary.LungeRequiresTarget= false
 SWEP.Primary.LungeVelocity		= 1000
 SWEP.Primary.LungeMaxDist		= 100
-SWEP.Primary.LungeSwingSound	= Sound( "draconic.FistSwingFast" )
-SWEP.Primary.LungeHitSoundWorld = Sound( "" )
-SWEP.Primary.LungeHitSoundFlesh = Sound( "" )
-SWEP.Primary.LungeHitSoundEnt	= Sound( "" )
+SWEP.Primary.LungeSwingSound	= Sound( "draconic.PunchFoley" )
+SWEP.Primary.LungeHitSoundWorld = Sound( "draconic.PunchImpact_obj" )
+SWEP.Primary.LungeHitSoundFlesh = Sound( "draconic.PunchImpact" )
+SWEP.Primary.LungeHitSoundEnt	= Sound( "draconic.PunchImpact_obj" )
 SWEP.LungeHoldType				= "fist"
 SWEP.LungeHoldTypeCrouch		= "melee"
 SWEP.Primary.LungeImpactDecal 	= ""
@@ -81,10 +83,10 @@ SWEP.Primary.LungeEndX			= -5
 SWEP.Primary.LungeEndY			= 3
 SWEP.Primary.LungeShakeMul		= 1
 
-SWEP.Secondary.SwingSound			= Sound( "draconic.FistSwingFast" )
-SWEP.Secondary.HitSoundWorld 		= Sound( "" )
-SWEP.Secondary.HitSoundFlesh 		= Sound( "" )
-SWEP.Secondary.HitSoundEnt 			= Sound( "" )
+SWEP.Secondary.SwingSound			= Sound( "draconic.PunchFoley" )
+SWEP.Secondary.HitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
+SWEP.Secondary.HitSoundFlesh 		= Sound( "draconic.PunchImpact" )
+SWEP.Secondary.HitSoundEnt 			= Sound( "draconic.PunchImpact_obj" )
 SWEP.Secondary.HoldType				= "fist"
 SWEP.Secondary.CrouchHoldType		= "melee"
 SWEP.Secondary.ImpactDecal 			= ""
@@ -93,13 +95,13 @@ SWEP.Secondary.Automatic			= false
 SWEP.Secondary.Damage				= 25
 SWEP.Secondary.DamageType			= DMG_CLUB
 SWEP.Secondary.Range				= 25
-SWEP.Secondary.Force				= 2
+SWEP.Secondary.Force				= 10
 SWEP.Secondary.DelayMiss			= 0.65
 SWEP.Secondary.DelayHit 			= 0.65
 SWEP.Secondary.CanAttackCrouched 	= true
 SWEP.Secondary.HitActivity			= ACT_VM_IDLE
 SWEP.Secondary.CrouchHitActivity	= nil
-SWEP.Secondary.MissActivity			= ACT_VM_SECONDARYATTACK
+SWEP.Secondary.MissActivity			= ACT_VM_PRIMARYATTACK
 SWEP.Secondary.CrouchMissActivity	= ACT_VM_HITRIGHT
 SWEP.Secondary.HitDelay				= 0.07
 SWEP.Secondary.StartX				= 50
@@ -108,16 +110,37 @@ SWEP.Secondary.EndX					= -40
 SWEP.Secondary.EndY					= -10
 SWEP.Secondary.ShakeMul				= 1
 
+-------------------------- Custom lua
+
 function SWEP:DoCustomThink()
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
 	if !ply:IsPlayer() then return end
-	local vm = ply:GetViewModel()
+	local vm = ply:GetViewModel(0)
 	if !IsValid(vm) then return end
 	
 	local cv = ply:Crouching()
-	local kickanim = vm:LookupSequence("kick0")
-	local kneeanim = vm:LookupSequence("kick1")
+	local ea = ply:EyeAngles()
+	
+	if ea.x > 55 then
+		self.Primary.LungeMissAct = ACT_VM_HITCENTER2
+		self.Primary.LungeStartX = 10
+		self.Primary.LungeEndX = 5
+		self.Primary.LungeStartY = 20
+		self.Primary.LungeEndY = -20
+		self.Primary.LungeForce = 10
+		self.Primary.LungeDamage = 125
+		self.Primary.LungeRange = 30
+	else
+		self.Primary.LungeMissAct = ACT_VM_HITCENTER
+		self.Primary.LungeStartX = 7
+		self.Primary.LungeEndX = -5
+		self.Primary.LungeStartY = -20
+		self.Primary.LungeEndY = 3
+		self.Primary.LungeForce = 20
+		self.Primary.LungeDamage = 80
+		self.Primary.LungeRange = 25
+	end
 	
 	if cv then
 		self.Primary.StartX		= -45
@@ -132,22 +155,23 @@ function SWEP:DoCustomThink()
 		self.Secondary.EndY		= 20
 		self.Secondary.Range	= 15
 	else
-		self.Primary.StartX		= -50
+		self.Primary.StartX		= 50
 		self.Primary.StartY		= 3
-		self.Primary.EndX		= 50
+		self.Primary.EndX		= -50
 		self.Primary.EndY		= -10
 		self.Primary.Range		= 25
 		
-		self.Secondary.StartX	= 50
+		self.Secondary.StartX	= -50
 		self.Secondary.StartY	= 3
-		self.Secondary.EndX		= -50
+		self.Secondary.EndX		= 50
 		self.Secondary.EndY		= -10
 		self.Secondary.Range	= 25
 	end
 	
-	if !DRC:ValveBipedCheck(ply) then self.Primary.CanLunge = false end
-
 	if CLIENT then
+		local kickanim = vm:LookupSequence("kick0")
+		local kneeanim = vm:LookupSequence("curbstomp0")
+		local seq = vm:GetSequence()
 		if ply != LocalPlayer() then return end
 		if !IsValid(self.CSPlayerModel) then
 			self.CSPlayerModel = ents.CreateClientside("drc_dummy")
@@ -165,13 +189,16 @@ function SWEP:DoCustomThink()
 			self.CSLegModel:SetAngles(vm:EyeAngles())
 			self.CSLegModel:SetParent(vm)
 		else
-			if vm:GetSequence() == kickanim or vm:GetSequence() == kneeanim then
+			if seq == kickanim or seq == kneeanim then
 				self.CSPlayerModel:SetNoDraw(false)
+				self.CSPlayerModel:SetSequence(self.VMSequence)
 				self.CSLegModel:SetSequence(self.VMSequence)
+				self.CSPlayerModel:SetCycle(self.VMCycle)
 				self.CSLegModel:SetCycle(self.VMCycle)
 			else
 				self.CSPlayerModel:SetNoDraw(true)
 			end
+			if DRC:ThirdPersonEnabled(ply) == true then self.CSPlayerModel:SetNoDraw(true) return end
 		
 			self.CSPlayerModel:SetPos(self.CSLegModel:GetPos())
 			self.CSPlayerModel:SetAngles(self.CSLegModel:GetAngles())
@@ -189,6 +216,89 @@ function SWEP:FuckOff()
 		self.CSPlayerModel:Remove()
 		self.CSLegModel:Remove()
 	end
+end
+
+function SWEP:DoCustomDeploy()
+	local ply = self:GetOwner()
+	local mdl = player_manager.TranslateToPlayerModelName(ply:GetModel())
+	if DRC:GetPlayerModelValue(mdl, "Extensions", "Claws") == true then
+		self.Primary.MissActivity = ACT_VM_HITRIGHT2
+		self.Primary.CrouchMissActivity = ACT_VM_HITRIGHT2
+		self.Secondary.MissActivity = ACT_VM_HITLEFT2
+		self.Secondary.CrouchMissActivity = ACT_VM_HITLEFT2
+		self.Primary.SwingSound					= Sound( "draconic.ClawFoley" )
+		self.Primary.HitSoundWorld 				= Sound( "draconic.PunchImpact_obj" )
+		self.Primary.HitSoundFlesh 				= Sound( "draconic.ClawImpact" )
+		self.Primary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
+		self.Primary.LungeSwingSound			= Sound( "draconic.PunchFoley" )
+		self.Primary.LungeHitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
+		self.Primary.LungeHitSoundFlesh 		= Sound( "draconic.PunchFoley" )
+		self.Primary.LungeHitSoundEnt 			= Sound( "draconic.PunchImpact_obj" )
+		self.Secondary.SwingSound				= Sound( "draconic.ClawFoley" )
+		self.Secondary.HitSoundWorld 			= Sound( "draconic.PunchImpact_obj" )
+		self.Secondary.HitSoundFlesh 			= Sound( "draconic.ClawImpact" )
+		self.Secondary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
+	else
+		self.Primary.MissActivity = ACT_VM_SECONDARYATTACK
+		self.Primary.CrouchMissActivity = ACT_VM_SECONDARYATTACK
+		self.Secondary.MissActivity = ACT_VM_PRIMARYATTACK
+		self.Secondary.CrouchMissActivity = ACT_VM_PRIMARYATTACK
+		self.Primary.SwingSound					= Sound( "draconic.PunchFoley" )
+		self.Primary.HitSoundWorld 				= Sound( "draconic.PunchImpact_obj" )
+		self.Primary.HitSoundFlesh 				= Sound( "draconic.PunchImpact" )
+		self.Primary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
+		self.Primary.LungeSwingSound			= Sound( "draconic.PunchFoley" )
+		self.Primary.LungeHitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
+		self.Primary.LungeHitSoundFlesh 		= Sound( "draconic.PunchImpact" )
+		self.Primary.LungeHitSoundEnt 			= Sound( "draconic.PunchImpact_obj" )
+		self.Secondary.SwingSound				= Sound( "draconic.PunchFoley" )
+		self.Secondary.HitSoundWorld 			= Sound( "draconic.PunchImpact_obj" )
+		self.Secondary.HitSoundFlesh 			= Sound( "draconic.PunchImpact" )
+		self.Secondary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
+	end
+end
+
+function SWEP:DoCustomLunge()
+	local ply = self:GetOwner()
+	if game.SinglePlayer() then ply = player.GetAll()[1] end
+	local ea = ply:EyeAngles()
+	if DRC:FloorDist(ply) < 10 then
+		timer.Simple(0, function() 
+			if ea.x > 55 then
+				DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_ATTACK_STAND_MELEE_SECONDARY, true)
+--				ply:Freeze(true) -- This breaks the viewmodel animation in multiplayer but not singleplayer whyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+				for i=0,66 do
+					timer.Simple(0.015*i, function()
+						ply:SetLocalVelocity(Vector())
+					end)
+				end
+				timer.Simple(0.3, function()
+					if IsValid(ply) then util.ScreenShake( ply:GetPos(), 5, 0.2, 0.3, 50 ) end
+				end)
+				timer.Simple(0.75, function()
+--					if IsValid(ply) then ply:Freeze(false) end
+				end)
+			else
+				DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_STAND_MELEE)
+			end
+		end)
+	else
+		timer.Simple(0, function() DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_JUMP_MELEE) end)
+	end
+end
+
+function SWEP:DoCustomPrimaryAttack()
+	local ply = self:GetOwner()
+	local mdl = player_manager.TranslateToPlayerModelName(ply:GetModel())
+	local val = DRC:GetPlayerModelValue(mdl, "Extensions", "Claws")
+	if val == true then timer.Simple(0, function() DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GESTURE_MELEE_ATTACK1, true) end) end
+end
+
+function SWEP:DoCustomSecondaryAttack()
+	local ply = self:GetOwner()
+	local mdl = player_manager.TranslateToPlayerModelName(ply:GetModel())
+	local val = DRC:GetPlayerModelValue(mdl, "Extensions", "Claws")
+	if val == true then timer.Simple(0, function() DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GESTURE_MELEE_ATTACK2, true) end) end
 end
 
 function SWEP:DoCustomHolster()

@@ -208,7 +208,7 @@ function ENT:Think()
 					dmg69:SetDamageType(self.DamageType)
 					
 					if IsValid(v:GetPhysicsObject()) && !DRC:IsCharacter(v) then
-						if self.GravitySpherePower != 0 then v:GetPhysicsObject():SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+						if self.GravitySpherePower != 0 then v:GetPhysicsObject():AddVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
 						if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
 					elseif DRC:IsCharacter(v) then
 						if v == self:GetOwner() && self.RadialDamagesOwner == true then 
@@ -219,7 +219,7 @@ function ENT:Think()
 						end
 						if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
 					else
-						if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+						if self.GravitySpherePower != 0 then v:AddVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
 					end
 				end
 			end
@@ -231,7 +231,7 @@ function ENT:Think()
 	if self.Effect != nil then
 		if !phys:IsValid() then return end
 		local ed = EffectData()
-		ed:SetOrigin(phys:GetPos())
+		ed:SetOrigin(self:GetPos())
 		ed:SetEntity(self)
 		util.Effect(self.Effect, ed)
 	end
@@ -338,6 +338,8 @@ function ENT:Initialize()
 	local type = self.ProjectileType
 	local ply = self:GetOwner()
 	self:SetCollisionGroup(COLLISION_GROUP_PROJECTILE)
+	self:SetCustomCollisionCheck(true)
+	self:SetEntity(0)
 	
 	if type == "lua_explosive" or type == "explosive" or type == "custom_explosive" or type == "grenade" or type == "FuseAfterFirstBounce" then self.Explosive = true end
 	
@@ -439,7 +441,7 @@ local phys = self:GetPhysicsObject()
 	
 	if self.SpawnEffect != nil then
 		local ed2 = EffectData()
-		ed2:SetOrigin(phys:GetPos())
+		ed2:SetOrigin(self:GetPos())
 		ed2:SetEntity(self)
 		util.Effect(self.SpawnEffect, ed2)
 	end
@@ -892,6 +894,7 @@ function ENT:LuaExplode(mode)
 			ed3:SetOrigin(pos)
 			ed3:SetEntity(self)
 			util.Effect(self.MSLuaEffect, ed3)
+		--	print(self:GetPos())
 		end
 	end
 		

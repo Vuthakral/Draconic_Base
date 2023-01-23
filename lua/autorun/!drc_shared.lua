@@ -15,6 +15,7 @@ hook.Add("PreRegisterSWEP", "DRC_NPCWeaponList", function(swep, cl)
 	
 	if swep.NPCSpawnable == false then return end
 	
+	if !swep.PrintName then swep.PrintName = "NO NAME???" end
 	list.Add("NPCUsableWeapons", {class = cl, title = "[DRC] ".. swep.PrintName .."", category = Category})
 end)
 

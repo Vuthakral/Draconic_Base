@@ -1,5 +1,37 @@
 AddCSLuaFile()
 
+SWEP.ChargeValue = 0
+function SWEP:GetCharge()
+	return self:GetNWInt("Charge")
+end
+function SWEP:SetCharge(val)
+	self:SetNWInt("Charge", val)
+end
+function SWEP:AddCharge(val)
+	self:SetNWInt("Charge", math.Clamp(self:GetCharge() + val, 0, 100))
+end
+function SWEP:SubCharge(val)
+	self:SetNWInt("Charge", math.Clamp(self:GetCharge() - val, 0, 100))
+end
+
+SWEP.HeatValue = 0
+function SWEP:GetHeat()
+	return self:GetNWInt("Heat")
+end
+function SWEP:SetHeat(val)
+	self:SetNWInt("Heat", val)
+end
+function SWEP:AddHeat(val)
+	self:SetNWInt("Heat", math.Clamp(self:GetHeat() + val, 0, 100))
+end
+function SWEP:SubHeat(val)
+	self:SetNWInt("Heat", math.Clamp(self:GetHeat() - val, 0, 100))
+end
+
+function SWEP:IsIdle()
+	if self.Loading != true && self.ManuallyReloading != true && self.Inspecting != true && self.IsOverheated == false && self.IsDoingMelee != true then return true else return false end
+end
+
 function SWEP:RegeneratingHealth(ply)
 	local ply = self:GetOwner()
 	if not ply:IsPlayer() then return end
@@ -42,24 +74,24 @@ end
 function SWEP:DisperseHeat()
 	local ply = self:GetOwner()
 	if not ply:IsPlayer() then return end
-	local CurHeat = self:GetNWInt("Heat")
+	local CurHeat = self:GetHeat()
 
 	self.HeatDisperseTimer = "HeatDisperseTimer_".. ply:Name()
 	
 	if self.DisperseHeatPassively == true then
 	timer.Create(self.HeatDisperseTimer, self.HeatLossInterval, 0, function() 
 		if !SERVER or !self:IsValid()  or !timer.Exists( self.HeatDisperseTimer ) then return end
-		if self:GetNWInt("Heat") == 0 then return end
+		if self:GetHeat() == 0 then return end
 		
-		CurHeat = self:GetNWInt("Heat")
+		CurHeat = self:GetHeat()
 		if ply:GetAmmoCount( "ammo_drc_battery" ) >= 101 then
 			self:SetNWInt("Heat", 100)
-			ply:SetAmmo(self:GetNWInt("Heat"), "ammo_drc_battery")
+			ply:SetAmmo(self:GetHeat(), "ammo_drc_battery")
 		elseif ply:GetAmmoCount( "ammo_drc_battery" ) >= 0 then
 			if self:GetNWFloat("HeatDispersePower") == 0 then
 			else
-				self:SetNWInt("Heat", math.Clamp( (self:GetNWInt("Heat") - (self.HeatLossPerInterval * self:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
-				ply:SetAmmo(self:GetNWInt("Heat"), "ammo_drc_battery" )
+				self:SetNWInt("Heat", math.Clamp( (self:GetHeat() - (self.HeatLossPerInterval * self:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
+				ply:SetAmmo(self:GetHeat(), "ammo_drc_battery" )
 			end
 		end
 		
@@ -154,20 +186,20 @@ function SWEP:DisperseCharge()
 		
 		if self:GetNWInt("LoadedAmmo") >= 0 then
 			if self.Primary.UsesCharge == true then
-				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") + self.ChargeRate, 0, 100))
-				else self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") - self.ChargeRate * 10, 0, 100)) end
+				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
+				else self:SetNWInt("Charge", math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
 			else end
 			
 			if self.Secondary.UsesCharge == true then
-				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") + self.ChargeRate, 0, 100))
-				else self:SetNWInt("Charge", math.Clamp( self:GetNWInt("Charge") - self.ChargeRate * 10, 0, 100)) end
+				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
+				else self:SetNWInt("Charge", math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
 			else end
 			
-			if self:GetNWInt("Charge") >= 101 then
+			if self:GetCharge() >= 101 then
 				self:SetNWInt("Charge", 100)
 			end
 			
-			if self:GetNWInt("Charge") > 99 then
+			if self:GetCharge() > 99 then
 				self:SetLoadedAmmo(self:GetNWInt("LoadedAmmo") - self.ChargeHoldDrain)
 				self:SetClip1( self:GetNWInt("LoadedAmmo") )
 			end
@@ -176,7 +208,7 @@ function SWEP:DisperseCharge()
 end
 
 function SWEP:CanOvercharge()
-	if self:GetNWInt("Charge") > 99 then return true else return false end
+	if self:GetCharge() > 99 then return true else return false end
 end
 
 function SWEP:UpdateBloom(mode)
@@ -239,6 +271,171 @@ end
 
 function SWEP:GetPBS()
 	return self.PrevBS
+end
+
+function SWEP:DoMeleeSwing(mode, flipx, flipy, preventanim)
+	local ply = self:GetOwner()
+	local settings = {}
+	if self.IsMelee then
+		settings = {
+			["primary"] = {
+				["range"] = self.Primary.Range,
+				["x1m"] = math.Rand(self.Primary.StartX * 0.9, self.Primary.StartX * 1.1),
+				["x2m"] = math.Rand(self.Primary.EndX * 0.9, self.Primary.EndX * 1.1),
+				["y1m"] = math.Rand(self.Primary.StartY * 0.9, self.Primary.StartY * 1.1),
+				["y2m"] = math.Rand(self.Primary.EndY * 0.9, self.Primary.EndY * 1.1),
+				["delayhit"] = self.Primary.DelayHit,
+				["delaymiss"] = self.Primary.DelayMiss,
+				["delayinitial"] = self.Primary.HitDelay,
+				["sound"] = self.Primary.SwingSound,
+				["shake"] = self.Primary.ShakeMul,
+				["anim"] = self.Primary.MeleeAct,
+				["anim_crouch"] = self.Primary.MeleeActCrouch,
+				["fp_hit"] = self.Primary.HitActivity,
+				["fp_hit_crouch"] = self.Primary.CrouchHitActivity,
+				["fp_miss"] = self.Primary.MissActivity,
+				["fp_miss_crouch"] = self.Primary.CrouchMissActivity,
+			},
+			["secondary"] = {
+				["range"] = self.Secondary.Range,
+				["x1m"] = math.Rand(self.Secondary.StartX * 0.9, self.Secondary.StartX * 1.1),
+				["x2m"] = math.Rand(self.Secondary.EndX * 0.9, self.Secondary.EndX * 1.1),
+				["y1m"] = math.Rand(self.Secondary.StartY * 0.9, self.Secondary.StartY * 1.1),
+				["y2m"] = math.Rand(self.Secondary.EndY * 0.9, self.Secondary.EndY * 1.1),
+				["delayhit"] = self.Secondary.DelayHit,
+				["delaymiss"] = self.Secondary.DelayMiss,
+				["delayinitial"] = self.Secondary.HitDelay,
+				["sound"] = self.Secondary.SwingSound,
+				["shake"] = self.Secondary.ShakeMul,
+				["anim"] = self.Secondary.MeleeAct,
+				["anim_crouch"] = self.Secondary.MeleeActCrouch,
+				["fp_hit"] = self.Secondary.HitActivity,
+				["fp_hit_crouch"] = self.Secondary.CrouchHitActivity,
+				["fp_miss"] = self.Secondary.MissActivity,
+				["fp_miss_crouch"] = self.Secondary.CrouchMissActivity,
+			},
+			["lungeprimary"] = {
+				["range"] = self.Primary.LungeRange,
+				["x1m"] = math.Rand(self.Primary.LungeStartX * 0.9, self.Primary.LungeStartX * 1.1),
+				["x2m"] = math.Rand(self.Primary.LungeEndX * 0.9, self.Primary.LungeEndX * 1.1),
+				["y1m"] = math.Rand(self.Primary.LungeStartY * 0.9, self.Primary.LungeStartY * 1.1),
+				["y2m"] = math.Rand(self.Primary.LungeEndY * 0.9, self.Primary.LungeEndY * 1.1),
+				["delayhit"] = self.Primary.LungeDelayHit,
+				["delaymiss"] = self.Primary.LungeDelayMiss,
+				["delayinitial"] = self.Primary.LungeHitDelay,
+				["sound"] = self.Primary.LungeSwingSound,
+				["shake"] = self.Primary.LungeShakeMul,
+				["anim"] = self.Primary.LungeMeleeAct,
+				["anim_crouch"] = self.Primary.LungeMeleeActCrouch,
+				["fp_hit"] = self.Primary.LungeHitAct,
+				["fp_hit_crouch"] = self.Primary.LungeHitActCrouch,
+				["fp_miss"] = self.Primary.LungeMissAct,
+				["fp_miss_crouch"] = self.Primary.LungeMissActCrouch,
+			},
+		}
+	else
+		settings = {
+			["gunmelee"] = {
+				["range"] = self.Primary.MeleeRange,
+				["x1m"] = math.Rand(self.Primary.MeleeStartX * 0.9, self.Primary.MeleeStartX * 1.1),
+				["x2m"] = math.Rand(self.Primary.MeleeEndX * 0.9, self.Primary.MeleeEndX * 1.1),
+				["y1m"] = math.Rand(self.Primary.MeleeStartY * 0.9, self.Primary.MeleeStartY * 1.1),
+				["y2m"] = math.Rand(self.Primary.MeleeEndY * 0.9, self.Primary.MeleeEndY * 1.1),
+				["delayhit"] = self.Primary.MeleeDelayHit,
+				["delaymiss"] = self.Primary.MeleeDelayMiss,
+				["delayinitial"] = self.Primary.MeleeHitDelay,
+				["sound"] = self.Primary.SwingSound,
+				["shake"] = self.Primary.MeleeShakeMul,
+				["anim"] = nil,
+				["anim_crouch"] = nil,
+				["fp_hit"] = self.Primary.MeleeHitActivity,
+				["fp_hit_crouch"] = self.Primary.MeleeHitActivity,
+				["fp_miss"] = self.Primary.MeleeMissActivity,
+				["fp_miss_crouch"] = self.Primary.MeleeMissActivity,
+			},
+		}
+	end
+	
+	local x1m, x2m, y1m, y2m = settings[mode]["x1m"], settings[mode]["x2m"], settings[mode]["y1m"], settings[mode]["y2m"]
+	if flipx == true then 
+		x1m = -x1m
+		x2m = -x2m
+	end
+	if flipy == true then
+		y1m = -y1m
+		y2m = -y2m
+	end
+	
+	if mode == "gunmelee" then
+		local ht = string.lower(self:GetHoldType())
+		if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
+			settings.gunmelee.anim = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND
+			settings.gunmelee.anim_crouch = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND
+		elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
+			settings.gunmelee.anim = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND
+			settings.gunmelee.anim_crouch = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND
+		end
+	end
+	
+	if mode == "lungeprimary" then
+	local target = self:GetConeTarget()
+		if target then
+			if ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist then
+				ply:SetVelocity(ply:GetForward() * 8 * ply:GetPos():Distance(target:GetPos()))
+			end
+		end
+	end
+
+	DRC:SpeakSentence(ply, "Actions", "Melee")
+	if settings[mode]["sound"] != nil then self:EmitSound(Sound(settings[mode]["sound"])) end
+	
+	if ply:IsPlayer() && preventanim != true then
+		local cv = ply:Crouching()
+		if cv == false then
+			if SERVER then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, settings[mode]["anim"]) end
+		elseif cv == true then
+			if SERVER then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, settings[mode]["anim_crouch"]) end
+		end
+	end
+	
+	if ply:IsPlayer() then
+		local vm = ply:GetViewModel()
+		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * settings[mode]["shake"])
+		ply:SetViewPunchVelocity(Angle(-x1m * (1 + settings[mode]["delayhit"]) * settings[mode]["shake"], -y1m * (5 + settings[mode]["delayhit"]) * settings[mode]["shake"], 0))
+		timer.Simple(.1, function()
+			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
+			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * settings[mode]["shake"])
+		end)
+
+		local anim = self:SelectWeightedSequence( settings[mode]["fp_miss"] )
+		if ply:IsPlayer() then	local cv = ply:Crouching() if cv == true then anim = self:SelectWeightedSequence( settings[mode]["fp_miss_crouch"] ) end end
+		local animdur = self:SequenceDuration( anim )
+		self.IsDoingMelee = true
+		timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
+		if anim != -1 && self:HasViewModel() && preventanim != true then 
+			self:SendWeaponAnim(settings[mode]["fp_miss"])
+			self:SendViewModelMatchingSequence(anim)
+		end
+		self:SetNextPrimaryFire(CurTime() + settings[mode]["delayhit"] )
+		self:SetNextSecondaryFire(CurTime() + settings[mode]["delayhit"] )
+		self.IdleTimer = CurTime() + vm:SequenceDuration()
+	else
+		self:SetNextPrimaryFire(CurTime() + settings[mode]["delayhit"] )
+		self:SetNextSecondaryFire(CurTime() + settings[mode]["delayhit"] )
+		self.IsDoingMelee = true
+		timer.Simple(1, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
+	end
+	
+	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
+		if !IsValid(self) then return end
+		if !IsValid(ply) then return end
+		timer.Create( "".. tostring(self) .."_SwingImpact".. i .."", math.Round((settings[mode]["delayinitial"] * 100) / 60 * i / 60, 3), 1, function()
+			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
+			self:MeleeImpact(settings[mode]["range"], Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, mode)
+		end)
+	end
 end
 
 function SWEP:MeleeImpact(range, x, y, i, att)
@@ -337,7 +534,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		if self.HA != nil then self:SendWeaponAnim( self.HA ) end
 		
 		for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
-			if timer.Exists("".. tostring(self) .."SwingImpact".. i .."") then timer.Destroy("".. tostring(self) .."SwingImpact".. i .."") end
+			if timer.Exists("".. tostring(self) .."_SwingImpact".. i .."") then timer.Destroy("".. tostring(self) .."_SwingImpact".. i .."") end
 		end
 		if IsValid(swingtrace.Entity) && DRC:IsCharacter(swingtrace.Entity) then
 			local damageinfo = DamageInfo()
@@ -392,8 +589,8 @@ function SWEP:TakePrimaryAmmo( num )
 	
 	if GetConVar("sv_drc_infiniteammo"):GetFloat() == 2 then return end
 	
-	if ( self:Clip1() <= 0 ) && self.Owner:IsPlayer() then
-		if ( self:Ammo1() <= 0 ) then return end
+	if ( self:Clip1() == 0 ) && self.Owner:IsPlayer() then
+		if ( self:Clip1() == 0 ) then return end
 		self.Owner:RemoveAmmo( num, self:GetPrimaryAmmoType() )
 	return end
 	self:SetClip1(self:GetNWInt("LoadedAmmo"))
@@ -597,11 +794,11 @@ function SWEP:DoShoot(mode)
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumePerShot), 0, self.Primary.ClipSize))
 			else
 				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
 			end
-			self:TakePrimaryAmmo( batstats.BatteryConsumPerShot )
+			self:TakePrimaryAmmo( batstats.BatteryConsumePerShot )
 		end
 	elseif mode == "secondary" then
 		if ply:IsPlayer() then
@@ -628,11 +825,11 @@ function SWEP:DoShoot(mode)
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumPerShot), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumePerShot), 0, self.Primary.ClipSize))
 			else
 				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
 			end
-			self:TakePrimaryAmmo( batstats.BatteryConsumPerShot )
+			self:TakePrimaryAmmo( batstats.BatteryConsumePerShot )
 		end
 	end
 	
@@ -696,11 +893,11 @@ function SWEP:DoShoot(mode)
 	end
 	
 	if self.Base == "draconic_battery_base" then
-		local heat = self:GetNWInt("Heat")
+		local heat = self:GetHeat()
 		if stats != self.OCStats then
-			self:SetNWInt("Heat", (self:GetNWInt("Heat") + batstats.HPS))
+			self:SetNWInt("Heat", (self:GetHeat() + batstats.HPS))
 		else
-			self:SetNWInt("Heat", (self:GetNWInt("Heat") + batstats.OCHPS))
+			self:SetNWInt("Heat", (self:GetHeat() + batstats.OCHPS))
 		end
 		
 		if self.LowerRPMWithHeat == true then
@@ -857,50 +1054,48 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	local muzzle = self:GetAttachment(muzzleattachment)
 	local fm = self:GetNWString("FireMode")
 		
-		if mode == "primary" then
-			self.vFire = self.Primary.isvFire
-			self.Projectile = self.Primary.Projectile
-			self.TracerEffect = self.Primary.TracerEffect
-			
-			self:CallOnClient("MuzzleFlash")
-			
-			if fm == "Semi" or fm == "Auto" then
-				self.Sound = self.Primary.SoundTable.Semiauto.Near
-				self.DistSound = self.Primary.SoundTable.Semiauto.Far
-				self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
-			else
-				self.Sound = self.Primary.SoundTable.Burst.Near
-				self.DistSound = self.Primary.SoundTable.Burst.Far
-				self.SoundDistance = self.Primary.SoundTable.Burst.FarDistance
-			end
-			
-			self.LastHitPos = self.LastHitPos
-		elseif mode == "secondary" then
-			self.vFire = self.Secondary.isvFire
-			self.Sound = self.Secondary.Sound
-			self.DistSound = self.Secondary.DistSound
-			self.Projectile = self.Secondary.Projectile
-			self.TracerEffect = self.Secondary.TracerEffect
-			
-			self.LastHitPos = self.LastHitPos
-		elseif mode == "overcharge" then
-			self.vFire = self.Primary.isvFire
-			self.Sound = self.OCSound
-			self.DistSound = self.OCDistSound
-			self.Projectile = self.Primary.OCProjectile
-			self.TracerEffect = self.Primary.TracerEffect
-			
-			self.LastHitPos = self.LastHitPos
+	if mode == "primary" then
+		self.vFire = self.Primary.isvFire
+		self.Projectile = self.Primary.Projectile
+		self.TracerEffect = self.Primary.TracerEffect
+		
+		self:CallOnClient("MuzzleFlash")
+		
+		if fm == "Semi" or fm == "Auto" then
+			self.Sound = self.Primary.SoundTable.Semiauto.Near
+			self.DistSound = self.Primary.SoundTable.Semiauto.Far
+			self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
+		else
+			self.Sound = self.Primary.SoundTable.Burst.Near
+			self.DistSound = self.Primary.SoundTable.Burst.Far
+			self.SoundDistance = self.Primary.SoundTable.Burst.FarDistance
 		end
 		
+		self.LastHitPos = self.LastHitPos
+	elseif mode == "secondary" then
+		self.vFire = self.Secondary.isvFire
+		self.Sound = self.Secondary.Sound
+		self.DistSound = self.Secondary.DistSound
+		self.Projectile = self.Secondary.Projectile
+		self.TracerEffect = self.Secondary.TracerEffect
+		
+		self.LastHitPos = self.LastHitPos
+	elseif mode == "overcharge" then
+		self.vFire = self.Primary.isvFire
+		self.Sound = self.OCSound
+		self.DistSound = self.OCDistSound
+		self.Projectile = self.Primary.OCProjectile
+		self.TracerEffect = self.Primary.TracerEffect
+		
+		self.LastHitPos = self.LastHitPos
+	end
+	
 	
 	local effectdata = EffectData()
-	local muzzle = self:LookupAttachment("muzzle")
 	
 	if self.StatsToPull.Projectile == nil && self.vFire == false then
 		if self.LastHitPos == nil then self.LastHitPos = Vector(0, 0, 0) end
 		effectdata:SetOrigin( self.LastHitPos )
-	--	DRC_ParticleExplosion(self.LastHitPos, self.StatsToPull.Force * 75, 10)
 	else
 		effectdata:SetOrigin( ply:GetShootPos() )
 	end
@@ -908,7 +1103,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 
 
 	if self.SightsDown == false then
-		effectdata:SetAttachment( muzzle )
+		effectdata:SetAttachment( muzzleattachment )
 	elseif self.SightsDown == true && self.Secondary.Scoped == true then
 		effectdata:SetStart( ply:EyePos() + Vector(0, 0, -2) )
 		effectdata:SetAttachment( -1 )
@@ -931,12 +1126,10 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	
 	local roomsize = DRC:RoomSize(ply)
 	local RoomType = DRC:GetRoomSizeName(roomsize)
---	print("1", RoomType)
-	
+
 	if RoomType == "Valley" && !self.Primary.SoundTable.Envs["Valley"] then RoomType = "Outdoors" end
 	if RoomType == "Outdoors" && !self.Primary.SoundTable.Envs["Outdoors"] then RoomType = "Large" end
 	if RoomType == "Vent" && !self.Primary.SoundTable.Envs["Vent"] then RoomType = "Small" end
---	print("2", RoomType)
 	
 	if mode == "primary" && self.Primary.SoundTable.Envs[RoomType] then
 		if fm == "Semi" or fm == "Auto" then
@@ -947,71 +1140,15 @@ function SWEP:DoEffects(mode, nosound, multishot)
 			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Burst.Far
 		end
 	end
-	--print(self.Sound)
 	
---	self:EmitSound(self.Sound)
-	DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
-	
---	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
---		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() < 1 then
-end
-
-function SWEP:DoMuzzleLight(mode)
-	local ply = self:GetOwner()
-	local muzzleattachment = self:LookupAttachment("muzzle")
-	local muzzle = self:GetAttachment(muzzleattachment)
-		
-		if mode == "primary" then
-			self.FlareLightColor = self.Primary.LightColor
-			self.FlareBrightness = self.Primary.LightBrightness
-			self.FlareDecay = self.Primary.LightDecayTime
-			self.FlareSize = self.Primary.LightSize
-		elseif mode == "secondary" then
-			self.FlareLightColor = self.Secondary.LightColor
-			self.FlareBrightness = self.Secondary.LightBrightness
-			self.FlareDecay = self.Secondary.LightDecayTime
-			self.FlareSize = self.Secondary.LightSize
-		elseif mode == "overcharge" then
-			self.FlareLightColor = self.OCLightColor
-			self.FlareBrightness = self.OCLightBrightness
-			self.FlareDecay = self.OCLightDecayTime
-			self.FlareSize = self.OCLightSize
+	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
+		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() >= 1 then
+			DRC:EmitSound(self, self.DistSound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
+		else
+			DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
 		end
-	
-	if !SERVER then
-		local dl = DynamicLight(self:EntIndex(), false)
-		if (dl) then
-			if muzzle == nil then
-				dl.Pos = ply:GetShootPos()
-			else
-				dl.Pos = muzzle.Pos
-			end
-			dl.r = self.FlareLightColor.r
-			dl.g = self.FlareLightColor.g
-			dl.b = self.FlareLightColor.b
-			dl.Brightness = self.FlareBrightness
-			dl.Size = self.FlareSize
-			dl.Decay = self.FlareDecay
-			dl.DieTime = CurTime() + self.FlareDecay / 100
-			dl.Style = 0
-		end
-		
-		local el = DynamicLight(self:EntIndex(), true)
-		if (el) then
-			if muzzle == nil then
-				el.Pos = ply:GetShootPos()
-			else
-				el.Pos = muzzle.Pos
-			end
-			el.r = self.FlareLightColor.r
-			el.g = self.FlareLightColor.g
-			el.b = self.FlareLightColor.b
-			el.Brightness = self.FlareBrightness * 5
-			el.Size = self.FlareSize
-			el.Decay = self.FlareDecay
-			el.DieTime = CurTime() + self.FlareDecay / 100
-			el.Style = 0
-		end
+	else
+		DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
 	end
 end
 
@@ -1140,7 +1277,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as
 			end
 		end
 		
-		if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomPrimaryAttackEvents() end
+		if IsValid(self) && self:GetNWInt("LoadedAmmo") > -0.01 then self:DoCustomPrimaryAttackEvents() end
 	elseif mode == "secondary" then
 		if ignoreimpossibility != true && !self:CanSecondaryAttack() then return end
 		self.StatsToPull = self.SecondaryStats
@@ -1149,7 +1286,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as
 		
 		if ply:IsPlayer() then self:DoRecoil("secondary") end
 		
-		if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomSecondaryAttackEvents() end
+		if IsValid(self) && self:GetNWInt("LoadedAmmo") > -1 then self:DoCustomSecondaryAttackEvents() end
 	elseif mode == "overcharge" then
 		if ply:IsPlayer() then
 			if ignoreimpossibility != true && !self:CanPrimaryAttack() then return end

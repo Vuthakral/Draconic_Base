@@ -5,6 +5,12 @@ DRC.CalcView.ThirdPerson.Live = false
 DRC.CalcView.ThirdPerson.PokeTime = CurTime()
 
 function DRC:ThirdPerson_PokeLiveAngle(ply)
+	if !DRC.CalcView.Thirdperson then DRC.CalcView.Thirdperson = {} end
+	if !DRC.CalcView.Ang then DRC.CalcView.Ang = Angle() end
+	if !DRC.CalcView.Ang_Stored then DRC.CalcView.Ang_Stored = Angle() end
+	if !DRC.CalcView.DirectionalAng then DRC.CalcView.DirectionalAng = Angle() end
+	if !DRC.CalcView.Live then DRC.CalcView.Live = false end
+	if !DRC.CalcView.PokeTime then DRC.CalcView.PokeTime = CurTime() end
 --	ply:ChatPrint(tostring("".. tostring(DRC.CalcView.ThirdPerson.Ang.y)) .." ".. tostring(ply:EyeAngles().y) .."")
 	if DRC.CalcView.ThirdPerson.PokeTime == nil then DRC.CalcView.ThirdPerson.PokeTime = CurTime() end
 	if CurTime() < DRC.CalcView.ThirdPerson.PokeTime then return end
@@ -25,8 +31,11 @@ end
 hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
+	local wpn = ply:GetActiveWeapon()
 	if DRC:IsDraconicThirdPersonEnabled(ply) != true then return end
 	if GetConVar("sv_drc_disable_thirdperson_freelook"):GetFloat() == 1 or GetConVar("cl_drc_thirdperson_disable_freelook"):GetFloat() == 1 then
+		DRC:ThirdPerson_PokeLiveAngle(ply)
+	elseif IsValid(wpn) && wpn.ThirdpersonNoFreelook == true then
 		DRC:ThirdPerson_PokeLiveAngle(ply)
 	end
 	DRC.MoveInfo = {
@@ -91,7 +100,7 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 		}
 		local ht = wpn:GetHoldType()
 		
-		if fullranges[ht] then
+		if fullranges[ht] && wpn.ThirdpersonNoFreelook != true then
 			DRC.CalcView.ThirdPerson.Directional = true
 			local Compass = {
 				["N"] = ply:KeyDown(IN_FORWARD),
@@ -182,12 +191,18 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		local pos = ply:GetPos()
 		
 		if !DRC:ValveBipedCheck(ply) then
-			local attcheck = ply:LookupAttachment("pelvis")
+			local attcheck = ply:LookupAttachment("hips")
 			if attcheck != 0 then
 				local newpos = ply:GetAttachment(attcheck).Pos
 				bpos = newpos
 			else
-				bpos = LocalPlayer():GetPos() + LocalPlayer():OBBCenter()
+				local attcheck = ply:LookupAttachment("pelvis")
+				if attcheck != 0 then
+					local newpos = ply:GetAttachment(attcheck).Pos
+					bpos = newpos
+				else
+					bpos = LocalPlayer():GetPos() + LocalPlayer():OBBCenter()
+				end
 			end
 		end
 		

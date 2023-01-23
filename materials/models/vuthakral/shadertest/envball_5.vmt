@@ -12,6 +12,10 @@
 		{
 			resultVar	$envmaptint
 		}
+		caramell
+		{
+			resultVar	$cubemaptint
+		}
 	}
 }
 

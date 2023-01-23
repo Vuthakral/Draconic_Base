@@ -1,6 +1,14 @@
 DRC.VoiceMenuState = false
 DRC.VoiceMenuTimeout = 0
 
+function DRC:VoiceSetGetMenuKey()
+	if input.LookupBinding("draconic_voicesets_menu_toggle", true) == nil then
+		return string.upper(ReturnKey("+menu_context"))
+	else
+		return string.upper(ReturnKey("draconic_voicesets_menu_toggle"))
+	end
+end
+
 function DRC:VoiceMenuTrigger()
 	DRC.VoiceMenuState = true
 	DRC.VoiceMenuTimeout = CurTime() + 5
@@ -56,6 +64,7 @@ local slots = {
 
 hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 	if !IsValid(ply) or !ply:Alive() then return end
+	if DRC:GetVoiceSet(LocalPlayer()) == nil then return end
 	
 	if input.LookupBinding("draconic_voicesets_menu_toggle", true) == nil then
 		if bind == "+menu_context" then

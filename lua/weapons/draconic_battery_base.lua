@@ -57,7 +57,7 @@ SWEP.OverheatSound				= Sound("draconic.OverheatGeneric")
 SWEP.VentingSound				= Sound("draconic.VentGeneric")
 SWEP.VentingStartSound			= Sound("draconic.VentOpenGeneric")
 SWEP.VentingStopSound			= Sound("draconic.VentCloseGeneric")
-SWEP.BatteryConsumPerShot		= 0.5
+SWEP.BatteryConsumePerShot		= 0.5
 
 SWEP.BatteryFromVec	= Vector(255, 255, 255)
 SWEP.BatteryToVec		= Vector(255, 10, 0)
@@ -154,7 +154,7 @@ function SWEP:CanPrimaryAttack()
 			return true
 		end
 	else
-		local heat = self:GetNWInt("Heat")
+		local heat = self:GetHeat()
 		if heat >= 100 then
 			self:Overheat()
 			return false
@@ -183,7 +183,7 @@ function SWEP:CanPrimaryAttackNPC()
 	local npc = self:GetOwner()
 	
 	if self:Clip1() <= 0 then -- Prevent NPCs from running out of ammo
-		self:SetNWInt("LoadedAmmo", math.Round(math.Clamp(math.Rand(self.BatteryConsumPerShot, self.BatteryConsumPerShot * 10)/10, 0, 100)) * 10)
+		self:SetNWInt("LoadedAmmo", math.Round(math.Clamp(math.Rand(self.BatteryConsumePerShot, self.BatteryConsumePerShot * 10)/10, 0, 100)) * 10)
 		self:SetClip1(self:GetNWInt("LoadedAmmo"))
 	end
 	
@@ -294,7 +294,7 @@ function SWEP:FinishVent()
 	local ventingsound = self.VentingSound
 	local ventingend = self.VentingStopSound
 	
-	if !ply:IsPlayer() then self:SetNWInt("Heat", 0) end
+	if !ply:IsPlayer() then self:SetHeat(0) end
 	if !IsValid(self) or !IsValid(ply) or ply:Health() < 0.01 then return end
 	
 	self:SetHoldType( self.HoldType )
@@ -335,10 +335,15 @@ function SWEP:Overheat()
 	self.ManuallyReloading = true
 	self.IsOverheated = true
 	self:SetIronsights(false, self.Owner)
+	
+	
+	local gesture = ply:SelectWeightedSequence(ACT_VM_IRECOIL2)
+	if gesture != -1 then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_VM_IRECOIL2, true) end
 	self:SetHoldType(self.OverheatHoldType)
+	
 	if ply:IsPlayer() then ply:SetFOV(0, 0.05) end	
 	if self:Clip1() <= 0 && self.InfAmmo == false then
-		self:SetNextPrimaryFire (( CurTime() + (60 / self.Primary.RPM) ) * (self:GetNWInt("Heat") * 0.1))
+		self:SetNextPrimaryFire (( CurTime() + (60 / self.Primary.RPM) ) * (self:GetHeat() * 0.1))
 		return false
 	elseif self:Clip1() <= 0 && self.InfAmmo == true then
 		self:SetNWFloat("HeatDispersePower", self.OverheatStrength)

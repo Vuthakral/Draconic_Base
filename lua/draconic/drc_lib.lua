@@ -42,15 +42,15 @@ if SERVER then
 end
 
 if CLIENT then
-DRC.CalcView = {
-	["Pos"] = Vector(),
-	["Ang"] = Angle(),
-	["HitPos"] = Vector(),
-	["ToScreen"] = {},
-	["wallpos"] = Vector(),
-}
+	DRC.CalcView = {
+		["Pos"] = Vector(),
+		["Ang"] = Angle(),
+		["HitPos"] = Vector(),
+		["ToScreen"] = {},
+		["wallpos"] = Vector(),
+	}
 
-DRC.CalcView.ThirdPerson = {}
+	DRC.CalcView.ThirdPerson = {}
 end
 
 DRC.PlayerInfo = {}
@@ -68,6 +68,23 @@ DRC.Skel = {
 	["LeftHand"] = { ["Name"] = "ValveBiped.Bip01_L_Hand", ["Offset"] = Vector(0, 0, 0) },
 	["RightHand"] = { ["Name"] = "ValveBiped.Bip01_R_Hand", ["Offset"] = Vector(0, 0, 0) },
 }
+
+if !DRC.Playermodels then
+	DRC.Playermodels = {
+		["-drcdefault"] = {
+			["Model"] = "",
+			["Hands"] = "",
+			["Background"] = "vgui/drc_playerbg",
+			["Podium"] = {"models/props_phx/construct/glass/glass_angle360.mdl", Vector(0, 0, -2)},
+		}
+	}
+end
+
+function DRC:GetPlayerModelInfo(model)
+	local tab = nil
+	if model != nil then tab = DRC.Playermodels[player_manager.TranslateToPlayerModelName(model)] end
+	if tab then return tab else return DRC.Playermodels["-drcdefault"] end
+end
 
 if CLIENT then DRC.HDREnabled = render.GetHDREnabled() end
 DRC.WeathermodScalar = Vector(1, 1, 1)
@@ -338,8 +355,24 @@ function DRC:ConvertUnit(input, output)
 	return inches * ConversionRates[output]
 end
 
-function DRC:GetVelocityAngle(ent, absolute, flipy)
-	if !IsValid(ent) then return end
+function DRC:GetVelocityAngle(ent, absolute, flipy, islocal)
+	local ang
+	if isvector(ent) then 
+		ang = ent:Angle()
+	else
+		ang = ent:GetVelocity():Angle()
+	end
+	if absolute == true then
+		ang.x = math.abs(ang.x)
+		ang.y = math.abs(ang.y)
+	end
+	if flipy == true then ang.y = -ang.y end
+	
+	return ang
+-- stupid code I wrote without testing or realizing the simple solution for
+--[[	if !IsValid(ent) then return end
+	if !absolute then absolute = false end
+	if !flipy then flipy = false end
 	local vel = ent:GetVelocity()
 	if vel == Vector() then return Angle() end
 	local length = vel:Length()
@@ -348,7 +381,7 @@ function DRC:GetVelocityAngle(ent, absolute, flipy)
 	if flipy == true then velangxy:RotateAroundAxis(velangxy:Up(), 180) end
 	if absolute == true then velangxy.y = math.abs(velangxy.y) end
 	velangxy.x = -velangxy.x
-	return velangxy
+	return velangxy ]]
 end
 
 function DRC:GetColours(ent, rgb)
@@ -361,8 +394,9 @@ function DRC:GetColours(ent, rgb)
 			["Weapon"] 	= ent:GetNWVector("WeaponColour_DRC"),
 			["Tint1"] 	= ent:GetNWVector("ColourTintVec1") / 255,
 			["Tint2"] 	= ent:GetNWVector("ColourTintVec2") / 255,
-			["Eye"] 	= ent:GetNWVector("ColourTintVec1") / 255,
+			["Eye"] 	= ent:GetNWVector("EyeTintVec") / 255,
 			["Energy"] 	= ent:GetNWVector("EnergyTintVec"),
+			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b)/255,
 		}
 	else
 		coltab = {
@@ -370,8 +404,9 @@ function DRC:GetColours(ent, rgb)
 			["Weapon"] 	= ent:GetNWVector("WeaponColour_DRC"),
 			["Tint1"] 	= ent:GetNWVector("ColourTintVec1") / 255,
 			["Tint2"] 	= ent:GetNWVector("ColourTintVec2") / 255,
-			["Eye"] 	= ent:GetNWVector("ColourTintVec1") / 255,
+			["Eye"] 	= ent:GetNWVector("EyeTintVec") / 255,
 			["Energy"] 	= ent:GetNWVector("EnergyTintVec"),
+			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b)/255,
 		}
 	end
 	
@@ -383,6 +418,7 @@ function DRC:GetColours(ent, rgb)
 		coltab.Tint2 	= coltab.Tint2 * 255
 		coltab.Eye 		= coltab.Eye * 255
 		coltab.Energy 	= coltab.Energy * 255
+		coltab["$color2"] 	= coltab["$color2"] * 255
 	end
 
 	return coltab
@@ -438,6 +474,9 @@ function DRC:UpdatePlayerColours(ply)
 	ply:SetNWVector( "ColourTintVec2", t2c)
 	ply:SetNWVector( "EyeTintVec", eyc)
 	ply:SetNWVector( "EnergyTintVec", enc / 255)
+	
+	ply:SetPlayerColor(plc)
+	ply:SetWeaponColor(wpc)
 	
 	local hands = ply:GetHands()
 	if !IsValid(hands) then return end
@@ -874,7 +913,6 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	DRC:RefreshColours(ply)
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWString("Draconic_ThirdpersonForce", nil)
-	ply:SetNWString("DRCVoiceSet", ply:GetInfo("cl_drc_voiceset"))
 	ply:SetNWBool("ShowSpray_Ents", ply:GetInfoNum("cl_drc_showspray", 0))
 	ply:SetNWBool("ShowSpray_Weapons", ply:GetInfoNum("cl_drc_showspray_weapons", 0))
 	ply:SetNWBool("ShowSpray_Vehicles", ply:GetInfoNum("cl_drc_showspray_vehicles", 0))
@@ -885,11 +923,15 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	ply:SetNWInt("DRC_ShieldHealth_Extra", 0)
 	ply:SetNWBool("DRC_ShieldInvulnerable", false)
 	ply:SetNWFloat("DRC_VoiceSetDSP", 0)
+	ply:SetNWInt("DRCVoiceSet_Enforced", "None")
+	
+	DRC:SetVoiceSet(ply, ply:GetInfo("cl_drc_voiceset"), false)
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
 	
 	timer.Simple(engine.TickInterval(), function()
+		ply:SetNWString("DRC_SpawnModel", ply:GetModel())
 		net.Start("DRC_UpdatePlayerHands")
 		net.Send(ply)
 	end)
@@ -942,6 +984,9 @@ hook.Add("DoPlayerDeath", "drc_PlayerDeathEvents", function(ply, attacker, dmg)
 	local wpn = ply:GetActiveWeapon()
 	if !IsValid(wpn) then return end
 	if wpn.Draconic == nil then return end
+	
+	if wpn.PickupOnly == true && wpn.DoNotDrop != true then ply:DropWeapon(wpn) end
+	
 	if wpn.ChargeSound == nil then return end
 	if wpn.Primary.LoopingFireSound == nil then return end
 	if wpn.LoopFireSound == nil then return end
@@ -1015,7 +1060,7 @@ hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	rag:SetNWVector("ColourTintVec2", colours.Tint2)
 end)
 
-hook.Add("PlayerTick", "drc_movementhook", function(ply)
+hook.Add("PlayerTick", "drc_movementhook", function(ply) -- holy fuck I need to rewrite this someday
 	if GetConVar("sv_drc_movement"):GetString() == "0" then return end
 	local wpn = ply:GetActiveWeapon()
 	local cv = ply:Crouching()
@@ -1440,7 +1485,7 @@ function DRC:CallGesture(ply, slot, act, akill)
 	net.Broadcast()
 end
 
-function DRC:CopyLayerSequenceInfo(layer, ent1, ent2)	
+function DRC:CopyLayerSequenceInfo(layer, ent1, ent2)
 	ent2:SetLayerSequence(layer, ent1:GetLayerSequence(layer))
 	ent2:SetLayerDuration(layer, ent1:GetLayerDuration(layer))
 	ent2:SetLayerPlaybackRate(layer, ent1:GetLayerPlaybackRate(layer))
@@ -1467,8 +1512,6 @@ local function PlayReadyAnim(ply, anim)
 	if !IsValid(ply) then 
 		DRC:Notify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
 	return end
-	
-	if wOS then return end -- temp
 	
 	local seq = ply:SelectWeightedSequence(anim)
 	local dur = ply:SequenceDuration(seq)
@@ -1514,74 +1557,76 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 		end -- holy shit why can there not just be a select weapon function that is predicted/shared?
 	end
 	
-	local generic 	= ACT_DEPLOY -- unused for now
-	local low 		= ACT_VM_DEPLOY_4
-	local high 		= ACT_VM_DEPLOY_3
-	local rifle 	= ACT_VM_DEPLOY_2
-	local dual		= ACT_VM_DEPLOY_7
-	local pistol 	= ACT_VM_DEPLOY_1
-	local melee 	= ACT_VM_DEPLOY_5
-	local melee2 	= ACT_VM_DEPLOY_6
-	local reset 	= ACT_RESET
-	
-	local geseq = ply:SelectWeightedSequence(generic)
-	local gedur = ply:SequenceDuration(geseq)
-	local loseq = ply:SelectWeightedSequence(low)
-	local lodur = ply:SequenceDuration(loseq)
-	local hiseq = ply:SelectWeightedSequence(high)
-	local hidur = ply:SequenceDuration(hiseq)
-	local riseq = ply:SelectWeightedSequence(rifle)
-	local ridur = ply:SequenceDuration(riseq)
-	local piseq = ply:SelectWeightedSequence(pistol)
-	local pidur = ply:SequenceDuration(piseq)
-	local meseq = ply:SelectWeightedSequence(melee)
-	local medur = ply:SequenceDuration(meseq)
-	local m2seq = ply:SelectWeightedSequence(melee2)
-	local m2dur = ply:SequenceDuration(m2seq)
-	
-	local onehand = {"pistol", "revolver"}
-	local twohand = {"smg", "ar2", "shotgun", "crossbow"}
-	local dualtypes = {"duel"}
-	local lowtypes = {"physgun"}
-	local hightypes = {"rpg"}
-	local meleetypes = {"melee", "knife", "grenade", "slam", "magic", "camera"}
-	local meleetwohand = {"melee2"}
-	
-	if nw:GetClass() == "gmod_camera" or nw:GetClass() == "gmod_tool" then -- bruh
-		if nw:GetClass() == "gmod_camera" then PlayReadyAnim(ply, melee) else PlayReadyAnim(ply, pistol) end
-	elseif nw:IsScripted() then
-		local newstats = weapons.GetStored(neww)
-		local newht = string.lower(tostring(newstats.HoldType))
-		if newht == "" then newht = "ar2" end
+	if nw.NoReadyAnimation != true then
+		local generic 	= ACT_DEPLOY -- unused for now
+		local low 		= ACT_VM_DEPLOY_4
+		local high 		= ACT_VM_DEPLOY_3
+		local rifle 	= ACT_VM_DEPLOY_2
+		local dual		= ACT_VM_DEPLOY_7
+		local pistol 	= ACT_VM_DEPLOY_1
+		local melee 	= ACT_VM_DEPLOY_5
+		local melee2 	= ACT_VM_DEPLOY_6
+		local reset 	= ACT_RESET
 		
-		if nw.ASTWTWO == true then
-			if nw.Melee == true then newht = newstats.HoldType_Lowered end
-			if nw.Melee != true then newht = newstats.HoldType_Hipfire end
-		end
+		local geseq = ply:SelectWeightedSequence(generic)
+		local gedur = ply:SequenceDuration(geseq)
+		local loseq = ply:SelectWeightedSequence(low)
+		local lodur = ply:SequenceDuration(loseq)
+		local hiseq = ply:SelectWeightedSequence(high)
+		local hidur = ply:SequenceDuration(hiseq)
+		local riseq = ply:SelectWeightedSequence(rifle)
+		local ridur = ply:SequenceDuration(riseq)
+		local piseq = ply:SelectWeightedSequence(pistol)
+		local pidur = ply:SequenceDuration(piseq)
+		local meseq = ply:SelectWeightedSequence(melee)
+		local medur = ply:SequenceDuration(meseq)
+		local m2seq = ply:SelectWeightedSequence(melee2)
+		local m2dur = ply:SequenceDuration(m2seq)
 		
-		if CTFK(onehand, newht) then PlayReadyAnim(ply, pistol)
-		elseif CTFK(twohand, newht) then PlayReadyAnim(ply, rifle)
-		elseif CTFK(dualtypes, newht) then PlayReadyAnim(ply, dual)
-		elseif CTFK(lowtypes, newht) then PlayReadyAnim(ply, low)
-		elseif CTFK(hightypes, newht) then PlayReadyAnim(ply, high)
-		elseif CTFK(meleetypes, newht) then PlayReadyAnim(ply, melee)
-		elseif CTFK(meleetwohand, newht) then PlayReadyAnim(ply, melee2)
-		end
-	else
-		onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine", "weapon_alyxgun" }
-		twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
-		dualtypes = { "weapon_cubemap" }
-		lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
-		hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
-		meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
+		local onehand = {"pistol", "revolver"}
+		local twohand = {"smg", "ar2", "shotgun", "crossbow"}
+		local dualtypes = {"duel"}
+		local lowtypes = {"physgun"}
+		local hightypes = {"rpg"}
+		local meleetypes = {"melee", "knife", "grenade", "slam", "magic", "camera"}
+		local meleetwohand = {"melee2"}
+		
+		if nw:GetClass() == "gmod_camera" or nw:GetClass() == "gmod_tool" then -- bruh
+			if nw:GetClass() == "gmod_camera" then PlayReadyAnim(ply, melee) else PlayReadyAnim(ply, pistol) end
+		elseif nw:IsScripted() then
+			local newstats = weapons.GetStored(neww)
+			local newht = string.lower(tostring(newstats.HoldType))
+			if newht == "" then newht = "ar2" end
+			
+			if nw.ASTWTWO == true then
+				if nw.Melee == true then newht = newstats.HoldType_Lowered end
+				if nw.Melee != true then newht = newstats.HoldType_Hipfire end
+			end
+			
+			if CTFK(onehand, newht) then PlayReadyAnim(ply, pistol)
+			elseif CTFK(twohand, newht) then PlayReadyAnim(ply, rifle)
+			elseif CTFK(dualtypes, newht) then PlayReadyAnim(ply, dual)
+			elseif CTFK(lowtypes, newht) then PlayReadyAnim(ply, low)
+			elseif CTFK(hightypes, newht) then PlayReadyAnim(ply, high)
+			elseif CTFK(meleetypes, newht) then PlayReadyAnim(ply, melee)
+			elseif CTFK(meleetwohand, newht) then PlayReadyAnim(ply, melee2)
+			end
+		else
+			onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine", "weapon_alyxgun" }
+			twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
+			dualtypes = { "weapon_cubemap" }
+			lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
+			hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
+			meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
 
-		if CTFK(onehand, neww) then PlayReadyAnim(ply, pistol)
-		elseif CTFK(twohand, neww) then PlayReadyAnim(ply, rifle)
-		elseif CTFK(dualtypes, neww) then PlayReadyAnim(ply, dual)
-		elseif CTFK(lowtypes, neww) then PlayReadyAnim(ply, low)
-		elseif CTFK(hightypes, neww) then PlayReadyAnim(ply, high)
-		elseif CTFK(meleetypes, neww) then PlayReadyAnim(ply, melee)
-		elseif CTFK(meleetwohand, neww) then PlayReadyAnim(ply, melee2)
+			if CTFK(onehand, neww) then PlayReadyAnim(ply, pistol)
+			elseif CTFK(twohand, neww) then PlayReadyAnim(ply, rifle)
+			elseif CTFK(dualtypes, neww) then PlayReadyAnim(ply, dual)
+			elseif CTFK(lowtypes, neww) then PlayReadyAnim(ply, low)
+			elseif CTFK(hightypes, neww) then PlayReadyAnim(ply, high)
+			elseif CTFK(meleetypes, neww) then PlayReadyAnim(ply, melee)
+			elseif CTFK(meleetwohand, neww) then PlayReadyAnim(ply, melee2)
+			end
 		end
 	end
 end)
@@ -1855,6 +1900,14 @@ function DRC:GetBones(ent)
 	return bt
 end
 
+function DRC:GetBodyGroups(ent)
+	local tbl = {}
+	for k,v in pairs(ent:GetBodyGroups()) do
+		tbl[k] = ent:GetBodygroup(v.id)
+	end
+	return tbl
+end
+
 function DRC:IsVehicle(ent)
 	if !IsValid(ent) then return false end
 	if ent:IsVehicle() or ent:GetClass() == "gmod_sent_vehicle_fphysics_base" or ent:GetClass() == "npc_helicopter" or ent:GetClass() == "npc_combinegunship" or ent.LFS or ent.Base == "haloveh_base" or ent.Base == "ma2_mech" or ent.Base == "ma2_battlesuit" then return true else return false end
@@ -2121,11 +2174,28 @@ end
 
 function DRC:GetVoiceSet(ent)
 	local vs = ent:GetNWString("DRCVoiceSet")
+	local enforced = ent:GetNWString("DRCVoiceSet_Enforced", "None")
 	local tab = DRC.VoiceSets
+	
+	if enforced != "None" then vs = enforced end
+	
+	if ent:IsPlayer() then
+		if ent:GetInfoNum("cl_drc_voiceset_automatic", 0) == 1 then
+			local mdl = player_manager.TranslateToPlayerModelName(ent:GetModel())
+			local val = DRC:GetPlayerModelValue(mdl, "VoiceSet")
+			if IsValid(val) then vs = val end
+		end
+	end
 	
 	if vs == "none" or vs == nil or vs == "" then return nil end
 	if !tab[vs] then return nil end
 	return vs
+end
+
+function DRC:SetVoiceSet(ent, id, enforced)
+	if !DRC.VoiceSets[id] then return end
+	if !enforced then ent:SetNWString("DRCVoiceSet", id) end
+	if enforced then timer.Simple(0, function() ent:SetNWString("DRCVoiceSet_Enforced", id) end) end
 end
 
 function DRC:IsVSentenceValid(vs, call, subcall, response)
@@ -2148,7 +2218,7 @@ function DRC:IsVSentenceValid(vs, call, subcall, response)
 end
 
 function DRC:SpeakSentence(ent, call, subcall, important)
-	if important == true then ent.DRCSpeaking = false end
+	if important == true or !important && !isstring(subcall) then ent.DRCSpeaking = false end
 	if ent.DRCSpeaking == true then return end
 	local num, rng, sel = nil, nil, nil
 	local vs = DRC:GetVoiceSet(ent)
@@ -2156,7 +2226,7 @@ function DRC:SpeakSentence(ent, call, subcall, important)
 	local voice = DRC.VoiceSets[DRC:GetVoiceSet(ent)]
 	local dsp = voice.DSP
 	local start, stop = voice.StartSound, voice.StopSound
-	if subcall then
+	if subcall && isstring(subcall) then
 		if !DRC:IsVSentenceValid(vs, call, subcall) then return end
 		num = #voice[call][subcall]
 		rng = math.Round(math.Rand(1, num))
@@ -2395,6 +2465,7 @@ function DRC:GetBaseName(ent)
 	if !ent:IsScripted() then return nil end
 	if ent.Draconic == true then return "drc" end
 	if ent.LFS then return "lfs" end
+	if ent.LVS then return "lvs" end
 	if ent.IsTFAWeapon then return "tfa" end
 	if ent.ArcCW then return "arccw" end
 	if ent.ASTWTWO then return "astw2" end
@@ -2408,7 +2479,7 @@ function DRC:Health(ent) -- This is what happens when people try to reinvent the
 	if !IsValid(ent) then return end
 	local base = DRC:GetBaseName(ent)
 	if base == nil or base == "drc" then return ent:Health(), ent:GetMaxHealth()
-	elseif base == "lfs" then return ent:GetHP(), ent:GetMaxHP()
+	elseif base == "lfs" or base == "lvs" then return ent:GetHP(), ent:GetMaxHP()
 	elseif base == "sphys" then return ent:GetCurHealth(), ent:GetMaxHealth()
 	end
 end
@@ -2430,6 +2501,7 @@ function DRC:SetHealth(ent, amount, maxamount)
 end
 
 function DRC:CreateProjectile(class, pos, ang, force, owner, inherit)
+	if !SERVER then return end
 	local proj = ents.Create(class)
 	if owner then proj:SetOwner(owner) end
 	proj:SetPos(pos)
@@ -2443,6 +2515,81 @@ function DRC:CreateProjectile(class, pos, ang, force, owner, inherit)
 	phys:SetVelocity(speed)
 
 	return proj
+end
+
+
+--[[ Table format example:
+local NewPlayermodel = {
+	["Name"] = "Barney", -- SOMETHING UNIQUE
+	["Model"] = "models/player/barney.mdl",
+	["Hands"] = "models/weapons/c_arms_combine.mdl",
+	["Background"] = "vgui/chapters/chapter14",
+	["Podium"] = "path/to/model.mdl",
+	["VoiceSet"] = "VoiceSetID", -- Defaulted VS to use if a player/server has this setting enabled.
+}
+DRC:RegisterPlayerModel(NewPlayermodel)
+]]
+function DRC:RegisterPlayerModel(tbl)
+	if !istable(tbl) then return end
+	local newtab = {}
+	
+	list.Set( "PlayerOptionsModel", tbl.Name, tbl.Model)
+	player_manager.AddValidModel(tbl.Name, tbl.Model)
+	player_manager.AddValidHands(tbl.Name, tbl.Hands, 0, "0")
+	
+	DRC.Playermodels[tbl.Name] = {
+		["Model"] = tbl.Model,
+		["Hands"] = tbl.Hands,
+		["Background"] = tbl.Background or "",
+		["Podium"] = tbl.Podium or "",
+		["VoiceSet"] = tbl.VoiceSet or "",
+		["Extensions"] = tbl.Extensions or { 
+			["Claws"] = false,
+		},
+	}
+end
+
+function DRC:GetPlayerModelValue(name, val, subval)
+	if !name then return end
+	if !val then return end
+	if !DRC.Playermodels[name] then return false end
+	if !subval then
+		if DRC.Playermodels[name][val] then
+			return DRC.Playermodels[name][val]
+		else
+			return false
+		end
+	else
+		if DRC.Playermodels[name][val][subval] then
+			return DRC.Playermodels[name][val][subval]
+		else
+			return false
+		end
+	end
+end
+
+function DRC:RegisterPlayerExtension(model, val1, val2, val3)
+	local blacklist = { "Model", "Hands" }
+	if blacklist[val1] then return end
+	
+	if !DRC.Playermodels[model] then
+		DRC.Playermodels[model] = {
+			["Model"] = player_manager.TranslatePlayerModel(model),
+			["Hands"] = player_manager.TranslatePlayerHands(model),
+			["Background"] = "",
+			["Podium"] = "",
+			["VoiceSet"] = "",
+			["Extensions"] = { 
+				["Claws"] = false,
+			},
+		}
+	end
+	
+	if !val3 then
+		DRC.Playermodels[model][val1] = val2
+	else
+		DRC.Playermodels[model][val1][val2] = val3
+	end
 end
 
 hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply, weapon )
@@ -2515,14 +2662,18 @@ if (!IsValid(ply) or !ply:Alive()) && !ply:InVehicle() then return end
 end
 
 local SwapCD = 0
+local ViableCheckCD = 0
 hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 	if (!IsValid(ply) or !ply:Alive()) && !ply:InVehicle() then return end
 	local curswep = ply:GetActiveWeapon()
 	
+	if CurTime() > ViableCheckCD then
+		ViableWeaponCheck(ply)
+		ViableCheckCD = CurTime() + 0.066
+	end
+	
 	if !ply.TurnCD then ply.TurnCD = 0 end
 	if !ply.SwapCD then ply.SwapCD = 0 end
-	
-	ViableWeaponCheck(ply)
 	
 	if CurTime() > ply.TurnCD then
 		local rang = ply:GetRenderAngles()
@@ -2622,6 +2773,15 @@ hook.Add("PlayerGiveSWEP", "drc_GivePickupOnlyWeapon", function(ply, wpn, swep)
 	end
 end)
 
+hook.Add("WeaponEquip", "VoiceSets_WeaponEquip", function(wpn, ply)
+	local vs = DRC:GetVoiceSet(ply)
+	if DRC:IsVSentenceValid(vs, "Actions", "pickup_".. wpn:GetClass() .."") then
+		DRC:SpeakSentence(ply, "Actions", "pickup_".. wpn:GetClass() .."")
+	elseif DRC:IsVSentenceValid(vs, "Actions", "pickup_generic") then
+		DRC:SpeakSentence(ply, "Actions", "pickup_generic")
+	end
+end)
+
 hook.Add("PlayerSpawnedNPC", "drc_NPCWeaponOverride", function(ply, ent)
 	if !IsValid(ply) or !IsValid(ent) then return end
 	if !ent.DraconicNPC then return end
@@ -2647,7 +2807,7 @@ hook.Add("OnEntityCreated", "drc_SetupWeaponColours", function(ent)
 		
 		if ply:IsPlayer() then
 			ent:SetNWEntity("SpraySrc", ply)
-			local colours = DRC:GetColours(ply, true)
+			local colours = DRC:GetColours(ply, false)
 			ent:SetNWVector("PlayerColour_DRC", colours.Player)
 			ent:SetNWVector("WeaponColour_DRC", colours.Weapon)
 			ent:SetNWVector("ColourTintVec1", colours.Tint1)

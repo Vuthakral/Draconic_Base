@@ -57,6 +57,7 @@ end
 DRC:Load()
 DRC:IncludeDir( CLDir )
 DRC:IncludeDir( SVDir )
+DRC:IncludeDir( SHDir )
 DRC:IncludeDir( DRCAddons )
 DRC:IncludeDir( DRCPlayermodels )
 

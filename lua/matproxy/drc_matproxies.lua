@@ -101,6 +101,8 @@ matproxy.Add( {
 	name = "caramell",
 	init = function( self, mat, values )
 		self.ResultTo = values.resultvar
+		self.ResultTo2 = values.resultvar2
+		self.ResultTo3 = values.resultvar3
 	end,
 
 	bind = function( self, mat, ent )
@@ -115,6 +117,8 @@ matproxy.Add( {
 		if self.SpeedMul == nil then self.SpeedMul = 1 end
 		local col = Vector(TimedSin(2.75 * self.SpeedMul, 0.5, 1, 0), TimedSin(1.83 * self.SpeedMul, 0.5, 1, 0), TimedSin(0.68 * self.SpeedMul, 0.5, 1, 0))
 		mat:SetVector(self.ResultTo, col)
+		if self.ResultTo2 then mat:SetVector(self.ResultTo2, col) end
+		if self.ResultTo3 then mat:SetVector(self.ResultTo3, col) end
 	end
 } )
 

@@ -625,7 +625,7 @@ function ENT:PhysicsCollide( data, phys )
 		end
 	elseif tgt:IsWorld() == true then
 		if type == "point" then
-			timer.Simple(0.01, function() self:Remove() end)
+			timer.Simple(0.01, function() if IsValid(self) then self:Remove() end end)
 			self:SetPos(data.HitPos)
 			self:DoImpactEffect()
 		elseif type == "explosive" then

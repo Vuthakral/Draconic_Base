@@ -50,7 +50,7 @@ hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	if IsValid(ply) then
 		if IsValid(ply:GetActiveWeapon()) then
 			local wpn = ply:GetActiveWeapon():GetClass()
-			if basegameweapons[wpn] then
+			if basegameweapons[wpn] && !IsValid(ply:GetVehicle()) then
 				if str == "CHudCrosshair" then return false end
 			end
 		end
@@ -70,7 +70,7 @@ local function drc_Crosshair()
 	
 	-- Replace base game crosshair with a duplicate that uses the actual hitpos, for compatibility with mods that offset the view (thirdperson, first person offsets, etc).
 	local pos = DRC.CalcView.ToScreen
-		if basegameweapons[curswep:GetClass()] then
+		if basegameweapons[curswep:GetClass()] && !IsValid(ply:GetVehicle()) then
 		surface.SetFont("Crosshairs")
 		surface.SetTextPos(pos.x-10, pos.y-18)
 		surface.SetTextColor( 255, 211, 64, 255 )

@@ -1141,7 +1141,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		end
 	end
 	
-	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
+	if (game.SinglePlayer() or CLIENT) && GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
 		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() >= 1 then
 			DRC:EmitSound(self, self.DistSound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
 		else

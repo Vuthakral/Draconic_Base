@@ -1,7 +1,7 @@
 AddCSLuaFile()
 --[[     I M P O R T A N T
 
-Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.
+Please go to the GitHub wiki for this, and don't just rip settings from the base.
 https://github.com/Vuthakral/Draconic_Base/wiki
 
 It contains all of the settings, explanations on how to use them, tutorials, helpful links, etc.
@@ -35,15 +35,15 @@ SWEP.Weight				= 1
 SWEP.Slot				= 0
 SWEP.SlotPos			= 0
 
-SWEP.CrosshairColor		= Color(255, 255, 255, 255)
-SWEP.CrosshairShadow	= false
-SWEP.CrosshairStatic	= nil
-SWEP.CrosshairDynamic	= nil
-SWEP.CrosshairCorrectX	= 1
-SWEP.CrosshairCorrectY	= 1
-SWEP.CrosshairSizeMul	= 1
-SWEP.CrosshairNoIronFade = false
-SWEP.Crosshair = nil
+SWEP.CrosshairColor			= Color(255, 255, 255, 255)
+SWEP.CrosshairShadow		= false
+SWEP.CrosshairStatic		= nil
+SWEP.CrosshairDynamic		= nil
+SWEP.CrosshairCorrectX		= 1
+SWEP.CrosshairCorrectY		= 1
+SWEP.CrosshairSizeMul		= 1
+SWEP.CrosshairNoIronFade 	= false
+SWEP.Crosshair 				= nil
 
 SWEP.ViewModelFOV		= 54
 SWEP.ViewModelFlip		= true
@@ -53,27 +53,28 @@ SWEP.UseHands			= true
 SWEP.DoesPassiveSprint	= false
 SWEP.ViewModel			= ""
 SWEP.WorldModel			= ""
-SWEP.VMPos = Vector(0, 0, 0)
-SWEP.VMAng = Vector(0, 0, 0)
-SWEP.VMPosCrouch = Vector(0, 0, 0)
-SWEP.VMAngCrouch = Vector(0, 0, 0)
-SWEP.LoweredVMPos = Vector(0, 0, 0)
-SWEP.LoweredVMAng = Vector(0, 0, 0)
-SWEP.IronSightsPos = Vector(0, 0, 0)
-SWEP.IronSightsAng = Vector(0, 0, 0)
-SWEP.IronSightsPosAlt = nil
-SWEP.IronSightsAngAlt = nil
-SWEP.PassivePos = Vector(5, 0, 3)
-SWEP.PassiveAng = Vector(-15, 25, 0)
-SWEP.InspectPos = Vector(3, 2, -2.5)
-SWEP.InspectAng = Vector(15, 15, 0)
-SWEP.SprintPos = Vector(5, 0, 3)
-SWEP.SprintAng = Vector(-15, 25, 0)
-SWEP.CurPos = Vector(0, 0, 0) -- overwrites itself, do not use
-SWEP.CurAng = Vector(0, 0, 0) -- overwrites itself, do not use
-SWEP.SS = 1
-SWEP.BS = 1
-SWEP.InspectDelay = 0.5
+SWEP.VMPos 				= Vector(0, 0, 0)
+SWEP.VMAng 				= Vector(0, 0, 0)
+SWEP.VMPosCrouch 		= Vector(0, 0, 0)
+SWEP.VMAngCrouch 		= Vector(0, 0, 0)
+SWEP.LoweredVMPos		= Vector(0, 0, 0)
+SWEP.LoweredVMAng		= Vector(0, 0, 0)
+SWEP.IronSightsPos 		= Vector(0, 0, 0)
+SWEP.IronSightsAng 		= Vector(0, 0, 0)
+SWEP.IronSightsPosAlt 	= nil
+SWEP.IronSightsAngAlt 	= nil
+SWEP.PassivePos 		= Vector(5, 0, 3)
+SWEP.PassiveAng 		= Vector(-15, 25, 0)
+SWEP.InspectPos 		= Vector(3, 2, -2.5)
+SWEP.InspectAng 		= Vector(15, 15, 0)
+SWEP.SprintPos 			= Vector(5, 0, 3)
+SWEP.SprintAng 			= Vector(-15, 25, 0)
+SWEP.SS 				= 1
+SWEP.BS 				= 1
+SWEP.NearWallPower		= 1
+SWEP.RollingPower		= 1
+SWEP.PerspectivePower	= 1
+SWEP.InspectDelay 		= 0.5
 
 SWEP.Thirdperson = false
 
@@ -123,6 +124,7 @@ SWEP.OCNPCSound 		= nil
 SWEP.OCProjectile 		= nil
 SWEP.OCProjSpeed 		= 500
 
+-- MOVEMENT MODIFIERS
 SWEP.SprintSoundStand		= Sound( "" )
 SWEP.DoSSStandFwd			= false
 SWEP.DoSSStandBack			= false
@@ -181,32 +183,13 @@ SWEP.CrouchingSprintJumpHeightBack		= nil
 SWEP.CrouchingSprintJumpHeightLeft		= nil
 SWEP.CrouchingSprintJumpHeightRight		= nil
 
-SWEP.TauntCooldown = 1
-SWEP.PassiveHealing			= ""
-SWEP.BreathCycle			= ""
-SWEP.AmmoRegen				= ""
+-- MISC
+SWEP.TauntCooldown 			= 1
 SWEP.HealthRegen 			= false
 SWEP.HealAmount				= 1
 SWEP.HealInterval			= 1
 SWEP.WeaponIdleLoopSound 	= nil
 SWEP.IdleLoopSoundConstant 	= false
-SWEP.FireMode				= "none"
-SWEP.OwnerActivity 			= "standidle"
-
-SWEP.Primary.LightColor 		= Color(255, 255, 30)
-SWEP.Primary.LightBrightness	= 1
-SWEP.Primary.LightSize			= 50
-SWEP.Primary.LightDecayTime		= 1000
-
-SWEP.Secondary.LightColor 		= Color(255, 255, 30)
-SWEP.Secondary.LightBrightness	= 1
-SWEP.Secondary.LightSize		= 50
-SWEP.Secondary.LightDecayTime	= 1000
-
-SWEP.OCLightColor 		= Color(255, 255, 30)
-SWEP.OCLightBrightness	= 1
-SWEP.OCLightSize		= 50
-SWEP.OCLightDecayTime	= 1000
 
 SWEP.Glow			= false
 SWEP.GlowColor		= Color(255, 255, 255)
@@ -215,13 +198,13 @@ SWEP.GlowDecay		= 1000
 SWEP.GlowSize		= 150
 SWEP.GlowStyle		= 0
 
-SWEP.Secondary.ScopeMat	= "overlays/draconic_scope"
-SWEP.Secondary.Q2Mat	= nil
-SWEP.Secondary.Q3Mat	= nil
-SWEP.Secondary.Q4Mat	= nil
-SWEP.Secondary.ScopeBlur = false
-SWEP.Secondary.ScopeCol = nil
-SWEP.Secondary.ScopeBGCol = Color(0, 0, 0, 255)
+SWEP.Secondary.ScopeMat		= "overlays/draconic_scope"
+SWEP.Secondary.Q2Mat		= nil
+SWEP.Secondary.Q3Mat		= nil
+SWEP.Secondary.Q4Mat		= nil
+SWEP.Secondary.ScopeBlur 	= false
+SWEP.Secondary.ScopeCol 	= nil
+SWEP.Secondary.ScopeBGCol 	= Color(0, 0, 0, 255)
 SWEP.Secondary.ScopeScale	= 1
 SWEP.Secondary.ScopeWidth	= 1
 SWEP.Secondary.ScopeHeight	= 1
@@ -254,13 +237,13 @@ SWEP.CanTFALean = true
 
 SWEP.DManip_AllowFL = true
 
-SWEP.vFireLife = 2
-SWEP.vFireVolatility = 0.15
-SWEP.vFireSpeed = 1
-SWEP.vFireSpawnDist = 30
-SWEP.vFireStopSound = Sound("draconic.vFireStopGeneric")
-SWEP.Primary.isvFire = false
-SWEP.Secondary.isvFire = false
+SWEP.vFireLife 			= 2
+SWEP.vFireVolatility 	= 0.15
+SWEP.vFireSpeed 		= 1
+SWEP.vFireSpawnDist 	= 30
+SWEP.vFireStopSound 	= Sound("draconic.vFireStopGeneric")
+SWEP.Primary.isvFire 	= false
+SWEP.Secondary.isvFire 	= false
 
 SWEP.NZWonderWeapon        	= false    -- Is this a Wonder-Weapon? If true, only one player can have it at a time. Cheats aren't stopped, though.
 -- SWEP.NZRePaPText        	= "your text here"    -- When RePaPing, what should be shown? Example: Press E to your text here for 2000 points.
@@ -272,7 +255,7 @@ SWEP.Primary.MaxAmmo 		= 600 -- nZombis max ammo
 -- nZombies Pack-a-Punch stats. Multiplier values. So 1 = 100% of weapon value. Utilizes Draconic's bullet profiles for advanced config.
 SWEP.nZPAP = {
 	["Name"] = "AAAAAAAA",
-	["BProfile"] = "drc_att_bprofile_generic",
+	["BProfile"] = "drc_abp_generic",
 	["MaxAmmo"] = 1,
 	["EmptyMag"] = false,
 	["ViewModel"] = nil,
@@ -280,42 +263,48 @@ SWEP.nZPAP = {
 	["ViewModelFOV"] = nil,
 }
 
--- Everything past this is code for the SWEP base. DO NOT TOUCH OR USE IN YOUR WEAPONS.
-SWEP.Idle = 0
-SWEP.IdleTimer = CurTime()
-SWEP.IsTaunting = 0
-SWEP.Draconic = true
-SWEP.IsOverheated = false
-SWEP.SightsDown = false
-SWEP.BloomValue = 0
-SWEP.PrevBS = 0
-SWEP.VariablePos = Vector(0, 0, 0)
-SWEP.CRPo = Vector(0, 0, 0)
-SWEP.PRPos = Vector(0, 0, 0)
-SWEP.SPRPos = Vector(0, 0, 0)
-SWEP.IRPos = Vector(0, 0, 0)
-SWEP.VARPos = Vector(0, 0, 0)
-SWEP.VariableAng = Vector(0, 0, 0)
-SWEP.CRPo = Vector(0, 0, 0)
-SWEP.PRAng = Vector(0, 0, 0)
-SWEP.SPRAng = Vector(0, 0, 0)
-SWEP.IRAng = Vector(0, 0, 0)
-SWEP.VARAng = Vector(0, 0, 0)
-SWEP.Sound = Sound("")
-SWEP.DistSound = Sound("")
-SWEP.Passive = false
-SWEP.Inspecting = false
-SWEP.Idle = 0
-SWEP.Loading = false
-SWEP.ManuallyReloading = false
-SWEP.PistolSlide = 1
-SWEP.NPCBursting = false
-SWEP.NPCCharging = false
-SWEP.DualSettings = {}
-SWEP.SightSwapCD = false
-SWEP.SightsSwapCD = 0
-SWEP.LastFireTime = 0
-SWEP.LastFireAnimTime = 0
+-- Everything past this is internal code for the SWEP base. DO NOT TOUCH OR USE IN YOUR WEAPONS. THESE VALUES ARE OVERWRITTEN FREQUENTLY.
+SWEP.Draconic 			= true
+SWEP.Idle 				= 0
+SWEP.IdleTimer 			= CurTime()
+SWEP.IsTaunting 		= 0
+SWEP.IsOverheated 		= false
+SWEP.SightsDown 		= false
+SWEP.BloomValue 		= 0
+SWEP.PrevBS 			= 0
+SWEP.VariablePos 		= Vector(0, 0, 0)
+SWEP.CRPo 				= Vector(0, 0, 0)
+SWEP.PRPos 				= Vector(0, 0, 0)
+SWEP.SPRPos 			= Vector(0, 0, 0)
+SWEP.IRPos 				= Vector(0, 0, 0)
+SWEP.VARPos 			= Vector(0, 0, 0)
+SWEP.VariableAng 		= Vector(0, 0, 0)
+SWEP.CRPo 				= Vector(0, 0, 0)
+SWEP.PRAng 				= Vector(0, 0, 0)
+SWEP.SPRAng 			= Vector(0, 0, 0)
+SWEP.IRAng 				= Vector(0, 0, 0)
+SWEP.VARAng 			= Vector(0, 0, 0)
+SWEP.Sound 				= Sound("")
+SWEP.DistSound 			= Sound("")
+SWEP.Passive 			= false
+SWEP.Inspecting 		= false
+SWEP.Idle 				= 0
+SWEP.Loading 			= false
+SWEP.ManuallyReloading 	= false
+SWEP.PistolSlide 		= 1
+SWEP.NPCBursting 		= false
+SWEP.NPCCharging 		= false
+SWEP.DualSettings 		= {}
+SWEP.SightSwapCD 		= false
+SWEP.SightsSwapCD 		= 0
+SWEP.LastFireTime 		= 0
+SWEP.LastFireAnimTime 	= 0
+SWEP.PassiveHealing		= ""
+SWEP.AmmoRegen			= ""
+SWEP.CurPos				= Vector(0, 0, 0)
+SWEP.CurAng				= Vector(0, 0, 0)
+SWEP.FireMode			= "none"
+SWEP.OwnerActivity 		= "standidle"
 
 function SWEP:DoDrawCrosshair( x, y )
 	return true
@@ -413,7 +402,7 @@ function SWEP:Initialize()
 	
 	if !self.IsMelee then
 		self.DefaultPimaryClipSize = self.Primary.ClipSize
-		self:SetupAttachments("drc_att_bprofile_generic", "ammo", false, true)
+		self:SetupAttachments("drc_abp_generic", "AmmunitionTypes", false, true)
 		self.SpreadCone = ((self.Primary.Spread * self:GetAttachmentValue("Ammunition", "Spread")))
 	else
 		self.SpreadCone = math.abs(15)
@@ -656,6 +645,10 @@ function SWEP:Initialize()
 		self:SetNWInt("LoadedAmmo", self:Clip1() )
 	end
 	
+	timer.Simple(0, function()
+		if !self.ModifyText then self.ModifyText = "modify ".. (self.InfoName or self.PrintName or "null") .."" end
+	end)
+	
 	self:InitialFireMode()
 	self:DoCustomInitialize()
 	
@@ -703,6 +696,27 @@ end
 
 FireTime = CurTime()
 SWEP.RealTime = 0
+local ironsounds = {
+	["ar2"] = {"draconic.IronInRifle", "draconic.IronOutRifle"},
+	["smg"] = {"draconic.IronInSMG", "draconic.IronOutSMG"},
+	["duel"] = {"draconic.IronInSMG", "draconic.IronOutSMG"},
+	["pistol"] = {"draconic.IronInPistol", "draconic.IronOutPistol"},
+	["revolver"] = {"draconic.IronInPistol", "draconic.IronOutPistol"},
+	["shotgun"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+	["crossbow"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+	["rpg"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+	["physgun"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
+	["grenade"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["slam"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["melee"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["melee2"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["passive"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["normal"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["knife"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["camera"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+	["magic"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
+}
+
 function SWEP:Think()
 	local ply = self:GetOwner()
 	if !IsValid(ply) or !ply:Alive() then return end
@@ -734,45 +748,25 @@ function SWEP:Think()
 	if CLIENT then
 		local wl = ply:WaterLevel()
 		local oa = self.OwnerActivity
+		local l, r, f, b = ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK)
 		
-		if (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && cv == false && wl <= 2 then
+		if (l or r or b or f) && cv == false && wl <= 2 then
 			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "sprinting"
 			else self.OwnerActivity = "running" end
-		elseif (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && cv == true && wl <= 2 then
+		elseif (l or r or b or f) && cv == true && wl <= 2 then
 			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "crouchsprinting"
 			else self.OwnerActivity = "crouchrunning" end
-		elseif (!ply:KeyDown(IN_MOVELEFT) or !ply:KeyDown(IN_MOVERIGHT) or !ply:KeyDown(IN_BACK) or !ply:KeyDown(IN_FORWARD)) && cv == false && wl <= 2 then
+		elseif (!l or !r or !b or !f) && cv == false && wl <= 2 then
 			self.OwnerActivity = "standidle"
-		elseif (!ply:KeyDown(IN_MOVELEFT) or !ply:KeyDown(IN_MOVERIGHT) or !ply:KeyDown(IN_BACK) or !ply:KeyDown(IN_FORWARD)) && cv == true && wl <= 2 then
+		elseif (!l or !r or !b or !f) && cv == true && wl <= 2 then
 			self.OwnerActivity = "crouchidle"
-		elseif (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_JUMP)) && wl > 2 then
+		elseif (l or r or b or f or ply:KeyDown(IN_JUMP)) && wl > 2 then
 			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "fastswimming"
 			else self.OwnerActivity = "swimming" end
-		elseif (!ply:KeyDown(IN_MOVELEFT) or !ply:KeyDown(IN_MOVERIGHT) or !ply:KeyDown(IN_BACK) or !ply:KeyDown(IN_FORWARD)) && wl > 2 then
+		elseif (!l or !r or !b or !f) && wl > 2 then
 			self.OwnerActivity = "swimidle"
 		end
 	end
-	
-	local ironsounds = {
-		["ar2"] = {"draconic.IronInRifle", "draconic.IronOutRifle"},
-		["smg"] = {"draconic.IronInSMG", "draconic.IronOutSMG"},
-		["duel"] = {"draconic.IronInSMG", "draconic.IronOutSMG"},
-		["pistol"] = {"draconic.IronInPistol", "draconic.IronOutPistol"},
-		["revolver"] = {"draconic.IronInPistol", "draconic.IronOutPistol"},
-		["shotgun"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
-		["crossbow"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
-		["rpg"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
-		["physgun"] = {"draconic.IronInShotgun", "draconic.IronOutShotgun"},
-		["grenade"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["slam"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["melee"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["melee2"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["passive"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["normal"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["knife"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["camera"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-		["magic"] = {"draconic.IronInGeneric", "draconic.IronOutGeneric"},
-	}
 	
 	if self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
 		if self.SightsDown != self:GetNWBool("SightsDown") then self.SightsDown = self:GetNWBool("SightsDown") end
@@ -832,7 +826,33 @@ function SWEP:Think()
 		if (SERVER or !game.IsDedicated()) && ply:IsPlayer() then
 			if game.SinglePlayer() && !IsFirstTimePredicted() then return end
 			if self.ChargeType == "dualheld" then
-				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then -- I've learned to stop questioning why shit doesn't work when it should. Namely because when I ask others why I get brushed off or bereated.
+				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then
+					if FireTime < CurTime() then FireTime = CurTime() + 60 / self.Primary.RPM self:CallShoot("primary") end
+				elseif m1r && self:CanOvercharge() && self:CanPrimaryAttack() then self:CallShoot("overcharge") end
+			elseif self.ChargeType == "dualaction" then
+				if m1d && self:CanPrimaryAttack() && self:CanOvercharge() then self:CallShoot("overcharge") end
+				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then self:CallShoot("primary") end
+			elseif self.ChargeType == "discharge" then
+				if m1d && self:CanPrimaryAttack() == true && self:CanOvercharge() && !ukd then
+					self:CallShoot("overcharge")
+				end
+			elseif self.ChargeType == "held" then
+				if m1r && self:CanOvercharge() then self:CallShoot("overcharge") end
+			elseif self.ChargeType == "default" then
+			end
+		end
+	end
+	
+	if self.Secondary.UsesCharge == true then
+		local m1p = ply:KeyPressed(IN_ATTACK2)
+		local m1d = ply:KeyDown(IN_ATTACK2)
+		local m1r = ply:KeyReleased(IN_ATTACK2)
+		local ukd = ply:KeyDown(IN_USE)
+			
+		if (SERVER or !game.IsDedicated()) && ply:IsPlayer() then
+			if game.SinglePlayer() && !IsFirstTimePredicted() then return end
+			if self.ChargeType == "dualheld" then
+				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then
 					if FireTime < CurTime() then FireTime = CurTime() + 60 / self.Primary.RPM self:CallShoot("primary") end
 				elseif m1r && self:CanOvercharge() && self:CanPrimaryAttack() then self:CallShoot("overcharge") end
 			elseif self.ChargeType == "dualaction" then
@@ -858,15 +878,25 @@ function SWEP:Think()
 		end
 	end
 	
+	if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
+		if !self.ChargingSound then self.ChargingSound = CreateSound(self, self.ChargeSound) end
+	end
+	
 	if !game.IsDedicated() then
 		local oh = self:GetNWBool("Overheated")
-	
+		
 		if self.Primary.UsesCharge == true then
 			if ply:KeyPressed(IN_ATTACK) && self:GetNWBool("Passive") == false && !ply:KeyDown(IN_USE) && self:CanPrimaryAttack() then
-				self:EmitSound(self.ChargeSound)
+				self.ChargingSound:Play()
 			elseif !ply:KeyDown(IN_ATTACK) or oh == true then
-				self:StopSound(self.ChargeSound)
-			else end
+				self.ChargingSound:Stop()
+			end
+		elseif self.Secondary.UsesCharge == true then
+			if ply:KeyPressed(IN_ATTACK2) && self:GetNWBool("Passive") == false && !ply:KeyDown(IN_USE) then
+				self.ChargingSound:Play()
+			elseif !ply:KeyDown(IN_ATTACK2) or oh == true then
+				self.ChargingSound:Stop()
+			end
 		end
 	
 		if self.Primary.LoopingFireSound != nil && self.Readied == true then
@@ -920,6 +950,8 @@ function SWEP:Think()
 			else self.LoopingFireSoundSecondary:Stop() end
 		end
 	end
+	
+	if ply:IsPlayer() && self.RegenAmmo == true then self:RegeneratingAmmo(self, self.RegenAmmo_Delay, self.RegenAmmo_Amount) end
 	
 	if !game.SinglePlayer() then return end -- I have to set viewmodel poseparameters in here because they're controlled by the server in singleplayer for some reason, and PreDrawViewModel is client only. Epic.
 	if CLIENT then return end
@@ -1159,14 +1191,14 @@ function SWEP:GetViewModelPosition( pos, ang )
 				self.VAPos = Vector(POX, POY, POZ)
 				self.VAAng = Vector(AOX, 0, 0)
 
-				self.VARPos = LerpVector(self.MulI, -self.VMPos + self.VARSightPos_Lerped / 255, self.VAPos )
-				self.VARAng = LerpVector(self.MulI, Vector(0, 0, 0), self.VAAng )
+				self.VARPos = LerpVector(self.MulI, -self.VMPos + self.VARSightPos_Lerped / 255, self.VAPos ) * math.Clamp(self.PerspectivePower, 0, 1)
+				self.VARAng = LerpVector(self.MulI, Vector(0, 0, 0), self.VAAng ) * math.Clamp(self.PerspectivePower, 0, 1)
 				
 				self.DownCorrectionPos = Vector()
 				self.DownCorrectionAng = Vector()
-				self.DownCorrectionAng.z = self.DownCorrectionAng.z - (eyeangforward.x / 10)
-				self.DownCorrectionAng.z = math.Clamp(self.DownCorrectionAng.z, -10, 2)
-				self.DownCorrectionAng.y = self.DownCorrectionAng.y + math.abs(eyeangforward.x / 90)
+				self.DownCorrectionAng.z = self.DownCorrectionAng.z - (eyeangforward.x / 10) * math.Clamp(self.PerspectivePower, 0, 1)
+				self.DownCorrectionAng.z = math.Clamp(self.DownCorrectionAng.z, -10, 2) * math.Clamp(self.PerspectivePower, 0, 1)
+				self.DownCorrectionAng.y = self.DownCorrectionAng.y + math.abs(eyeangforward.x / 90) * math.Clamp(self.PerspectivePower, 0, 1)
 				
 				local eyepos = ply:EyePos()
 			
@@ -1204,7 +1236,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 				local hiv = math.Round(ply:EyePos():Distance(aids))
 				hiv = math.Clamp(hiv, 0, 50) / 50
 				hiv = 1 - hiv
-				self.walllerpval = Lerp((0.008) * heft, self.walllerpval or hiv, hiv)
+				self.walllerpval = Lerp((0.008) * heft, self.walllerpval or hiv, hiv) * math.Clamp(self.NearWallPower, 0, 1)
 				local wallpos = Lerp(self.walllerpval, Vector(), walloffset[1])
 				local wallang = Lerp(self.walllerpval, Vector(), walloffset[2])
 				
@@ -1516,7 +1548,7 @@ function SWEP:Deploy()
 		self:SetHoldType( self.HoldType )
 	end
 	
-	self:SetNWInt( "Charge", 0 )
+	self:SetCharge(0)
 	
 	if not IsValid(self) or not IsValid(ply) or not ply:Alive() then else
 		self:GetMovementValues()
@@ -1530,7 +1562,6 @@ function SWEP:Deploy()
 	self:SetNextSecondaryFire( CurTime() + drawanimdur)
 	
 	if ply:IsPlayer() && self.HealthRegen == true then self:RegeneratingHealth(ply) end
-	if ply:IsPlayer() && self.RegenAmmo == true then self:RegeneratingAmmo(self) end
 	if self.SpecialScripted != true then
 		if ply:IsPlayer() then
 			self:BloomScore()
@@ -1567,8 +1598,6 @@ function SWEP:OnRemove()
 		hook.Remove( "DManipPlayerSwitchFlashlight","DManip_PlyID" )
 		
 		timer.Remove( self.PassiveHealing )
-		timer.Remove( self.BreathCycle )
-		timer.Remove( self.AmmoRegen )
 		if self.BloomScoreName != nil then
 			timer.Remove( self.BloomScoreName )
 		else end
@@ -1639,8 +1668,6 @@ function SWEP:Holster()
 		hook.Remove( "DManipPlayerSwitchFlashlight","DManip_PlyID" )
 		
 		timer.Remove( self.PassiveHealing )
-		timer.Remove( self.BreathCycle )
-		timer.Remove( self.AmmoRegen )
 		if self.BloomScoreName != nil then
 			timer.Remove( self.BloomScoreName )
 		else end
@@ -1997,38 +2024,66 @@ local BaseGameAmmoTypes = {
 function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 	if att == nil then initializing = true end
 	local ammo = nil
-	if initializing == true && slot == "ammo" then
+	
+	if emptymag == true && !self.IsBatteryBased then
+		local atr = self:Clip1()
+		local at = self.Primary.Ammo
+		self:GetOwner():GiveAmmo(atr, at, false)
+		self:SetLoadedAmmo(0)
+	end
+	
+	if initializing == true && slot == "AmmunitionTypes" then
+		local bandaid1 = {
+			["drc_att_bprofile_generic"] = "drc_abp_generic",
+			["drc_att_bprofile_buckshot"] = "drc_abp_buckshot",
+			["drc_att_bprofile_explosive"] = "drc_abp_explosive",
+		}
+		for k,v in pairs(self.AttachmentTable.AmmunitionTypes) do
+			if k != "BaseClass" then
+				if bandaid1[v] then self.AttachmentTable.AmmunitionTypes[k] = bandaid1[v] end
+			end
+		end
+	
 		ammo = scripted_ents.GetStored(self.AttachmentTable.AmmunitionTypes[1])
 		local ammotype = ammo.t.BulletTable.AmmoType
 		local basegameammotype = ammo.t.BulletTable.FallbackBaseAmmoType
 		if GetConVarNumber("sv_drc_forcebasegameammo") == 0 then
 			if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = ammotype end
+			if self.PrimaryStats.OriginalAmmo == "replaceme" then self.PrimaryStats.OriginalAmmo = ammotype end
 		else
 			if !CTFK(BaseGameAmmoTypes, basegameammotype) then
 				if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = "Pistol" end
+				if self.PrimaryStats.OriginalAmmo == "replaceme" then self.PrimaryStats.OriginalAmmo = "Pistol" end
 			else
 				if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = basegameammotype end
+				if self.PrimaryStats.OriginalAmmo == "replaceme" then self.PrimaryStats.OriginalAmmo = basegameammotype end
 			end
 		end
-	elseif !initializing && slot == "ammo" then
+	elseif !initializing && slot == "AmmunitionTypes" then
 		ammo = scripted_ents.GetStored(att)
+		local ammotype = ammo.t.BulletTable.AmmoType
+		local basegameammotype = ammo.t.BulletTable.FallbackBaseAmmoType
+		if GetConVarNumber("sv_drc_forcebasegameammo") == 0 && !self.IsBatteryBased then
+			self.Primary.Ammo = ammotype
+		else
+			if !CTFK(BaseGameAmmoTypes, basegameammotype) && !self.IsBatteryBased then
+				self.Primary.Ammo = "Pistol"
+			else
+				self.Primary.Ammo = basegameammotype
+			end
+		end
+		if !ammotype && !self.IsBatteryBased then self.Primary.Ammo = self.PrimaryStats.OriginalAmmo end
 	end
+	
 		
 	self.ActiveAttachments = {
-		Ammunition = ammo,
-		Clipazine = nil,
-		Optic = nil,
-		Foregrip = nil,
-		Barrel = nil,
-		Stock = nil,
-		Internal = nil,
-		Charm = nil
+		AmmunitionTypes = ammo,
 	}
 end
 
 function SWEP:SetupDataTables()
-	self:SetNWInt("Heat", 0)
-	self:SetNWInt("Charge", 0)
+--	self:SetNWInt("Heat", 0)
+--	self.ChargeValue = 0)
 	self:SetNWBool("Passive", false)
 	self:SetNWBool("Inspecting", false)
 	
@@ -2047,6 +2102,7 @@ function SWEP:SetupDataTables()
 		RecoilHoriz = self.Primary.RecoilHoriz,
 		MuzzleAngle = self.Primary.MuzzleAngle,
 		Force = self.Primary.Force,
+		OriginalAmmo = self.Primary.Ammo,
 		Ammo = self.Primary.Ammo,
 		Automatic = self.Primary.Automatic,
 		CanFireUnderwater = self.Primary.CanFireUnderwater,
@@ -2181,6 +2237,8 @@ function SWEP:SetupDataTables()
 		BatteryConsumePerShot = self.BatteryConsumePerShot,
 		OCBatteryConsumePerShot = self.OCBatteryConsumePerShot
 	}
+	
+	if self.BatteryConsumPerShot then self.BatteryStats.BatteryConsumePerShot = self.BatteryConsumPerShot end
 end
 
 function SWEP:GetNPCBurstSettings()
@@ -2193,13 +2251,14 @@ function SWEP:GetNPCBurstSettings()
 	local burst = self.NPCBurstShots or 1
 	local rpm = self.Primary.RPM
 	local fm = self:GetNWString("FireMode")
+	if fm == "" then self:InitialFireMode() end -- Sometimes NPCs spawning with guns can break stuff like this. Don't ask me why, I don't know either.
 	
 	if (ply:IsNPC() or ply:IsNextBot()) && self.FireModes_CanBurst == true then
 		self:SetNWString("FireMode", "Burst")
 	end
 	
 	local mini, maxi, delay = nil, nil, nil
-	
+
 	if fm == "Semi" then
 		mini = 1
 		maxi = 1
@@ -2266,8 +2325,8 @@ function SWEP:PreDrawViewModel(vm, wep, ply)
 	
 	local ammo = wep:Clip1()
 	local slide = self.PistolSlide
-	local charge = self:GetNWInt("Charge")
-	local heat = self:GetNWInt("Heat")
+	local charge = self:GetCharge()
+	local heat = self:GetHeat()
 	local health = ply:Health()
 	
 	local seq, cycle = vm:GetSequence(), vm:GetCycle()
@@ -2482,8 +2541,8 @@ if CLIENT or game.SinglePlayer() then
 		if ply:IsPlayer() or ply:IsNPC() or ply:IsNextBot() then
 			local ammo = self:Clip1()
 			local slide = self:Clip1()
-			local charge = self:GetNWInt("Charge")
-			local heat = self:GetNWInt("Heat")
+			local charge = self:GetCharge()
+			local heat = self:GetHeat()
 			local health = ply:Health()
 
 			self.AmmoCL_TP = Lerp(0.25, self.AmmoCL_TP or ammo, ammo)
@@ -2867,9 +2926,9 @@ function SWEP:OnPaP() -- nZombies Pack-a-Punch
 	self.Ispackapunched = 1
 	
 	if PAP[4] == false then
-		self:SetupAttachments(PAP[2], "ammo", false, false)
+		self:SetupAttachments(PAP[2], "AmmunitionTypes", false, false)
 	else
-		self:SetupAttachments(PAP[2], "ammo", false, false)
+		self:SetupAttachments(PAP[2], "AmmunitionTypes", false, false)
 	end
 	
 	self.PrintName = PAP[1]

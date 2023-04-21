@@ -124,6 +124,8 @@ function SWEP:CanPrimaryAttack()
 		issprinting = sk && mk
 	end
 	local wl = ply:WaterLevel()
+	
+	if self.Secondary.UsesCharge == true && ply:KeyDown(IN_ATTACK2) then return end
 
 	if self:GetNextPrimaryFire() > CurTime() then return false end
 	if self.IsOverheated == true then return false end
@@ -132,7 +134,7 @@ function SWEP:CanPrimaryAttack()
 	if GetConVar("sv_drc_infiniteammo"):GetFloat() < 1 then
 	if ply:IsPlayer() then
 		if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
-			self:Overheat()
+			self:Overheat(false, nil, true)
 			ply:SetFOV(0, 0.05)
 			return false
 		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == false then
@@ -143,7 +145,7 @@ function SWEP:CanPrimaryAttack()
 			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
 			return false
 		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && eself:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == true then
-			self:Overheat()
+			self:Overheat(false, nil, true)
 			ply:SetFOV(0, 0.05)
 			return false
 		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == true then
@@ -156,7 +158,7 @@ function SWEP:CanPrimaryAttack()
 	else
 		local heat = self:GetHeat()
 		if heat >= 100 then
-			self:Overheat()
+			self:Overheat(false, nil, true)
 			return false
 		end
 	end
@@ -180,6 +182,7 @@ function SWEP:CanPrimaryAttack()
 end
 
 function SWEP:CanPrimaryAttackNPC()
+	if !SERVER then return end
 	local npc = self:GetOwner()
 	
 	if self:Clip1() <= 0 then -- Prevent NPCs from running out of ammo
@@ -325,7 +328,8 @@ function SWEP:FinishVent()
 	self.IdleTimer = CurTime() + looptime
 end
 
-function SWEP:Overheat()
+function SWEP:Overheat(scripted, cooldown, animate)
+	if self.OverheatScripted == true && scripted != true then return end
 	if !IsValid(self) then return end
 	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 1 then return end
 	local ply = self:GetOwner()
@@ -414,7 +418,7 @@ end
 function SWEP:AutoVent()
 	if !IsValid(self) then return end
 	local ply = self:GetOwner()
-	local heat = ply:GetNWInt("Heat")
+	local heat = self:GetHeat()
 	local valused = heat
 	if ply:IsPlayer() then 
 		valused = ply:GetAmmoCount("ammo_drc_battery") 

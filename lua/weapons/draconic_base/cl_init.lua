@@ -54,7 +54,6 @@ function SWEP:GetWeaponAttachment(att)
 	local ply = self:GetOwner()
 	local ent = self
 	if ply == LocalPlayer() && !DRC:ThirdPersonEnabled(ply) then ent = ply:GetViewModel() end
-	
 	local attinfo = ent:GetAttachment(ent:LookupAttachment(att))
 	if ply:IsPlayer() then 
 		if ent == ply:GetViewModel() then
@@ -62,6 +61,26 @@ function SWEP:GetWeaponAttachment(att)
 		end
 	end
 	attinfo.ID = ent:LookupAttachment(att)
+	attinfo.ent = ent
 	
 	return attinfo
+end
+
+function SWEP:EffectChain(tbl)
+	local ply = self:GetOwner()
+	if !DRC:IsCharacter(ply) then return end
+	if !tbl then return end
+	for k,v in pairs(tbl) do
+		local effect, thyme = v[1], v[2]
+		local effectdata = EffectData()
+			timer.Simple(thyme, function() if IsValid(self) then
+			if ply:GetActiveWeapon() != self then return end
+			local attinfo = self:GetWeaponAttachment(k)
+			effectdata:SetOrigin(attinfo.Pos)
+			effectdata:SetAngles(attinfo.Ang)
+			effectdata:SetAttachment(attinfo.ID)
+			effectdata:SetEntity(attinfo.ent)
+			util.Effect( effect, effectdata )
+		end end)
+	end
 end

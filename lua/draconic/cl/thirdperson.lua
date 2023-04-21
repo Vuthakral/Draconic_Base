@@ -11,7 +11,6 @@ function DRC:ThirdPerson_PokeLiveAngle(ply)
 	if !DRC.CalcView.DirectionalAng then DRC.CalcView.DirectionalAng = Angle() end
 	if !DRC.CalcView.Live then DRC.CalcView.Live = false end
 	if !DRC.CalcView.PokeTime then DRC.CalcView.PokeTime = CurTime() end
---	ply:ChatPrint(tostring("".. tostring(DRC.CalcView.ThirdPerson.Ang.y)) .." ".. tostring(ply:EyeAngles().y) .."")
 	if DRC.CalcView.ThirdPerson.PokeTime == nil then DRC.CalcView.ThirdPerson.PokeTime = CurTime() end
 	if CurTime() < DRC.CalcView.ThirdPerson.PokeTime then return end
 	DRC.CalcView.ThirdPerson.Live = true
@@ -141,21 +140,6 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	end
 end)
 
--- This is really aids and barely works, if anyone knows a better way let me know lmao
---[[ hook.Add("PlayerBindPress", "!drc_thirdperson_preventearlyshoot", function(ply, bind, pressed, code)
-	if !IsValid(ply) then return end
-	if !IsValid(ply:GetActiveWeapon()) then return end
-	local wpn = ply:GetActiveWeapon()
-	
-	if GetConVar("cl_drc_thirdperson"):GetFloat() != 1 then return end
-	if DRC.CalcView.ThirdPerson.Live == false && bind == "+attack" then
-		PokeLiveAngle(ply)
-		timer.Simple(engine.TickInterval()+0.01, function() RunConsoleCommand("+attack") end)
-		timer.Simple(engine.TickInterval()+0.02, function() RunConsoleCommand("-attack") end)
-		return true
-	end
-end) --]]
-
 hook.Add("PrePlayerDraw", "!drc_thirdpersonlook", function(ply)
 	if !IsValid(ply) then return end
 	if ply != LocalPlayer() then return end
@@ -209,7 +193,8 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 	--	bpos = LocalPlayer():GetPos() + LocalPlayer():OBBCenter()
 		
 		local ht = "default"
-		if IsValid(wpn) then ht = wpn:GetHoldType() end
+		if IsValid(wpn) then ht = string.lower(wpn:GetHoldType()) end
+		if !DRC.ThirdPerson.DefaultOffsets[ht] then ht = "duel" end
 		
 		local offset = (DRC.ThirdPerson.DefaultOffsets[ht] * PSMul) or (DRC.ThirdPerson.DefaultOffsets["duel"] * PSMul)
 		
@@ -269,6 +254,11 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 			view.drawviewer = false
 			view.znear = 1
 		end
+		
+		local shake, shakevert, shakeroll = DRC:GetCalcViewShake()
+		view.origin = view.origin + (view.angles:Right() * shake)
+		view.origin = view.origin + (view.angles:Up() * shakevert)
+		view.angles.z = shakeroll
 		
 		return view
 	end

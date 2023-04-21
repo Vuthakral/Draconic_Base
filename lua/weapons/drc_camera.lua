@@ -11,6 +11,7 @@ SWEP.Instructions		= "Press R to open settings."
  
 SWEP.Spawnable      = true
 SWEP.AdminSpawnable = false
+SWEP.NPCSpawnable 	= false
 SWEP.DrawCrosshair  = false
 SWEP.Slot           = 5
 SWEP.SlotPos        = 0

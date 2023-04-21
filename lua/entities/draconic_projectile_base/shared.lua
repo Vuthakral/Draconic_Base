@@ -272,7 +272,7 @@ function ENT:PhysicsUpdate()
 	local phys = self:GetPhysicsObject()
 	local vel = phys:GetVelocity()
 	local pos = phys:GetPos()
-	local type = self.ProjectileType
+	local typ = self.ProjectileType
 	local owner = self:GetOwner()
 	local st = self.SpawnTime
 	local lt = st + 5
@@ -281,7 +281,7 @@ function ENT:PhysicsUpdate()
 		
 	if self:WaterLevel() != 0 then return end
 	
-	if type == "magazine" then return end
+	if typ == "magazine" then return end
 	if CurTime() > st + 0.5 && (vel.x > 50 or vel.y > 50 or vel.z > 50) then 
 		if CurTime() > self.LastRotVelSet then
 			phys:SetAngles(vel:Angle())
@@ -335,13 +335,14 @@ function ENT:PhysicsUpdate()
 end
 
 function ENT:Initialize()
-	local type = self.ProjectileType
+	local typ = self.ProjectileType
 	local ply = self:GetOwner()
+	
 	self:SetCollisionGroup(COLLISION_GROUP_PROJECTILE)
 	self:SetCustomCollisionCheck(true)
 	self:SetEntity(0)
 	
-	if type == "lua_explosive" or type == "explosive" or type == "custom_explosive" or type == "grenade" or type == "FuseAfterFirstBounce" then self.Explosive = true end
+	if typ == "lua_explosive" or typ == "explosive" or typ == "custom_explosive" or typ == "grenade" or typ == "FuseAfterFirstBounce" then self.Explosive = true end
 	
 	if IsValid(ply) then
 		if DRC:IsVehicle(ply) then
@@ -361,6 +362,8 @@ function ENT:Initialize()
 		end
 	end
 	
+	self:DoCustomInitialize()
+	
 	
 	if IsValid(self:GetCreator()) && self:GetCreator():IsWeapon() then
 		self.BProfile = true
@@ -379,9 +382,8 @@ function ENT:Initialize()
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	timer.Simple(0.0000000001, function() if self:IsValid() then self.SpawnVelocity = self:GetVelocity() end end)
-	-- ^ lmao
-	
-local phys = self:GetPhysicsObject()
+
+	local phys = self:GetPhysicsObject()
 	phys:SetBuoyancyRatio(self.Buoyancy)
 	if self.Mass == 0 then self.Mass = 1 phys:SetMass(self.Mass) end
 	if self.Mass != nil then phys:SetMass(self.Mass) end
@@ -393,11 +395,11 @@ local phys = self:GetPhysicsObject()
 	self.SpawnTime = CurTime()
 	
 	if SERVER && self.TrailMat != nil then
-		util.SpriteTrail( self, 0, self.TrailColor, self.TrailAdditive, self.TrailStartWidth, self.TrailEndWidth, self.TrailLifeTime,1 / ( self.TrailStartWidth + self.TrailEndWidth ) * 0.5, self.TrailMat )
+		util.SpriteTrail( self, 0, self.TrailColor, self.TrailAdditive, self.TrailStartWidth, self.TrailEndWidth, self.TrailLifeTime, 1 / ( self.TrailStartWidth + self.TrailEndWidth ) * 0.5, self.TrailMat )
 	end
 	
 	if SERVER && self.TrailMat2 != nil then
-		util.SpriteTrail( self, 0, self.TrailColor2, self.TrailAdditive2, self.TrailStartWidth2, self.TrailEndWidth2, self.TrailLifeTime2,1 / ( self.TrailStartWidth2 + self.TrailEndWidth2 ) * 0.5, self.TrailMat2 )
+		util.SpriteTrail( self, 0, self.TrailColor2, self.TrailAdditive2, self.TrailStartWidth2, self.TrailEndWidth2, self.TrailLifeTime2, 1 / ( self.TrailStartWidth2 + self.TrailEndWidth2 ) * 0.5, self.TrailMat2 )
 	end
 	
 	if self.HideModel == true then
@@ -409,14 +411,14 @@ local phys = self:GetPhysicsObject()
 		self:DrawShadow(false)
 	end
 	
-	if SERVER && type == "magazine" then
+	if SERVER && typ == "magazine" then
 		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		self.Explosive = false
 	
 		timer.Simple(15, function() if IsValid(self) then self:Remove() end end)
 	else end
 	
-	if SERVER && type == "fire" then
+	if SERVER && typ == "fire" then
 		timer.Simple(self.FuseTime, function() if self:IsValid() then self:Remove() end end)
 	end
 	
@@ -435,7 +437,7 @@ local phys = self:GetPhysicsObject()
 		phys:EnableGravity(false)
 	else end
 
-	if type == "grenade" or type == "sticky" or type == "playersticky" or type == "supercombine" then
+	if typ == "grenade" or typ == "sticky" or typ == "playersticky" or typ == "supercombine" then
 		timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end)
 	else end
 	
@@ -452,7 +454,8 @@ local phys = self:GetPhysicsObject()
 		end
 	end
 	
-	self:DoCustomInitialize()
+	self.Initialized = true
+	
 	if SERVER then
 		timer.Simple(self.LifeTime, function()
 			if self:IsValid() then
@@ -471,6 +474,7 @@ end
 
 function ENT:Draw()
 if CLIENT then
+	if self.Initialized != true then return end
 	self:DrawModel()
 
 	if self.Light == true then
@@ -532,7 +536,7 @@ end
 
 function ENT:PhysicsCollide( data, phys )
 	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
-	local type = self.ProjectileType
+	local typ = self.ProjectileType
 	local tgt = data.HitEntity
 	local cl = self:GetClass()
 	local SCC = "sc_".. self:GetClass() ..""
@@ -540,7 +544,7 @@ function ENT:PhysicsCollide( data, phys )
 	if self.Triggered == true then return end
 	self.Triggered = true
 	
-	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && type == "point" then
+	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && typ == "point" then
 		if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil && !tgt:IsNPC() then
 			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
 		end
@@ -554,7 +558,7 @@ function ENT:PhysicsCollide( data, phys )
 	if tgt:IsWorld() == false then
 		if !IsValid(tgt) then SafeRemoveEntity(self) return end
 		local NI = tgt:GetNWInt(SCC)
-		if type == "point" then
+		if typ == "point" then
 			local tr = util.TraceLine({start=self:GetPos(), endpos=tgt:LocalToWorld(tgt:OBBCenter()), filter={self, self:GetOwner()}, mask=MASK_SHOT_HULL})
 			self:SetPos(data.HitPos)
 			self:DamageTarget(tgt, tr)
@@ -562,16 +566,16 @@ function ENT:PhysicsCollide( data, phys )
 			
 			SafeRemoveEntity(self)
 			if self.EMP == true then self:DoEMP(tgt) end
-		elseif type == "explosive" then
+		elseif typ == "explosive" then
 			self:TriggerExplosion()
 			self:DoImpactEffect()
 			if self.EMP == true then self:DoEMP(tgt) end
-		elseif type == "lua_explosive" then
+		elseif typ == "lua_explosive" then
 			self.ExplosionType = "lua"
 			self:TriggerExplosion()
 			self:DoImpactEffect()
 			if self.EMP == true then self:DoEMP(tgt) end
-		elseif type == "playersticky" then 
+		elseif typ == "playersticky" then 
 			if tgt:IsNPC() or tgt:IsNextBot() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
 				self:SetSolid(SOLID_NONE)
 				self:SetMoveType(MOVETYPE_NONE)
@@ -580,7 +584,7 @@ function ENT:PhysicsCollide( data, phys )
 				if self.Explosive == false then self:DamageTarget(tgt, tr) end
 				if self.EMP == true then self:DoEMP(tgt) end
 			end
-		elseif type == "sticky" then
+		elseif typ == "sticky" then
 			if tgt != self:GetOwner() then
 				self:SetSolid(SOLID_NONE)
 				self:SetMoveType(MOVETYPE_NONE)
@@ -591,10 +595,10 @@ function ENT:PhysicsCollide( data, phys )
 				timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
 				if self.EMP == true then self:DoEMP(tgt) end
 			end
-		elseif type == "FuseAfterFirstBounce" then
+		elseif typ == "FuseAfterFirstBounce" then
 			if self.FirstBounce == false then self.FirstBounce = true end
 			if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
-		elseif type == "supercombine" then
+		elseif typ == "supercombine" then
 			self:SetSolid(SOLID_NONE)
 			self:SetMoveType(MOVETYPE_NONE)
 			self:SetParent(tgt)
@@ -624,28 +628,29 @@ function ENT:PhysicsCollide( data, phys )
 			end
 		end
 	elseif tgt:IsWorld() == true then
-		if type == "point" then
+		if typ == "point" then
 			timer.Simple(0.01, function() if IsValid(self) then self:Remove() end end)
 			self:SetPos(data.HitPos)
 			self:DoImpactEffect()
-		elseif type == "explosive" then
+		elseif typ == "explosive" then
 			self:TriggerExplosion()
 			self:DoImpactEffect()
-		elseif type == "lua_explosive" then
+		elseif typ == "lua_explosive" then
 			self.ExplosionType = "lua"
 			self:TriggerExplosion()
 			self:DoImpactEffect()
-		elseif type == "sticky" or type == "supercombine" then
+		elseif typ == "sticky" or typ == "supercombine" then
 			self:SetSolid(SOLID_NONE)
 			self:SetMoveType(MOVETYPE_NONE)
 			self:SetPos(data.HitPos)
-			timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
+			self:SetVelocity(Vector())
+		--	timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
 		--	self:SetParent(tgt)
 			self:DoImpactEffect()
-		elseif type == "FuseAfterFirstBounce" then
+		elseif typ == "FuseAfterFirstBounce" then
 			if self.FirstBounce == false then self.FirstBounce = true end
 			if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
-		elseif type == "fire" then
+		elseif typ == "fire" then
 			
 			if CurTime() > cooldown then
 				local startpos = self:GetPos()
@@ -788,9 +793,11 @@ function ENT:Detonate()
 	timer.Simple(self.DetonationDelay, function() if IsValid(self) then self:TriggerExplosion() end end)
 end
 
-function ENT:TriggerSC()	
+function ENT:TriggerSC()
+	if IsValid(self) then DRC:EmitSound(self, self.ENearSC, self.EFarSC, 1750, SOUND_CONTEXT_EXPLOSION) end
+	--[[
 	if self.Triggered == false then
-		if not SERVER then return end
+		if CLIENT then return end
 		self.Triggered = true
 		local soundent = ents.Create("drc_dummy")
 		soundent:SetPos(self:GetPos())
@@ -804,7 +811,7 @@ function ENT:TriggerSC()
 			end
 		end)
 		timer.Simple( 5, function() soundent:Remove() end)
-	end
+	end ]]
 	
 	if self.SuperCombineType == "hl2" then
 		if self:IsValid() then self:Explode("super") end

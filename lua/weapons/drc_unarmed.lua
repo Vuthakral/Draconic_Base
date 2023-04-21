@@ -177,6 +177,7 @@ function SWEP:DoCustomThink()
 			self.CSPlayerModel = ents.CreateClientside("drc_dummy")
 			self.CSPlayerModel:SetModel(LocalPlayer():GetModel())
 			self.CSPlayerModel:SetSkin(LocalPlayer():GetSkin())
+			self.CSPlayerModel.DrawMirror = false
 			
 			for k,v in pairs(ply:GetBodyGroups()) do
 				self.CSPlayerModel:SetBodygroup(v.id, ply:GetBodygroup(v.id))
@@ -188,6 +189,7 @@ function SWEP:DoCustomThink()
 			self.CSLegModel:SetPos(vm:EyePos())
 			self.CSLegModel:SetAngles(vm:EyeAngles())
 			self.CSLegModel:SetParent(vm)
+			self.CSLegModel.DrawMirror = false
 		else
 			if seq == kickanim or seq == kneeanim then
 				self.CSPlayerModel:SetNoDraw(false)
@@ -266,7 +268,6 @@ function SWEP:DoCustomLunge()
 		timer.Simple(0, function() 
 			if ea.x > 55 then
 				DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_ATTACK_STAND_MELEE_SECONDARY, true)
---				ply:Freeze(true) -- This breaks the viewmodel animation in multiplayer but not singleplayer whyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 				for i=0,66 do
 					timer.Simple(0.015*i, function()
 						ply:SetLocalVelocity(Vector())
@@ -274,9 +275,6 @@ function SWEP:DoCustomLunge()
 				end
 				timer.Simple(0.3, function()
 					if IsValid(ply) then util.ScreenShake( ply:GetPos(), 5, 0.2, 0.3, 50 ) end
-				end)
-				timer.Simple(0.75, function()
---					if IsValid(ply) then ply:Freeze(false) end
 				end)
 			else
 				DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_MP_STAND_MELEE)
@@ -299,6 +297,49 @@ function SWEP:DoCustomSecondaryAttack()
 	local mdl = player_manager.TranslateToPlayerModelName(ply:GetModel())
 	local val = DRC:GetPlayerModelValue(mdl, "Extensions", "Claws")
 	if val == true then timer.Simple(0, function() DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, ACT_GESTURE_MELEE_ATTACK2, true) end) end
+end
+
+local swingy = {
+	["prop_door_rotating"] = true,
+	["func_door_rotating"] = true,
+}
+
+function SWEP:DoCustomMeleeImpact(att, tr)
+	if att == "lungeprimary" && !CLIENT then
+		local snd1, snd2
+		local ent = tr.Entity
+		
+		if IsValid(ent) then
+			local surfacemat = DRC:GetDRCMaterial(ent, 0)
+			if !surfacemat then return end
+			if table.HasValue(surfacemat, "wood") then
+				snd1 = "draconic.DoorSlamHit_Wood"
+				snd2 = "draconic.DoorSlamStop_Wood"
+				DRC:EmitSound(self, snd1)
+			elseif table.HasValue(surfacemat, "metal") then
+				snd1 = "draconic.DoorSlamHit_Metal"
+				snd2 = "draconic.DoorSlamStop_Metal"
+				DRC:EmitSound(self, snd1)
+			end
+			
+			
+			if swingy[ent:GetClass()] then	
+				local oldspeed = ent:GetInternalVariable("m_flSpeed")
+				
+				if ent:GetInternalVariable("m_bLocked") != true then
+					
+					ent:Fire("SetSpeed", 600)
+					ent:Fire("Open")
+					timer.Simple(0.25, function()
+						if IsValid(ent) then
+							ent:Fire("SetSpeed", oldspeed)
+							DRC:EmitSound(ent, snd2)
+						end
+					end)
+				end
+			end
+		end
+	end
 end
 
 function SWEP:DoCustomHolster()

@@ -62,7 +62,7 @@ DRC.Skel = {
 	["Spine1"] = { ["Name"] = "ValveBiped.Bip01_Spine1", ["Scale"] = Vector(1,0.65,1) },
 	["Spine2"] = { ["Name"] = "ValveBiped.Bip01_Spine2", ["Scale"] = Vector(1,0.5,1) },
 	["Spine4"] = { ["Name"] = "ValveBiped.Bip01_Spine4", ["Scale"] = Vector(1,0.5,1) },
-	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(0,-50,0) },
+	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(0,0,0), ["Scale"] = Vector(0, 0, 0) },
 	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -50, 0) },
 	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -50, 0) },
 	["LeftHand"] = { ["Name"] = "ValveBiped.Bip01_L_Hand", ["Offset"] = Vector(0, 0, 0) },
@@ -76,12 +76,17 @@ if !DRC.Playermodels then
 			["Hands"] = "",
 			["Background"] = "vgui/drc_playerbg",
 			["Podium"] = {"models/props_phx/construct/glass/glass_angle360.mdl", Vector(0, 0, -2)},
+			["DefaultCam"] = {
+				["Pos"] = Vector(80.69, 36.7, 52.02),
+				["Ang"] = Angle(10.278, 203.334, 0),
+			},
 		}
 	}
 end
 
 function DRC:GetPlayerModelInfo(model)
 	local tab = nil
+	if model == nil then return DRC.Playermodels["-drcdefault"] end
 	if model != nil then tab = DRC.Playermodels[player_manager.TranslateToPlayerModelName(model)] end
 	if tab then return tab else return DRC.Playermodels["-drcdefault"] end
 end
@@ -161,6 +166,11 @@ DRC.SurfacePropDefinitions = { -- Todo: flesh, tile, synth, plastic, gas, liquid
 	["MAT_CARDBOARD"] = {"cardboard", "dust"},
 }
 
+function DRC:GetDRCMaterial(ent, optbone)
+	if !optbone then optbone = 0 end
+	return DRC.SurfacePropDefinitions[DRC:SurfacePropToEnum(ent:GetBoneSurfaceProp(optbone))]
+end
+
 DRC.HelperEnts = {
 	["ai_ally_manager"] = "ally_manager",
 	["ai_battle_line"] = "battle_line",
@@ -221,6 +231,353 @@ DRC.HelperEnts = {
 	["drc_csplayermodel"] = "drc_csplayermodel",
 	["drc_shieldmodel"] = "drc_shieldmodel",
 }
+
+DRC.HoldTypes = {
+	["fallback"] = {
+		["deploy"] = ACT_RESET,
+		["reload"] = ACT_RESET,
+		["attack"] = ACT_RESET,
+		["run"] = ACT_RESET,
+		["walk"] = ACT_RESET,
+		["cwalk"] = ACT_RESET,
+		["idle"] = ACT_RESET,
+		["cidle"] = ACT_RESET,
+		["jump"] = ACT_RESET,
+		["npc"] = {
+			["attack"] = ACT_RESET,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["pistol"] = {
+		["deploy"] = ACT_VM_DEPLOY_1,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_PISTOL,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL,
+		["run"] = ACT_HL2MP_RUN_PISTOL,
+		["walk"] = ACT_HL2MP_WALK_PISTOL,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_PISTOL,
+		["idle"] = ACT_HL2MP_IDLE_PISTOL,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_PISTOL,
+		["jump"] = ACT_HL2MP_JUMP_PISTOL,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_PISTOL,
+			["reload"] = ACT_RELOAD_PISTOL,
+		}
+	},
+	["revolver"] = {
+		["deploy"] = ACT_VM_DEPLOY_1,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_REVOLVER,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER,
+		["run"] = ACT_HL2MP_RUN_REVOLVER,
+		["walk"] = ACT_HL2MP_WALK_REVOLVER,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_REVOLVER,
+		["idle"] = ACT_HL2MP_IDLE_REVOLVER,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_REVOLVER,
+		["jump"] = ACT_HL2MP_JUMP_REVOLVER,
+		["npc"] = {
+			["attack"] = ACT_RESET,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["smg"] = {
+		["deploy"] = ACT_VM_DEPLOY_2,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_SMG1,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1,
+		["run"] = ACT_HL2MP_RUN_SMG1,
+		["walk"] = ACT_HL2MP_WALK_SMG1,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_SMG1,
+		["idle"] = ACT_HL2MP_IDLE_SMG1,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_SMG1,
+		["jump"] = ACT_HL2MP_JUMP_SMG1,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_SMG1,
+			["reload"] = ACT_RELOAD_SMG1,
+		}
+	},
+	["ar2"] = {
+		["deploy"] = ACT_VM_DEPLOY_2,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_AR2,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2,
+		["run"] = ACT_HL2MP_RUN_AR2,
+		["walk"] = ACT_HL2MP_WALK_AR2,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_AR2,
+		["idle"] = ACT_HL2MP_IDLE_AR2,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_AR2,
+		["jump"] = ACT_HL2MP_JUMP_AR2,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_AR2,
+			["reload"] = ACT_GESTURE_RELOAD,
+		}
+	},
+	["passive"] = {
+		["deploy"] = ACT_VM_DEPLOY_2,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_AR2,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2,
+		["run"] = ACT_HL2MP_RUN_PASSIVE,
+		["walk"] = ACT_HL2MP_WALK_PASSIVE,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_PASSIVE,
+		["idle"] = ACT_HL2MP_IDLE_PASSIVE,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_PASSIVE,
+		["jump"] = ACT_HL2MP_JUMP_PASSIVE,
+		["npc"] = {
+			["attack"] = ACT_RESET,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["shotgun"] = {
+		["deploy"] = ACT_VM_DEPLOY_2,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_SHOTGUN,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN,
+		["run"] = ACT_HL2MP_RUN_SHOTGUN,
+		["walk"] = ACT_HL2MP_WALK_SHOTGUN,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_SHOTGUN,
+		["idle"] = ACT_HL2MP_IDLE_SHOTGUN,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_SHOTGUN,
+		["jump"] = ACT_HL2MP_JUMP_SHOTGUN,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
+			["reload"] = ACT_RELOAD_SHOTGUN,
+		}
+	},
+	["crossbow"] = {
+		["deploy"] = ACT_VM_DEPLOY_2,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_CROSSBOW,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW,
+		["run"] = ACT_HL2MP_RUN_CROSSBOW,
+		["walk"] = ACT_HL2MP_WALK_CROSSBOW,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_CROSSBOW,
+		["idle"] = ACT_HL2MP_IDLE_CROSSBOW,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_CROSSBOW,
+		["jump"] = ACT_HL2MP_JUMP_CROSSBOW,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
+			["reload"] = ACT_GESTURE_RELOAD,
+		}
+	},
+	["duel"] = {
+		["deploy"] = ACT_VM_DEPLOY_7,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_DUEL,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL,
+		["run"] = ACT_HL2MP_RUN_DUEL,
+		["walk"] = ACT_HL2MP_WALK_DUEL,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_DUEL,
+		["jump"] = ACT_HL2MP_JUMP_DUEL,
+		["npc"] = {
+			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL,
+			["reload"] = ACT_HL2MP_GESTURE_RELOAD_DUEL,
+		}
+	},
+	["physgun"] = {
+		["deploy"] = ACT_VM_DEPLOY_4,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_PHYSGUN,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN,
+		["run"] = ACT_HL2MP_RUN_PHYSGUN,
+		["walk"] = ACT_HL2MP_WALK_PHYSGUN,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_PHYSGUN,
+		["idle"] = ACT_HL2MP_IDLE_PHYSGUN,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_PHYSGUN,
+		["jump"] = ACT_HL2MP_JUMP_PHYSGUN,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
+			["reload"] = ACT_GESTURE_RELOAD,
+		}
+	},
+	["fist"] = {
+		["deploy"] = ACT_VM_DEPLOY_7,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_FIST,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST,
+		["run"] = ACT_HL2MP_RUN_FIST,
+		["walk"] = ACT_HL2MP_WALK_FIST,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_FIST,
+		["idle"] = ACT_HL2MP_IDLE_FIST,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_FIST,
+		["jump"] = ACT_HL2MP_JUMP_FIST,
+		["npc"] = {
+			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["normal"] = {
+		["deploy"] = ACT_RESET,
+		["reload"] = ACT_RESET,
+		["attack"] = ACT_RESET,
+		["run"] = ACT_HL2MP_RUN,
+		["walk"] = ACT_HL2MP_WALK,
+		["cwalk"] = ACT_HL2MP_CROUCH_WALK,
+		["idle"] = ACT_HL2MP_IDLE,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH,
+		["jump"] = ACT_HL2MP_JUMP_SLAM,
+		["npc"] = {
+			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["rpg"] = {
+		["deploy"] = ACT_VM_DEPLOY_3,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_RPG,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG,
+		["run"] = ACT_HL2MP_RUN_RPG,
+		["walk"] = ACT_HL2MP_WALK_RPG,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_RPG,
+		["idle"] = ACT_HL2MP_IDLE_RPG,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_RPG,
+		["jump"] = ACT_HL2MP_JUMP_RPG,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_RPG,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["melee"] = {
+		["deploy"] = ACT_VM_DEPLOY_5,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_MELEE,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
+		["run"] = ACT_HL2MP_RUN_MELEE,
+		["walk"] = ACT_HL2MP_WALK_MELEE,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_MELEE,
+		["idle"] = ACT_HL2MP_IDLE_MELEE,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_MELEE,
+		["jump"] = ACT_HL2MP_JUMP_MELEE,
+		["npc"] = {
+			["attack"] = ACT_MELEE_ATTACK_SWING,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["knife"] = {
+		["deploy"] = ACT_VM_DEPLOY_5,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_KNIFE,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE,
+		["run"] = ACT_HL2MP_RUN_KNIFE,
+		["walk"] = ACT_HL2MP_WALK_KNIFE,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_KNIFE,
+		["idle"] = ACT_HL2MP_IDLE_KNIFE,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_KNIFE,
+		["jump"] = ACT_HL2MP_JUMP_CIDLE,
+		["npc"] = {
+			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["grenade"] = {
+		["deploy"] = ACT_VM_DEPLOY_5,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_GRENADE,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_GRENADE,
+		["run"] = ACT_HL2MP_RUN_GRENADE,
+		["walk"] = ACT_HL2MP_WALK_GRENADE,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_GRENADE,
+		["idle"] = ACT_HL2MP_IDLE_GRENADE,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_GRENADE,
+		["jump"] = ACT_HL2MP_JUMP_GRENADE,
+		["npc"] = {
+			["attack"] = ACT_COMBINE_THROW_GRENADE,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["slam"] = {
+		["deploy"] = ACT_VM_DEPLOY_5,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_SLAM,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM,
+		["run"] = ACT_HL2MP_RUN_SLAM,
+		["walk"] = ACT_HL2MP_WALK_SLAM,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_SLAM,
+		["idle"] = ACT_HL2MP_IDLE_SLAM,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_SLAM,
+		["jump"] = ACT_HL2MP_JUMP_SLAM,
+		["npc"] = {
+			["attack"] = ACT_RANGE_ATTACK_SLAM,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["magic"] = {
+		["deploy"] = ACT_VM_DEPLOY_5,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_MAGIC,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC,
+		["run"] = ACT_HL2MP_RUN_MAGIC,
+		["walk"] = ACT_HL2MP_WALK_MAGIC,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_MAGIC,
+		["idle"] = ACT_HL2MP_IDLE_MAGIC,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_MAGIC,
+		["jump"] = ACT_HL2MP_JUMP_MAGIC,
+		["npc"] = {
+			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["camera"] = {
+		["deploy"] = ACT_VM_DEPLOY_5,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_CAMERA,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA,
+		["run"] = ACT_HL2MP_RUN_CAMERA,
+		["walk"] = ACT_HL2MP_WALK_CAMERA,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_CAMERA,
+		["idle"] = ACT_HL2MP_IDLE_CAMERA,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_CAMERA,
+		["jump"] = ACT_HL2MP_JUMP_CAMERA,
+		["npc"] = {
+			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA,
+			["reload"] = ACT_RESET,
+		}
+	},
+	["melee2"] = {
+		["deploy"] = ACT_VM_DEPLOY_6,
+		["reload"] = ACT_HL2MP_GESTURE_RELOAD_MELEE2,
+		["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2,
+		["run"] = ACT_HL2MP_RUN_MELEE2,
+		["walk"] = ACT_HL2MP_WALK_MELEE2,
+		["cwalk"] = ACT_HL2MP_WALK_CROUCH_MELEE2,
+		["idle"] = ACT_HL2MP_IDLE_MELEE2,
+		["cidle"] = ACT_HL2MP_IDLE_CROUCH_MELEE2,
+		["jump"] = ACT_HL2MP_JUMP_MELEE2,
+		["npc"] = {
+			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
+			["reload"] = ACT_RESET,
+		}
+	},
+}
+
+DRC.HoldTypes.HardcodedWeapons = {
+	["weapon_pistol"] = "pistol",
+	["weapon_glock_hl1"] = "pistol",
+	["weapon_357"] = "revolver",
+	["weapon_357_hl1"] = "revolver",
+	["weapon_snark"] = "slam",
+	["weapon_alyxgun"] = "normal",
+	["weapon_crossbow"] = "crossbow",
+	["weapon_ar2"] = "ar2",
+	["weapon_shotgun"] = "shotgun",
+	["weapon_smg1"] = "smg",
+	["weapon_crossbow_hl1"] = "crossbow",
+	["weapon_mp5_hl1"] = "ar2",
+	["weapon_shotgun_hl1"] = "shotgun",
+	["weapon_gauss"] = "crossbow",
+	["weapon_annabelle"] = "normal",
+	["weapon_cubemap"] = "normal",
+	["weapon_physcannon"] = "physgun",
+	["weapon_physgun"] = "physgun",
+	["weapon_egon"] = "physgun",
+	["weapon_hornetgun"] = "crossbow",
+	["weapon_rpg"] = "rpg",
+	["weapon_rpg_hl1"] = "rpg",
+	["weapon_crowbar"] = "melee",
+	["weapon_crowbar_hl1"] = "melee", -- It's actually "crowbar", for some reason. Uses the exact same animations though.
+	["weapon_stunstick"] = "melee",
+	["weapon_slam"] = "slam",
+	["weapon_tripmine"] = "slam",
+	["weapon_frag"] = "grenade",
+	["weapon_handgrenade"] = "grenade",
+	["weapon_bugbait"] = "normal",
+	["weapon_satchel"] = "slam",
+	["gmod_camera"] = "camera",
+}
+
+function DRC:GetHoldTypeAnim(ht, anim, npc)
+	if !ht or !anim then return end
+	if !DRC.HoldTypes[ht] then ht = "fallback" end
+	
+	if npc == false then 
+		return DRC.HoldTypes[ht][anim]
+	else
+		return DRC.HoldTypes[ht].npc[anim]
+	end
+end
 
 function DRC:GetVersion()
 	return Draconic.Version
@@ -327,6 +684,8 @@ function DRC:SightsDown(ent, irons)
 			if ent.TrueScope == true && ent:GetNWBool("insights") == true then return true else return false end
 		elseif base == "arccw" then
 			if ent.Sighted == true then return true else return false end
+		elseif base == "arc9" then
+			if ent:IsScoping() == true then return true else return false end
 		elseif base == "mwb" then
 			if ent:GetIsAiming() == true then return true else return false end
 		end
@@ -526,15 +885,12 @@ function DRC:EmitSound(source, near, far, distance, hint, listener)
 	source:EmitSound(near, nil, nil, nil, nil, nil, nil)
 
 	if CLIENT then return end
-	local nt = {}
-	nt.Src = source
-	nt.Near = near
-	nt.Far = far
-	nt.Dist = distance
-	nt.List = listener
 
 	net.Start("DRCSound")
-	net.WriteTable(nt)
+	net.WriteEntity(source)
+	net.WriteFloat(distance)
+	net.WriteString(near)
+	net.WriteString(far)
 	net.Broadcast()
 	
 	if distance && hint then sound.EmitHint(hint, source:GetPos(), math.Rand(distance/5, distance), 0.25, source) end
@@ -544,20 +900,24 @@ function DRC:TraceAngle(start, nd)
 	return (nd - start):Angle()
 end
 
-function DRC:Interact(ply, movement, ent)
+function DRC:Interact(ply, ent, movement, mouse)
 	if !IsValid(ply) then return end
 	if !ply:Alive() then return end
 	
 	if IsValid(ent) then ply:SetNWEnt("Interacted_Entity", ent) end
 	if movement == nil then movement = false end
+	if mouse == nil then mouse = false end
 	ply:SetNWBool("Interacting", true)
 	ply:SetNWBool("Interacting_StopMovement", movement)
+	ply:SetNWBool("Interacting_StopMouse", mouse)
+	ply:SetNWAngle("Interacting_EyeAngle", ply:EyeAngles())
 end
 
 function DRC:BreakInteraction(ply, ent)
 	if IsValid(ent) then ply:SetNWEnt("Interacted_Entity", nil) end
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWBool("Interacting_StopMovement", false)
+	ply:SetNWBool("Interacting_StopMouse", false)
 end
 
 function DRC:ProjectedTexture(ent, att, tbl)
@@ -591,6 +951,27 @@ function DRC:RemoveAttachedLights(ent)
 			if v.Draconic && v.IsLight then v:Remove() end
 		end
 	end
+end
+
+function DRC:GiveAttachment(ply, att)
+	if CLIENT then return end
+	if !ply then return end
+	if !att then return end
+	if !ply.DRCAttachmentInventory then ply.DRCAttachmentInventory = {} end
+	
+	if istable(att) then 
+		table.Inherit(ply.DRCAttachmentInventory, att)
+	else
+		if !table.HasValue(ply.DRCAttachmentInventory, att) then table.insert(ply.DRCAttachmentInventory, att) end
+	end
+	
+	net.Start("DRC_WeaponAttachSyncInventory")
+	net.WriteTable(ply.DRCAttachmentInventory)
+	net.Send(ply)
+end
+
+function DRC:HasAttachment(ply, att)
+	if table.HasValue(ply.DRCAttachmentInventory, att) then return true else return false end
 end
 
 function DRC:FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
@@ -730,56 +1111,56 @@ function DRC:RoomSize(pos)
 end
 
 -- Credit: Kinyom -- https://github.com/Kinyom -- https://github.com/Facepunch/garrysmod-requests/issues/1779
--- anything I slapped "drc" onto is just to ensure it remains unique and doesn't risk being incompatible with anything.
+-- anything I slapped "drc" onto is just to ensure it remains unique and doesn't risk being incompatible with anything you may have written or used this in.
 if CLIENT then
-local drc_LUMP_CUBEMAPS = 42 -- THIS is the juicy stuff
- 
-drc_cubeLookup = {}
- 
-function DRC_CollectCubemaps( filename )
-    local bsp = file.Open( "maps/" .. filename .. ".bsp", "rb", "GAME" )
-    
-    local ident = bsp:ReadLong()
-    if (ident ~= 1347633750) then
-        bsp:Close()
-        return
-    end
-    local version = bsp:ReadLong()
-    
-    local lumpinfo = {}
-    for i=0, drc_LUMP_CUBEMAPS do
-        lumpinfo[i] = {}
-        lumpinfo[i].fileofs = bsp:ReadLong()
-        lumpinfo[i].filelen = bsp:ReadLong()
-        lumpinfo[i].version = bsp:ReadLong()
-        lumpinfo[i].uncompressedSize = bsp:ReadLong()
-    end
-    
-    bsp:Seek( lumpinfo[42].fileofs)
-    
-    drc_cubesamples = {}
-    local sizeof_drc_cubesamples = 16
-    
-    for i=0, lumpinfo[42].filelen/sizeof_drc_cubesamples - 1 do
-        local sampleOrigin = Vector( bsp:ReadLong(), bsp:ReadLong(), bsp:ReadLong() )
-        
-        local size = bsp:ReadLong()
-        table.insert( drc_cubesamples, sampleOrigin )
-    end
-    
-    bsp:Close()
-    
-    for i=1, lumpinfo[42].filelen/sizeof_drc_cubesamples do
-        local pos = drc_cubesamples[i]
-        local str = string.format( "maps/%s/c%i_%i_%i", filename, pos.x, pos.y, pos.z )
-        drc_cubeLookup[str] = { pos, render.GetLightColor( pos ) }
-        drc_cubeLookup[str .. ".hdr"] = drc_cubeLookup[str]
-    end
-end
+	local drc_LUMP_CUBEMAPS = 42 -- THIS is the juicy stuff
+	 
+	drc_cubeLookup = {}
+	 
+	function DRC_CollectCubemaps( filename )
+		local bsp = file.Open( "maps/" .. filename .. ".bsp", "rb", "GAME" )
+		
+		local ident = bsp:ReadLong()
+		if (ident ~= 1347633750) then
+			bsp:Close()
+			return
+		end
+		local version = bsp:ReadLong()
+		
+		local lumpinfo = {}
+		for i=0, drc_LUMP_CUBEMAPS do
+			lumpinfo[i] = {}
+			lumpinfo[i].fileofs = bsp:ReadLong()
+			lumpinfo[i].filelen = bsp:ReadLong()
+			lumpinfo[i].version = bsp:ReadLong()
+			lumpinfo[i].uncompressedSize = bsp:ReadLong()
+		end
+		
+		bsp:Seek( lumpinfo[42].fileofs)
+		
+		drc_cubesamples = {}
+		local sizeof_drc_cubesamples = 16
+		
+		for i=0, lumpinfo[42].filelen/sizeof_drc_cubesamples - 1 do
+			local sampleOrigin = Vector( bsp:ReadLong(), bsp:ReadLong(), bsp:ReadLong() )
+			
+			local size = bsp:ReadLong()
+			table.insert( drc_cubesamples, sampleOrigin )
+		end
+		
+		bsp:Close()
+		
+		for i=1, lumpinfo[42].filelen/sizeof_drc_cubesamples do
+			local pos = drc_cubesamples[i]
+			local str = string.format( "maps/%s/c%i_%i_%i", filename, pos.x, pos.y, pos.z )
+			drc_cubeLookup[str] = { pos, render.GetLightColor( pos ) }
+			drc_cubeLookup[str .. ".hdr"] = drc_cubeLookup[str]
+		end
+	end
 
-hook.Add( "InitPostEntity", "DRC_GetCubemapInfo", function()
-	DRC_CollectCubemaps(game.GetMap())
-end )
+	hook.Add( "InitPostEntity", "DRC_GetCubemapInfo", function()
+		DRC_CollectCubemaps(game.GetMap())
+	end )
 end
 -- End cubemap collection code
 
@@ -911,6 +1292,7 @@ end)
 
 hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	DRC:RefreshColours(ply)
+	ply.DRCAttachmentInventory = {}
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWString("Draconic_ThirdpersonForce", nil)
 	ply:SetNWBool("ShowSpray_Ents", ply:GetInfoNum("cl_drc_showspray", 0))
@@ -931,9 +1313,15 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	net.Broadcast()
 	
 	timer.Simple(engine.TickInterval(), function()
-		ply:SetNWString("DRC_SpawnModel", ply:GetModel())
-		net.Start("DRC_UpdatePlayerHands")
-		net.Send(ply)
+		if IsValid(ply) then
+			ply:SetNWString("DRC_SpawnModel", ply:GetModel())
+			net.Start("DRC_UpdatePlayerHands")
+			net.Send(ply)
+			
+			net.Start("DRC_WeaponAttachSyncInventory")
+			net.WriteTable(ply.DRCAttachmentInventory)
+			net.Send(ply)
+		end
 	end)
 	
 --[[	local hands = ply:GetHands()
@@ -947,6 +1335,7 @@ end)
 hook.Add("StartCommand", "drc_InteractionBlocks", function(ply, cmd)
 	local bool1 = ply:GetNWBool("Interacting")
 	local bool2 = ply:GetNWBool("Interacting_StopMovement")
+	local bool3 = ply:GetNWBool("Interacting_StopMouse")
 	local ent = ply:GetNWEntity("Interacted_Entity", ply)
 	
 	if bool1 then
@@ -960,6 +1349,18 @@ hook.Add("StartCommand", "drc_InteractionBlocks", function(ply, cmd)
 		if cmd:KeyDown(IN_WEAPON2) then cmd:RemoveKey(IN_WEAPON2) end
 		if cmd:KeyDown(IN_GRENADE1) then cmd:RemoveKey(IN_GRENADE1) end
 		if cmd:KeyDown(IN_GRENADE2) then cmd:RemoveKey(IN_GRENADE2) end
+	end
+	if bool2 then
+		cmd:SetForwardMove(0)
+		cmd:SetSideMove(0)
+		cmd:SetUpMove(0)
+		if cmd:KeyDown(IN_MOVELEFT) then cmd:RemoveKey(IN_MOVELEFT) end
+		if cmd:KeyDown(IN_MOVERIGHT) then cmd:RemoveKey(IN_MOVERIGHT) end
+		if cmd:KeyDown(IN_FORWARD) then cmd:RemoveKey(IN_FORWARD) end
+		if cmd:KeyDown(IN_BACK) then cmd:RemoveKey(IN_BACK) end
+	end
+	if bool3 then
+		ply:SetEyeAngles(ply:GetNWAngle("Interacting_EyeAngle"))
 	end
 end)
 
@@ -1468,11 +1869,11 @@ function DRC:CallGesture(ply, slot, act, akill)
 	if !act then return end
 	if !akill or akill == "" or akill == nil then akill = true end
 	
-	local nt = {}
-	nt.Player = ply
-	nt.Slot = slot
-	nt.Activity = act
-	nt.Autokill = akill
+--	local nt = {}
+--	nt.Player = ply
+--	nt.Slot = slot
+--	nt.Activity = act
+--	nt.Autokill = akill
 	
 	if !ply:IsPlayer() then
 		timer.Simple(engine.TickInterval(), function()
@@ -1481,8 +1882,11 @@ function DRC:CallGesture(ply, slot, act, akill)
 	end
 	
 	net.Start("DRCNetworkGesture")
-	net.WriteTable(nt)
-	net.Broadcast()
+	net.WriteEntity(ply)
+	net.WriteFloat(slot)
+	net.WriteFloat(act)
+	net.WriteBool(akill)
+	net.SendPVS(ply:EyePos())
 end
 
 function DRC:CopyLayerSequenceInfo(layer, ent1, ent2)
@@ -1518,24 +1922,25 @@ local function PlayReadyAnim(ply, anim)
 	
 	local wpn = ply:GetActiveWeapon()
 	
-	if ply.DrcLastWeaponSwitch == nil then ply.DrcLastWeaponSwitch = CurTime() end
+	--if ply.DrcLastWeaponSwitch == nil then ply.DrcLastWeaponSwitch = CurTime() end
 	
 	if IsValid(ply) then
 		DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, anim, true)
-		ply.DrcLastWeaponSwitch = CurTime() + dur
+	--	ply.DrcLastWeaponSwitch = CurTime() + dur
 		
-		if SERVER then
-			net.Start("OtherPlayerWeaponSwitch")
-			net.WriteEntity(ply)
-			net.WriteString(anim)
-			net.Broadcast()
-		end
+	--	if SERVER then
+	--		net.Start("OtherPlayerWeaponSwitch")
+	--		net.WriteEntity(ply)
+	--		net.WriteString(anim)
+	--		net.Broadcast()
+	--	end
 	end
 end
 
 hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
-	local neww = nw:GetClass()
 	if !SERVER then return end
+	local neww = nw:GetClass()
+	
 	if ow.PickupOnly == true then
 		ply:DropWeapon(ow)
 		if ow.LoopFireSound != nil then ow.LoopFireSound:Stop() end
@@ -1558,75 +1963,20 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 	end
 	
 	if nw.NoReadyAnimation != true then
-		local generic 	= ACT_DEPLOY -- unused for now
-		local low 		= ACT_VM_DEPLOY_4
-		local high 		= ACT_VM_DEPLOY_3
-		local rifle 	= ACT_VM_DEPLOY_2
-		local dual		= ACT_VM_DEPLOY_7
-		local pistol 	= ACT_VM_DEPLOY_1
-		local melee 	= ACT_VM_DEPLOY_5
-		local melee2 	= ACT_VM_DEPLOY_6
-		local reset 	= ACT_RESET
-		
-		local geseq = ply:SelectWeightedSequence(generic)
-		local gedur = ply:SequenceDuration(geseq)
-		local loseq = ply:SelectWeightedSequence(low)
-		local lodur = ply:SequenceDuration(loseq)
-		local hiseq = ply:SelectWeightedSequence(high)
-		local hidur = ply:SequenceDuration(hiseq)
-		local riseq = ply:SelectWeightedSequence(rifle)
-		local ridur = ply:SequenceDuration(riseq)
-		local piseq = ply:SelectWeightedSequence(pistol)
-		local pidur = ply:SequenceDuration(piseq)
-		local meseq = ply:SelectWeightedSequence(melee)
-		local medur = ply:SequenceDuration(meseq)
-		local m2seq = ply:SelectWeightedSequence(melee2)
-		local m2dur = ply:SequenceDuration(m2seq)
-		
-		local onehand = {"pistol", "revolver"}
-		local twohand = {"smg", "ar2", "shotgun", "crossbow"}
-		local dualtypes = {"duel"}
-		local lowtypes = {"physgun"}
-		local hightypes = {"rpg"}
-		local meleetypes = {"melee", "knife", "grenade", "slam", "magic", "camera"}
-		local meleetwohand = {"melee2"}
-		
-		if nw:GetClass() == "gmod_camera" or nw:GetClass() == "gmod_tool" then -- bruh
-			if nw:GetClass() == "gmod_camera" then PlayReadyAnim(ply, melee) else PlayReadyAnim(ply, pistol) end
+		if neww == "gmod_camera" or neww == "gmod_tool" then -- bruh
+			if nw:GetClass() == "gmod_camera" then PlayReadyAnim(ply, DRC.HoldTypes.melee.deploy) else PlayReadyAnim(ply, DRC.HoldTypes.pistol.deploy) end
 		elseif nw:IsScripted() then
 			local newstats = weapons.GetStored(neww)
 			local newht = string.lower(tostring(newstats.HoldType))
-			if newht == "" then newht = "ar2" end
 			
 			if nw.ASTWTWO == true then
 				if nw.Melee == true then newht = newstats.HoldType_Lowered end
 				if nw.Melee != true then newht = newstats.HoldType_Hipfire end
 			end
 			
-			if CTFK(onehand, newht) then PlayReadyAnim(ply, pistol)
-			elseif CTFK(twohand, newht) then PlayReadyAnim(ply, rifle)
-			elseif CTFK(dualtypes, newht) then PlayReadyAnim(ply, dual)
-			elseif CTFK(lowtypes, newht) then PlayReadyAnim(ply, low)
-			elseif CTFK(hightypes, newht) then PlayReadyAnim(ply, high)
-			elseif CTFK(meleetypes, newht) then PlayReadyAnim(ply, melee)
-			elseif CTFK(meleetwohand, newht) then PlayReadyAnim(ply, melee2)
-			end
+			if DRC.HoldTypes[newht] then PlayReadyAnim(ply, DRC:GetHoldTypeAnim(newht, "deploy", false)) end
 		else
-			onehand = { "weapon_pistol", "weapon_glock_hl1", "weapon_snark", "weapon_tripmine", "weapon_alyxgun" }
-			twohand = { "weapon_357", "weapon_crossbow", "weapon_ar2", "weapon_shotgun", "weapon_smg1", "weapon_357_hl1", "weapon_crossbow_hl1", "weapon_mp5_hl1", "weapon_shotgun_hl1", "weapon_gauss", "gmod_camera", "weapon_annabelle" }
-			dualtypes = { "weapon_cubemap" }
-			lowtypes = { "weapon_physcannon", "weapon_egon", "weapon_hornetgun", "weapon_physgun" }
-			hightypes = { "weapon_rpg", "weapon_rpg_hl1", "" }
-			meleetypes = { "weapon_bugbait", "weapon_crowbar", "weapon_frag", "weapon_slam", "weapon_stunstick", "weapon_crowbar_hl1", "weapon_handgrenade", "weapon_satchel" }
-
-			if CTFK(onehand, neww) then PlayReadyAnim(ply, pistol)
-			elseif CTFK(twohand, neww) then PlayReadyAnim(ply, rifle)
-			elseif CTFK(dualtypes, neww) then PlayReadyAnim(ply, dual)
-			elseif CTFK(lowtypes, neww) then PlayReadyAnim(ply, low)
-			elseif CTFK(hightypes, neww) then PlayReadyAnim(ply, high)
-			elseif CTFK(meleetypes, neww) then PlayReadyAnim(ply, melee)
-			elseif CTFK(meleetwohand, neww) then PlayReadyAnim(ply, melee2)
-			end
+			if DRC.HoldTypes.HardcodedWeapons[neww] then PlayReadyAnim(ply, DRC:GetHoldTypeAnim(DRC.HoldTypes.HardcodedWeapons[neww], "deploy", false)) end
 		end
 	end
 end)
@@ -1721,9 +2071,9 @@ end
 function DRC:GetHGMul(ent, hg, dinfo)
 	local infl = dinfo:GetInflictor()
 	if infl.DraconicProjectile == true then infl = infl:GetCreator() end
-	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
-	local BT = infl.ActiveAttachments.Ammunition.t.BulletTable
-	local DT = infl.ActiveAttachments.Ammunition.t.BulletTable.HitboxDamageMuls
+	local BaseProfile = scripted_ents.GetStored("drc_abp_generic")
+	local BT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable
+	local DT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable.HitboxDamageMuls
 	local BBT = BaseProfile.t.BulletTable
 	local BDT = BBT.HitboxDamageMuls
 	
@@ -1840,20 +2190,38 @@ function DRC:EnvelopTrace(ent1, ent2, expensive)
 			filter = function(ent) if ent == ent1 then return false else return true end end
 		})
 		
-		DRC:RenderTrace(tr2, Color(255, 255, 255, 255), 3)
+		local tr3
+		if ent1:LookupAttachment("eyes") > 0 then
+		--	print(ent1:LookupAttachment("eyes"))
+			local start = ent1:GetAttachment(ent1:LookupAttachment("eyes")).Pos
+			tr3 = util.TraceLine({
+				start = start + ang:Forward() * 10,
+				endpos = ent2:GetPos() + ent2:OBBCenter() + ang:Forward() * 250,
+				filter = function(ent) if ent == ent1 then return false else return true end end
+			})
+		end
 		
-		if tr2.Hit && tr2.Entity == ent2 then return true else return false end
+		if tr then DRC:RenderTrace(tr, Color(255, 255, 255, 255), FrameTime()) end
+		if tr2 then DRC:RenderTrace(tr2, Color(255, 255, 255, 255), FrameTime()) end
+		if tr3 then DRC:RenderTrace(tr3, Color(255, 255, 255, 255), FrameTime()) end
+		
+		if (tr2.Hit && tr2.Entity == ent2) or (tr.Hit && tr.Entity == ent2) or (tr3 && tr3.Hit && tr3.Entity == ent2) then return true else return false end
 	else
 	end
 end
 
-function DRC:TraceDir(origin, dir, dist)
+function DRC:TraceDir(origin, dir, dist, entitytolookfor)
 	if origin == nil then print("TraceDir origin is null!") return end
 	local entity = nil
-	if IsEntity(origin) then
+	if !isvector(origin) && DRC:IsCharacter(origin) then
+		entity = origin
+		origin = origin:EyePos()
+	elseif IsEntity(origin) then
 		entity = origin
 		origin = origin:GetPos()
 	end
+	
+	if !entitytolookfor then entitytolookfor = Entity(0) end
 	
 	if dir == nil then dir = Angle(0, 0, 0) end
 	if dist == nil then dist = 6942069 end
@@ -1862,6 +2230,7 @@ function DRC:TraceDir(origin, dir, dist)
 		start = origin,
 		endpos = origin + dir:Forward() * dist,
 		filter = function( ent )
+			if ent == entitytolookfor then return true end
 			if ent:IsPlayer() or ent == entity then return false end
 			if ( !ent:IsPlayer() && ent:GetPhysicsObject() != nil or ent:IsWorld() ) then return true end
 		end
@@ -2279,6 +2648,19 @@ function DRC:ResponseSentence(ent, trigger, response, delay)
 	end
 end
 
+function DRC:IsDamageFriendly(dmg)
+	if !IsValid(dmg) then return end
+	local att, infl, vic = dmg:GetAttacker(), dmg:GetAttacker(), dmg:GetVictim()
+	
+	if att:IsPlayer() && vic:IsPlayer() then
+		if att:Team() == vic:Team() then return true else return false end
+	end
+	
+	if att:IsNPC() && vic:IsPlayer() then
+		if att:Disposition(vic) >= 3 then return true else return false end
+	end
+end
+
 function DRC:DamageSentence(ent, damage, dmg)
 	if !IsValid(ent) then return end
 	local hp, mhp = ent:Health(), ent:GetMaxHealth()
@@ -2319,20 +2701,28 @@ function DRC:DamageSentence(ent, damage, dmg)
 			str = attacker:GetClass()
 		end
 		
-		if DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", str) then 
+		if DRC:IsDamageFriendly(dmg) then
 			timer.Simple(thyme, function()
 				if IsValid(ent) && ent:Health() > 0.01 then
-					DRC:SpeakSentence(ent, "Pain", str, important)
+					DRC:SpeakSentence(ent, "Reactions", "FriendlyFire", important)
 				end
 			end)
 		else
-			str = GetString()
-			thyme = math.Rand(1, 3)
-			timer.Simple(thyme, function()
-				if IsValid(ent) && ent:Health() > 0.01 then
-					DRC:SpeakSentence(ent, "Pain", str)
-				end
-			end)
+			if DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", str) then 
+				timer.Simple(thyme, function()
+					if IsValid(ent) && ent:Health() > 0.01 then
+						DRC:SpeakSentence(ent, "Pain", str, important)
+					end
+				end)
+			else
+				str = GetString()
+				thyme = math.Rand(1, 3)
+				timer.Simple(thyme, function()
+					if IsValid(ent) && ent:Health() > 0.01 then
+						DRC:SpeakSentence(ent, "Pain", str)
+					end
+				end)
+			end
 		end
 	end
 	
@@ -2469,6 +2859,7 @@ function DRC:GetBaseName(ent)
 	if ent.IsTFAWeapon then return "tfa" end
 	if ent.ArcCW then return "arccw" end
 	if ent.ASTWTWO then return "astw2" end
+	if ent.ARC9 then return "arc9" end
 	if ent.mg_IsPlayerReverbOutside && ent.SprintBehaviourModule then return "mwb" end
 	if ent.IsSimfphyscar then return "sphys" end
 	if ent:GetClass() == "decal" then return "decal" end
@@ -2537,11 +2928,14 @@ function DRC:RegisterPlayerModel(tbl)
 	player_manager.AddValidModel(tbl.Name, tbl.Model)
 	player_manager.AddValidHands(tbl.Name, tbl.Hands, 0, "0")
 	
+	if !tbl.DefaultCam then tbl.DefaultCam = {["Pos"] = Vector(80.69, 36.7, 52.02), ["Ang"] = Angle(10.278, 203.334, 0), 47} end
+	
 	DRC.Playermodels[tbl.Name] = {
 		["Model"] = tbl.Model,
 		["Hands"] = tbl.Hands,
 		["Background"] = tbl.Background or "",
-		["Podium"] = tbl.Podium or "",
+		["Podium"] = tbl.Podium or {"models/props_phx/construct/glass/glass_angle360.mdl", Vector(0, 0, -2)},
+		["DefaultCam"] = tbl.DefaultCam,
 		["VoiceSet"] = tbl.VoiceSet or "",
 		["Extensions"] = tbl.Extensions or { 
 			["Claws"] = false,
@@ -2612,7 +3006,7 @@ hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply
 end )
 
 DRC.GamemodeCompat = {
-	"terrortown",
+	["terrortown"] = true,
 }
 
 hook.Add( "AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
@@ -2622,7 +3016,7 @@ hook.Add( "AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
 	
 	if curswep.Draconic != nil then
 		local gm = engine.ActiveGamemode()
-		if CTFK(DRC.GamemodeCompat, gm) then return end
+		if DRC.GamemodeCompat[gm] then return end
 		timer.Simple(0.75, function()
 			if !IsValid(ent) then return end
 			local dist = ply:GetPos():DistToSqr(ent:GetPos()) / 10
@@ -2676,59 +3070,30 @@ hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 	if !ply.SwapCD then ply.SwapCD = 0 end
 	
 	if CurTime() > ply.TurnCD then
-		local rang = ply:GetRenderAngles()
-		local pang = ply:EyeAngles()
-		local inv = false
+		local rang, pang, inv = ply:GetRenderAngles(), ply:EyeAngles(), false
 		
 		if pang.y < 0 then inv = false else inv = true end
---		ply:ChatPrint(tostring(inv))
 		
 		rang = math.abs(math.Round(rang.y))
 		pang = math.abs(math.Round(pang.y))
-		local meth, dur = (rang - pang), 0
+		local meth = rang - pang
+		local w, a, s, d = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT)
 		
---		ply:ChatPrint("".. tostring(rang) .." ".. tostring(pang) .." ".. meth .."")
-		
-		local w = ply:KeyDown(IN_FORWARD)
-		local a = ply:KeyDown(IN_MOVELEFT)
-		local s = ply:KeyDown(IN_BACK)
-		local d = ply:KeyDown(IN_MOVERIGHT)
+		if (!w && !a && !s && !d) && (math.abs(meth) >= 45) then
+			local lt, rt = ACT_GESTURE_TURN_LEFT45, ACT_GESTURE_TURN_RIGHT45
+			if ply:Crouching() then lt, rt = ACT_GESTURE_TURN_LEFT45_FLAT, ACT_GESTURE_TURN_RIGHT45_FLAT end
 			
-		if !w && !a && !s && !d then
-			if meth >= 45 then 
-				
-				if ply:Crouching() then
-					if inv == false then 
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_LEFT45_FLAT, true)
-					else
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_RIGHT45_FLAT, true)
-					end
-				else
-					if inv == false then
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_LEFT45, true)
-					else
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_RIGHT45, true)
-					end
-				end
-				dur = 0.5
-			elseif meth <= -45 then
-				if ply:Crouching() then
-					if inv == false then
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_RIGHT45_FLAT, true)
-					else
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_LEFT45_FLAT, true)
-					end
-				else
-					if inv == false then
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_RIGHT45, true)
-					else
-						DRC:CallGesture(ply, GESTURE_SLOT_JUMP, ACT_GESTURE_TURN_LEFT45, true)
-					end
-				end
-				dur = 0.5
+			local anim = lt
+			if inv then
+				if meth > 0 then anim = rt else anim = lt end
+			else
+				if meth < 0 then anim = rt else anim = lt end
 			end
+			
+			DRC:CallGesture(ply, GESTURE_SLOT_JUMP, anim, true)
+			ply.TurnCD = CurTime() + 0.5	
 		end
-		ply.TurnCD = CurTime() + dur
+		
 	end
 	
 	if CurTime() < ply.SwapCD then return end
@@ -2741,7 +3106,6 @@ hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 			ply:PickupWeapon(ply.PickupWeapons[1])
 			ply:SelectWeapon(ply.PickupWeapons[1])
 			ply.PickupWeapons[1]:SetOwner(ply)
-		--	curswep:SetOwner(nil)
 			ply.SwapCD = CurTime() + 0.25
 		end
 	elseif !table.IsEmpty(ply.ViableWeapons) then
@@ -2752,7 +3116,6 @@ hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 			ply:PickupWeapon(ply.ViableWeapons[1])
 			ply:SelectWeapon(ply.ViableWeapons[1])
 			ply.ViableWeapons[1]:SetOwner(ply)
-		--	curswep:SetOwner(nil)
 			ply.SwapCD = CurTime() + 0.25
 		end
 	end
@@ -2952,8 +3315,43 @@ hook.Add("CalcMainActivity", "DRC_BarnacleGrab", function(ply, vel)
 	end
 end)
 
-hook.Add("Tick", "FUCKYOU", function()
+hook.Add("Tick", "DRC_I_Wrote_This_When_I_Ran_Out_Of_Options", function()
 	for k,v in pairs(DRC.ActiveWeapons) do
-		v.Muzzle = v:GetAttachment(v:LookupAttachment("muzzle"))
+		if !v.Muzzle then v.Muzzle = v:GetAttachment(v:LookupAttachment("muzzle")) end
 	end
 end)
+
+
+-- DETOURS
+if SERVER then
+	function DRC:NetworkScreenShake(ply, tab)
+		if !ply then return end
+		if !tab then return end
+		if !ply.LastShakeNW then ply.LastShakeNW = 0 end
+		if ply.LastShakeNW < CurTime() + 1 then
+			ply.LastShakeNW = CurTime()
+			net.Start("DRC_NetworkScreenShake")
+			net.WriteVector(tab[1])
+			net.WriteFloat(tab[2])
+			net.WriteFloat(tab[3])
+			net.WriteFloat(tab[4])
+			net.WriteFloat(tab[5])
+			net.Send(ply)
+		end
+	end
+end
+
+local OldScreenshake = util.ScreenShake -- Intercepting screenshake so that it can be emulated in custom CalcView hooks.
+function util.ScreenShake(pos, amp, freq, dur, radi)
+	if SERVER then
+		for k,v in pairs(ents.FindInSphere(pos, radi)) do
+			if v:IsPlayer() then
+				local tab = {pos, amp, freq, dur, radi}
+			--	local str = "".. tostring(pos) .."(-)".. amp .."(-)".. freq .."(-)".. dur .."(-)".. radi ..""
+				if tab then DRC:NetworkScreenShake(v, tab) end
+			end
+		end
+	end
+	
+	return OldScreenshake(pos, amp, freq, dur, radi)
+end

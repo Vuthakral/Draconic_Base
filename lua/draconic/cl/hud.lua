@@ -49,8 +49,8 @@ hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	local ply = LocalPlayer()
 	if IsValid(ply) then
 		if IsValid(ply:GetActiveWeapon()) then
-			local wpn = ply:GetActiveWeapon():GetClass()
-			if basegameweapons[wpn] && !IsValid(ply:GetVehicle()) then
+			local wpn = string.lower(ply:GetActiveWeapon():GetClass())
+			if DRC.HoldTypes.HardcodedWeapons[wpn] && !IsValid(ply:GetVehicle()) then
 				if str == "CHudCrosshair" then return false end
 			end
 		end
@@ -70,11 +70,13 @@ local function drc_Crosshair()
 	
 	-- Replace base game crosshair with a duplicate that uses the actual hitpos, for compatibility with mods that offset the view (thirdperson, first person offsets, etc).
 	local pos = DRC.CalcView.ToScreen
-		if basegameweapons[curswep:GetClass()] && !IsValid(ply:GetVehicle()) then
-		surface.SetFont("Crosshairs")
-		surface.SetTextPos(pos.x-10, pos.y-18)
-		surface.SetTextColor( 255, 211, 64, 255 )
-		surface.DrawText("Q")
+	if DRC.HoldTypes.HardcodedWeapons[string.lower(curswep:GetClass())] && !IsValid(ply:GetVehicle()) && pos.x && pos.y then
+		if DRC.CalcView.ToScreen then
+			surface.SetFont("Crosshairs")
+			surface.SetTextPos(pos.x-10, pos.y-18)
+			surface.SetTextColor( 255, 211, 64, 255 )
+			surface.DrawText("Q")
+		end
 	end
 	
 	-- Actual crosshair code.
@@ -119,6 +121,7 @@ local function drc_Crosshair()
 
 	
 	local artificial = curswep.CrosshairSizeMul
+	local static = curswep.CrosshairStaticSize
 	
 	local modspread = nil
 	local modspreaddiv = nil
@@ -168,9 +171,9 @@ local function drc_Crosshair()
 	LerpC = Lerp(FrameTime() * 20, DRCCrosshairLerp or b, b)
 	DRCCrosshairLerp = Lerp(FrameTime() * 10, DRCCrosshairLerp or LerpC, LerpC)
 	
-	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
+	if DRC:DebugModeEnabled() then
 		if chmode == 1 or chmode == 3 then
-			local heat = curswep.Weapon:GetNWInt("Heat")
+			local heat = curswep.Weapon:GetHeat()
 			local hl = LerpVector(heat / 175, Vector(255, 255, 255), Vector(255, 0, 0))
 			
 			surface.SetDrawColor( hl.x, hl.y, hl.z, heat * 2.5 )
@@ -270,8 +273,15 @@ local function drc_Crosshair()
 					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 				end
 				surface.SetMaterial( Material(curswep.CrosshairStatic) )
-				surface.DrawTexturedRect(pos.x - smathoffset * 3.3775 * artificial * cx, pos.y - smathoffset * 3.3775 * artificial * cy, smathoffset * 6.75 * artificial, smathoffset * 6.75 * artificial)
-				surface.DrawTexturedRect(pos.x - smathoffset * 3.1275 * artificial * cx, pos.y - smathoffset * 3.1275 * artificial * cy, smathoffset * 6.25 * artificial, smathoffset * 6.25 * artificial)
+				if curswep.CrosshairStaticSize != nil then
+					surface.DrawTexturedRectRotated(pos.x-0.1 - static * cx, pos.y - static * cy, static*50, static*50, 0)
+					surface.DrawTexturedRectRotated(pos.x+0.1 - static * cx, pos.y - static * cy, static*50, static*50, 0)
+					surface.DrawTexturedRectRotated(pos.x - static * cx, pos.y-0.1 - static * cy, static*50, static*50, 0)
+					surface.DrawTexturedRectRotated(pos.x - static * cx, pos.y+0.1 - static * cy, static*50, static*50, 0)
+				else
+					surface.DrawTexturedRect(pos.x - smathoffset * 3.3775 * artificial * cx, pos.y - smathoffset * 3.3775 * artificial * cy, smathoffset * 6.75 * artificial, smathoffset * 6.75 * artificial)
+					surface.DrawTexturedRect(pos.x - smathoffset * 3.1275 * artificial * cx, pos.y - smathoffset * 3.1275 * artificial * cy, smathoffset * 6.25 * artificial, smathoffset * 6.25 * artificial)
+				end
 			end
 		
 			if curswep.CrosshairNoIronFade == false then
@@ -280,7 +290,11 @@ local function drc_Crosshair()
 				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 			end
 			surface.SetMaterial( Material(curswep.CrosshairStatic) )
-			surface.DrawTexturedRect(pos.x - smathoffset * 3.25 * artificial * cx, pos.y - smathoffset * 3.25 * artificial * cy, smathoffset * 6.5 * artificial, smathoffset * 6.5 * artificial)
+			if curswep.CrosshairStaticSize != nil then
+				surface.DrawTexturedRectRotated(pos.x - static * cx, pos.y - static * cy, static*50, static*50, 0)
+			else
+				surface.DrawTexturedRect(pos.x - smathoffset * 3.25 * artificial * cx, pos.y - smathoffset * 3.25 * artificial * cy, smathoffset * 6.5 * artificial, smathoffset * 6.5 * artificial)
+			end
 		end
 		
 		if curswep.CrosshairDynamic != nil then
@@ -516,9 +530,21 @@ DRC.Inspection.DefaultTheme = {
 		["Border_Bottom"] = Material(""),
 		["Border_Corners"] = Material(""),
 	},
+	["Sounds"] = {
+		["Enter"] = "garrysmod/ui_return.wav",
+		["Exit"] = "garrysmod/ui_return.wav",
+		["Select"] = "weapons/smg1/switch_single.wav",
+		["Deny"] = "hl1/fvox/buzz.wav",
+		["Dropdown"] = "npc/headcrab_poison/ph_step4.wav"
+	}
 }
 DRC.Inspection.Theme = DRC.Inspection.DefaultTheme
 
+local attachmenttranslations = {
+	["AmmunitionTypes"] = "Ammunition",
+}
+
+local attalpha, attalphalerp = 0
 local function drc_Inspect()
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	if GetConVar("sv_drc_inspect_hideHUD"):GetFloat() == 1 then return end
@@ -528,6 +554,7 @@ local function drc_Inspect()
 	if wpn.Draconic == nil then return end
 	if wpn.MulIns == nil then return end
 	local bool = wpn:GetNWBool("Inspecting", false)
+	local b2 = wpn.Customizing
 	local w = ScrW()
 	local h = ScrH()
 	local ratio = w/h
@@ -536,29 +563,45 @@ local function drc_Inspect()
 	local theme = DRC.Inspection.Theme
 	local themecolours = DRC.Inspection.Theme.Colours
 	
+	if b2 then
+		attalpha = 255
+		drc_ins_offsetlerp_x_att = Lerp(0.025 * 10, drc_ins_offsetlerp_x_att or w/2, 0)
+		drc_ins_offsetlerp_y_att = Lerp(0.025 * 10, drc_ins_offsetlerp_y_att or h/2, 0)
+	else
+		attalpha = 0
+		drc_ins_offsetlerp_x_att = Lerp(0.025 * 10, drc_ins_offsetlerp_x_att or 0, w)
+		drc_ins_offsetlerp_y_att = Lerp(0.025 * 10, drc_ins_offsetlerp_y_att or 0, h)
+	end
+	attalphalerp = Lerp(0.25, attalphalerp or attalpha, attalpha)
+	
 	if bool == true then
 		alpha = Lerp(wpn.MulIns, 0, 1)
 		YOffset = Lerp(wpn.MulIns, h/2, 0)
 		XOffset = Lerp(wpn.MulIns, w/2, 0)
 		
-		offsetlerp_x = Lerp(FrameTime() * 10, offsetlerp_x or XOffset, XOffset)
-		offsetlerp_y = Lerp(FrameTime() * 10, offsetlerp_y or YOffset, YOffset)
+		drc_ins_offsetlerp_x = Lerp(0.025 * 10, drc_ins_offsetlerp_x or XOffset, XOffset)
+		drc_ins_offsetlerp_y = Lerp(0.025 * 10, drc_ins_offsetlerp_y or YOffset, YOffset)
 	else
 		alpha = Lerp(wpn.MulIns, 1, 0)
 		YOffset = Lerp(wpn.MulIns, 0, h )
 		XOffset = Lerp(wpn.MulIns, 0, w )
 		
-		offsetlerp_x = Lerp(FrameTime() * 2.5, offsetlerp_x or w/w2/2, w/2)
-		offsetlerp_y = Lerp(FrameTime() * 2.5, offsetlerp_y or h/h2/2, h/2)
+		drc_ins_offsetlerp_x = Lerp(0.025 * 2.5, drc_ins_offsetlerp_x or w/w2/2, w/2)
+		drc_ins_offsetlerp_y = Lerp(0.025 * 2.5, drc_ins_offsetlerp_y or h/h2/2, h/2)
 	end
 	
-	local colours = {}
+	DRC.Inspection.ThemeColours = {}
 	for k,v in pairs(themecolours) do
-		colours[k] = Color(v.r, v.g, v.b, v.a * alpha)
+		DRC.Inspection.ThemeColours[k] = Color(v.r, v.g, v.b, v.a * alpha)
 	end
 	
-	inspecttextpos_x = offsetlerp_x + w - w2/2 - (w2/2)
-	inspecttextpos_y = offsetlerp_y + h - h2/2 - (h2/2)
+	DRC.Inspection.ThemeColours_Attachments = {}
+	for k,v in pairs(themecolours) do
+		DRC.Inspection.ThemeColours_Attachments[k] = Color(v.r, v.g, v.b, v.a * (attalphalerp/255))
+	end
+	
+	inspecttextpos_x = drc_ins_offsetlerp_x + w - w2/2 - (w2/2)
+	inspecttextpos_y = drc_ins_offsetlerp_y + h - h2/2 - (h2/2)
 
 	local function DrawBox(posx, posy, width, height, col, bgimg)
 		if bgimg then surface.SetDrawColor(Color(255, 255, 255, 255)) surface.SetMaterial(bgimg) else surface.SetDrawColor(col) draw.NoTexture() end
@@ -566,16 +609,16 @@ local function drc_Inspect()
 	end
 	
 	local function DrawText(posx, posy, font, col, align, str)
-		draw.DrawText(str, font, posx+1, posy-1, colours.Outline, align)
-		draw.DrawText(str, font, posx-1, posy+1, colours.Outline, align)
-		draw.DrawText(str, font, posx+1, posy+1, colours.Outline, align)
-		draw.DrawText(str, font, posx-1, posy-1, colours.Outline, align)
-		draw.DrawText(str, font, posx, posy+1, colours.Outline, align)
-		draw.DrawText(str, font, posx, posy-1, colours.Outline, align)
-		draw.DrawText(str, font, posx+1, posy, colours.Outline, align)
-		draw.DrawText(str, font, posx-1, posy, colours.Outline, align)
+		draw.DrawText(str, font, posx+1, posy-1, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx-1, posy+1, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx+1, posy+1, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx-1, posy-1, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx, posy+1, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx, posy-1, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx+1, posy, DRC.Inspection.ThemeColours.Outline, align)
+		draw.DrawText(str, font, posx-1, posy, DRC.Inspection.ThemeColours.Outline, align)
 		draw.DrawText(str, font, posx, posy, col, align)
-		--draw.SimpleTextOutlined(str, font, posx, posy, col, align, TEXT_ALIGN_TOP, 1, themecolours.Outline)
+		--draw.SimpleTextOutlined(str, font, posx, posy, col, align, TEXT_ALIGN_TOP, 1, DRC.Inspection.ThemeColours.Outline)
 		-- POV: draw.DrawText is the only thing with newline support, but doesn't support outlines
 	end
 	
@@ -584,122 +627,158 @@ local function drc_Inspect()
 		surface.DrawRect(posx, posy, width, height)
 	end
 	
-	surface.SetDrawColor( colours.Background )
---	DrawRule(w-500+offsetlerp_x, h*0.02 - 3, 500, 1, themecolours.Div)
-	DrawBox(w-500+offsetlerp_x, h*0.02, 500, 76, themecolours.Background, theme.Images.TitleBG)
-	DrawText(w-250+offsetlerp_x, h*0.02 + 22, theme.Fonts.Title, colours.Title, TEXT_ALIGN_CENTER, "".. wpn.PrintName .."")
-	if wpn.InfoName then DrawText(w-250+offsetlerp_x, h*0.02 + 54, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_CENTER, "''".. wpn.InfoName .."''") end
+	surface.SetDrawColor( DRC.Inspection.ThemeColours.Background )
+--	DrawRule(w-500+drc_ins_offsetlerp_x, h*0.02 - 3, 500, 1, DRC.Inspection.ThemeColours.Div)
+	DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02, 500, 76, DRC.Inspection.ThemeColours.Background, theme.Images.TitleBG)
+	DrawText(w-250+drc_ins_offsetlerp_x, h*0.02 + 22, theme.Fonts.Title, DRC.Inspection.ThemeColours.Title, TEXT_ALIGN_CENTER, "".. wpn.PrintName .."")
+	if wpn.InfoName then DrawText(w-250+drc_ins_offsetlerp_x, h*0.02 + 54, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_CENTER, "''".. wpn.InfoName .."''") end
 	
-	DrawBox(w-200+offsetlerp_x, h*0.02 + 86, 200, 16, themecolours.Background, theme.Images.TabWide)
-	DrawText(w-16+offsetlerp_x, h*0.02 + 86, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "".. wpn.Category .."")
-	DrawBox(w-150+offsetlerp_x, h*0.02 + 104, 150, 16, themecolours.Background, theme.Images.TabWide)
-	DrawText(w-16+offsetlerp_x, h*0.02 + 104, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "".. wpn.Author .."")
+	DrawBox(w-200+drc_ins_offsetlerp_x, h*0.02 + 86, 200, 16, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+	DrawText(w-16+drc_ins_offsetlerp_x, h*0.02 + 86, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "".. wpn.Category .."")
+	DrawBox(w-150+drc_ins_offsetlerp_x, h*0.02 + 104, 150, 16, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+	DrawText(w-16+drc_ins_offsetlerp_x, h*0.02 + 104, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "".. wpn.Author .."")
 	
 	local infoy = 136
 	
 	if wpn.Manufacturer or wpn.InfoDescription then
-		DrawRule(w-500+offsetlerp_x, h*0.02 + infoy - 3, 500, 1, themecolours.Div)
-		DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 300, 34, themecolours.Background, theme.Images.HeaderBG)
-		DrawText(w-350+offsetlerp_x, h*0.02 + infoy+6, theme.Fonts.Header, colours.Title, TEXT_ALIGN_CENTER, "Weapon Information")
+		DrawRule(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy - 3, 500, 1, DRC.Inspection.ThemeColours.Div)
+		DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 300, 34, DRC.Inspection.ThemeColours.Background, theme.Images.HeaderBG)
+		DrawText(w-350+drc_ins_offsetlerp_x, h*0.02 + infoy+6, theme.Fonts.Header, DRC.Inspection.ThemeColours.Title, TEXT_ALIGN_CENTER, "Weapon Information")
 		
 		if wpn.Manufacturer then
 			infoy = 175
-			DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background, theme.Images.TabWide)
-			DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Manufacturer :")
-			DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
-			DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn.Manufacturer .."")
+			DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+			DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Manufacturer :")
+			DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 18, DRC.Inspection.ThemeColours.Background)
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn.Manufacturer .."")
 		end
 		
 		if wpn.InfoDescription then
 			if infoy != 136 then infoy = infoy + 20 else infoy = 175 end
-			DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background, theme.Images.TabWide)
-			DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Information :")
-			DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 60, themecolours.Background)
-			DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn.InfoDescription .."")
+			DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+			DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Information :")
+			DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 60, DRC.Inspection.ThemeColours.Background)
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn.InfoDescription .."")
 		end
 	end
 	
 	if infoy != 136 then infoy = infoy + 65 end
-	DrawRule(w-500+offsetlerp_x, h*0.02 + infoy - 3, 500, 1, themecolours.Div)
-	DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 300, 34, themecolours.Background, theme.Images.HeaderBG)
-	DrawText(w-350+offsetlerp_x, h*0.02 + infoy+6, theme.Fonts.Header, colours.Title, TEXT_ALIGN_CENTER, "Handling Information")
+	DrawRule(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy - 3, 500, 1, themecolours.Div)
+	DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 300, 34, DRC.Inspection.ThemeColours.Background, theme.Images.HeaderBG)
+	DrawText(w-350+drc_ins_offsetlerp_x, h*0.02 + infoy+6, theme.Fonts.Header, DRC.Inspection.ThemeColours.Title, TEXT_ALIGN_CENTER, "Handling Information")
 	
 	if wpn.Base != "draconic_melee_base" then
 		infoy = infoy + 39
-		DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background, theme.Images.TabWide)
-		DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Damage :")
-		DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
+		DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+		DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Damage :")
+		DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 18, DRC.Inspection.ThemeColours.Background)
 			
 		if wpn.PrimaryStats.Projectile != nil then
 			local projectile = {}
 			if istable(wpn.PrimaryStats.Projectile) then projectile = scripted_ents.GetStored(wpn.PrimaryStats.Projectile[1]) else
 		 projectile = scripted_ents.GetStored(wpn.PrimaryStats.Projectile) end
 			if projectile.t.ProjectileType == "supercombine" then
-				DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "Base: ".. projectile.t.Damage .." | Supercombine: ".. projectile.t.SuperDamage .."")
+				DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "Base: ".. projectile.t.Damage .." | Supercombine: ".. projectile.t.SuperDamage .."")
 			else
 				local damagestring = "".. projectile.t.Damage ..""
 				if wpn:GetAttachmentValue("Ammunition", "NumShots") != 1 then damagestring = "".. damagestring .."x".. wpn:GetAttachmentValue("Ammunition", "NumShots") .."" end
-				DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. damagestring .." per round, ".. math.Round((wpn.PrimaryStats.RPM/60 * projectile.t.Damage) * wpn:GetAttachmentValue("Ammunition", "NumShots"), 2) .." DPS")
+				DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. damagestring .." per round, ".. math.Round((wpn.PrimaryStats.RPM/60 * projectile.t.Damage) * wpn:GetAttachmentValue("Ammunition", "NumShots"), 2) .." DPS")
 			end
 		else
-			local damagestring = "".. wpn.PrimaryStats.Damage ..""
-				if wpn:GetAttachmentValue("Ammunition", "NumShots") != 1 then damagestring = "".. damagestring .."x".. wpn:GetAttachmentValue("Ammunition", "NumShots") .."" end
-			DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. damagestring .." per round, ".. math.Round((wpn.PrimaryStats.Damage * wpn:GetAttachmentValue("Ammunition", "NumShots")) * wpn.PrimaryStats.RPM/60, 2) .." DPS")
+			local damagestring = "".. wpn.PrimaryStats.Damage * wpn:GetAttachmentValue("Ammunition", "Damage") ..""
+			
+			if wpn:GetAttachmentValue("Ammunition", "NumShots") != 1 then damagestring = "".. damagestring .."x".. wpn:GetAttachmentValue("Ammunition", "NumShots") .."" end
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. damagestring .." per round, ".. math.Round((wpn.PrimaryStats.Damage * wpn:GetAttachmentValue("Ammunition", "NumShots") * wpn:GetAttachmentValue("Ammunition", "Damage")) * wpn.PrimaryStats.RPM/60, 2) .." DPS")
 		end
 		
 		infoy = infoy + 20
-		DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background, theme.Images.TabWide)
-		DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
-		DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Ammo :")
+		DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+		DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 18, DRC.Inspection.ThemeColours.Background)
+		DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Ammo :")
 		if wpn.Base == "draconic_gun_base" then
-			DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn:Clip1() .."/".. (wpn:GetMaxClip1() * wpn:GetAttachmentValue("Ammunition", "ClipSizeMul")) .." | ".. wpn.ActiveAttachments.Ammunition.t.InfoName .." (".. (game.GetAmmoName(wpn:GetPrimaryAmmoType()) or "None") ..")")
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn:Clip1() .."/".. (wpn:GetMaxClip1() * wpn:GetAttachmentValue("Ammunition", "ClipSizeMul")) .." | ".. wpn.ActiveAttachments.AmmunitionTypes.t.InfoName .." (".. (game.GetAmmoName(wpn:GetPrimaryAmmoType()) or "None") ..")")
 		else
-			DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. math.Round(wpn:GetNWInt("LoadedAmmo"), 2) .."% (".. math.Round(100/wpn.BatteryConsumePerShot * (wpn:GetNWInt("LoadedAmmo")/100)) .." Shots remaining) | ".. wpn.ActiveAttachments.Ammunition.t.InfoName .."")
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. math.Round(wpn:GetNWInt("LoadedAmmo"), 2) .."% (".. math.Round(100/wpn.BatteryConsumePerShot * (wpn:GetNWInt("LoadedAmmo")/100)) .." Shots remaining) | ".. wpn.ActiveAttachments.AmmunitionTypes.t.InfoName .."")
 		end
 		
 		infoy = infoy + 20
-		DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background, theme.Images.TabWide)
-		DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
-		DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Firerate :")
+		DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+		DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 18, DRC.Inspection.ThemeColours.Background)
+		DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Firerate :")
 		if wpn.Base == "draconic_gun_base" then
-			DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn.PrimaryStats.RPM .." Rounds per minute | ".. math.Round(wpn.PrimaryStats.RPM/60, 2) .." Rounds per second")
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn.PrimaryStats.RPM .." Rounds per minute | ".. math.Round(wpn.PrimaryStats.RPM/60, 2) .." Rounds per second")
 		else
 			if wpn.LowerRPMWithHeat == true then
-				DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn.PrimaryStats.RPM .." - ".. wpn.BatteryStats.HeatRPMmin .." RPM | ".. math.Round(wpn.PrimaryStats.RPM/60, 2) .." - ".. math.Round(wpn.BatteryStats.HeatRPMmin/60, 2) .." RPS")
+				DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn.PrimaryStats.RPM .." - ".. wpn.BatteryStats.HeatRPMmin .." RPM | ".. math.Round(wpn.PrimaryStats.RPM/60, 2) .." - ".. math.Round(wpn.BatteryStats.HeatRPMmin/60, 2) .." RPS")
 			else
-				DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn.PrimaryStats.RPM .." RPM | ".. math.Round(wpn.PrimaryStats.RPM/60, 2) .." RPS")
+				DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn.PrimaryStats.RPM .." RPM | ".. math.Round(wpn.PrimaryStats.RPM/60, 2) .." RPS")
 			end
 		end
 		
-		local spreadmin = math.Round((wpn.PrimaryStats.Spread / wpn.PrimaryStats.SpreadDiv), 2)
-		local spreadmax = math.Round((wpn.PrimaryStats.Spread / wpn.PrimaryStats.SpreadDiv) * 130, 2)
+		local sp, spd, kick = wpn:GetAttachmentValue("Ammunition", "Spread"), wpn:GetAttachmentValue("Ammunition", "SpreadDiv"), wpn:GetAttachmentValue("Ammunition", "Kick")
+		local spreadmin = math.Round(((wpn.PrimaryStats.Spread * sp) / ((wpn.PrimaryStats.SpreadDiv) * spd)), 2)
+		local spreadmax = math.Round(((wpn.PrimaryStats.Spread * sp) / ((wpn.PrimaryStats.SpreadDiv) * spd)) * 130, 2)
+		local kick1, kick2 = math.Clamp((wpn.Primary.Kick)*100, 0, 100) * kick, math.Clamp((wpn.Primary.Kick)*100, 0, 100) + 0.1 * kick
+		local rec1, rec2 = math.Clamp(math.Round((wpn.Primary.Kick * 2+0.1*100) * kick), 0, 100), math.Clamp(math.Round((wpn.Primary.Kick * 1.5)*100 * kick), 0, 100)
 		infoy = infoy + 20
-		DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background, theme.Images.TabWide)
-		DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
-		DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Spread :")
-		DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. spreadmin .."° - ".. spreadmax .."° | ".. math.Clamp((wpn.Primary.Kick)*100, 0, 100) .." - " .. math.Clamp((wpn.Primary.Kick +0.1)*100, 0, 100) .."% per round | ".. math.Clamp(math.Round(wpn.Primary.Kick * 2+0.1, 2)*100, 0, 100) .." - ".. math.Clamp(math.Round(wpn.Primary.Kick * 1.5, 2)*100, 0, 100) .."% Recovery per ".. math.Round((60 / wpn.Primary.RPM) * 3, 2) .." seconds")
+		DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+		DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 18, DRC.Inspection.ThemeColours.Background)
+		DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Spread :")
+		DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. spreadmin .."° - ".. spreadmax .."° | ".. kick1 .." - " .. kick2 .."% per shot | ".. rec1 .." - ".. rec2 .."% Recovery / ".. math.Round((60 / wpn.Primary.RPM) * 3, 2) .." seconds")
 	else
 		infoy = infoy + 39
-		DrawBox(w-500+offsetlerp_x, h*0.02 + infoy, 100, 18, themecolours.Background)
-		DrawText(w-405+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "Damage :")
-		DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 18, themecolours.Background)
+		DrawBox(w-500+drc_ins_offsetlerp_x, h*0.02 + infoy, 100, 18, DRC.Inspection.ThemeColours.Background)
+		DrawText(w-405+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "Damage :")
+		DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 18, DRC.Inspection.ThemeColours.Background)
 		
 		local secondary = wpn.Secondary.Damage
 		if secondary != 0 then secondary = " | ".. secondary .." (Secondary)" else secondary = "" end
 		local lunge = wpn.Primary.LungeDamage
 		if lunge != 0 then lunge = " | ".. lunge .." (Lunge)" else lunge = "" end
 		
-		DrawText(w-390+offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, colours.Text, TEXT_ALIGN_LEFT, "".. wpn.Primary.Damage .." (Primary)".. secondary .."".. lunge .."")
+		DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn.Primary.Damage .." (Primary)".. secondary .."".. lunge .."")
+	end
+	
+	
+	if wpn.AttachmentTitles then
+		infoy = 0
+		
+		DrawBox(220-drc_ins_offsetlerp_x_att, h*0.02 + infoy, 300, 76, DRC.Inspection.ThemeColours_Attachments.Background, theme.Images.TitleBG)
+		DrawText(368-drc_ins_offsetlerp_x_att, h*0.02 + infoy+20, theme.Fonts.Title, DRC.Inspection.ThemeColours_Attachments.Title, TEXT_ALIGN_CENTER, wpn.AttachmentTitles.Header)
+		DrawRule(20-drc_ins_offsetlerp_x_att, h*0.02 + infoy + 85, 500, 1, DRC.Inspection.ThemeColours_Attachments.Div)
+		
+--[[		infoy = infoy + 70
+		for k,v in pairs(wpn.AttachmentTable) do
+			if k != "BaseClass" then
+			infoy = infoy + 20
+			
+			DrawBox(220-drc_ins_offsetlerp_x, h*0.02 + infoy, 300, 34, themecolours.Background, theme.Images.HeaderBG)
+			DrawText(375-drc_ins_offsetlerp_x, h*0.02 + infoy+6, theme.Fonts.Header, colours.Title, TEXT_ALIGN_CENTER, "".. attachmenttranslations[k] .."")
+			
+			infoy = infoy+20
+			for k,v in pairs(v) do
+				local mod = math.fmod(#wpn.AttachmentTable, 2)
+				if scripted_ents.GetStored(v) then
+					local name = scripted_ents.GetStored(v).t.InfoName
+					infoy = infoy + 20
+					DrawBox(20-drc_ins_offsetlerp_x, h*0.02 + infoy, 250, 18, themecolours.Background, theme.Images.TabWide)
+					DrawText(250-drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Subtitle, colours.Text, TEXT_ALIGN_RIGHT, "".. name .."")
+				end
+			end
+			
+			end
+		end --]]
 	end
 	
 	--[[
 	infoy = infoy + 20
-	DrawBox(w-395+offsetlerp_x, h*0.02 + infoy, 380, 380)
-	surface.DrawCircle(w-197.5+offsetlerp_x, infoy+190, spreadmax * 5, 200, 200, 200, 255)
-	surface.DrawCircle(w-197.5+offsetlerp_x, infoy+190, spreadmax * 6.5, 255, 0, 0, 50)
-	surface.DrawCircle(w-197.5+offsetlerp_x, infoy+190, math.Clamp(spreadmin, 0.4, 999) * 5, 0, 200, 0, 255)
+	DrawBox(w-395+drc_ins_offsetlerp_x, h*0.02 + infoy, 380, 380)
+	surface.DrawCircle(w-197.5+drc_ins_offsetlerp_x, infoy+190, spreadmax * 5, 200, 200, 200, 255)
+	surface.DrawCircle(w-197.5+drc_ins_offsetlerp_x, infoy+190, spreadmax * 6.5, 255, 0, 0, 50)
+	surface.DrawCircle(w-197.5+drc_ins_offsetlerp_x, infoy+190, math.Clamp(spreadmin, 0.4, 999) * 5, 0, 200, 0, 255)
 	--]]
 end
+
 
 hook.Add("HUDPaint", "drc_inspection_menu", drc_Inspect)
 
@@ -731,15 +810,19 @@ local function drc_IText()
 	
 	ViableWeaponCheck(ply)
 	
+	local b1, b2, b3, b4
 	if table.IsEmpty(ply.ViableWeapons) then b1 = false else b1 = true end
 	if table.IsEmpty(ply.PickupWeapons) then b2 = false else b2 = true end
+	if curswep.Draconic && curswep:CanCustomize() then b3 = true else b3 = false end
+	b4 = curswep.Customizing
 	
-	if b1 or b2 == true then
+	
+	if b1 or b2 or b3 then
 		alpha = 255
 	else
 		alpha = 0
 	end
-	alphalerp = Lerp(FrameTime() * 25, alphalerp or alpha, alpha)
+	alphalerp = Lerp(0.25, alphalerp or alpha, alpha)
 	
 --	local wpc = ply:GetNWVector("EnergyTintVec")
 --	wpc.r = math.Clamp(wpc.r, 0.1, 1)
@@ -750,6 +833,9 @@ local function drc_IText()
 	local TextCol = Color(255, 255, 255, alphalerp)
 	
 	surface.SetDrawColor(TextCol)
+	
+	
+	if b3 && !b4 then draw.DrawText("Press ".. string.upper(ReturnKey("+zoom")) .." to ".. curswep.ModifyText .."", "ApercuStatsTitle", center[1], center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER) end
 	
 	local src, text = nil, nil
 	if b2 then
@@ -775,6 +861,8 @@ local function drc_IText()
 			draw.DrawText("Press ".. string.upper(ReturnKey("+use")) .." to ".. text .." ".. src.PrintName .."", "ApercuStatsTitle", center[1]-64, center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER)
 		end
 	end
+	
+	
 end
 hook.Add("HUDPaint", "drc_interactiontext", drc_IText)
 
@@ -797,152 +885,192 @@ end)
 
 -- ###Attachments
 local attachpos = {
-	data = {
-		Ammunition = Vector(0, 0, 0),
-		Clipazine = Vector(0, 0, 0),
-		Optic = Vector(0, 0, 0),
-		Foregrip = Vector(0, 0, 0),
-		Barrel = Vector(0, 0, 0),
-		Stock = Vector(0, 0, 0),
-		Internal = Vector(0, 0, 0),
-		Charm = Vector(0, 0, 0)
-	},
+	["Ammunition"] = Vector(10, 0, 0),
+	["Clipazine"] = Vector(0, 0, 0),
+	["Optic"] = Vector(0, 0, 0),
+	["Foregrip"] = Vector(0, 0, 0),
+	["Barrel"] = Vector(0, 0, 0),
+	["Stock"] = Vector(0, 0, 0),
+	["Internal"] = Vector(0, 0, 0),
+	["Charm"] = Vector(0, 0, 0)
 }
 
-local function drc_AttachMenu()
-	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
-	if GetConVar("sv_drc_disable_attachmentmodifying"):GetFloat() == 1 then return end
-	
-	local ply = LocalPlayer() 
-	local curswep = ply:GetActiveWeapon()
-	if curswep.Draconic == nil then return end
-	if curswep.MulIns == nil then return end
-	local currentattachments = curswep.ActiveAttachments
-	if currentattachments == nil then return end
-	
-	local bool = curswep:GetNWBool("Inspecting")
-	
-	local w = ScrW()
-	local h = ScrH()
-	local ratio = w/h
-	local w2 = ScrW()/2
-	local h2 = ScrH()/2
-	
-	if bool == true then
-		alpha = Lerp(curswep.MulIns, 0, 255)
-		YOffset = Lerp(curswep.MulIns, h/2, 0)
-	else
-		alpha = Lerp(curswep.MulIns, 255, 0)
-		YOffset = Lerp(curswep.MulIns, 0, h )
-	end
-	
-	if bool == false then
-		alphalerp = Lerp(FrameTime() * 10, alphalerp or 0, 0)
-		offsetlerp = Lerp(FrameTime() * 2.5, offsetlerp or h/h2/2, h/2)
-	else
-		alphalerp = Lerp(FrameTime() * 25, alphalerp or alpha or 0, alpha or 0)
-		offsetlerp = Lerp(FrameTime() * 10, offsetlerp or YOffset, YOffset)
-	end
-	
-	local WeapCol = ply:GetNWVector("WeaponColour_DRC")
-	local TextCol = Color(200, 200, 200, alphalerp)
-	local TitleCol = Color(255, 255, 255, alphalerp)
-	
-	for k,v in pairs(attachpos.data) do
-		local pos = v:ToScreen()
-		local InfoName = nil
-		if k != nil && v != nil then
-			if k == "Barrel" && currentattachments.Barrel != nil && #curswep.AttachmentTable.Barrels > 1 then -- this was too much of a table-in-table nightmare for my intermediate-ass to streamline
-				InfoName = currentattachments.Barrel.t.InfoName
-			elseif k == "Optic" && currentattachments.Optic != nil && #curswep.AttachmentTable.Optics > 1 then
-				InfoName = currentattachments.Optic.t.InfoName
-			elseif k == "Ammunition" && currentattachments.Ammunition != nil && #curswep.AttachmentTable.AmmunitionTypes > 1 then
-				InfoName = currentattachments.Ammunition.t.InfoName
-			end
-			if InfoName != nil then
-				draw.DrawText("".. InfoName .."", "ApercuStats", pos.x + 40, pos.y + 4, TextCol)
-				surface.SetDrawColor( 255, 255, 255, alphalerp )
-				surface.SetMaterial( Material("vgui/hud/autoaim") )
-				surface.DrawTexturedRect(pos.x, pos.y, 32, 32)
-			end
-		end
-	end
-end
-hook.Add("HUDPaint", "drc_hud_attachments", drc_AttachMenu)
-
-local function DrawVMAttachments(att, ent)
-	if !att then return end
-	if !IsValid(ent) then return end
-	
+function DRC:ToggleAttachmentMenu(wpn, b)
+	if !IsValid(wpn) then return end
 	local ply = LocalPlayer()
-	local vm = ply:GetViewModel()
-	if vm:LookupAttachment("muzzle") == 0 then return end
 	
-	local WeapCol = ply:GetNWVector("WeaponColour_DRC")
-	local TextCol = Color(200, 200, 200, alphalerp)
-	local TitleCol = Color(255, 255, 255, alphalerp)
+	wpn.Customizing = b
+	if !DRC.AttachMenu then DRC.AttachMenu = {} end
+	local AT, AA = wpn.AttachmentTable, wpn.ActiveAttachments
 	
-	local wpn = ply:GetActiveWeapon()
-	if wpn.Draconic == nil then return end
-	
-	local trace = util.TraceLine({
-		start = ply:EyePos(),
-		endpos = ply:GetEyeTrace().HitPos,
-		filter = ply
-	})
-	
-	local drc_debug_marker_attcol = Color(WeapCol.x*255, WeapCol.y*255, WeapCol.z*255, 100)
-	
-	local attach = nil
-	if att == "Barrel" then
-		local attachment = vm:LookupAttachment("muzzle")
-		attach = vm:GetAttachment(attachment)
-	elseif att == "Ammunition" then
-		local attachment = vm:LookupAttachment("att_ammunition")
-		if attachment != 0 then attach = vm:GetAttachment(attachment)
-		elseif attachment == 0 then
-			local attachment = vm:LookupAttachment("muzzle")
-			attach = vm:GetAttachment(attachment)
-			local badautoplacement = math.Clamp(vm:GetPos():DistToSqr(attach.Pos), 0, 1000)
-			attach.Pos = attach.Pos - attach.Ang:Forward() * ((badautoplacement / 2) * (100 / wpn.ViewModelFOV)) / 32
+	if b == true then
+		surface.PlaySound(DRC.Inspection.Theme.Sounds.Enter)
+		if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
+		DRC.AttachMenu.mpanel = vgui.Create("DScrollPanel")
+		local m = DRC.AttachMenu.mpanel
+		m:SetPos(20, 128)
+		m:SetSize(500, ScrH()-(ScrH()*.175))
+		m:SetMouseInputEnabled(true)
+		m:SetPaintBackground(true)
+		m:MakePopup()
+		m:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
+		function m:Paint(w,h)
+			draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
 		end
-	elseif att == "Clipazine" then
-		local attachment = vm:LookupAttachment("att_mag")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	elseif att == "Optic" then
-		local attachment = vm:LookupAttachment("att_optic")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	elseif att == "Foregrip" then
-		local attachment = vm:LookupAttachment("att_foregrip")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	elseif att == "Barrel" then
-		local attachment = vm:LookupAttachment("att_barrel")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	elseif att == "Stock" then
-		local attachment = vm:LookupAttachment("att_stock")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	elseif att == "Internal" then
-		local attachment = vm:LookupAttachment("att_internal")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	elseif att == "Charm" then
-		local attachment = vm:LookupAttachment("att_charm")
-		if attachment != 0 then attach = vm:GetAttachment(attachment) end
-	end
-	
-	if attach != nil then 
-		attachpos.data[att] = attach.Pos
+		m.Think = function()
+			m:SetPos(20-drc_ins_offsetlerp_x_att, 128)
+		end
+		
+		m.Sections = {}
+		local function MakeSection(relevancy)
+			m[relevancy] = vgui.Create("DPanel", m)
+			m[relevancy]:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
+			m[relevancy]:Dock(TOP)
+			
+			table.insert(m.Sections, m[relevancy])
+			
+			local label = ""
+			if wpn.ActiveAttachments[relevancy] then label = " | ".. wpn.ActiveAttachments[relevancy].t.InfoName ..""
+			else label = " | Not Implemented Yet" end
+			m[relevancy].Title = vgui.Create("DLabel", m[relevancy])
+			local title = m[relevancy].Title
+			title:SetSize(500, m[relevancy]:GetTall())
+			title:SetText("          ".. wpn.AttachmentTitles[relevancy] .."")
+			title:SetFont(DRC.Inspection.Theme.Fonts.Header)
+			title:Dock(TOP)
+			
+			m[relevancy].Selected = vgui.Create("DLabel", m[relevancy])
+			local selected = m[relevancy].Selected
+			selected:SetSize(400, m[relevancy]:GetTall())
+			selected:SetText(label)
+			selected:SetFont(DRC.Inspection.Theme.Fonts.Header)
+			selected:SetPos(125, 0)
+			
+			m[relevancy].Collapser = vgui.Create("DButton", m[relevancy])
+			local cbutton = m[relevancy].Collapser
+			cbutton:SetPos(0, 0)
+			cbutton:SetSize(m[relevancy]:GetTall(), m[relevancy]:GetTall())
+			cbutton:SetFont(DRC.Inspection.Theme.Fonts.Header)
+			cbutton:SetTextColor(DRC.Inspection.ThemeColours_Attachments.Text)
+			cbutton:SetText("+")
+			function cbutton:Paint(w,h)
+				draw.RoundedBox(0, 0, 0, w, h, DRC.Inspection.ThemeColours_Attachments.Background)
+			end
+			
+			m[relevancy].Section = vgui.Create("DPanelSelect", m)
+			local selection = m[relevancy].Section
+			selection.Panels = {}
+			selection:SetPos(0, m[relevancy].Title:GetTall())
+			selection:SetSize(500, 0)
+			selection:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
+			selection:Dock(TOP)
+			selection:SetVisible(false)
+			
+			cbutton.DoClick = function()
+				if selection:IsVisible() == true then 
+					m[relevancy].Section:SetVisible(false)
+					m[relevancy].Section:SetTall(0)
+					cbutton:SetText("+")
+				else
+					m[relevancy].Section:SetVisible(true)
+					m[relevancy].Section:SetTall(200)
+					cbutton:SetText("-")
+				end
+				for k,v in pairs(m.Sections) do
+					v:Dock(TOP)
+				end
+				surface.PlaySound(DRC.Inspection.Theme.Sounds.Dropdown)
+			end
+			
+			function selection:OnActivePanelChanged( old, new )
+				if ( old != new ) then
+					local infoname = ""
+					if new[3] then infoname = new[3] else infoname = selection[new][2] end
+					selected:SetText(" | ".. infoname .."")
+					
+					if !new[3] then
+						net.Start("DRC_WeaponAttachSwitch")
+						net.WriteEntity(wpn)
+						net.WriteEntity(LocalPlayer())
+						net.WriteString(selection[new][1])
+						net.WriteString(selection[new][3])
+						net.SendToServer()
+						surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
+					end
+				end
+			end
+			
+			local function GetCanUseAttachment(class, rel)
+				if class == wpn.AttachmentTable[rel][1] then return true end
+				if GetConVar("sv_drc_attachments_autounlock"):GetFloat() != 0 then return true end
+				if table.HasValue(ply.DRCAttachmentInventory, class) then return true end
+				return false
+			end
+			
+			local tab = {}
+			if wpn.AttachmentTable[relevancy] then tab = wpn.AttachmentTable[relevancy] end
+			for k,v in pairs(tab) do
+				if !istable(v) then
+					m[relevancy].Section[k] = vgui.Create("SpawnIcon", m[relevancy].Section)
+					local icon = m[relevancy].Section[k]
+					local info = scripted_ents.GetStored(v).t
+					icon:SetModel(info.Model or "models/Items/item_item_crate.mdl")
+					icon:SetSize(64, 64)
+					icon:SetTooltip("".. info.InfoName .."\n\n".. info.InfoDescription .."")
+					
+					if !GetCanUseAttachment(info.ClassName, relevancy) then
+						icon:SetEnabled(false)
+						icon:SetTooltip("Not in inventory - ".. info.InfoName .."\n\n".. info.InfoDescription .."")
+						
+						local blocker = vgui.Create("DImageButton", icon)
+						blocker:SetSize(icon:GetWide(), icon:GetTall())
+						blocker:SetImage("gui/cross.png")
+						blocker:SetColor(Color(255, 0, 0, 127))
+						
+						blocker.DoClick = function()
+							surface.PlaySound(DRC.Inspection.Theme.Sounds.Deny)
+						end
+					end
+					
+					selection:AddPanel( icon )
+					selection.Panels[v] = {icon, info.ClassName, info.InfoName}
+					selection[icon] = {info.ClassName, info.InfoName, relevancy}
+				end
+			end
+			
+			if !table.IsEmpty(tab) then selection:SelectPanel(selection.Panels[wpn.ActiveAttachments[relevancy].t.ClassName]) end
+		end
+		
+		for k,v in pairs(wpn.DummyAttachmentTable) do
+			if k != "BaseClass" then MakeSection(k) end
+		end
+		
+		m.cb = vgui.Create("DButton", m)
+		m.cb:SetText("Commit Changes")
+		m.cb:SetPos(m:GetWide()/3.5, m:GetTall()-36)
+		m.cb:SetSize(200, 32)
+		m.cb:SetFont(DRC.Inspection.Theme.Fonts.Header)
+		m.cb:SetTextColor(DRC.Inspection.ThemeColours_Attachments.Text)
+		m.cb:Dock(TOP)
+		function m.cb:Paint(w,h)
+			draw.RoundedBox(0, 0, 0, w, h, DRC.Inspection.ThemeColours_Attachments.Background)
+		end
+		m.cb.DoClick = function() 
+			DRC:ToggleAttachmentMenu(wpn, false)
+			net.Start("DRC_WeaponAttachClose")
+			net.WriteEntity(wpn)
+			net.WriteEntity(LocalPlayer())
+			net.SendToServer()
+		end
+		
 	else
-		attachpos.data[att] = nil
+		if DRC.AttachMenu.mpanel then
+			surface.PlaySound(DRC.Inspection.Theme.Sounds.Exit)
+			DRC.AttachMenu.mpanel:Remove()
+		end
 	end
 end
 
-hook.Add("PreDrawViewModel", "drc_Attachment_Menu", function( vm, ply, wpn )
-	if not CLIENT then return end -- fuck singleplayer
-	if wpn.Draconic == nil then return end
-	for k, v in pairs(attachpos.data) do
-		DrawVMAttachments(k, vm)
-	end
-end)
 
 
 
@@ -979,15 +1107,15 @@ local function GetLastSecondFramerate(ct)
 end
 
 local function drc_Debug()
-	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
-	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
+	if DRC:DebugModeEnabled() == false then return end
+	local debuglevel = GetConVar("cl_drc_debugmode"):GetString()
 	
 	local chmode = GetConVar("cl_drc_debug_crosshairmode"):GetFloat()
 	local legacy = GetConVar("cl_drc_debug_legacyassistant"):GetFloat()
 
 	local curswep = LocalPlayer():GetActiveWeapon()
 	
-		if GetConVar("cl_drc_debugmode"):GetString() == "1" or GetConVar("cl_drc_debugmode"):GetString() == "2" then
+		if debuglevel == "1" or debuglevel == "2" then
 			local ply = LocalPlayer()
 			local curswep = ply:GetActiveWeapon()
 			local staticmat = Material("vgui/replay/replay_camera_crosshair")
@@ -1000,7 +1128,7 @@ local function drc_Debug()
 					local spread = curswep.Primary.Spread
 					local spreaddiv = curswep.Primary.SpreadDiv
 				
-					local heat = curswep.Weapon:GetNWInt("Heat")
+					local heat = curswep.Weapon:GetHeat()
 					local bs = curswep.BloomValue * (spread / spreaddiv) * 20
 					local prevbs = curswep.PrevBS * (spread / spreaddiv) * 20
 					local smoothbs = 1.5
@@ -1080,8 +1208,8 @@ local function drc_Debug()
 			end
 		end
 	
-	if GetConVar("cl_drc_debugmode"):GetString() == "0" then
-	elseif GetConVar("cl_drc_debugmode"):GetString() == "1" then
+	if debuglevel == "0" then
+	elseif debuglevel == "1" then
 		if legacy == 1 then
 			if curswep.Draconic != true then
 			else
@@ -1108,7 +1236,7 @@ local function drc_Debug()
 				end
 				
 				if curswep.Base == "draconic_battery_base" then
-					heatint = "".. math.Round(curswep.Weapon:GetNWInt("Heat"), 3) .."%"
+					heatint = "".. math.Round(curswep.Weapon:GetHeat(), 3) .."%"
 				elseif curswep.Base == "draconic_gun_base" then
 					heatint = "Not a Battery Base weapon."
 				else
@@ -1118,9 +1246,9 @@ local function drc_Debug()
 				if curswep.Base == "draconic_battery_base" then
 					if curswep.LowerRPMWithHeat == true then
 						if curswep.LoadAfterShot == false then
-							rpm = "".. math.Round(math.Clamp((curswep.Primary.RPM / (curswep.Weapon:GetNWInt("Heat") * 2.5 / 50)), (curswep.HeatRPMmin), (curswep.Primary.RPM))) ..""
+							rpm = "".. math.Round(math.Clamp((curswep.Primary.RPM / (curswep.Weapon:GetHeat() * 2.5 / 50)), (curswep.HeatRPMmin), (curswep.Primary.RPM))) ..""
 						else
-							rpm = "".. math.Round(math.Clamp((curswep.Primary.RPM / (curswep.Weapon:GetNWInt("Heat") * 2.5 / 50)), (curswep.HeatRPMmin), (curswep.Primary.RPM))) .." - Manual load"
+							rpm = "".. math.Round(math.Clamp((curswep.Primary.RPM / (curswep.Weapon:GetHeat() * 2.5 / 50)), (curswep.HeatRPMmin), (curswep.Primary.RPM))) .." - Manual load"
 						end
 					else
 						if curswep.LoadAfterShot == false then
@@ -1286,8 +1414,8 @@ drc_vm_angmedian = 0
 drc_vmapos = Vector(0, 0, 0)
 
 local function DrawVMAttachments(att, ent)
-	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
-	
+	if DRC:DebugModeEnabled() == false then return end
+	local debuglevel = GetConVar("cl_drc_debugmode"):GetString()
 	
 	if !att then return end
 	if !IsValid(ent) then return end
@@ -1327,7 +1455,7 @@ local function DrawVMAttachments(att, ent)
 	
 	local newpos = wpn:FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false)
 	
-	if GetConVar("cl_drc_debugmode"):GetString() != "1" then return end
+	if debuglevel != "1" then return end
 	local vmattach = GetConVar("cl_drc_debug_vmattachments"):GetFloat()
 	if vmattach != 1 then return end
 	
@@ -1372,9 +1500,8 @@ hook.Add( "PostDrawOpaqueRenderables", "DRC_VisualizeAimAssist", function()
 end ) --]]
 
 hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
-	if not CLIENT then return end -- fuck singleplayer
+	if !CLIENT then return end -- fucking singleplayer
 	
---	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
 	if wpn.Draconic == nil then return end
 	for k, v in pairs(vm:GetAttachments()) do
 		DrawVMAttachments(v.name, vm)

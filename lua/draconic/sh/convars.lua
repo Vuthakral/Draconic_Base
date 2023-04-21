@@ -1,6 +1,10 @@
 DRC.Convars_CL = {}
 DRC.Convars_SV = {}
 
+function DRC:DebugModeAllowed()
+	if GetConVar("sv_drc_allowdebug"):GetFloat() != 0 then return true else return false end
+end
+
 if GetConVar("sv_drc_movement") == nil then DRC.Convars_SV.Movement = CreateConVar("sv_drc_movement", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom movement modifiers of ALL weapons made on the Draconic SWEP Base.", 0, 1) end
 if GetConVar("sv_drc_movesounds") == nil then DRC.Convars_SV.MoveSounds = CreateConVar("sv_drc_movesounds", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.", 0, 1) end
 if GetConVar("sv_drc_force_sprint") == nil then DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_force_sprint", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Forces all DSB weapons to use the passive-sprint system, regardless of SWEP author intention.", 0, 1) end
@@ -17,13 +21,19 @@ if GetConVar("sv_drc_disable_crosshairs") == nil then DRC.Convars_SV.DisableCros
 if GetConVar("sv_drc_forcebasegameammo") == nil then DRC.Convars_SV.BaseGameAmmo = CreateConVar("sv_drc_forcebasegameammo", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Force Draconic weaapons to use standard base-game ammunition. (Requires weapon respawn on toggle)", 0, 1) end
 if GetConVar("sv_drc_infiniteammo") == nil then DRC.Convars_SV.InfiniteAmmo = CreateConVar("sv_drc_infiniteammo", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "0 off | 1 Infinite | 2 Bottomless Mag", 0, 2) end
 if GetConVar("cl_drc_disable_errorhints") == nil then DRC.Convars_SV.ErrorHitns = CreateConVar("cl_drc_disable_errorhints", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disables error hints from displaying.", 0, 1) end
-if GetConVar("sv_drc_disable_attachmentmodifying") == nil then DRC.Convars_SV.SWEPAttachments = CreateConVar("sv_drc_disable_attachmentmodifying", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disallow players from modifying weapon attachments.", 0, 1) end
 if GetConVar("sv_drc_playerrep_disallow") == nil then DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_playerrep_disallow", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Disables players from accessing playermodel customization from the Draconic Menu.", 0, 1) end
-if GetConVar("sv_drc_playerrep_tweakonly") == nil then DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_playerrep_tweakonly", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Limits players to only changing their colours/bodygroup/skin in the Draconic Menu.", 0, 1) end
+if GetConVar("sv_drc_playerrep_tweakonly") == nil then DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_playerrep_tweakonly", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Limits players to only changing their colours/bodygroup/skin in the Draconic Menu. Set to 2 to limit it to colours only, or 3 for bodygroups only.", 0, 3) end
 if GetConVar("sv_drc_soundtime_disabled") == nil then DRC.Convars_SV.DisableTP = CreateConVar("sv_drc_soundtime_disabled", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_DEMO}, "Pitch of audio changing with host_timescale", 0, 1) end
 if GetConVar("sv_drc_voicesets_noanimations") == nil then CreateConVar("sv_drc_voicesets_noanimations", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_DEMO}, "Whether or not to disable animations from playing for the 'Help!' and 'Let's go!' voicesets.", 0, 1) end
+if GetConVar("sv_drc_attachments_disallowmodification") == nil then DRC.Convars_SV.SWEPAttachments = CreateConVar("sv_drc_attachments_disallowmodification", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disallow players from modifying weapon attachments.", 0, 1) end
+if GetConVar("sv_drc_attachments_autounlock") == nil then DRC.Convars_SV.SWEPAttachments = CreateConVar("sv_drc_attachments_autounlock", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "When enabled, weapons will spawn with all attachments unlocked. When disabled, only the default (first) attachment in each slot will be unlocked and others will need to be manually picked up or granted to the player by the server.", 0, 1) end
+
 
 if CLIENT then
+	function DRC:DebugModeEnabled()
+		if DRC:DebugModeAllowed() == true && GetConVar("cl_drc_debugmode"):GetFloat() != 0 then return true else return false end
+	end
+
 	if GetConVar("cl_playerhands") == nil then CreateConVar("cl_playerhands", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
 	if GetConVar("cl_playerhands_bodygroups") == nil then CreateConVar("cl_playerhands_bodygroups", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
 	if GetConVar("cl_playerhands_skin") == nil then CreateConVar("cl_playerhands_skin", "", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "c_arms for the player to use, if the server allows for customization of this.") end
@@ -38,9 +48,11 @@ if CLIENT then
 	if GetConVar("cl_drc_debug_lights") == nil then DRC.Convars_CL.Debug_Lights = CreateConVar("cl_drc_debug_lights", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
 	if GetConVar("cl_drc_debug_sounds") == nil then DRC.Convars_CL.Debug_Sounds = CreateConVar("cl_drc_debug_sounds", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable visualizing lights created by the Draconic Base.", 0, 1) end
 	if GetConVar("cl_drc_debug_cubemaps") == nil then DRC.Convars_CL.Debug_Cubemaps = CreateConVar("cl_drc_debug_cubemaps", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering the locations of env_cubemap entities.", 0, 1) end
+	if GetConVar("cl_drc_debug_cubefallbacks") == nil then DRC.Convars_CL.Debug_Cubemaps = CreateConVar("cl_drc_debug_cubefallbacks", 0, {FCVAR_USERINFO}, "Enable/Disable forcing the Draconic Base to think that the current map does not have any envmaps.", 0, 1) end
 	if GetConVar("cl_drc_debug_alwaysshowshields") == nil then DRC.Convars_CL.Debug_Shields = CreateConVar("cl_drc_debug_alwaysshowshields", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "When set to 1 all DRC shields will constantly render.", 0, 1) end
 	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
 	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
+	if GetConVar("cl_drc_experimental_fp_chestscale") == nil then CreateConVar("cl_drc_experimental_fp_chestscale", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Scale inward your playermodel's chest region in first person if your playermodel is blocking your view.", 0, 1) end
 	if GetConVar("cl_drc_testvar_0") == nil then CreateConVar("cl_drc_testvar_0", 0, {FCVAR_USERINFO}, "This variable is used to toggle experimental features, please use the menu to change these settings.", 0, 1) end
 	if GetConVar("cl_drc_testvar_1") == nil then CreateConVar("cl_drc_testvar_1", 0, {FCVAR_USERINFO}, "This variable is used to toggle experimental features, please use the menu to change these settings.", 0, 1) end
 	if GetConVar("cl_drc_testvar_2") == nil then CreateConVar("cl_drc_testvar_2", 0, {FCVAR_USERINFO}, "This variable is used to toggle experimental features, please use the menu to change these settings.", 0, 1) end
@@ -56,7 +68,7 @@ if CLIENT then
 	if GetConVar("cl_drc_thirdperson_disable_freelook") == nil then CreateConVar("cl_drc_thirdperson_disable_freelook", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disable freelook movement in third person.", 0, 1)	end
 	DRC.Convars_CL.ForceEFP = false
 
-	if GetConVar("cl_drc_sway") == nil then CreateConVar("cl_drc_sway", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable predictive-aim weapon swaying", 0, 1)end
+--	if GetConVar("cl_drc_sway") == nil then CreateConVar("cl_drc_sway", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable predictive-aim weapon swaying", 0, 1)end
 	if GetConVar("cl_drc_voiceset") == nil then CreateConVar("cl_drc_voiceset", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)") end
 	if GetConVar("cl_drc_voiceset_automatic") == nil then CreateConVar("cl_drc_voiceset_automatic", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Automatatically update your VoiceSet to what playermodel authors assign.", 0, 1) end
 	
@@ -89,6 +101,7 @@ if CLIENT then
 	if GetConVar("cl_drc_accessibility_photosensitivity_muzzle") == nil then CreateConVar("cl_drc_accessibility_photosensitivity_muzzle", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Dim the effects of the dynamic-light muzzle flashes on Draconic weapons", 0, 1) end
 	if GetConVar("cl_drc_accessibility_colourblind") == nil then CreateConVar("cl_drc_accessibility_colourblind", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Probably a bad attempt at making game-wide colour correction for those who need it.") end
 	if GetConVar("cl_drc_accessibility_colourblind_strength") == nil then CreateConVar("cl_drc_accessibility_colourblind_strength", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100) end
+	if GetConVar("cl_drc_accessibility_amduser") == nil then CreateConVar("cl_drc_accessibility_amduser", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Changes how certain stuff in the Draconic Base renders to be AMD compatible.", 0, 1) end
 	
 	if GetConVar("cl_drc_menubg") == nil then CreateConVar("hlmv/background", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Background image to use on the Draconic Menu", 0, 100) end
 	

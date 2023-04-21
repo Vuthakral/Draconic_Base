@@ -49,28 +49,30 @@ net.Receive("DRC_MakeShieldEnt", function(l, ply)
 	DRC:MakeShield(ent)
 end)
 
-	function DRC:GetCustomizationAllowed()
-		local gamemode = tostring(engine.ActiveGamemode())
-		local svtoggle = GetConVar("sv_drc_playerrep_disallow"):GetFloat()
-		local svtweaktoggle = GetConVar("sv_drc_playerrep_tweakonly"):GetFloat()
+function DRC:GetCustomizationAllowed()
+	local gamemode = tostring(engine.ActiveGamemode())
+	local svtoggle = GetConVar("sv_drc_playerrep_disallow"):GetFloat()
+	local svtweaktoggle = GetConVar("sv_drc_playerrep_tweakonly"):GetFloat()
 		
-		if !table.IsEmpty(DRC.CurrentRPModelOptions) then return true end
+	if !table.IsEmpty(DRC.CurrentRPModelOptions) then return true end
 		
-		if svtoggle == 1 then return false end
-		if svtweaktoggle == 1 then return nil end
+	if svtoggle == 1 then return false end
+	if svtweaktoggle >= 1 then return nil, svtweaktoggle end
 		
-		local allowedGMs = {
-			["sandbox"] = "E",
-		}
-		local tweakGMs = {
-			["darkrp"] = "E",
-			["helix"] = "E",
-			["cwrp"] = "E",
-		}
-		
-		if allowedGMs[gamemode] then return true end
-		if tweakGMs[gamemode] then return nil end
-	end
+--[[	local allowedGMs = {
+		["sandbox"] = "E",
+	}
+	local tweakGMs = {
+		["darkrp"] = "E",
+		["helix"] = "E",
+		["cwrp"] = "E",
+	}
+	
+	if allowedGMs[gamemode] then return true, svtweaktoggle end
+	if tweakGMs[gamemode] then return nil, svtweaktoggle end
+	if !allowedGMs[gamemode] && !tweakGMs[gamemode] then return true end ]]
+	return true
+end
 
 function DRC:DistFromLocalPlayer(pos, sqr)
 	if !pos or !IsValid(LocalPlayer()) then return nil end
@@ -246,35 +248,32 @@ net.Receive("DRCNetworkedAddText", function(length, ply)
 end)
 
 net.Receive("DRCNetworkGesture", function(len, ply)
-	local tbl = net.ReadTable()
-	
-	local plyr = tbl.Player
-	local slot = tbl.Slot
-	local act = tbl.Activity
-	local akill = tbl.Autokill
+	local plyr = net.ReadEntity()
+	local slot = net.ReadFloat()
+	local act = net.ReadFloat()
+	local akill = net.ReadBool()
 
 	DRC:PlayGesture(plyr, slot, act, akill)
 end)
 
 net.Receive("DRCSound", function(len, ply)
-	local nt = net.ReadTable()
+--	local nt = net.ReadTable()
+	local source = net.ReadEntity()
+	local distance = net.ReadFloat()
+	local sounds = {net.ReadString(), net.ReadString()}
 	local ply = LocalPlayer()
-	
-	source = nt.Src or nil
-	listener = nt.List or nil
-	distance = nt.Dist or 1000
 	
 	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
 		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() > 0 then
-			near = nt.Far or ""
-			far = nt.Near or ""
+			near = sounds[1] or ""
+			far = sounds[2] or ""
 		else
-			near = nt.Near or ""
-			far = nt.Far or ""
+			near = sounds[1] or ""
+			far = sounds[2] or ""
 		end
 	else
-		near = nt.Near or ""
-		far = nt.Far or ""
+		near = sounds[1] or ""
+		far = sounds[2] or ""
 	end
 		
 	if !IsValid(source) then return end
@@ -305,7 +304,7 @@ end)
 net.Receive("DRC_SetRPModels", function(length, ply)
 	local models = net.ReadTable()
 	DRC.CurrentRPModelOptions = models
-	PrintTable(DRC.CurrentRPModelOptions)
+--	PrintTable(DRC.CurrentRPModelOptions)
 end)
 
 local HideHUDElements = {
@@ -464,11 +463,63 @@ function DRC:IsDraconicThirdPersonEnabled(ply)
 	return false
 end
 
+net.Receive("DRC_NetworkScreenShake", function()
+	local pos, amp, freq, dur, radi = net.ReadVector(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
+	
+	
+	for k,v in pairs(ents.FindInSphere(pos, radi)) do
+		if v == LocalPlayer() then
+			local dist = pos:Distance(LocalPlayer():GetPos() + LocalPlayer():OBBCenter())
+			local frac = dist/radi
+			local power = amp * (1-frac)/10
+			v.CalcViewTPShakePower = math.Clamp(power, 0, 1)
+			v.CalcViewTPShakeLastDur = dur
+		end
+	end
+end)
+
+local NegateTick = 0
+hook.Add("Think", "DRC_CalcViewShakeNegation", function()
+	if CurTime() < NegateTick then return end
+	if !LocalPlayer().CalcViewTPShakePower then LocalPlayer().CalcViewTPShakePower = 0 end
+	if !LocalPlayer().CalcViewTPShakeLastDur then LocalPlayer().CalcViewTPShakeLastDur = 0 end
+	local durval = LocalPlayer().CalcViewTPShakeLastDur
+	if durval >= 1 then durval = math.Clamp(LocalPlayer().CalcViewTPShakeLastDur/5, 0.01, 1) else durval = (1 - LocalPlayer().CalcViewTPShakeLastDur)/2.5 end
+	NegateTick = CurTime() + 0.1
+	LocalPlayer().CalcViewTPShakePower = math.Clamp(LocalPlayer().CalcViewTPShakePower - durval, 0.01, 1)
+end)
+
+function DRC:GetCalcViewShake()
+	local shake = TimedSin(LocalPlayer().CalcViewTPShakePower * 50, 0, LocalPlayer().CalcViewTPShakePower * 15, 0) * LocalPlayer().CalcViewTPShakePower
+	local shakevert = TimedSin(LocalPlayer().CalcViewTPShakePower * 25, 0, LocalPlayer().CalcViewTPShakePower * 40, 0) * LocalPlayer().CalcViewTPShakePower
+	return shake, shakevert/10, shake/7.5
+end
+
+net.Receive("DRC_WeaponAttachSwitch_Sync", function()
+	local wpn = net.ReadEntity()
+	local req = net:ReadString()
+	local slot = net:ReadString()
+	
+	wpn:SetupAttachments(req, slot, false, false)
+end)
+
+net.Receive("DRC_WeaponAttachSyncInventory", function()
+	LocalPlayer().DRCAttachmentInventory = net.ReadTable()
+end)
 
 
 
 
 -- ###SWEPs
+hook.Add("PlayerBindPress", "DRC_ClientsideHotkeys", function(ply, bind, pressed, code)
+	if !IsValid(ply) or !ply:Alive() then return end
+	local wpn = ply:GetActiveWeapon()
+	
+	if wpn.Draconic && wpn:GetNWBool("Inspecting") == true && bind == "+zoom" then
+		if wpn:CanCustomize() then DRC:ToggleAttachmentMenu(wpn, true) end
+	return true end
+end)
+
 hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	if !IsValid(ply) then return end
 	if ThirdPersonModEnabled(ply) then return end
@@ -562,7 +613,7 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	if ply:GetNW2Int("TFALean", 1337) != 1337 then
 		DRC.CalcView.Pos = drc_vm_lerppos / drc_vm_lerpdiv - ( origin - drc_calcview_tfapos)
 		DRC.CalcView.Ang = drc_vm_lerpang_final / drc_vm_lerpdiv - ( ang - drc_calcview_tfaang) + DRC.CrosshairAngMod * drc_vm_sightpow
-		if GetConVar("cl_drc_sway"):GetFloat() != 1 then DRC.CalcView.Ang = Angle() end
+	--	if GetConVar("cl_drc_sway"):GetFloat() != 1 then DRC.CalcView.Ang = Angle() end
 		local view = {
 			origin = origin - drc_vm_lerppos / drc_vm_lerpdiv - ( origin - drc_calcview_tfapos),
 			angles = ang - DRC.CalcView.Ang,
@@ -572,7 +623,7 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	else
 		DRC.CalcView.Pos = drc_vm_lerppos / drc_vm_lerpdiv
 		DRC.CalcView.Ang = drc_crosshair_pitchmod - drc_vm_lerpang_final / drc_vm_lerpdiv + DRC.CrosshairAngMod * drc_vm_sightpow
-		if GetConVar("cl_drc_sway"):GetFloat() != 1 then DRC.CalcView.Ang = Angle() end
+	--	if GetConVar("cl_drc_sway"):GetFloat() != 1 then DRC.CalcView.Ang = Angle() end
 		local view = {
 			origin = origin - drc_vm_lerppos / drc_vm_lerpdiv,	
 			angles = ang + DRC.CalcView.Ang,
@@ -582,7 +633,8 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	end
 end)
 
-hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang, pos, ang)
+
+function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 	if wpn.Draconic then
 		local ply = wpn:GetOwner()
 		if IsValid(ply) then
@@ -607,10 +659,10 @@ hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang
 					elseif ply:Crouching() then
 						rollmul = 0.75
 					else
-						rollmul = 1.35
+						rollmul = 1
 					end
 					
-					rollmul = rollmul * wpn.VelInterp
+					rollmul = (rollmul * wpn.VelInterp) * wpn.RollingPower
 					
 					if ply:KeyDown(IN_MOVELEFT) then
 						rollval = -3.35 * rollmul
@@ -638,7 +690,7 @@ hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang
 					end
 					
 					if sd then wpn.dang = wpn.dang * 0.85 end
-					if GetConVar("cl_drc_sway"):GetInt() < 1 then wpn.dang = Angle(0, 0, 0) end
+				--	if GetConVar("cl_drc_sway"):GetInt() < 1 then wpn.dang = Angle(0, 0, 0) end
 					
 					local dynang = Angle(wpn.dang.x * -wpn.SS/1.25, wpn.dang.y * wpn.SS/2, wpn.dang.z + rollval_lerp)*2
 					
@@ -651,6 +703,13 @@ hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang
 					
 					wpn.dynmove = {["Ang"] = dynang, ["Pos"] = newpos, ["Roll"] = rollval_lerp}
 				end
+			end
+		end
+	end
+end
+
+hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang, pos, ang)
+	DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 				
 		--[[		if LocalPlayer():GetInfoNum("cl_drc_testvar_0", 0) == 1 then
 					local function Ease(fr, f, t)
@@ -730,9 +789,7 @@ hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang
 					newpos:Add(ang:Up() * bob.z)
 				end --]]
 		--	return newpos, newang
-			end
-		end
-	end
+
 end)
 
 
@@ -779,6 +836,8 @@ end)
 
 concommand.Add("drc_refreshcsents", function()
 	if IsValid(DRC.CSPlayerModel) then DRC.CSPlayerModel:Remove() end
+	if IsValid(DRC.CSShadowModel) then DRC.CSShadowModel:Remove() end
+	if IsValid(DRC.CSWeaponShadow) then DRC.CSWeaponShadow:Remove() end
 	if IsValid(DRC.CSPlayerHandShield) then DRC.CSPlayerHandShield:Remove() end
 end)
 
@@ -823,7 +882,7 @@ local function drc_DebugUI()
 		
 		if curswep.Draconic == true then
 			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNWInt("LoadedAmmo"), 4) ..")/".. maxammo .."", "TargetID", ScrW() * 0.975, ScrH() * 0.855, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. math.Round(curswep:GetNWInt("Heat"), 4) .."%", "TargetID", ScrW() * 0.975, ScrH() * 0.875, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. math.Round(curswep:GetHeat(), 4) .."%", "TargetID", ScrW() * 0.975, ScrH() * 0.875, color_white, TEXT_ALIGN_RIGHT )
 			draw.DrawText( "".. curswep.Category .." - ".. curswep:GetPrintName() .."", "TargetID", ScrW() * 0.975, ScrH() * 0.835, color_white, TEXT_ALIGN_RIGHT )
 			draw.DrawText( "".. curswep.OwnerActivity .."", "TargetID", ScrW() * 0.5, ScrH() * 0.82, color_white, TEXT_ALIGN_CENTER )
 			
@@ -922,7 +981,7 @@ local function drc_TraceInfo()
 		end
 	end
 	
-	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
+	local BaseProfile = scripted_ents.GetStored("drc_abp_generic")
 	local BaseBT = BaseProfile.t.BulletTable
 	local BaseDT = BaseBT.MaterialDamageMuls
 	local enum = nil
@@ -959,6 +1018,11 @@ hook.Add("HUDPaint", "drc_TraceInfo", drc_TraceInfo)
 DRC.Debug.TraceLines = {}
 DRC.Debug.Lights = {}
 DRC.Debug.Sounds = {}
+
+hook.Add("PostDrawTranslucentRenderables", "drc_DebugMenuPM", function()
+	local tgtent = DRC.PlayermodelMenuEnt
+	
+end)
 
 hook.Add("PostDrawTranslucentRenderables", "drc_DebugStuff", function()
 	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end

@@ -6,7 +6,7 @@
 	"$envmaptint" "[1 1 1]"
 	"$envmapsaturation" "[1 1 1]"
 
-	$cubemappower	2
+	$cubemappower	1
 
 	Proxies
 	{

@@ -3,15 +3,12 @@
 	"$baseTexture" "Models/ShaderTest/envball_2"
 	"$envmap" "env_cubemap"
 
-	$cubemappower	5
+	$cubemappower	1
 	$cubemaptint	"[ 1 1 1 ]"
 
 	Proxies
 	{
-		drc_ReflectionTint
-		{
-			resultVar	$envmaptint
-		}
+		drc_ReflectionTint{}
 	}
 }
 

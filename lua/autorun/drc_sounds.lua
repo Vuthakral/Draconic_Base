@@ -581,3 +581,51 @@ sound.Add({
 	sound = { "draconic/foley/shotgun_down0.wav",
 	"draconic/foley/shotgun_down1.wav" }
 })
+
+
+
+sound.Add({
+	name = "draconic.DoorSlamStop_Metal",
+	channel = CHAN_ITEM,
+	volume = 1,
+	level = 80,
+	pitch = { 90, 100 },
+	sound = { "physics/metal/metal_grate_impact_hard1.wav",
+	"physics/metal/metal_grate_impact_hard2.wav",
+	"physics/metal/metal_grate_impact_hard3.wav" }
+})
+
+sound.Add({
+	name = "draconic.DoorSlamHit_Metal",
+	channel = CHAN_ITEM,
+	volume = 1,
+	level = 80,
+	pitch = { 90, 100 },
+	sound = { "physics/metal/metal_sheet_impact_hard2.wav",
+	"physics/metal/metal_sheet_impact_hard6.wav",
+	"physics/metal/metal_sheet_impact_hard7.wav",
+	"physics/metal/metal_sheet_impact_hard8.wav" }
+})
+
+sound.Add({
+	name = "draconic.DoorSlamStop_Wood",
+	channel = CHAN_ITEM,
+	volume = 1,
+	level = 80,
+	pitch = { 90, 100 },
+	sound = { "physics/wood/wood_crate_impact_hard1.wav",
+	"physics/wood/wood_crate_impact_hard5.wav",
+	"physics/wood/wood_box_impact_hard1.wav" }
+})
+
+sound.Add({
+	name = "draconic.DoorSlamHit_Wood",
+	channel = CHAN_ITEM,
+	volume = 1,
+	level = 80,
+	pitch = { 90, 100 },
+	sound = { "physics/wood/wood_plank_impact_hard1.wav",
+	"physics/wood/wood_plank_impact_hard3.wav",
+	"physics/wood/wood_plank_impact_hard4.wav",
+	"physics/wood/wood_plank_impact_hard5.wav" }
+})

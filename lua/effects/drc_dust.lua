@@ -26,7 +26,7 @@ function EFFECT:Init( data )
 			OGCol.y = math.Clamp(OGCol.y + (LighCol.g * 255), 0, 255)
 			OGCol.z = math.Clamp(OGCol.z + (LighCol.b * 255), 0, 255)
 			
-			particle:SetLighting(false)
+			particle:SetLighting(true)
 			particle:SetPos(Pos + Vector(math.Rand(-self.Magnitude*2, self.Magnitude*2), math.Rand(-self.Magnitude*2, self.Magnitude*2), 1))
 			particle:SetVelocity((self.Normal * 0.5) * math.Rand(-2, 2) * self.Magnitude )
 			particle:SetLifeTime(math.Rand(0.1, 0.15)) 
@@ -44,6 +44,20 @@ function EFFECT:Init( data )
 			particle:SetAirResistance(200)
 			particle:SetCollide(false)
 			particle:SetBounce(math.Rand(0.1,0.5))
+			
+			particle:SetNextThink(CurTime())
+			particle:SetThinkFunction(function(part)
+				local ll = render.GetLightColor(part:GetPos())
+				local lla = ll.x + ll.y + ll.z / 3
+				local mini = 1
+				local smoketint = Vector(math.Clamp((200 * ll.x), mini, 255), math.Clamp((200 * ll.y), mini, 255), math.Clamp((200 * ll.z), mini, 255))
+				local boost = 50
+				smoketint.x = smoketint.x + (boost * lla)
+				smoketint.y = smoketint.y + (boost * lla)
+				smoketint.z = smoketint.z + (boost * lla)
+				part:SetColor(smoketint.x,smoketint.y,smoketint.z)
+				part:SetNextThink(CurTime())
+			end)
 		end
 	end
 

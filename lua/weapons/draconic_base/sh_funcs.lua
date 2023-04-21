@@ -2,30 +2,104 @@ AddCSLuaFile()
 
 SWEP.ChargeValue = 0
 function SWEP:GetCharge()
-	return self:GetNWInt("Charge")
+	return self.ChargeValue
 end
+
 function SWEP:SetCharge(val)
-	self:SetNWInt("Charge", val)
+	self.ChargeValue = val
 end
+
 function SWEP:AddCharge(val)
-	self:SetNWInt("Charge", math.Clamp(self:GetCharge() + val, 0, 100))
+	self.ChargeValue = math.Clamp(self:GetCharge() + val, 0, 100)
 end
+
 function SWEP:SubCharge(val)
-	self:SetNWInt("Charge", math.Clamp(self:GetCharge() - val, 0, 100))
+	self.ChargeValue = math.Clamp(self:GetCharge() - val, 0, 100)
 end
 
 SWEP.HeatValue = 0
 function SWEP:GetHeat()
-	return self:GetNWInt("Heat")
+	return self:GetNWFloat("Heat")
 end
+
 function SWEP:SetHeat(val)
-	self:SetNWInt("Heat", val)
+	self.HeatValue = val
+	if SERVER then self:SetNWFloat("Heat", val) end
+	local ply = self:GetOwner()
+	if IsValid(ply) then
+		if ply:IsPlayer() then
+			ply:SetAmmo(val, "ammo_drc_battery")
+		end
+	end
 end
+
 function SWEP:AddHeat(val)
-	self:SetNWInt("Heat", math.Clamp(self:GetHeat() + val, 0, 100))
+	local meth = math.Clamp(self:GetHeat() + val, 0, 100)
+	self.HeatValue = meth
+	if SERVER then self:SetNWFloat("Heat", meth) end
+	if IsValid(ply) then
+		if ply:IsPlayer() then
+			ply:SetAmmo(val, "ammo_drc_battery")
+		end
+	end
 end
+
 function SWEP:SubHeat(val)
-	self:SetNWInt("Heat", math.Clamp(self:GetHeat() - val, 0, 100))
+	local meth = math.Clamp(self:GetHeat() - val, 0, 100)
+	self.HeatValue = meth
+	if SERVER then self:SetNWFloat("Heat", meth) end
+	if IsValid(ply) then
+		if ply:IsPlayer() then
+			ply:SetAmmo(val, "ammo_drc_battery")
+		end
+	end
+end
+
+
+
+
+function SWEP:CanCustomize()
+	if self.IsMelee == true then return false end
+	if GetConVar("sv_drc_attachments_disallowmodification"):GetFloat() == 1 then return false end
+	if self:GetNWBool("Inspecting", false) == false then return false end
+	
+	local cando = true
+	for k,v in pairs(self.AttachmentTable) do
+		if k != "BaseClass" then
+			if #v <= 1 then cando = false end
+		end
+	end
+	return cando
+end
+
+function SWEP:ToggleInspectMode()
+	local ply = self:GetOwner()
+	
+	if GetConVar("sv_drc_inspections"):GetString() == "0" then return end
+	
+	if self:GetNWBool("Inspecting") == false then
+		self.Inspecting = true
+		self:DoPassiveHoldtype()
+		self:SetNWBool("Inspecting", true)
+		if self:GetNWBool("ironsights") == true then 
+			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
+			self:SetNWBool("ironsights", false)
+		else end
+		ply:EmitSound("draconic.IronOutGeneric")
+		if self:GetNWBool("Passive") == true then
+			self:TogglePassive()
+		end
+	else
+		self.Idle = 0
+		self:SetHoldType(self.HoldType)
+		self.Inspecting = false
+		self:SetNWBool("Inspecting", false)
+		ply:EmitSound("draconic.IronInGeneric")
+		timer.Simple(0.42, function()
+			self.Inspecting = false 
+			self.Idle = 1
+		end)
+	end
 end
 
 function SWEP:IsIdle()
@@ -50,6 +124,7 @@ function SWEP:RegeneratingHealth(ply)
 	end)
 end
 
+--[[
 function SWEP:RegeneratingAmmo(self)
 	local ply = self:GetOwner()
 	if not ply:IsPlayer() then return end
@@ -69,6 +144,21 @@ function SWEP:RegeneratingAmmo(self)
 				self:SetClip1(self:GetNWInt("LoadedAmmo"))
 			end
 		end)
+end ]]
+
+function SWEP:RegeneratingAmmo(wpn, delay, amount)
+	if !wpn.AmmoCheck then wpn.AmmoCheck = 0 end
+	if CurTime() > wpn.AmmoCheck then
+		wpn.AmmoCheck = CurTime() + self.RegenAmmo_Interval
+		local ammo = wpn:GetLoadedAmmo()
+		if ammo > wpn:GetMaxClip1()+1 then
+			wpn:SetLoadedAmmo(ammo - 1)
+		elseif ammo < wpn:GetMaxClip1() then
+			if CurTime() > wpn:GetNextPrimaryFire() + delay then
+				wpn:SetLoadedAmmo(math.Clamp(ammo + 1, 0, wpn:GetMaxClip1()))
+			end
+		end
+	end
 end
 
 function SWEP:DisperseHeat()
@@ -85,12 +175,12 @@ function SWEP:DisperseHeat()
 		
 		CurHeat = self:GetHeat()
 		if ply:GetAmmoCount( "ammo_drc_battery" ) >= 101 then
-			self:SetNWInt("Heat", 100)
+			self:SetHeat(100)
 			ply:SetAmmo(self:GetHeat(), "ammo_drc_battery")
 		elseif ply:GetAmmoCount( "ammo_drc_battery" ) >= 0 then
 			if self:GetNWFloat("HeatDispersePower") == 0 then
 			else
-				self:SetNWInt("Heat", math.Clamp( (self:GetHeat() - (self.HeatLossPerInterval * self:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
+				self:SetHeat(math.Clamp( (self:GetHeat() - (self.HeatLossPerInterval * self:GetNWFloat("HeatDispersePower"))), 0, 100), self.Primary.Ammo )
 				ply:SetAmmo(self:GetHeat(), "ammo_drc_battery" )
 			end
 		end
@@ -161,7 +251,6 @@ function SWEP:BloomScore()
 					self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.3) /2, 0, 1)
 				end
 			end
-		--	print(self.BloomValue)
 		end)
 		
 	repeat until timer.Exists(self.BloomScoreName)
@@ -186,17 +275,17 @@ function SWEP:DisperseCharge()
 		
 		if self:GetNWInt("LoadedAmmo") >= 0 then
 			if self.Primary.UsesCharge == true then
-				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
-				else self:SetNWInt("Charge", math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
+				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self.ChargeValue = math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100)
+				else self.ChargeValue = math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100) end
 			else end
 			
 			if self.Secondary.UsesCharge == true then
-				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetNWInt("Charge", math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
-				else self:SetNWInt("Charge", math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
+				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self.ChargeValue = math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100)
+				else self.ChargeValue = math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100) end
 			else end
 			
 			if self:GetCharge() >= 101 then
-				self:SetNWInt("Charge", 100)
+				self.ChargeValue = 100
 			end
 			
 			if self:GetCharge() > 99 then
@@ -211,6 +300,7 @@ function SWEP:CanOvercharge()
 	if self:GetCharge() > 99 then return true else return false end
 end
 
+--[[
 function SWEP:UpdateBloom(mode)
 	local ply = self:GetOwner()
 	if !ply:IsPlayer() then return end
@@ -262,7 +352,40 @@ function SWEP:UpdateBloom(mode)
 		end
 	end
 	
-	ply:SetNWInt("PrevBS", self.BloomValue * 10)
+--	ply:SetNWInt("PrevBS", self.BloomValue * 10)
+end ]]
+
+local bloom_updates = {
+	["standidle"] = 0,
+	["crouchidle"] = 0,
+	["running"] = 0.1,
+	["crouchrunning"] = 0.1,
+	["sprinting"] = 0.3,
+	["crouchingsprinting"] = 0.3,
+}
+local bloom_maximums = {
+	["standidle"] = 1,
+	["crouchidle"] = 1,
+	["running"] = 1.3,
+	["crouchrunning"] = 1.3,
+	["sprinting"] = 1.7,
+	["crouchingsprinting"] = 1.7,
+}
+
+function SWEP:UpdateBloom(mode)
+	local ply = self:GetOwner()
+	local oa, cv, bs, pbs, mul = self.OwnerActivity, ply:Crouching(), self:GetBS(), self:GetPBS(), 1
+	if cv then mul = 0.5 end
+	
+	local kickmodes = {
+		["primary"] = self.Primary.Kick,
+		["secondary"] = self.Secondary.Kick,
+		["overcharge"] = self.OCKick
+	}
+	if !self.Kick then self.Kick = kickmodes[mode] end
+	
+	self.PrevBS = math.Clamp(bs, 0, bloom_maximums[oa])
+	self.BloomValue = math.Clamp((self.BloomValue + bloom_updates[oa] + self.Kick) * mul, 0, bloom_maximums[oa])
 end
 
 function SWEP:GetBS()
@@ -439,7 +562,7 @@ function SWEP:DoMeleeSwing(mode, flipx, flipy, preventanim)
 end
 
 function SWEP:MeleeImpact(range, x, y, i, att)
-	if not SERVER then return end
+	if !SERVER then return end
 	local ply = self:GetOwner()
 	local vm = nil
 	local eyeang = ply:EyeAngles()
@@ -457,7 +580,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	
 	local rhm = math.Round(1 / engine.TickInterval() - 1, 0) / 2
 	
-	if not IsValid(self) or not IsValid(ply) then return end
+	if !IsValid(self) or !IsValid(ply) then return end
 
 	if i < rhm then
 		self.dist = eyepos + ( ply:GetAimVector() * range * ( i / 10) ) * rangemul
@@ -527,6 +650,14 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		self.HSW	= self.Primary.MeleeHitSoundWorld
 	end
 	
+	local damageinfo = DamageInfo()
+	damageinfo:SetAttacker(ply)
+	damageinfo:SetInflictor(self)
+	damageinfo:SetDamageType(self.DT)
+	damageinfo:SetDamageForce((self.Owner:GetRight() * math.random(3568,4235)) + (self.Owner:GetForward() * math.random(6875,7523)))
+	damageinfo:SetDamage(self.Damage)
+	damageinfo:SetBaseDamage(2221208)
+	
 	if ( swingtrace.Hit ) then
 		self:SetNextPrimaryFire( CurTime() + self.DH )
 		self:SetNextSecondaryFire( CurTime() + self.DH )
@@ -536,15 +667,10 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 		for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
 			if timer.Exists("".. tostring(self) .."_SwingImpact".. i .."") then timer.Destroy("".. tostring(self) .."_SwingImpact".. i .."") end
 		end
+		
+		
+		
 		if IsValid(swingtrace.Entity) && DRC:IsCharacter(swingtrace.Entity) then
-			local damageinfo = DamageInfo()
-			damageinfo:SetAttacker(ply)
-			damageinfo:SetInflictor(self)
-			damageinfo:SetDamageType(self.DT)
-			damageinfo:SetDamageForce((self.Owner:GetRight() * math.random(3568,4235)) + (self.Owner:GetForward() * math.random(6875,7523)))
-			damageinfo:SetDamage(self.Damage)
-			damageinfo:SetBaseDamage(2221208)
-			swingtrace.Entity:TakeDamageInfo( damageinfo )
 		elseif swingtrace.Entity:IsValid() and ( !swingtrace.Entity:IsNPC() or !swingtrace.Entity:IsPlayer() ) && !swingtrace.Entity:IsNextBot() && IsValid(swingtrace.Entity:GetPhysicsObject()) then
 			if i < rhm then
 				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
@@ -562,6 +688,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 			util.Decal(self.BD, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
 		end
 	end
+	if IsValid(swingtrace.Entity) then swingtrace.Entity:TakeDamageInfo( damageinfo ) end
 
 	if ( swingtrace.Hit ) then
 		self:DoCustomMeleeImpact(att, swingtrace)
@@ -706,6 +833,7 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 				util.Decal( self:GetAttachmentValue("Ammunition", "BurnDecal"), tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, {self, ply})
 			end
 			
+			self:RunAttachmentFunction("Ammunition", "Callback", nil, {ent, tr, takedamageinfo})
 			self:DoCustomBulletImpact(tr.HitPos, tr.Normal, takedamageinfo)
 		end
 	end
@@ -740,13 +868,22 @@ function SWEP:SetLoadedAmmo(amount)
 	self:SetClip1(amount)
 end
 
+function SWEP:GetLoadedAmmo()
+	if !IsValid(self) then return end
+	return self:GetNWInt("LoadedAmmo", self:Clip1())
+end
+
 function SWEP:DoShoot(mode)
-	local stats = self.StatsToPull
-	local batstats = self.BatteryStats
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
+	local AA = self.ActiveAttachments
+	local IA = self.AttachmentTable
+	local stats = self.StatsToPull
+	local batstats = self.BatteryStats
 	local eyeang = ply:EyeAngles()
-	local tr = nil
+	local sd = DRC:SightsDown(self)
+	
+	local tr
 	if ply:IsNPC() && ply.Draconic == true then
 		tr = ply:GetEyeTrace()
 	else
@@ -767,7 +904,9 @@ function SWEP:DoShoot(mode)
 	local fireseq = self:SelectWeightedSequence(ACT_VM_PRIMARYATTACK)
 	local fireseq2 = self:SelectWeightedSequence(ACT_VM_SECONDARYATTACK)
 	local fireseq3 = self:SelectWeightedSequence(ACT_SPECIAL_ATTACK1)
+	local ironseq = self:SelectWeightedSequence(ACT_VM_DEPLOYED_IRON_FIRE)
 	if mode == "primary" then
+		if sd && ironseq != -1 then fireseq = ironseq end
 		firetime = self:SequenceDuration(fireseq)
 	elseif mode == "secondary" then
 		firetime = self:SequenceDuration(fireseq2)
@@ -777,6 +916,19 @@ function SWEP:DoShoot(mode)
 	self.IdleTimer = CurTime() + firetime
 	self.LastFireTime = CurTime()
 	self.LastFireAnimTime = CurTime() + firetime
+	
+	local function GetProjectile()
+		if AA.AmmunitionTypes == IA.AmmunitionTypes[1] then return stats.Projectile
+		else return AA.AmmunitionTypes.t.BulletTable.ProjectileOverride or stats.Projectile end
+	end
+	
+	local function GetSpeed()
+		if AA.AmmunitionTypes == IA.AmmunitionTypes[1] then return stats.ProjSpeed
+		else return AA.AmmunitionTypes.t.BulletTable.ProjectileSpeed or stats.ProjSpeed end
+	end
+	
+	local projectile = GetProjectile()
+	local speeeeed = GetSpeed()
 	
 	local shotnum = self:GetAttachmentValue("Ammunition", "NumShots")
 	if mode == "primary" then
@@ -813,7 +965,7 @@ function SWEP:DoShoot(mode)
 			if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "overcharge") end
 		end
 		
-		self:SetNWInt("Charge", 0)
+		self.ChargeValue = 0
 		shotnum = self:GetAttachmentValue("Ammunition", "NumShots_OC")
 		
 		if self.Base == "draconic_gun_base" then
@@ -848,11 +1000,9 @@ function SWEP:DoShoot(mode)
 	if stats.ArmourPerShot != 0 then
 		local amount = stats.ArmourPerShot
 		local armour = ply:Armor()
-		local maxarmour = GetConVar("sv_drc_maxrmour"):GetString()
+		local maxarmour = ply:GetMaxArmor()
 		local nextarmour = armour - amount
-		if armour > 0 then
-			ply:SetArmor(math.Clamp(armour - amount, 0, maxarmour))
-		end
+		ply:SetArmor(math.Clamp(armour - amount, 0, maxarmour))
 	end
 	
 	if self.Loading == false && self.ManuallyReloading == false && ply:IsPlayer() then
@@ -887,7 +1037,7 @@ function SWEP:DoShoot(mode)
 	if ply.DraconicNPC then
 		if ply:DraconicNPC() == true then
 			local holdtype = string.lower(self:GetHoldType())
-			local act = ply.HoldTypes[holdtype].range
+			local act = DRC.HoldTypes[holdtype].attack
 			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, act, true)
 		end
 	end
@@ -895,9 +1045,9 @@ function SWEP:DoShoot(mode)
 	if self.Base == "draconic_battery_base" then
 		local heat = self:GetHeat()
 		if stats != self.OCStats then
-			self:SetNWInt("Heat", (self:GetHeat() + batstats.HPS))
+			self:SetHeat((self:GetHeat() + batstats.HPS))
 		else
-			self:SetNWInt("Heat", (self:GetHeat() + batstats.OCHPS))
+			self:SetHeat((self:GetHeat() + batstats.OCHPS))
 		end
 		
 		if self.LowerRPMWithHeat == true then
@@ -920,7 +1070,7 @@ function SWEP:DoShoot(mode)
 		self:ShootFire() 
 	return end
 	
-	if stats.Projectile == nil then
+	if projectile == nil then
 		if CLIENT then self:CalculateSpread() end
 		if ply:IsNextBot() then self:CalculateSpread() end
 		if self.PreventAllBullets == true then return end
@@ -941,7 +1091,7 @@ function SWEP:DoShoot(mode)
 			
 			for i=1,shotnum do
 				local class = ""
-				if istable(stats.Projectile) then class = stats.Projectile[math.Round(math.Rand(1, #stats.Projectile))] else class = stats.Projectile end
+				if istable(stats.Projectile) then class = stats.Projectile[math.Round(math.Rand(1, #stats.Projectile))] else class = projectile end
 				if IsValid(class) && class != "" then return false end
 				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
 				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
@@ -962,7 +1112,7 @@ function SWEP:DoShoot(mode)
 					end
 					if ply.IsVJBaseSNPC then
 						projpos = ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25)
-						projang = projang - Angle(-5, 0 ,0) -- wtf
+						projang = projang - Angle(-10, 0 ,0) -- wtf
 					end
 				else
 					if !DRC:ValveBipedCheck(ply) then -- Unfortunately, muzzle pos does not work in singleplayer unless the local player is being rendered.
@@ -973,7 +1123,7 @@ function SWEP:DoShoot(mode)
 					end
 				end
 				
-				local proj = DRC:CreateProjectile(class, projpos, projang, stats.ProjSpeed, ply, stats.ProjInheritVelocity)
+				local proj = DRC:CreateProjectile(class, projpos, projang, speeeeed, ply, stats.ProjInheritVelocity)
 				self:PassToProjectile(proj)
 				
 				if !self.PTable then self.PTable = {} end
@@ -1050,6 +1200,7 @@ end
 function SWEP:DoEffects(mode, nosound, multishot)
 	if !IsValid(self) then return end
 	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
 	local muzzleattachment = self:LookupAttachment("muzzle")
 	local muzzle = self:GetAttachment(muzzleattachment)
 	local fm = self:GetNWString("FireMode")
@@ -1086,6 +1237,15 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		self.DistSound = self.OCDistSound
 		self.Projectile = self.Primary.OCProjectile
 		self.TracerEffect = self.Primary.TracerEffect
+		if fm == "Semi" or fm == "Auto" then
+			self.Sound = self.OCSound
+			self.DistSound = self.OCDistSound
+			self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
+		else
+			self.Sound = self.OCSound
+			self.DistSound = self.OCDistSound
+			self.SoundDistance = self.Primary.SoundTable.Burst.FarDistance
+		end
 		
 		self.LastHitPos = self.LastHitPos
 	end
@@ -1336,24 +1496,45 @@ function SWEP:ValveBipedCheck()
 	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh then return false else return true end
 end
 
+local BaseABP = scripted_ents.GetStored("drc_abp_generic")
 function SWEP:GetAttachmentValue(att, val, subval)
+	if !BaseABP then BaseABP = scripted_ents.GetStored("drc_abp_generic") end
 	local AA = self.ActiveAttachments
-	local base = scripted_ents.GetStored("drc_att_bprofile_generic")
-	local BT = base.t.BulletTable
+	local BT = BaseABP.t.BulletTable
 	local tab = nil
 	
 	if att == "Ammunition" then
-		tab = AA.Ammunition.t.BulletTable
+		tab = AA.AmmunitionTypes.t.BulletTable
 		
 		local foundval = tab[val]
 		local foundsubval = nil
-		if foundval == nil then foundval = base.t.BulletTable[val] end
+		if foundval == nil then foundval = BaseABP.t.BulletTable[val] end
 		if subval then
 			if tab[val] then foundsubval = tab[val][subval] end
-			if foundsubval == nil then foundsubval = base.t.BulletTable[val][subval] end
+			if foundsubval == nil then foundsubval = BaseABP.t.BulletTable[val][subval] end
 			return foundsubval
 		end
 		return foundval
+	end
+end
+
+function SWEP:RunAttachmentFunction(att, val, subval, args)
+	local AA = self.ActiveAttachments
+	local BT = BaseABP.t.BulletTable
+	local tab = nil
+	
+	if att == "Ammunition" then
+		tab = AA.AmmunitionTypes.t.BulletTable
+		
+		local foundval = tab[val]
+		local foundsubval = nil
+		if foundval == nil then foundval = BaseABP.t.BulletTable[val] end
+		if subval then
+			if tab[val] then foundsubval = tab[val][subval] end
+			if foundsubval == nil then foundsubval = BaseABP.t.BulletTable[val][subval] end
+			foundsubval(args)
+		end
+		foundval(args)
 	end
 end
 

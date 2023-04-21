@@ -1,10 +1,11 @@
 "VertexLitGeneric"
 {
-	"$baseTexture" "Models/ShaderTest/envball_5"
+	"$baseTexture" "models\vuthakral\grey63-0"
 	"$envmap" "env_cubemap"
 
-	$cubemappower	1
-	$cubemaptint	"[ 3 1 1 ]"
+	$cmpower	1
+	$cmtint		"[ 1 1 1 ]"
+	$cmlightsat	0
 
 	Proxies
 	{
@@ -14,7 +15,8 @@
 		}
 		caramell
 		{
-			resultVar	$cubemaptint
+			resultVar	$cmtint
+			resultVar2	$color2
 		}
 	}
 }

@@ -24,6 +24,7 @@ function ENT:Draw()
 	if DRC:ThirdPersonEnabled(ply) == true then return end
 	if DRC:SightsDown(ply:GetActiveWeapon()) then return end
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 0 then return end
+	if ply:FlashlightIsOn() then return end
 	
 	if self:GetModel() != ply:GetModel() then self:SetModel(ply:GetModel()) end
 	self:DrawShadow(true)

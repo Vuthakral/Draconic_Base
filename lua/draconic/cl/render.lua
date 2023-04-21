@@ -96,8 +96,8 @@ drc_badlightmaps = {
 	["gm_emp_chain"] = 0.15,
 }
 -- The only maps that get added to this list are old maps which will not see an update/fix from their authors.
--- This is not meant as a mark of shame, it is used in the Draconic menu to inform developers thatthe map they
--- on has incorrectly compiled lighting, and as a result their content might look a bit scuffed. Values at the
+-- This is not meant as a mark of shame, it is used in the Draconic menu to inform developers that the map they
+-- are on has incorrectly compiled lighting, and as a result their content might look a bit scuffed. Values at the
 -- end are "post fixes" which scales the Draconic Base's Reflection Tint proxies.
 
 drc_singlecubemaps = {
@@ -105,18 +105,18 @@ drc_singlecubemaps = {
 	["gm_cultist_outpost"] = 0.25,
 	["gm_reactionsew"] = 0.1,
 }
--- Maps with no cubemaps baked into them, falling back on the engine default.
+-- Maps with no either cubemaps baked into them falling back on the engine default, or only one single cubemap, preventing proper lighting checks from working.
 
 drc_fullbrightcubemaps = {
 }
 -- Alright, THIS is a mark of shame. Whoever told you to turn on fullbright when compiling cubemaps is an idiot.
 
 drc_verifiedlightmaps = {
-	"gm_construct",
-	"gm_flatgrass",
-	"gm_bigcity",
-	"gm_emp_streetsoffire",
-	"gm_vault",
+	["gm_construct"] = true,
+	["gm_flatgrass"] = true,
+	["gm_bigcity"] = true,
+	["gm_emp_streetsoffire"] = true,
+	["gm_vault"] = true,
 }
 -- Impressive. Very nice.
 

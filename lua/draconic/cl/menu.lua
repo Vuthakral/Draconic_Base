@@ -1,6 +1,17 @@
+local cmap = game.GetMap()
+
+local function GreyOut(element)
+	element:SetEnabled(false)
+	element.GreyOut = vgui.Create("DPanel", element)
+	element.GreyOut:Dock(FILL)
+	element.GreyOut:DockMargin(0, 0, 0, 0)
+	element.GreyOut:SetBackgroundColor(Color(127,127,127,127))
+end
+
 function DRCMenu( player )
     local ply = player
 	local VSelection = ply:GetNWString("DRCVoiceSet")
+	local Customization, TweakMode = DRC:GetCustomizationAllowed()
     
 	local usekey = string.upper(ReturnKey("+use"))
 	local m1key = string.upper(ReturnKey("+attack"))
@@ -116,14 +127,14 @@ function DRCMenu( player )
 	frame.tools:SetSize(590,666)
 	frame.tools:Dock(FILL)
 	frame.tools:SetVisible(false)
-	frame.tools:SetEnabled(false)
+	frame.tools:SetEnabled(true)
 	frame.tools:SetBackgroundColor(Color(0,0,0,0))
 	
 	--local pmodel = LocalPlayer():GetInfo( "cl_playermodel" )
 	--local pmodelname = player_manager.TranslatePlayerModel( pmodel )
 	local pmodelname = LocalPlayer():GetModel()
 	
-	if DRC:GetCustomizationAllowed() != true then pmodelname = LocalPlayer():GetModel() end
+	if Customization != true then pmodelname = LocalPlayer():GetModel() end
 	
 	MapAmbient.r = math.Clamp(MapAmbient.r, 127, 255)
 	MapAmbient.g = math.Clamp(MapAmbient.g, 127, 255)
@@ -166,9 +177,22 @@ function DRCMenu( player )
 	local function SetupScene(mod2)
 		local tab = DRC:GetPlayerModelInfo(mod2)
 		if !tab.Background or tab.Background == "" then bg:SetImage("vgui/drc_playerbg") else bg:SetImage(tab.Background) end
-		if !tab.Podium or tab.Podium == "" then tab = DRC:GetPlayerModelInfo(nil) end
+		if !tab.Background or tab.Background == "" then bg:SetImage("vgui/drc_playerbg") else bg:SetImage(tab.Background) end
+		if !tab.DefaultCam or tab.DefaultCam == "" then tab.DefaultCam = DRC:GetPlayerModelInfo("-drcdefault").DefaultCam end
+		
 		frame.previewfloor:SetModel(tab.Podium[1])
 		frame.previewfloor.PodiumOffset = tab.Podium[2]
+		
+		if tab.DefaultCam then
+			if tab.DefaultCam.Pos then
+				frame.preview:SetCamPos(tab.DefaultCam.Pos)
+				frame.previewfloor:SetCamPos(tab.DefaultCam.Pos)
+			end
+			if tab.DefaultCam.Ang then
+				frame.preview:SetLookAng(tab.DefaultCam.Ang)
+				frame.previewfloor:SetLookAng(tab.DefaultCam.Ang)
+			end
+		end
 	end
 	SetupScene(pmodelname)
 	
@@ -176,6 +200,7 @@ function DRCMenu( player )
 		ent:SetLOD(0)
 		ent.preview = true
 		ent.Preview = true
+		DRC.PlayermodelMenuEnt = ent
 		frame.preview:SetFOV(math.Clamp(frame.preview:GetFOV(), 10, 100))
 		local idle = ent:SelectWeightedSequence(ACT_HL2MP_IDLE)
 		if ent:LookupSequence("drc_menu") != -1 then
@@ -192,13 +217,6 @@ function DRCMenu( player )
 		end
 		local pos = frame.preview:GetCamPos()
 		local ang = frame.preview:GetLookAng()
-		if frame.tools.bgs then frame.tools.bgs:SetText("Bodygroups: ".. ent.BGNum .."") end
-		if frame.tools.skins then frame.tools.skins:SetText("Skins: ".. ent:SkinCount() .."") end
-		if frame.tools.mats then frame.tools.mats:SetText("Materials: ".. #ent:GetMaterials() .."") end
-		if frame.tools.bones then frame.tools.bones:SetText("Bones: ".. ent:GetBoneCount() .."") end
-		if frame.tools.pos then frame.tools.pos:SetText("Cam Position: "..math.Round(pos.x, 2)..", ".. math.Round(pos.y, 2)..", ".. math.Round(pos.z, 2) .."") end
-		if frame.tools.ang then frame.tools.ang:SetText("Cam Angle: "..math.Round(ang.x, 2)..", ".. math.Round(ang.y, 2)..", ".. math.Round(ang.z, 2) .."") end
-		if frame.tools.fov then frame.tools.fov:SetText("FOV: ".. math.Round(frame.preview:GetFOV(), 2) .."") end
 		
 		if !ent.blonk then ent.blonk = 0 end
 		if !ent.blinktime then ent.blinktime = 0 end
@@ -285,9 +303,9 @@ function DRCMenu( player )
 	end
 	function toolsbutton:DoClick()
 		local tools = {
-			frame.tools,
 			bottompanel.copy,
 			bottompanel.hidepodium,
+			bottompanel.debugrender,
 		}
 		for k,v in pairs(tools) do
 			v:SetVisible(true)
@@ -307,9 +325,9 @@ function DRCMenu( player )
 		end
 		function toolsbutton.faketoolsbutton:DoClick()
 			local tools = {
-				frame.tools,
 				bottompanel.copy,
 				bottompanel.hidepodium,
+				bottompanel.debugrender,
 			}
 			for k,v in pairs(tools) do
 				v:SetVisible(false)
@@ -369,7 +387,7 @@ function DRCMenu( player )
 	
 	bottompanel.copy = vgui.Create("DButton", bottompanel)
 	bottompanel.copy:SetSize(128,16)
-	bottompanel.copy:SetPos(64,bottompanel:GetTall() - 40)
+	bottompanel.copy:SetPos(375,bottompanel:GetTall() - 40)
 	bottompanel.copy:SetText("Copy model information")
 	bottompanel.copy:SetTooltip("Copies current model path, name, c_arm path, etc to clipboard.")
 	bottompanel.copy:SetEnabled(false)
@@ -415,6 +433,123 @@ function DRCMenu( player )
 	--	bottompanel.hidepodium:SetText("Copied!")
 	--	SetClipboardText(frame.preview:GetModel())
 	--	timer.Simple(1, function() bottompanel.hidepodium:SetText("Copy model path") end)
+	end
+	
+	bottompanel.debugrender = vgui.Create("DButton", bottompanel)
+	bottompanel.debugrender:SetSize(128, 16)
+	bottompanel.debugrender:SetPos(64, bottompanel:GetTall() -40)
+	bottompanel.debugrender:SetText("Enable Debug")
+	bottompanel.debugrender:SetTooltip("Toggles previewing bones, hitboxes, and attachments.")
+	bottompanel.debugrender:SetEnabled(false)
+	bottompanel.debugrender:SetVisible(false)
+	local debugenabled = false
+	
+	function bottompanel.debugrender:DoClick()
+		if debugenabled == false then
+			debugenabled = true
+			bottompanel.debugrender:SetText("Disable Debug")
+		else
+			debugenabled = false
+			bottompanel.debugrender:SetText("Enable Debug")
+		end
+	end
+	
+	function frame.preview:PostDrawModel(ent)
+		if debugenabled != true then return end
+		local HitboxColours = {
+			DRC.Cols.pulsewhite,
+			Color(255, 0, 0, 255),
+			Color(0, 255, 0, 255),
+			Color(170, 170, 75, 255),
+			Color(0, 0, 255, 255),
+			Color(255, 100, 255, 255),
+			Color(90, 175, 255, 255),
+			Color(255, 255, 255, 255)
+		}
+		
+		local function DoTheFunny(pos,ang, mins, maxs, col)
+			render.SetColorMaterial()
+			render.DrawWireframeBox( pos, ang, mins, maxs, col, true)
+			render.DrawBox( pos, ang, mins, maxs, Color(col.r, col.g, col.b, 5), true)
+		end
+		
+		if !IsValid(ent) then return end
+		if ent:GetHitboxSetCount() == nil then return end
+		for hitgroup=0, ent:GetHitboxSetCount() - 1 do
+			 for box=0, ent:GetHitBoxCount( hitgroup ) - 1 do
+				local pos, ang =  ent:GetBonePosition( ent:GetHitBoxBone(box, hitgroup) )
+				local mins, maxs = ent:GetHitBoxBounds(box, hitgroup)
+				local enum = ent:GetHitBoxHitGroup(box, hitgroup) + 1
+				local col = HitboxColours[enum]
+				if !col then col = Color(255, 255, 255, 255) end
+				DoTheFunny( pos, ang, mins, maxs, col)
+			end
+		end
+		
+		local bones = DRC:GetBones(ent)
+		
+		local function DrawBone(pos, ang, name)
+		if !pos or !ang then return end
+		if pos == Vector() then return end
+			render.SetColorMaterialIgnoreZ()
+			render.DrawSphere( pos, 1, 16, 16, Color( 0, 200, 255, 100 ), true )
+		end
+		
+		local function DrawSkeletal(pos1, pos2)
+			if !pos1 or !pos2 then return end
+			if pos1 == Vector() or pos2 == Vector() then return end
+			render.SetColorMaterialIgnoreZ()
+			render.DrawLine(pos1, pos2, Color(0, 200, 255, 100))
+		end
+		
+		for k,v in pairs(bones) do
+			DrawBone(v.Pos, v.Ang, k)
+			
+			local bone = ent:LookupBone(k)
+			local pos1
+			if bone then 
+				pos1 = ent:GetBonePosition(bone)
+				for k,v in pairs(ent:GetChildBones(bone)) do
+					if v then
+						pos2 = ent:GetBonePosition(v)
+						DrawSkeletal(pos1, pos2)
+					end
+				end
+			end
+		end
+		
+		
+		local function DrawAttachment(pos, ang)
+			render.SetColorMaterialIgnoreZ()
+			render.DrawSphere( pos, 0.75, 4, 4, Color(255, 255, 0, 100))
+	
+			render.DrawLine( pos, pos + ang:Forward() * 5, Color( 255, 0, 0, 100 ) )
+			render.DrawSphere( pos + ang:Forward() * 5, 0.25, 16, 16, Color(255, 0, 0, 100))
+			
+			render.DrawLine( pos, pos + ang:Right() * -5, Color( 0, 255, 0, 100 ) )
+			render.DrawSphere( pos + ang:Right() * -5, 0.25, 16, 16, Color(0, 255, 0, 100))
+			
+			render.DrawLine( pos, pos + ang:Up() * 5, Color( 0, 0, 255, 100 ) )
+			render.DrawSphere( pos + ang:Up() * 5, 0.25, 16, 16, Color(0, 0, 255, 100))
+		end
+		
+		for k,v in pairs(ent:GetAttachments()) do
+			local att = ent:GetAttachment(v["id"])
+			DrawAttachment(att.Pos, att.Ang)
+		end
+	end
+	
+	function frame.preview:PreDrawModel(ent)
+		if debugenabled != true then frame.tools:SetVisible(false) return end
+		frame.tools:SetVisible(true)
+		local pos, ang = frame.preview:GetCamPos(), frame.preview:GetLookAng()
+		if frame.tools.bgs then frame.tools.bgs:SetText("Bodygroups: ".. ent.BGNum .."") end
+		if frame.tools.skins then frame.tools.skins:SetText("Skins: ".. ent:SkinCount() .."") end
+		if frame.tools.mats then frame.tools.mats:SetText("Materials: ".. #ent:GetMaterials() .."") end
+		if frame.tools.bones then frame.tools.bones:SetText("Bones: ".. ent:GetBoneCount() .."") end
+		if frame.tools.pos then frame.tools.pos:SetText("Cam Position: "..math.Round(pos.x, 2)..", ".. math.Round(pos.y, 2)..", ".. math.Round(pos.z, 2) .."") end
+		if frame.tools.ang then frame.tools.ang:SetText("Cam Angle: "..math.Round(ang.x, 2)..", ".. math.Round(ang.y, 2)..", ".. math.Round(ang.z, 2) .."") end
+		if frame.tools.fov then frame.tools.fov:SetText("FOV: ".. math.Round(frame.preview:GetFOV(), 2) .."") end
 	end
 	
 	local tabs = vgui.Create( "DPropertySheet", frame2 )
@@ -763,10 +898,11 @@ function DRCMenu( player )
 		end
 		
 		local tbl = {}
-		if DRC:GetCustomizationAllowed() != true then
+		if Customization == false then -- Disallowed
 			tbl = {
 				["player"] = LocalPlayer(),
-				["model"] = frame.preview:GetModel(),
+				["model"] = LocalPlayer():GetModel(),
+				["colours"] = DRC:GetColours(LocalPlayer(), false),
 				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
@@ -776,7 +912,28 @@ function DRCMenu( player )
 					["skin"] = LocalPlayer():GetInfo("cl_playerhands_skin"),
 				}
 			}
-		else
+		elseif Customization == nil then -- Tweak-only
+			tbl = {
+				["player"] = LocalPlayer(),
+				["model"] = LocalPlayer():GetModel(),
+				["colours"] = {
+					["Energy"] = Color(energyColour:GetColor().r, energyColour:GetColor().g, energyColour:GetColor().b),
+					["Eye"] = Color(eyecolour:GetColor().r, eyecolour:GetColor().g, eyecolour:GetColor().b),
+					["Player"] = Color(playercolour:GetColor().r, playercolour:GetColor().g, playercolour:GetColor().b),
+					["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
+					["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
+					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
+				},
+				["bodygroups"] = bgs,
+				["skin"] = frame.preview:GetEntity():GetSkin(),
+				["voiceset"] = VSelection,
+				["hands"] = {
+					["model"] = handval,
+					["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
+					["skin"] = LocalPlayer():GetInfo("cl_playerhands_skin"),
+				}
+			}
+		elseif Customization == true then -- Allowed
 			tbl = {
 				["player"] = LocalPlayer(),
 				["model"] = frame.preview:GetModel(),
@@ -1134,7 +1291,7 @@ function DRCMenu( player )
 		local function UpdateFromConvars()
 			local model = LocalPlayer():GetInfo( "cl_playermodel" )
 			modelname = player_manager.TranslatePlayerModel( model )
-			if DRC:GetCustomizationAllowed() == true then
+			if Customization == true then
 				util.PrecacheModel( modelname )
 				frame.preview:SetModel( modelname )
 			end
@@ -1484,7 +1641,7 @@ function DRCMenu( player )
 	PCLabel:SetContentAlignment(6)
 	PCLabel:SetColor(Color(0, 0, 0, 255))
 	
-	if DRC:GetCustomizationAllowed() == nil then
+	if Customization == nil then
 		for k,v in pairs(tabs:GetItems()) do
 			if v.Name == "Player" then
 				tabs:CloseTab(v.Tab)
@@ -1494,10 +1651,20 @@ function DRCMenu( player )
 		end
 		tab1:Remove()
 		tab4:Remove()
-		tab5.VoiceSetSettings:Remove()
+	--	GreyOut(tab5.VoiceSetSettings)
+		
+		if TweakMode == 2 then
+			for k,v in pairs(tabs:GetItems()) do
+				if v.Name == "#smwidget.bodygroups" then tabs:CloseTab(v.Tab) end
+			end
+		elseif TweakMode == 3 then
+			for k,v in pairs(tabs:GetItems()) do
+				if v.Name == "Colours" then tabs:CloseTab(v.Tab) end
+			end
+		end
 		
 		tabs:SetActiveTab(tabs:GetItems()[1].Tab)
-	elseif DRC:GetCustomizationAllowed() == false then
+	elseif Customization == false then
 		for k,v in pairs(tabs:GetItems()) do
 			if v.Name == "Player" then
 				tabs:CloseTab(v.Tab)
@@ -1598,22 +1765,24 @@ function DRCMenu( player )
 	AccessibilityTitle:SetContentAlignment(0)
 	
 	local DrcCrosshairs = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcCrosshairs:SetPos(516, 35)
+	DrcCrosshairs:SetPos(516, 100)
 	DrcCrosshairs:SetSize(200, 20)
-	DrcCrosshairs:SetText( "Dim muzzle flashes (Photosensitivity)" )
+	DrcCrosshairs:SetText( "I am photosensitive" )
 	DrcCrosshairs:SetConVar( "cl_drc_accessibility_photosensitivity_muzzle" )
 	DrcCrosshairs.Label:SetColor(TextCol)
 	DrcCrosshairs:SetEnabled(true)
 	
+	MakeHint(t2tab1, 495, 100, "- Dims muzzle flashes from Draconic SWEPs")
+	
 	local ColourBlindSetting = vgui.Create( "DLabel", t2tab1)
-	ColourBlindSetting:SetPos(516, 60)
+	ColourBlindSetting:SetPos(516, 35)
 	ColourBlindSetting:SetSize(100, 20)
 	ColourBlindSetting:SetText("Colour Blindness:")
 	ColourBlindSetting:SetColor(TextCol)
 				
 	local ColourBlindCombo = vgui.Create( "DComboBox", t2tab1 )
 	ColourBlindCombo:SetSortItems(false)
-	ColourBlindCombo:SetPos(600, 60)
+	ColourBlindCombo:SetPos(600, 35)
 	ColourBlindCombo:SetSize(150, 20)
 	ColourBlindCombo:SetConVar( "cl_drc_accessibility_colourblind" )
 	ColourBlindCombo:AddChoice("None", 1)
@@ -1629,10 +1798,10 @@ function DRCMenu( player )
 		RunConsoleCommand("cl_drc_accessibility_colourblind", value)
 	end
 	
-	MakeHint(t2tab1, 750, 60, "This is colour correction intended to make it easier for colourblind/colour-deficient individuals to spot objects/differences that would be plainly visible to others, but not for themselves.\nThis does not 'make everything look normal' for those who use it and should not be considered as such.")
+	MakeHint(t2tab1, 495, 35, "This is colour correction intended to make it easier for colourblind/colour-deficient individuals to spot objects/differences that would be plainly visible to others, but not for themselves.\nThis does not 'make everything look normal' for those who use it and should not be considered as such.\n\n** I am not an optician and this is guesswork at best.")
 	
 	local ColourBlindStrength = vgui.Create( "DNumSlider", t2tab1 )
-	ColourBlindStrength:SetPos(516, 85)
+	ColourBlindStrength:SetPos(516, 55)
 	ColourBlindStrength:SetSize(300, 20)
 	ColourBlindStrength:SetText( "Col. Blind Filter Strength" )
 	ColourBlindStrength.Label:SetColor(TextCol)
@@ -1642,19 +1811,26 @@ function DRCMenu( player )
 	ColourBlindStrength:SetConVar( "cl_drc_accessibility_colourblind_strength" )
 	ColourBlindStrength:SetEnabled(true)
 	
-	t2tab1.ColourBlindDisclaimer = vgui.Create( "DLabel", t2tab1)
-	t2tab1.ColourBlindDisclaimer:SetText("** I am not an optician and this is guesswork at best.")
-	t2tab1.ColourBlindDisclaimer:SetSize(300, 50)
-	t2tab1.ColourBlindDisclaimer:SetPos(516, 90)
-	t2tab1.ColourBlindDisclaimer:SetColor(SubtextCol)
+	t2tab1.AMDUser = vgui.Create( "DCheckBoxLabel", t2tab1 )
+	t2tab1.AMDUser:SetPos(516, 80)
+	t2tab1.AMDUser:SetSize(500, 20)
+	t2tab1.AMDUser:SetText( "I am using an AMD Graphics Card" )
+	t2tab1.AMDUser:SetConVar( "cl_drc_accessibility_amduser" )
+	t2tab1.AMDUser.Label:SetColor(TextCol)
+	t2tab1.AMDUser:SetEnabled(true)
 	
+	MakeHint(t2tab1, 495, 80, "- Forces models to use a fallback cubemap if they are set up for one, as AMD cards frequently have envmaps become missing textures.")
+	
+	--[[
 	local DRCSway = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DRCSway:SetPos(516, 130)
+	DRCSway:SetPos(516, 100)
 	DRCSway:SetSize(500, 20)
-	DRCSway:SetText( "Enable scripted weapon swaying (Motion sickness)" )
+	DRCSway:SetText( "I get motion sickness easily" )
 	DRCSway:SetConVar( "cl_drc_sway" )
 	DRCSway.Label:SetColor(TextCol)
 	DRCSway:SetEnabled(true)
+	
+	MakeHint(t2tab1, 495, 100, "- Turns off scipted bob/sway on Draconic SWEPs") ]]
 	
 	local SettingsTitle_CL = vgui.Create( "DLabel", t2tab1)
 	SettingsTitle_CL:SetText("Client Settings")
@@ -1710,6 +1886,19 @@ function DRCMenu( player )
 	DrcLoweredCrosshair.Label:SetColor(TextCol)
 	DrcLoweredCrosshair:SetEnabled(true)
 	
+	local ChestScale = vgui.Create( "DNumSlider", t2tab1 )
+	ChestScale:SetPos(25, 355)
+	ChestScale:SetSize(300, 20)
+	ChestScale:SetText( "EFP Torso Depth Scale*" )
+	ChestScale.Label:SetColor(TextCol)
+	ChestScale:SetMin( 0 )
+	ChestScale:SetMax( 1 )
+	ChestScale:SetDecimals( 4 )
+	ChestScale:SetConVar( "cl_drc_experimental_fp_chestscale" )
+	ChestScale:SetEnabled(true)
+	
+	MakeHint(t2tab1, 4, 355, "(Default 1) Scales the torso depth down for Experimental First Person, for playermodels with large geoemtry which can get in the way of aiming.")
+	
 	local DrcThirdperson = vgui.Create( "DCheckBoxLabel", t2tab1 )
 	DrcThirdperson:SetPos(25, 75)
 	DrcThirdperson:SetSize(500, 20)
@@ -1725,6 +1914,16 @@ function DRCMenu( player )
 	DrcThirdperson_Dyn:SetConVar( "cl_drc_thirdperson_disable_freelook" )
 	DrcThirdperson_Dyn.Label:SetColor(TextCol)
 	DrcThirdperson_Dyn:SetEnabled(true)
+	
+	local DrcExperimentalFP = vgui.Create( "DCheckBoxLabel", t2tab1 )
+	DrcExperimentalFP:SetPos(25, 115)
+	DrcExperimentalFP:SetSize(500, 20)
+	DrcExperimentalFP:SetText( "Enable ''Experimental First Person'' mode" )
+	DrcExperimentalFP:SetConVar( "cl_drc_experimental_fp" )
+	DrcExperimentalFP.Label:SetColor(TextCol)
+	DrcExperimentalFP:SetEnabled(true)
+	
+	MakeHint(t2tab1, 4, 115, "<< Work in Progress Feature >>\n\n''Experimental First Person'' is a true full-body first person camera system which still utilizes the player's viewmodel.\n\nEFP Does:\n> Show your body in first person, accurate to how it is seen in third-person.\n> Show your character's arms when in a vehicle\n> Add a small amount of viewbobbing based on your character's head\n> Still uses the player's viewmodel, allowing you to see your weapon properly as intended by its creators.\n\nEFP Does NOT:\n> Change the aiming angle to match the new camera position (yet)\n\nCurrent known issues:\n> Body desyncs when game is paused in singleplayer")
 	
 	local VMOX = vgui.Create( "DNumSlider", t2tab1 )
 	VMOX:SetPos(25, 240)
@@ -1808,7 +2007,7 @@ function DRCMenu( player )
 				SvThirdperson:SetConVar( "sv_drc_disable_thirdperson" )
 				SvThirdperson.Label:SetColor(TextCol)
 				
-				MakeHint(t2tab2, 300, 115, "Draconic SWEPs which require thirdperson will still use Draconic thirdperson regardless of this setting.")
+				MakeHint(t2tab2, 4, 115, "Draconic SWEPs which require thirdperson will still use Draconic thirdperson regardless of this setting.")
 				
 				local SvFreecam = vgui.Create( "DCheckBoxLabel", t2tab2 )
 				SvFreecam:SetPos(25, 135)
@@ -1904,7 +2103,7 @@ function DRCMenu( player )
 				LGTitle:SetText("Handicap of how much an NPCs accuracy should be with Draconic guns. \n 0 = Seal Team 6 accuracy (perfect) \n 2 - Half-Life 2 AI Accuracy \n 10 = Can't hit shit.")
 				LGTitle:SetColor(TextCol) --]]
 	
-	local t2tab3 = vgui.Create( "DPanel" )
+--[[	local t2tab3 = vgui.Create( "DPanel" )
 	t2tab3:Dock(FILL)
 	t2tab3.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
@@ -1915,25 +2114,15 @@ function DRCMenu( player )
 	DisclaimerExperimental:SetPos(20, -8)
 	DisclaimerExperimental:SetSize(300, 50)
 	DisclaimerExperimental:SetText("Experimental Settings")
-	--DisclaimerExperimental:SetText("Anything in this tab is either an unstable personal project ([>),\nor a work-in-progress feature in need of testing (<])")
 	DisclaimerExperimental:SetFont("DermaLarge")
 	DisclaimerExperimental:SetColor(Color(255, 255, 255, 255))
 	
 	local DisclaimerExperimental = vgui.Create( "DLabel", t2tab3)
 	DisclaimerExperimental:SetPos(24, 20)
 	DisclaimerExperimental:SetSize(w2, 50)
-	DisclaimerExperimental:SetText("Anything in this tab is either an unstable personal project or a work-in-progress feature in need of testing.\nAnything enabled in this tab will not persist between sessions, as they use placeholder convars. (with exception of ''Experimental First Person''.)")
-	DisclaimerExperimental:SetColor(TextCol)
+	DisclaimerExperimental:SetText("Anything in this tab is either an unstable personal project or a work-in-progress feature in need of testing.")
+	DisclaimerExperimental:SetColor(TextCol) ]]
 	
-	local DrcExperimentalFP = vgui.Create( "DCheckBoxLabel", t2tab3 )
-	DrcExperimentalFP:SetPos(25, 90)
-	DrcExperimentalFP:SetSize(500, 20)
-	DrcExperimentalFP:SetText( "Enable ''Experimental First Person'' mode" )
-	DrcExperimentalFP:SetConVar( "cl_drc_experimental_fp" )
-	DrcExperimentalFP.Label:SetColor(TextCol)
-	DrcExperimentalFP:SetEnabled(true)
-	
-	MakeHint(t2tab3, 300, 90, "<< Work in Progress Feature >>\n\n''Experimental First Person'' is a true full-body first person camera system which still utilizes the player's viewmodel.\n\nEFP Does:\n> Show your body in first person, accurate to how it is seen in third-person.\n> Show your character's arms when in a vehicle\n> Add a small amount of viewbobbing based on your character's head\n> Still uses the player's viewmodel, allowing you to see your weapon properly as intended by its creators.\n\nEFP Does NOT:\n> Change the aiming angle to match the new camera position (yet)\n\nCurrent known issues:\n> Body desyncs when game is paused in singleplayer")
 
 	local mt3 = vgui.Create( "DPanel", maintabs )
 	mt3:SetBackgroundColor(Color(255, 255, 255, 5))
@@ -1987,7 +2176,7 @@ function DRCMenu( player )
 					font-family: "Lucida Console";
 					margin-left: 3em;
 					margin-top: 0.1em;
-					margin-bottom: 0.1em;
+					margin-bottom: 0.5em;
 					
 					color: white;
 				}
@@ -1999,51 +2188,24 @@ function DRCMenu( player )
 				<h2>Draconic Base</h2>		
 				<h3>Credits</h3>
 				<h4>Programmming</h4>
-					<p class="ultitle">Vuthakral</p>
 					<ul>
-						<li>Everything not listed below this credit</li>
-					</ul>
-					<p class="ultitle">Clavus</p>
-					<ul>
-						<li>SWEP Construction Kit code</li>
-					</ul>
-					<p class="ultitle">Kinyom</p>
-					<ul>
-						<li>BSP-Envmap reading function code.</lI>
+						<li><b>Vuthakral</b> - Everything not listed below this credit</li>
+						<li><b>Clavus</b> - SWEP Construction Kit code</li>
+						<li><b>Kinyom</b> - BSP/Envmap reading function code.</li>
 					</ul>
 				<h4>Bug testing</h4>
-					<p class="ultitle">Dopey, Snowy Snowtime, Valkyries733</p>
 					<ul>
-						<li>Very helpful individuals who often help me test out features of the base as I work on them.</li>
-					</ul>
-				<h4>Animations</h4>
-					<p class="ultitle">Twilight Sparkle</p>
-					<ul>
-						<li>"Unarmed" SWEP Animations.</li>
+						<li>Dopey, Snowy Snowtime, Valkyries733</li>
 					</ul>
 				<h4>Sounds</h4>
-					<p class="ultitle">Entropy Zero 2</p>
 					<ul>
-						<li>Weapon foley sample source</li>
+						<li><b>Entropy Zero 2</b> - Ironsight foley sample source. (GO PLAY THIS GAME.)</li>
 					</ul>
 				<h4>Special Thanks</h4>
-					<p class="ultitle">All of the people who have supported me through working on all of my projects.</p>
 					<ul>
 						<li>My girlfriend, who has always been there for me even when things are at their worst. If you're reading this, I love you very much.</li>
-						<li>My father, who has always been there for me with doing what I do, and putting up with my ramblings about all of it even if he doesn't understand them.</li>
-						<li>And of course, my <b>Patreon supporters</b> who have helped me for years now in being able to do what I do: 5oClock, Chillstice, and one Patron who wishes to remain anonymous.</li>
-					</ul>
-					<p class="ultitle">The people in TFA's Discord (RIP)</p>
-					<ul>
-						<li>Tons of help when I ran into walls with code I was trying to do. Very helpful people.</li>
-					</ul>
-					<p class="ultitle">Wingblast</p>
-					<ul>
-						<li>Showed me how to originally implement the perspective change for weapons when looking up/down.</li>
-					</ul>
-					<p class="ultitle">Clavus</p>
-					<ul>
-						<li>Creator of the "SWEP Construction Kit" -- Seriously dude, your addon has greatly contributed to the Garry's Mod 13 community & experience. Thank you.</li>
+						<li>The various people of various Discord servers I have to ask for help in every so often.</li>
+						<li>Clavus, creator of the "SWEP Construction Kit". Seriously dude, your addon & the standards for SWEPs it set has greatly contributed to the Garry's Mod 13 community & experience. Thank you.</li>
 					</ul>
 			</body>
 		</html>
@@ -2132,12 +2294,14 @@ function DRCMenu( player )
 	DebugInfo:SetFont("DermaLarge")
 	DebugInfo:SetColor(Color(255, 255, 255, 255))
 	
+	DRC:CubemapCheck()
+	
 	local text = "Unverified"
-	if drc_mapfailed_lightamsp == true then
+	if drc_badlightmaps[cmap] != nil or drc_singlecubemaps[cmap] != nil then
 		text = "Fail"
-	elseif drc_mappassed_lightmap == true then
+	elseif drc_verifiedlightmaps[cmap] != nil then
 		text = "Verified Pass"
-	elseif drc_authorpassedlightmap == true then
+	elseif drc_authorpassedlightmaps[cmap] != nil then
 		text = "Author Passed"
 	else
 		text = "Unverified"
@@ -2164,11 +2328,12 @@ function DRCMenu( player )
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
 	DebugInfo:SetPos(15, 160)
 	DebugInfo:SetSize(300, 20)
-	if CTFK(drc_badlightmaps, game.GetMap()) then
+	
+	if drc_badlightmaps[cmap] != nil then
 		DebugInfo:SetText("Fail Reason: Bad/Invalid lightmapping method(s).")
-	elseif CTFK(drc_singlecubemaps, game.GetMap()) then
+	elseif drc_singlecubemaps[cmap] != nil then
 		DebugInfo:SetText("Fail Reason: Map has only one cubemap.")
-	elseif CTFK(drc_fullbrightcubemaps, game.GetMap()) then
+	elseif drc_fullbrightcubemaps[cmap] != nil then
 		DebugInfo:SetText("Fail Reason: Maps cubemap(s) are fullbright.")
 	else
 		DebugInfo:SetText("")
@@ -2200,15 +2365,82 @@ function DRCMenu( player )
 	ControlsTitle:SetFont("DermaLarge")
 	DebugInfo:SetPos(25, 10)
 	DebugInfo:SetSize(400, 20)
-	DebugInfo:SetText("HDR Support | Hardware: ".. tostring(render.SupportsHDR()) .." | Map: ".. tostring(render.GetHDREnabled()) .."")
+	DebugInfo:SetText("HDR Support                        | Hardware: ".. tostring(render.SupportsHDR()) .." / Map: ".. tostring(render.GetHDREnabled()) .."")
 	DebugInfo:SetColor(TextCol)
 	
+	local gbranch = BRANCH
+	if gbranch == "unknown" then gbranch = "Main" end
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)
 	ControlsTitle:SetFont("DermaLarge")
-	DebugInfo:SetPos(25, 25)
+	DebugInfo:SetPos(5, 620)
 	DebugInfo:SetSize(400, 20)
-	DebugInfo:SetText("DirectX Level | ".. render.GetDXLevel() .."")
+	DebugInfo:SetText("Game branch: ".. gbranch .."")
 	DebugInfo:SetColor(TextCol)
+	
+	local convars = {
+		["mat_hdr_level"] = {					1, "HDR Mode", 2, false, "mat_hdr_level\n(Recommended: 2)\n\n0: LDR\n1: LDR + Bloom\n2: HDR"},
+		["mat_dxlevel"] = {						2, "DirectX Level", 95, false, "mat_dxlevel\n(Recommended: 95)\nDirectX modes:\n- 80: DX8\n- 81: DX8.1\n- 90: DX9 (Shader Model 2)\n- 95: DX9 (Shader Model 3)\n- 98: DX9 (Xbox 360 comaptibility; DO NOT USE. Runs worse on PC)\n- 100: DX10 (Unknown level of stability)"},
+		["r_radiosity"] = {						3, "Radiosity Mode", 2, 2, "r_radiosity\n(Recommended: 2)\nAmbient lighting mode.\n\n0: No ambient lighting\n1: Cheap ambient lighting\n2: Raycasted indirect ambient lighting on everything (accurate)\n3: Raycast on static props, cheap on everything else (inaccurate)\n4: Raycast on static props, faked lighting on everything else (highly inaccurate, overbright)."},
+		["r_ambientmin"] = {					4, "Ambient Minimum", 0, 0, "r_ambientmin\n(Recommended: 0)\nDefaulted at 0.3, this value will make some dynamic entities inconsistently overbright in darker spaces.\n\nI suspect this is an oversight/bug with Garry's Mod's weird shaders."},
+		["mat_picmip"] = {						5, "PicMip", nil, false, "mat_picmip\n-10 to 20\nControls texture resolution display & mipmap fade distance. -10 displays the highest resolution available at all times."},
+		["r_lod"] = {							6, "LOD Models", nil, false, "r_lod\n-8 to 5\nControls how close models will drop off in visual quality, if they have LOD (Level of Detail) mesh support."},
+		["mat_antialias"] = {					7, "Anti-Aliasing", nil, false, "mat_antialias\n0 to 8\nControls the amount, but not type, of antialising employed. Type must be set in your game's settings menu.\nNewer/modern GPUs only support MSAA in Garry's Mod. You're better off setting a post-AA from your GPU's control panel.\n\nIf you are using ReShade or similar, they will not work if you have antialising enabled in Garry's Mod."},
+		["mat_viewportscale"] = {				8, "Render Scale", 1, false, "mat_viewportscale\n0 to 1 (Set to 1)\nThis controls the percentage resolution your game will display at."},
+		["r_shadows"] = {						9, "Simple Shadows", 1, false, "r_shadows\n0 or 1 (Set to 1)"},
+		["r_flashlightdepthtexture"] = {		10, "Dynamic Shadows", 1, false, "r_flashlightdepthtexture\n0 or 1 (Recommended: 1)"},
+		["r_flashlightdepthres"] = {			11, "Shadow Resolution", 2048, false, "r_flashlightdepthres\n0 to 16384 (Recommended: 2048 or higher, but not 16384. Must be in values of 2.)\nThe resolution of dynamic shadows."},
+		["r_projectedtexture_filter"] = {		12, "Shadow Blur", 0.2, true, "r_projectedtexture_filter\n0 to ??? (Recommended: 0.1)\nHigher values will produce blobby, noisy shadows while extremely low values will produce blocky shadows."},
+		["mat_filtertextures"] = {				13, "Texture Filtering", 1, false, "mat_filtertextures\nWhy would you even have this turned off?"},
+		["mat_forceaniso"] = {					14, "Anisotropic Filtering", 8, false, "mat_forceaniso\n4, 8, or 16.\n16 is recommended, but if your machine cannot handle this or you have a low-resolution monitor, then 8 is just fine."},
+		["mat_filterlightmaps"] = {				15, "Lightmap Filtering", 1, false, "mat_filterlightmaps\nWhy would you even have this turned off?"},
+		["mat_specular"] = {					16, "Cubemap Reflections", 1, false, "mat_specular\n(Recommended: 1)\nSetting this to 0 does not 'fix' anything, and in some cases can actually break some assets from rendering as intended."},
+		["mat_motion_blur_enabled"] = {			17, "Motion Blur", 1, false, "mat_motion_blur_enabled\nSet this to 1.\nIf you want to turn off engine motion blur, set mat_motion_blur_strength to 0.\nTurning it off outright will break a lot of effects for both games & addons which utilize the 4 different types of blur for various effects."},
+		["dsp_enhance_stereo"] = {				18, "Dynamic Sound Processing", 1, false, "dsp_enhance_stereo\nSet this to 1.\nEnables the game to perform digital sound processing effects based on 3d space instead of from a flat filter."},
+		["gmod_mcore_test"] = {					19, "Gmod Multicore", 1, false, "gmod_mcore_test\n0 or 1 (Recommended: 1)\nEnable multicore processing, providing a significant performance increase most of the time."},
+		["cl_threaded_bone_setup"] = {			20, "Threaded Bones", 1, false, "cl_threaded_bone_setup\n0 or 1 (Recommended: 1)\nEnable multithreaded processing of gmod-lua bone transformations."},
+		["cl_threaded_client_leaf_system"] = {	21, "Threaded VisLeafs", 1, false, "cl_threaded_client_leaf_system\n0 or 1 (Recommended: 1)\nEnable multithreaded processing of visleaf-related computations."},
+		["mat_queue_mode"] = {					22, "Threaded Materials", 1, false, "mat_queue_mode\n-1, 0, 1, or 2 (Recommended: 2)\nEnables the following:\n- Multithreaded processing of materials with engine-programming effects such as material proxies.\n- Enables materials being cached for the fist time to be done on multiple threads.\n\n-1: Automatic detection (unreliable)\n0: Synchronus single thread\n1: Single-threaded computation\n2: Multithreaded computation"},
+		["r_threaded_particles"] = {			23, "Threaded Particles", 1, false, "r_threaded_particles\n-1, 0 or 1 (Recommended: 1)\nEnable multithreaded processing of particle computations."},
+		["r_threaded_client_shadow_manager"] = {24, "Threaded Shadows", 1, false, "r_threaded_client_shadow_manager\n-1, 0 or 1 (Recommended: 1)\nNobody seems to know fully what this does, best guesses are that it's a leftover from old-engine,\nas it has nothing tied to it in SDK 2013+. Everyone turns it to 1 just to be safe with no adverse effect."},
+		["r_threaded_renderables"] = {			25, "Threaded Renderables", 1, false, "r_threaded_renderables\n-1, 0 or 1 (Recommended: 1)\nFrom mastercomfig's TF2 configs: ''Asynchronously set up bones on animated entities''."},
+		["r_queued_ropes"] = {					26, "Materialized Ropes", 1, false, "r_queued_ropes\n-1, 0 or 1 (Recommended: 1)\nWhen set to 1, this will make the engine treat ropes as materials, offloading their rendering operations to the GPU instead of the CPU."},
+		["r_occludermincount"] = {				27, "Minimum Occluders", 1, false, "r_occludermincount\n0 to ??? (Recommended: 1)\nForces the game to always have at least one occlusion cull, preventing stuff from being drawn that otherwise shouldn't be when off-screen."},
+	}
+	
+	for k,v in pairs(convars) do
+		local function IsGud(input)
+			if v[3] == nil then return nil end
+			if input == nil then return nil end
+			
+			if v[4] != true && v[4] != false then
+				if input != v[3] then return false else return true end
+			end
+			
+			if v[4] == false then
+				if input < v[3] then return false else return true end
+			elseif v[4] then
+				if input > v[3] then return false else return true end
+			end
+		end
+	
+		t4tab1[k] = vgui.Create("DLabel", t4tab1)
+		t4tab1[k]:SetPos(25, 10 + (15*v[1]))
+		t4tab1[k]:SetSize(300, 20)
+		t4tab1[k]:SetText("".. v[2] .."")
+		
+		local col = Color(0, 255, 0)
+		if !IsGud(GetConVar(k):GetFloat()) then col = Color(255, 0, 0) end
+		if IsGud(GetConVar(k):GetFloat()) == nil then col = Color(255, 255, 255) end
+		
+		local str = "".. k .."_value"
+		t4tab1[str] = vgui.Create("DLabel", t4tab1)
+		t4tab1[str]:SetPos(160, 10 + (15*v[1]))
+		t4tab1[str]:SetSize(300, 20)
+		t4tab1[str]:SetText("| ".. math.Round(GetConVar(k):GetFloat(), 2) .."")
+		t4tab1[str]:SetColor(col)
+		
+		MakeHint(t4tab1, 3, 10 + (15*v[1]), v[5])
+	end
 
 --[[	
 	local col = render.GetLightColor(LocalPlayer():EyePos()) * 255
@@ -2330,6 +2562,16 @@ function DRCMenu( player )
 	t4tab2panel_left.BoundingBoxes:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 195, "Continuously renders your own collision (yellow) & render (purple) bounds while not in first person.\nAlso renders bounds of whatever you are looking at.")
+	
+	t4tab2panel_left.CubeFallback = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.CubeFallback:SetPos(25, 215)
+	t4tab2panel_left.CubeFallback:SetSize(500, 20)
+	t4tab2panel_left.CubeFallback:SetText( "Cubemap fallbacks" )
+	t4tab2panel_left.CubeFallback:SetConVar( "cl_drc_debug_cubefallbacks" )
+	t4tab2panel_left.CubeFallback.Label:SetColor(TextCol)
+	t4tab2panel_left.CubeFallback:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 215, "Forces Draconic Base ''ReflectionTint'' proxies to act as if the current map has no envmaps, using their fallback settings.")
 	
 	t4tab2panel_left.SourceTitle = vgui.Create( "DLabel", t4tab2panel_left)
 	t4tab2panel_left.SourceTitle:SetText("Source Debug Tools")

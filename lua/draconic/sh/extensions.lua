@@ -11,8 +11,9 @@ if InfMap then
 		if !isvector(ent) then pos = ent:GetPos() end
 		if ent:IsPlayer() then pos = ent:EyePos() end
 		pos = InfMap.unlocalize_vector(pos, ent.CHUNK_OFFSET)
+		if !IsValid(pos) then return end
 		return pos.z < InfMap.water_height
 	end
 
-	PrintTable(DRC.InfMap)
+--	PrintTable(DRC.InfMap)
 end

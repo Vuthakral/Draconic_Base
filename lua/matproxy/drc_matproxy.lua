@@ -7,9 +7,18 @@ It contains all of the settings, explanations on how to use them, tutorials, hel
 
 --]]
 
+local cmap = game.GetMap()
+local lply = LocalPlayer()
 local HDR = render.GetHDREnabled()
 local LMCor = DRC.MapInfo.LMCorrection
 DRC.WeathermodScalar = Vector(1,1,1)
+DRC.MatProxy = {}
+
+function DRC:CubemapCheck()
+	if (DRC:DebugModeEnabled() && GetConVar("cl_drc_debug_cubefallbacks"):GetFloat() == 1) or (GetConVar("cl_drc_accessibility_amduser"):GetFloat() == 1)  then return false end
+	if #drc_cubesamples != 0 then return true else return false end
+end
+
 local addict = achievements.GetCount(5) >= achievements.GetGoal(5)
 
 if CLIENT then
@@ -26,42 +35,9 @@ if CLIENT then
 	end)
 end
 
-matproxy.Add( {
-	name = "drc_EnvmapFallback",
-	init = function( self, mat, values )
-		self.ResultTo = values.resultvar
-		self.Envmap = mat:GetString("$envmapfallback")
-		self.TintVector = mat:GetVector("$cubemaptintfallback")
-		self.PowerFloat = mat:GetFloat("$cubemappowerfallback")
-		self.MinFloat	= mat:GetFloat("$cubemapminfallback")
-		self.MaxFloat	= mat:GetFloat("$cubemapmaxfallback")
-		self.HDRCorrectionLevel	= mat:GetFloat("$cubemapHDRMulfallback")
-		self.LDRCorrectionLevel	= mat:GetFloat("$cubemapLDRMulfallback")
-	end,
-
-	bind = function( self, mat, ent )
-		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
-		
-		if self.TintVector == nil then self.TintVector = Vector(1, 1, 1) end
-		if self.PowerFloat == nil then self.PowerFloat = 1 end
-		if self.MinFloat == nil then self.MinFloat = 0 end
-		if self.MaxFloat == nil then self.MaxFloat = 1 end
-		if self.HDRCorrectionLevel == nil then self.HDRCorrectionLevel = 1 end
-		if self.LDRCorrectionLevel == nil then self.LDRCorrectionLevel = 1 end
-		if self.Envmap == nil then self.Envmap = "env_cubemap" end
-		
-		if #drc_cubesamples == 0 then
-			mat:SetTexture( "$envmap", self.Envmap )
-			mat:SetVector( "$cubemaptint", self.TintVector )
-			mat:SetFloat( "$cubemappower", self.PowerFloat )
-			mat:SetFloat(  "$cubemapmin", self.MinFloat )
-			mat:SetFloat(  "$cubemapmax", self.MaxFloat )
-			mat:SetFloat(  "$cubemapHDRMul", self.HDRCorrectionLevel )
-			mat:SetFloat(  "$cubemapLDRMul", self.LDRCorrectionLevel )
-		end
-	end
-} )
+hook.Add("InitPostEntity", "DRC_MatProxy_InitPost", function()
+	if lply != LocalPlayer() then lply = LocalPlayer() end
+end)
 
 local function GetPlayerColour(src, channel)
 	if !IsValid(src) then return end
@@ -82,8 +58,8 @@ local function GetPlayerColour(src, channel)
 		local pull = translation[channel]
 		if vals then col = vals[pull] end
 	elseif channel && channel != "Entity" && channel != "None" then
-		if (src.Preview == true or src.preview == true) or (src:EntIndex() == LocalPlayer():GetHands():EntIndex()) or (src:GetNWVector(channel, Vector(0,0,0)) == Vector(0,0,0)) then
-			local vals = DRC:GetColours(LocalPlayer(), true)
+		if (src.Preview == true or src.preview == true) or (src:EntIndex() == lply:GetHands():EntIndex()) or (src:GetNWVector(channel, Vector(0,0,0)) == Vector(0,0,0)) then
+			local vals = DRC:GetColours(lply, true)
 			local pull = translation[channel]
 			if vals then col = vals[pull] end
 		else
@@ -97,6 +73,200 @@ local function GetPlayerColour(src, channel)
 	return col/255
 end
 
+local function LightPollEntity(ent, mat)
+	if !mat then mat = "None" end
+	if !ent.DRCLightPolling then ent.DRCLightPolling = {} end
+	if !ent.DRCLightPolling["Realtime"] then ent.DRCLightPolling["Realtime"] = false end
+	if !ent.DRCLightPolling["LightPollTime"] then ent.DRCLightPolling["LightPollTime"] = 0 end
+	if !ent.DRCLightPolling["LightPollLastPos"] then ent.DRCLightPolling["LightPollLastPos"] = ent:GetPos() end
+	if !ent.DRCLightPolling[mat] then ent.DRCLightPolling[mat] = "" end
+	
+	local function QueuePoll()
+		local fps = 1/RealFrameTime()
+		local nexttick = RealTime() + (0.2 + (math.Rand(-0.1, 0.1)))
+		if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.5, 0.25))) end
+		if fps < 20 then nexttick = RealTime() + (1 + (math.Rand(-1, 2))) end
+		if ent.DRCLightPolling["Realtime"] == true then nexttick = RealTime() + 0.0333 end -- light polling @ 30tps; used for viewmodels & c_hands
+		ent.DRCLightPolling["LightPollTime"] = nexttick
+	end
+	
+	if RealTime() < ent.DRCLightPolling["LightPollTime"] then return end
+	if ent:GetPos() == ent.DRCLightPolling["LightPollLastPos"] then QueuePoll() return
+	else ent.DRCLightPolling["LightPollLastPos"] = ent:GetPos() end
+	QueuePoll()
+	
+	local pos
+	if ent:EntIndex() == lply:GetHands():EntIndex() or ent:EntIndex() == lply:GetViewModel():EntIndex() then
+		pos = lply:EyePos()
+	--	print("A", ent, lply:GetViewModel())
+	else
+	--	print("B", ent, lply:GetViewModel())
+		pos = ent:GetPos() + ent:OBBCenter()
+		if game.SinglePlayer() && ent:IsWeapon() && !DRC:ThirdPersonEnabled(lply) && ent:GetOwner() == lply then pos = lply:EyePos() end
+	end
+	
+	local lightlevel = render.GetLightColor(pos)
+	local lla = (lightlevel.x + lightlevel.y + lightlevel.z) / 3
+--	print(lply:ChatPrint(tostring(lightlevel)))
+	ent.DRCLightPolling["LightTint"] = lightlevel
+	return lightlevel, lla
+end
+
+--[[
+local adjustedmaps = {}
+table.Inherit(adjustedmaps, drc_singlecubemaps)
+table.Inherit(adjustedmaps, drc_badlightmaps)
+table.Inherit(adjustedmaps, drc_fullbrightcubemaps)
+local function GetAdjustedCubeStrength()
+end ]]
+
+local function GetCubemapStrength(mat, ent, channel, imat, realtime)
+	if CurTime() < ent:GetCreationTime() + 0.03 then return Vector() end
+	if !IsValid(ent) then return Vector() end
+	
+	local blacklist = {
+		["drc_csshadowmodel"] = true,
+	}
+	if blacklist[ent:GetClass()] then return Vector() end
+
+	mat.TintVector = imat:GetVector("$cubemaptint") or imat:GetVector("$cmtint")
+	mat.PowerFloat = imat:GetFloat("$cubemappower") or imat:GetFloat("$cmpower")
+	mat.MinFloat	= imat:GetFloat("$cubemapmin") or imat:GetFloat("$cmmin")
+	mat.MaxFloat	= imat:GetFloat("$cubemapmax") or imat:GetFloat("$cmmax")
+	mat.HDRCorrectionLevel	= imat:GetFloat("$cubemapHDRMul") or imat:GetFloat("$cmhdr")
+	mat.LDRCorrectionLevel	= imat:GetFloat("$cubemapLDRMul") or imat:GetFloat("$cmldr")
+	if imat:GetFloat("$cubemaplightingsaturation") then mat.Saturation = imat:GetFloat("$cubemaplightingsaturation") mat.Saturation = 1 end
+	if imat:GetFloat("$cmlightsat") then mat.Saturation = imat:GetFloat("$cmlightsat") else mat.Saturation = 1 end
+	if DRC:CubemapCheck() == false then
+		if imat:GetVector("$cubemaptintfallback") then mat.TintVector = imat:GetVector("$cubemaptintfallback") end
+		if imat:GetVector("$cmtint_fb") then mat.TintVector = imat:GetVector("$cmtint_fb") end
+		if imat:GetFloat("$cubemappowerfallback") then mat.PowerFloat = imat:GetFloat("$cubemappowerfallback") end
+		if imat:GetFloat("$cmpower_fb") then mat.PowerFloat = imat:GetFloat("$cmpower_fb") end
+		if imat:GetFloat("$cubemapminfallback") then mat.MinFloat = imat:GetFloat("$cubemapminfallback") end
+		if imat:GetFloat("$cmmin_fb") then mat.MinFloat = imat:GetFloat("$cmmin_fb") end
+		if imat:GetFloat("$cubemapmaxfallback") then mat.MaxFloat = imat:GetFloat("$cubemapmaxfallback") end
+		if imat:GetFloat("$cmmax_fb") then mat.MaxFloat = imat:GetFloat("$cmmax_fb") end
+		if imat:GetFloat("$cubemapHDRMulfallback") then mat.MaxFloat = imat:GetFloat("$cubemapHDRMulfallback") end
+		if imat:GetFloat("$cmhdr_fb") then mat.MaxFloat = imat:GetFloat("$cmhdr_fb") end
+		if imat:GetFloat("$cubemapLDRMulfallback") then mat.MaxFloat = imat:GetFloat("$cubemapLDRMulfallback") end
+		if imat:GetFloat("$cmldr_fb") then mat.MaxFloat = imat:GetFloat("$cmldr_fb") end
+	end
+	if mat.LerpPower == nil then mat.LerpPower = 1 end
+	if mat.TintVector == nil then mat.TintVector = Vector(1,1,1) end
+	if mat.PowerFloat == nil then mat.PowerFloat = 1 end
+	if mat.MinFloat == nil then mat.MinFloat = 0 end
+	if mat.MaxFloat == nil then mat.MaxFloat = 1 end
+	if mat.HDRCorrectionLevel == nil then mat.HDRCorrectionLevel = 1 end
+	if mat.LDRCorrectionLevel == nil then mat.LDRCorrectionLevel = 1 end
+	if mat.Saturation == nil then mat.Saturation = 1 end
+	if mat.LerpPower == nil then mat.LerpPower = 1 end
+	if !ent.DRCLightPolling then ent.DRCLightPolling = {} end	
+	if !ent.DRCLightPolling["LightPollTime"] then ent.DRCLightPolling["LightPollTime"] = 0 end	
+	if !ent.DRCReflectionTints then ent.DRCReflectionTints = {} end	
+	if !ent.DRCReflectionTints.Stored then ent.DRCReflectionTints.Stored = {} end
+	
+	local name = imat:GetName()
+	if ent:EntIndex() == lply:GetViewModel():EntIndex() then ent = lply:GetActiveWeapon() end
+	if !IsValid(ent) then return end 
+	if !ent.DRCReflectionTints then ent.DRCReflectionTints = {} end
+	if !ent.DRCReflectionTints[name] then ent.DRCReflectionTints[name] = {} end
+	if !ent.DRCReflectionTints[name]["UpdateTime"] then ent.DRCReflectionTints[name]["UpdateTime"] = 0 end
+	if !ent.DRCReflectionTints[name][channel] then ent.DRCReflectionTints[name][channel] = Vector() end
+	if !ent.DRCReflectionTints.Stored then ent.DRCReflectionTints.Stored = {} end
+	if !ent.DRCReflectionTints.Stored[name] then ent.DRCReflectionTints.Stored[name] = {} end
+	if !ent.DRCReflectionTints.Stored[name][channel] then ent.DRCReflectionTints.Stored[name][channel] = Vector() end
+	
+	local col = Vector()
+	local function GetColour(e, c)
+		local colnew = GetPlayerColour(e, c)
+		if colnew then
+			colnew.x = math.Clamp(colnew.x, mat.MinFloat, mat.MaxFloat)
+			colnew.y = math.Clamp(colnew.y, mat.MinFloat, mat.MaxFloat)
+			colnew.z = math.Clamp(colnew.z, mat.MinFloat, mat.MaxFloat)
+			return colnew
+		end
+	end
+		
+	if ent.Preview == true or ent.preview == true then
+		local mul = Vector(1, 1, 1)
+		if HDR then mul = mat.HDRCorrectionLevel else mul = (10 * mat.LDRCorrectionLevel) end
+		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar
+	return col end
+	
+	local function ReturnValue()
+		local ll, lla = LightPollEntity(ent)
+		ll = ll or ent.DRCLightPolling["LightTint"]
+		if !ll then return Vector() end
+		ll.r = math.Clamp(ll.r, mat.MinFloat, mat.MaxFloat)
+		ll.g = math.Clamp(ll.g, mat.MinFloat, mat.MaxFloat)
+		ll.b = math.Clamp(ll.b, mat.MinFloat, mat.MaxFloat)
+		if ent:EntIndex() == lply:GetHands():EntIndex() then
+			ent.DRCLightPolling["Realtime"] = true
+			col = GetColour(lply, channel)
+			
+			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
+			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
+		elseif ent:EntIndex() == lply:GetViewModel():EntIndex() then
+			local newent = lply:GetActiveWeapon()
+			ent.DRCLightPolling["Realtime"] = true
+			newent.DRCLightPolling["Realtime"] = true
+			if !IsValid(newent) then return Vector() end
+			if !newent.DRCReflectionTints then newent.DRCReflectionTints = {} end
+			col = GetColour(newent, channel)
+			
+			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
+			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
+		elseif ent:IsRagdoll() then
+			col = GetColour(ent, channel)
+			
+			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
+			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
+		else
+			col = GetColour(ent, channel)
+			
+			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
+			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
+		end
+		return col
+	end
+	
+	--if (RealTime() > ent.DRCReflectionTints[name]["UpdateTime"]) then
+		local fps = 1/RealFrameTime()
+		local nexttick = RealTime() + (0.2 + (math.Rand(-0.1, 0.1)))
+		if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.5, 0.25))) end
+		if fps < 20 then nexttick = RealTime() + (1 + (math.Rand(-1, 2))) end
+		ent.DRCReflectionTints.Stored[name][channel] = (ReturnValue() * LMCor * DRC.WeathermodScalar) * (DRC.WeathermodScalar * mat.TintVector) * mat.PowerFloat
+		ent.DRCReflectionTints[name]["UpdateTime"] = nexttick
+	--	PrintTable(ent.DRCReflectionTints)
+--	end
+
+	ent.DRCReflectionTints[name][channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), ent.DRCReflectionTints[name][channel] or ent.DRCReflectionTints.Stored[name][channel], ent.DRCReflectionTints.Stored[name][channel])
+	local avg = (ent.DRCReflectionTints[name][channel].x + ent.DRCReflectionTints[name][channel].y + ent.DRCReflectionTints[name][channel].z) / 3
+	local final = (LerpVector(mat.Saturation, Vector(avg, avg, avg), ent.DRCReflectionTints[name][channel]) * mat.TintVector)
+	return final
+end
+
+matproxy.Add( {
+	name = "drc_EnvmapFallback",
+	init = function( self, mat, values )
+		self.Envmap = mat:GetString("$envmapfallback")
+	end,
+
+	bind = function( self, mat, ent )
+		if !IsValid(ent) then return end
+		if !IsValid(lply) then return end
+		
+		if self.OGEnvmap == nil then self.OGEnvmap = mat:GetTexture("$envmap") end
+		if self.Envmap == nil then self.Envmap = "env_cubemap" end
+		
+		if DRC:CubemapCheck() == false then
+			mat:SetTexture( "$envmap", self.Envmap )
+		else
+			mat:SetTexture( "$envmap", self.OGEnvmap )
+		end
+	end
+} )
+
 matproxy.Add( {
 	name = "caramell",
 	init = function( self, mat, values )
@@ -107,7 +277,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 	--	if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		if mat:GetInt("$bpm") == nil then
 			if mat:GetInt("$bpm") == nil then self.SpeedMul = 1 else self.SpeedMul = mat:GetInt("$bpm")/60 end
 		else
@@ -131,7 +301,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 		local col = GetPlayerColour(ent, "PlayerColour_DRC")
@@ -148,7 +318,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 		local col = GetPlayerColour(ent, "PlayerColour_DRC")
@@ -165,7 +335,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 		local col = GetPlayerColour(ent, "WeaponColour_DRC")
@@ -182,7 +352,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 		local col = GetPlayerColour(ent, "WeaponColour_DRC")
@@ -199,7 +369,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 	--	if addict then
@@ -242,7 +412,7 @@ matproxy.Add( {
 		local deathflicker = TimedSin(4, 0.7, flickerflicker, 0)
 		if ent:Health() > 0.01 then deathflicker = 1 end
 		
-		if ent:EntIndex() == LocalPlayer():GetHands():EntIndex() or ent.preview == true then
+		if ent:EntIndex() == lply:GetHands():EntIndex() or ent.preview == true then
 			deathflicker = 1
 		end
 		
@@ -292,7 +462,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
@@ -305,7 +475,7 @@ matproxy.Add( {
 		
 		local heat = nil
 		if wepn.Draconic != nil then
-			heat = wepn.Weapon:GetNWInt("Heat")
+			heat = wepn:GetHeat()
 		elseif wepn.ArcCW == true then
 			heat = wepn:GetHeatLevel() * 100
 		end
@@ -329,15 +499,15 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
 		if ( !IsValid( wepn ) or !wepn:IsWeapon() ) then return end
 		if wepn == nil then return end
-		if wepn.Weapon == nil then return end
-		if wepn.Weapon:GetNWInt("Charge") == nil then return end
-		local charge = wepn.Weapon:GetNWInt("Charge")
+		if wepn == nil then return end
+		if wepn:GetNWInt("Charge") == nil then return end
+		local charge = wepn:GetNWInt("Charge")
 		
 		if charge == nil then return end
 		
@@ -358,15 +528,15 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
 		if ( !IsValid( wepn ) or !wepn:IsWeapon() ) then return end
 		if wepn == nil then return end
-		if wepn.Weapon == nil then return end
-		if wepn.Weapon:GetNWInt("Charge") == nil then return end
-		local charge = wepn.Weapon.BloomValue
+		if wepn == nil then return end
+		if wepn:GetNWInt("Charge") == nil then return end
+		local charge = wepn.BloomValue
 		charge = math.Clamp(charge, 0, 1)
 		
 		self.chargelerp = Lerp(RealFrameTime() * 2.5, self.chargelerp or charge, charge)
@@ -390,7 +560,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -420,7 +590,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wepn = owner:GetActiveWeapon()
@@ -460,7 +630,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then
-			local ang = LocalPlayer():EyeAngles()
+			local ang = lply:EyeAngles()
 			if self.SnapDegree == nil then self.SnapDegree = 0.01 end
 			local antistupidity = math.Clamp(self.SnapDegree, 0.01, 360)
 			
@@ -468,7 +638,7 @@ matproxy.Add( {
 
 			mat:SetVector( self.ResultTo, Vector(-angmath.y, 0, 0) )
 		return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local ang = owner:EyeAngles()
@@ -494,7 +664,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if self.MinVec == nil then self.MinVec = Vector(1, 1, 1) end
 		if self.MaxVec == nil then self.MaxVec = Vector(0, 0, 0) end
@@ -507,8 +677,8 @@ matproxy.Add( {
 		local ply
 		
 		if ent:IsWeapon() then ply = ent:GetOwner() end
-		if ent:EntIndex() == LocalPlayer():GetHands():EntIndex() then ply = LocalPlayer() end
-		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then ply = LocalPlayer() end
+		if ent:EntIndex() == lply:GetHands():EntIndex() then ply = lply end
+		if ent:EntIndex() == lply:GetViewModel():EntIndex() then ply = lply end
 		if ent:IsPlayer() then ply = ent end
 		
 		if !IsValid(ply) then return end
@@ -535,7 +705,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		
@@ -544,15 +714,41 @@ matproxy.Add( {
 		
 		if ent.Preview == true or ent.preview == true then
 			mat:SetFloat("$rimlightboost", (self.PowerFloat * DRC.MapInfo.MapAmbientAvg) /10)
-		else
-			local lightlevel = render.GetLightColor(ent:GetPos())
-			local median = (lightlevel.x + lightlevel.y + lightlevel.z) / 3
+		else			
+			local name = mat:GetName()
+			if ent:EntIndex() == lply:GetViewModel():EntIndex() then ent = lply:GetActiveWeapon() end
+			if !IsValid(ent) then return end 
+			if !ent.DRCScalingRimLightParams then ent.DRCScalingRimLightParams = {} end
+			if !ent.DRCScalingRimLightParams["Value"] then ent.DRCScalingRimLightParams["Value"] = 0 end
+			if !ent.DRCScalingRimLightParams[name] then ent.DRCScalingRimLightParams[name] = {} end
+			if !ent.DRCScalingRimLightParams[name]["Value"] then ent.DRCScalingRimLightParams[name]["Value"] = 0 end
+			if !ent.DRCScalingRimLightParams[name]["UpdateTime"] then ent.DRCScalingRimLightParams[name]["UpdateTime"] = 0 end
+			if !ent.DRCScalingRimLightParams.Stored then ent.DRCScalingRimLightParams.Stored = {} end
+			if !ent.DRCScalingRimLightParams.Stored[name] then ent.DRCScalingRimLightParams.Stored[name] = {} end
+			if !ent.DRCScalingRimLightParams.Stored[name]["Value"] then ent.DRCScalingRimLightParams.Stored[name]["Value"] = 0 end
+			if !ent.DRCScalingRimLightParams.Stored[name]["UpdateTime"] then ent.DRCScalingRimLightParams.Stored[name]["UpdateTime"] = 0 end
 			
-			ent.val = (self.PowerFloat * median) * DRC.MapInfo.MapAmbientAvg
-			if HDR then ent.val = ent.val else ent.val = ent.val * 0.117 end
 			
-			ent.final = Lerp(RealFrameTime() * 2.5, mat:GetFloat("$rimlightboost"), ent.val) * ((DRC.WeathermodScalar.x + DRC.WeathermodScalar.y + DRC.WeathermodScalar.z) /3)
-			mat:SetFloat( "$rimlightboost", ent.val )
+			local weatheravg = ((DRC.WeathermodScalar.x + DRC.WeathermodScalar.y + DRC.WeathermodScalar.z)/3)
+			local ll, lla = LightPollEntity(ent)
+				
+			if lla then
+				ent.DRCScalingRimLightParams["Value"] = (lla * self.PowerFloat) * weatheravg
+				if !HDR then ent.DRCScalingRimLightParams["Value"] = ent.DRCScalingRimLightParams["Value"] * 0.117 end
+			end
+			
+			if !realtime && (RealTime() > ent.DRCScalingRimLightParams[name]["UpdateTime"]) then
+				local fps = 1/RealFrameTime()
+				local nexttick = RealTime() + (0.2 + (math.Rand(-0.1, 0.1)))
+				if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.5, 0.25))) end
+				if fps < 20 then nexttick = RealTime() + (1 + (math.Rand(-1, 2))) end
+				ent.DRCScalingRimLightParams.Stored[name]["Value"] = ent.DRCScalingRimLightParams["Value"]
+				ent.DRCScalingRimLightParams[name]["UpdateTime"] = nexttick
+			end
+
+			ent.DRCScalingRimLightParams[name]["Value"] = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.DRCScalingRimLightParams[name]["Value"] or ent.DRCScalingRimLightParams.Stored[name]["Value"], ent.DRCScalingRimLightParams.Stored[name]["Value"])
+		--	PrintTable(ent.DRCScalingRimLightParams)
+			mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] )
 		end
 	end
 } )
@@ -568,7 +764,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
@@ -598,14 +794,14 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
 		if self.MaxVec == nil then self.MaxVec = Vector(1, 1, 1) end
 		if self.LerpPower == nil then self.LerpPower = 1 end
 		
-		local lightlevel = render.GetLightColor(LocalPlayer():GetEyeTrace().HitPos)
+		local lightlevel = render.GetLightColor(lply:GetEyeTrace().HitPos)
 		local vec = Vector(lightlevel.x, lightlevel.y, lightlevel.z)
 		local median = math.Clamp((vec.x + vec.y + vec.z) / 3, 0.1, 0.75) * 2
 		local blendvec = LerpVector(median, self.MinVec, self.MaxVec)
@@ -616,141 +812,6 @@ matproxy.Add( {
 		mat:SetVector( self.ResultTo, interp )
 	end
 } )
-
-local function GetCubemapStrength(mat, ent, channel, imat)
-	if !IsValid(ent) then return Vector() end
---	if !channel then return Vector() end
-	local lightlevel_hands, lightlevel_ragdoll, lightlevel = Vector(), Vector(), Vector()
-	local col, val = Vector(), Vector()
-	local function GetColour(e, c)
-		local colnew = GetPlayerColour(e, c)
-		if colnew then
-			colnew.x = math.Clamp(colnew.x, mat.MinFloat, mat.MaxFloat)
-			colnew.y = math.Clamp(colnew.y, mat.MinFloat, mat.MaxFloat)
-			colnew.z = math.Clamp(colnew.z, mat.MinFloat, mat.MaxFloat)
-			return colnew
-		end
-	end
-	
-	if #drc_cubesamples != 0 then
-		mat.TintVector = imat:GetVector("$cubemaptint")
-		mat.PowerFloat = imat:GetFloat("$cubemappower")
-		mat.MinFloat	= imat:GetFloat("$cubemapmin")
-		mat.MaxFloat	= imat:GetFloat("$cubemapmax")
-		mat.HDRCorrectionLevel	= imat:GetFloat("$cubemapHDRMul")
-		mat.LDRCorrectionLevel	= imat:GetFloat("$cubemapLDRMul")
-		if mat.TintVector == nil then mat.TintVector = Vector(1,1,1) end
-		if mat.PowerFloat == nil then mat.PowerFloat = 1 end
-		if mat.MinFloat == nil then mat.MinFloat = 0 end
-		if mat.MaxFloat == nil then mat.MaxFloat = 1 end
-		if mat.HDRCorrectionLevel == nil then mat.HDRCorrectionLevel = 1 end
-		if mat.LDRCorrectionLevel == nil then mat.LDRCorrectionLevel = 1 end
-	else
-		if imat:GetVector("cubemaptintfallback") == nil then
-			if imat:GetVector("$cubemaptint") == nil then mat.TintVector = Vector(1,1,1) else mat.TintVector = imat:GetVector("$cubemaptint") end
-		else
-			mat.TintVector = imat:GetVector("$cubemaptintfallback")
-		end
-		if imat:GetFloat("cubemappowerfallback") == nil then
-			if imat:GetFloat("$cubemappower") == nil then mat.PowerFloat = 1 else mat.PowerFloat = imat:GetFloat("$cubemappower") end
-		else
-			mat.PowerFloat = imat:GetFloat("$cubemappowerfallback")
-		end
-		if imat:GetFloat("cubemapminfallback") == nil then
-			if imat:GetFloat("$cubemapmin") == nil then mat.MinFloat = 0 else mat.MinFloat = imat:GetFloat("$cubemapmin") end
-		else
-			mat.MinFloat = imat:GetFloat("$cubemapminfallback")
-		end
-		if imat:GetFloat("cubemapmaxfallback") == nil then
-			if imat:GetFloat("$cubemapmax") == nil then mat.MaxFloat = 1 else mat.MaxFloat = imat:GetFloat("$cubemapmax") end
-		else
-			mat.MaxFloat = imat:GetFloat("$cubemapmaxfallback")
-		end
-		if imat:GetFloat("cubemapHDRMulfallback") == nil then
-			if imat:GetFloat("$cubemapHDRMul") == nil then mat.HDRCorrectionLevel = 1 else mat.HDRCorrectionLevel = imat:GetFloat("$cubemapHDRMul") end
-		else
-			mat.HDRCorrectionLevel = imat:GetFloat("$cubemapHDRMulfallback")
-		end
-		if imat:GetFloat("cubemapLDRMulfallback") == nil then
-			if imat:GetFloat("$cubemapLDRMul") == nil then mat.LDRCorrectionLevel = 1 else mat.LDRCorrectionLevel = imat:GetFloat("$cubemapLDRMul") end
-		else
-			mat.LDRCorrectionLevel = imat:GetFloat("$cubemapLDRMulfallback")
-		end
-	end
-	if mat.LerpPower == nil then mat.LerpPower = 1 end
-	if mat.TintVector == nil then mat.TintVector = Vector(1, 1, 1) end
-	if mat.PowerFloat == nil then mat.PowerFloat = 1 end
-	if mat.MinFloat == nil then mat.MinFloat = 0 end
-	if mat.MaxFloat == nil then mat.MaxFloat = 1 end
-	if mat.HDRCorrectionLevel == nil then mat.HDRCorrectionLevel = 1 end
-	if mat.LDRCorrectionLevel == nil then mat.LDRCorrectionLevel = 1 end
-	if mat.LerpPower == nil then mat.LerpPower = 1 end
-	
-	if !ent.DRCReflectionTints then ent.DRCReflectionTints = {} end	
-
-	if ent.Preview == true or ent.preview == true then
-		local mul = Vector(1, 1, 1)
-		if HDR then mul = mat.HDRCorrectionLevel else mul = (10 * mat.LDRCorrectionLevel) end
-		val = (mat.TintVector * mat.PowerFloat * GetColour(LocalPlayer(), channel) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar
-	return val end
-	if ent:EntIndex() == LocalPlayer():GetHands():EntIndex() then
-		col = GetColour(LocalPlayer(), channel)
-		if !ent.DRCReflectionTints.hands then ent.DRCReflectionTints.hands = { [channel] = col } end
-		lightlevel_hands = render.GetLightColor(ent:GetPos())
-		
-		if HDR then col = col * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * mat.HDRCorrectionLevel
-		else col = col * Vector(lightlevel_hands.r, lightlevel_hands.g, lightlevel_hands.b) * (10 * mat.LDRCorrectionLevel) end
-		
-		ent.DRCReflectionTints.hands[channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), ent.DRCReflectionTints.hands[channel] or col, col)
-		local interp = ent.DRCReflectionTints.hands[channel]
-		local final = Vector(math.Clamp(interp.x, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.y, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.z, mat.MinFloat, mat.MaxFloat)) * LMCor * DRC.WeathermodScalar
-		
-		val = ((final * DRC.WeathermodScalar) * mat.TintVector) * mat.PowerFloat
-	elseif ent:IsRagdoll() then
-		col = GetColour(ent, channel)
-		if !ent.DRCReflectionTints.ragdoll then ent.DRCReflectionTints.ragdoll = { [channel] = col } end
-		lightlevel_ragdoll = render.GetLightColor(ent:GetPos())
-		
-		if HDR then col = col * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * mat.HDRCorrectionLevel
-		else col = col * Vector(lightlevel_ragdoll.r, lightlevel_ragdoll.g, lightlevel_ragdoll.b) * (10 * mat.LDRCorrectionLevel) end
-			
-		ent.DRCReflectionTints.ragdoll[channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), ent.DRCReflectionTints.ragdoll[channel] or col, col)
-		local interp = ent.DRCReflectionTints.ragdoll[channel]
-		local final = Vector(math.Clamp(interp.x, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.y, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.z, mat.MinFloat, mat.MaxFloat)) * LMCor * DRC.WeathermodScalar
-		
-		val = ((final * DRC.WeathermodScalar) * mat.TintVector) * mat.PowerFloat
-	elseif ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then
-		local newent = LocalPlayer():GetActiveWeapon()
-		if !IsValid(newent) then return Vector() end
-		if !newent.DRCReflectionTints then newent.DRCReflectionTints = {} end
-		col = GetColour(newent, channel)
-		if !newent.DRCReflectionTints.weapon then newent.DRCReflectionTints.weapon = { [channel] = col } end
-		lightlevel_wpn = render.GetLightColor(ent:GetPos())
-		
-		if HDR then col = col * Vector(lightlevel_wpn.r, lightlevel_wpn.g, lightlevel_wpn.b) * mat.HDRCorrectionLevel
-		else col = col * Vector(lightlevel_wpn.r, lightlevel_wpn.g, lightlevel_wpn.b) * (10 * mat.LDRCorrectionLevel) end
-			
-		newent.DRCReflectionTints.weapon[channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), newent.DRCReflectionTints.weapon[channel] or col, col)
-		local interp = newent.DRCReflectionTints.weapon[channel]
-		local final = Vector(math.Clamp(interp.x, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.y, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.z, mat.MinFloat, mat.MaxFloat)) * LMCor * DRC.WeathermodScalar
-		
-		val = ((final * DRC.WeathermodScalar) * mat.TintVector) * mat.PowerFloat
-	else
-		col = GetColour(ent, channel)
-		if !ent.DRCReflectionTints.render then ent.DRCReflectionTints.render = { [channel] = col } end
-		lightlevel = render.GetLightColor(ent:GetPos())
-		
-		if HDR then col = col * Vector(lightlevel.r, lightlevel.g, lightlevel.b) * mat.HDRCorrectionLevel
-		else col = col * Vector(lightlevel.r, lightlevel.g, lightlevel.b) * (10 * mat.LDRCorrectionLevel) end
-			
-		ent.DRCReflectionTints.render[channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), ent.DRCReflectionTints.render[channel] or col, col)
-		local interp = ent.DRCReflectionTints.render[channel]
-		local final = Vector(math.Clamp(interp.x, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.y, mat.MinFloat, mat.MaxFloat), math.Clamp(interp.z, mat.MinFloat, mat.MaxFloat)) * LMCor * DRC.WeathermodScalar
-		
-		val = ((final * DRC.WeathermodScalar) * mat.TintVector) * mat.PowerFloat
-	end
-	return val
-end
 
 matproxy.Add( {
 	name = "drc_ReflectionTint",
@@ -767,14 +828,14 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "None", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -793,14 +854,14 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "Entity", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -819,12 +880,12 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "PlayerColour_DRC", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -843,12 +904,12 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "EyeTintVec", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -867,12 +928,12 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "ColourTintVec1", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -891,12 +952,12 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "ColourTintVec2", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -915,12 +976,12 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "WeaponColour_DRC", mat)
-		mat:SetVector(self.ResultTo, val)
+		if val then mat:SetVector(self.ResultTo, val) end
 	end
 } )
 
@@ -935,7 +996,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -982,7 +1043,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -996,7 +1057,7 @@ matproxy.Add( {
 		local mag = nil
 		local maxmag = nil
 		if wpn.Draconic != nil then
-			mag = wpn:GetNWInt("Heat")
+			mag = wpn:GetHeat()
 			maxmag = 100
 		elseif (wpn.ArcCW == true && wep.ArcCW_Halo_Battery == true) then
 			mag = wepn:GetHeatLevel() * 100
@@ -1033,7 +1094,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -1078,7 +1139,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
 		if self.MinVec == nil then self.MinVec = Vector(0, 0, 0) end
@@ -1098,8 +1159,8 @@ matproxy.Add( {
 			if self.ResultTo then mat:SetVector(self.ResultTo, col) end
 			if self.ResultTo2 then mat:SetVector(self.ResultTo2, col) end
 			if self.ResultTo3 then mat:SetVector(self.ResultTo3, col) end
-		elseif owner:EntIndex() == LocalPlayer():GetHands():EntIndex() then
-			local ply = LocalPlayer()
+		elseif owner:EntIndex() == lply:GetHands():EntIndex() then
+			local ply = lply
 			local hp, maxhp = DRC:Health(ply)
 			
 			local hpmath = (hp / maxhp)
@@ -1135,18 +1196,17 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
-		local owner = ent:GetOwner()
-		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
+		if !IsValid(lply) then return end
 		
 		if self.FlipVar == nil then self.FlipVar = 0 end
 		if self.VarMult == nil then self.VarMult = 1 end
 		if self.LerpPower == nil then self.LerpPower = 1 end
 		
-		if owner:IsPlayer() then
-			local ply = owner
+		if ent:IsPlayer() then
+			local ply = ent
+			local hp, maxhp = DRC:Health(ply)
 			local mag = hp
-			local maxmag = ply:GetMaxHealth()
+			local maxmag = maxhp
 			
 			if self.FlipVar == 0 then
 				local magmath = (mag / maxmag) / 2 * self.VarMult
@@ -1157,10 +1217,11 @@ matproxy.Add( {
 				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 			end
-		elseif owner:IsWeapon() then
-			local ply = owner:GetOwner()
+		elseif ent:IsWeapon() then
+			local ply = ent:GetOwner()
+			local hp, maxhp = DRC:Health(ply)
 			local mag = hp
-			local maxmag = ply:GetMaxHealth()
+			local maxmag = maxhp
 			
 			if self.FlipVar == 0 then
 				local magmath = (mag / maxmag) / 2 * self.VarMult
@@ -1171,10 +1232,11 @@ matproxy.Add( {
 				ent.drc_scrollmaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.drc_scrollmaglerp or magmath, magmath)
 				mat:SetVector( self.ResultTo, Vector(-ent.drc_scrollmaglerp, 0, 0) )
 			end
-		elseif owner:EntIndex() == LocalPlayer():GetHands():EntIndex() then
-			local ply = LocalPlayer()
+		elseif ent:EntIndex() == lply:GetHands():EntIndex() or ent:EntIndex() == lply:GetViewModel(0):EntIndex() then
+			local ply = lply
+			local hp, maxhp = DRC:Health(ply)
 			local mag = hp
-			local maxmag = ply:GetMaxHealth()
+			local maxmag = maxhp
 			
 			if self.FlipVar == 0 then
 				local magmath = (mag / maxmag) / 2 * self.VarMult
@@ -1199,7 +1261,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
@@ -1226,8 +1288,8 @@ matproxy.Add( {
 			self.drc_rotatemaglerp = Lerp(RealFrameTime() * (self.LerpPower * 2.5), self.drc_rotatemaglerp or magmath, magmath)
 
 			mat:SetVector( self.ResultTo, Vector(self.drc_rotatemaglerp, 0, 0) )
-		elseif owner:EntIndex() == LocalPlayer():GetHands():EntIndex() then
-			local ply = LocalPlayer()
+		elseif owner:EntIndex() == lply:GetHands():EntIndex() then
+			local ply = lply
 			local mag = ply:Health()
 			local maxmag = ply:GetMaxHealth()
 			local magmath = (mag / maxmag) * self.RadVar
@@ -1254,7 +1316,7 @@ matproxy.Add( {
 		if ent.Preview == tue then et = "previewmodel" end
 		if ent:GetOwner():IsPlayer() then et = "scripted" end
 		if ent:IsWeapon() then et = "weapon" end
-		if ent:EntIndex() == LocalPlayer():GetViewModel():EntIndex() then et = "viewmodel" end
+		if ent:EntIndex() == lply:GetViewModel():EntIndex() then et = "viewmodel" end
 		if ent:GetParent():IsWeapon() then et = "SCKElement" end
 		if ent:IsPlayer() then et = "ply" end
 		
@@ -1262,7 +1324,7 @@ matproxy.Add( {
 		ent.frames = 1
 		local plyent = nil
 		if et == "unknown" or et == "previewmodel" then
-			plyent = LocalPlayer()
+			plyent = lply
 			ent.frames = plyent.DRCSprayFrames
 			SID = plyent:SteamID64()
 		elseif et == "npc" or et == "scripted" or et == "weapon" then
@@ -1276,13 +1338,13 @@ matproxy.Add( {
 			ent.frames = ent.DRCSprayFrames
 			SID = ent:SteamID64()
 		elseif et == "viewmodel" then
-			plyent = LocalPlayer():GetActiveWeapon():GetNWEntity("Spawner")
+			plyent = lply:GetActiveWeapon():GetNWEntity("Spawner")
 			if IsValid(plyent) then 
 				ent.frames = plyent.DRCSprayFrames
 				SID = plyent:SteamID64()
 			end
 		else
-			plyent = LocalPlayer()
+			plyent = lply
 			ent.frames = plyent.DRCSprayFrames
 			SID = plyent:SteamID64()
 		end
@@ -1371,11 +1433,11 @@ matproxy.Add( {
 		if game.SinglePlayer() == true or ent.Preview == true then
 			mat:SetTexture("$basetexture", "vgui/logos/spray")
 			local fps = 0.33
-			if CurTime() > ent.spray_updatetime then
+			if RealTime() > ent.spray_updatetime then
 				local frame = mat:GetInt("$frame")
 				if frame > ent.frames then frame = 0 end
 				mat:SetInt("$frame", frame + 1)
-				ent.spray_updatetime = CurTime() + fps
+				ent.spray_updatetime = RealTime() + fps
 			end
 		else
 			mat:SetTexture("$basetexture", "../data/draconic/sprays/".. SID .."")
@@ -1398,7 +1460,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if ( !IsValid( ent )) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		if ent:Health() <= 0 && ent.preview != true then mat:SetInt("$frame", self.FrameNum - 1) return end
 		if !ent.DRCBlinkFrame then ent.DRCBlinkFrame = 0 end
@@ -1440,11 +1502,11 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		local wpn = ent
-		if (wpn:EntIndex() == LocalPlayer():GetViewModel(0):EntIndex()) or ent:GetClass() == "class C_BaseFlex" then
-			if DRC:ThirdPersonEnabled(LocalPlayer()) then return end
-			wpn = LocalPlayer():GetActiveWeapon()
+		if (wpn:EntIndex() == lply:GetViewModel(0):EntIndex()) or ent:GetClass() == "class C_BaseFlex" then
+			if DRC:ThirdPersonEnabled(lply) then return end
+			wpn = lply:GetActiveWeapon()
 		end
 		if !IsValid(wpn) then return end
 		local base = DRC:GetBaseName(wpn)
@@ -1489,7 +1551,7 @@ matproxy.Add( {
 	end,
 
 	bind = function( self, mat, ent )
-		if !IsValid(ent) then ent = LocalPlayer() end
+		if !IsValid(ent) then ent = lply end
 		if ent:IsWeapon() && ent:GetOwner():EntIndex() != 0 then ent = ent:GetOwner() end
 		
 		if !self.LerpPower then self.LerpPower = 1 end
@@ -1511,10 +1573,10 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
-		if !IsValid(LocalPlayer()) then return end
+		if !IsValid(lply) then return end
 		
 		local ohp, mohp = nil, nil
-		if ent:GetClass() == "drc_dummy" then ohp, mohp, ent = DRC:GetShield(LocalPlayer()) end
+		if ent:GetClass() == "drc_dummy" then ohp, mohp, ent = DRC:GetShield(lply) end
 		
 		local parent = ent:GetOwner()
 		local hp, mhp, ent = DRC:GetShield(parent)
@@ -1537,6 +1599,85 @@ matproxy.Add( {
 			render.SetBlend(0)
 			mat:SetFloat("$emissiveBlendStrength", ent.DRCShieldVis)
 			ent:DrawModel()
+		end
+	end
+} )
+
+matproxy.Add( {
+	name = "drc_FakePSX",
+	init = function( self, mat, values )
+		self.ResultTo = values.resultvar
+		self.Power = mat:GetFloat("$psx_mul")
+		self.Speed = mat:GetFloat("$psx_speed")
+		self.World = mat:GetFloat("$psx_world")
+	end,
+
+	bind = function( self, mat, ent )
+		if !IsValid(ent) then ent = Entity(0) end
+		if !IsValid(lply) then return end
+		
+		if !self.Power then self.Power = 1 end
+		if !self.Speed then self.Speed = 1 end
+		if !self.World then self.World = 0 end
+		
+		local localvel = lply:GetVelocity()
+		local localspeed = localvel:Length()
+		
+		local c1, c2 = ent:GetPos() + ent:OBBCenter(), lply:EyePos()
+		local m1, m2 = (self.Power or 1)/10, 1
+		
+		ent.Distance = (math.Distance(c1.x, c1.y, c2.x, c2.y) / 50)
+		
+		ent.DesiredPower = m1 * m2
+		
+		ent.DesiredPower = math.Clamp(ent.Distance * ent.DesiredPower, 0.1, 25)
+		
+		if !DRC:IsCharacter(ent) && !ent.preview then
+			if ent:GetVelocity() == Vector() && localvel == Vector() then ent.DesiredPower = 0 end
+		elseif ent.preview then ent.DesiredPower = 0.1
+		end
+		
+		ent.Power = Lerp(0.01, ent.Power or ent.DesiredPower, ent.DesiredPower)
+		
+		if !ent.psxcd then ent.psxcd = 0 end
+		if !ent.psxbool then ent.psxbool = 1 end
+
+		if CurTime() > ent.psxcd then
+		--	lply:ChatPrint(ent.psxbool)
+			ent.psxcd = CurTime() + 0.04
+			if ent.psxbool == 0 then ent.psxbool = 1 else ent.psxbool = 0 end
+		end
+		
+		
+		if self.World < 1 then
+			mat:SetInt("$treesway", ent.psxbool)
+			mat:SetFloat("$treeswayheight", 0)
+			mat:SetFloat("$treeswaystartheight", 0)
+			mat:SetFloat("$treeswayradius", 1)
+			mat:SetFloat("$treeswaystartradius", 1)
+			mat:SetFloat("$treeswayspeed", 1)
+			mat:SetFloat("$treeswaystrength", 0)
+			mat:SetFloat("$treeswayscrumblespeed", 150 * self.Speed)
+			mat:SetFloat("$treeswayscrumblestrength", ent.DesiredPower)
+			mat:SetFloat("$treeswayscrumblefrequency", 20000000)
+			mat:SetFloat("$treeswayfalloffexp", 2.5)
+			mat:SetFloat("$treeswaystatic", 1)
+		else
+			local worldstrength = (self.Power * (localspeed/200))
+			local worldspeed = ((self.Speed * localspeed) / 10) * self.Power
+			mat:SetInt("$treesway", ent.psxbool)
+			mat:SetFloat("$treeswayheight", 0)
+			mat:SetFloat("$treeswaystartheight", 0)
+			mat:SetFloat("$treeswayradius", 1)
+			mat:SetFloat("$treeswaystartradius", 1)
+			mat:SetFloat("$treeswayspeed", 1)
+			mat:SetFloat("$treeswaystrength", 0)
+			mat:SetFloat("$treeswayscrumblespeed", worldspeed)
+			mat:SetFloat("$treeswayscrumblestrength", worldstrength)
+			mat:SetFloat("$treeswayscrumblefrequency", 200000000)
+			mat:SetFloat("$treeswayfalloffexp", 0)
+			mat:SetFloat("$treeswaystatic", 1)
+
 		end
 	end
 } )

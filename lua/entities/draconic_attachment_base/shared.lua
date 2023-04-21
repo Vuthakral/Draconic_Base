@@ -30,7 +30,7 @@ ENT.Mass		= nil
 ENT.InfoName = nil
 ENT.InfoDescription = nil
 
-ENT.AttachType = nil
+ENT.Model = "models/Items/item_item_crate.mdl"
 
 ENT.BulletTable = {
 	Damage = 1,
@@ -113,17 +113,29 @@ ENT.AttachTable = {
 function ENT:Initialize()
 	self.SpawnTime = CurTime()
 	self:SetModel(self.Model)
-	self:PhysicsInit(SOLID_VPHYSICS)
-	self:SetMoveType(MOVETYPE_VPHYSICS)
-	self:SetSolid(SOLID_VPHYSICS)
 	
-local phys = self:GetPhysicsObject()
-	phys:SetBuoyancyRatio(self.Buoyancy)
-	if self.Mass == 0 then self.Mass = 1 phys:SetMass(self.Mass) end
-	if self.Mass != nil then phys:SetMass(self.Mass) end
-	if self.Drag != nil then phys:SetDragCoefficient(self.Drag) end
+	if SERVER then
+		self:PhysicsInit(SOLID_VPHYSICS)
+		self:SetMoveType(MOVETYPE_VPHYSICS)
+		self:SetSolid(SOLID_VPHYSICS)
+		self:SetUseType(SIMPLE_USE)
+		self:PhysWake()
+		
+		local phys = self:GetPhysicsObject()
+		phys:SetBuoyancyRatio(self.Buoyancy)
+		if self.Mass == 0 then self.Mass = 1 phys:SetMass(self.Mass) end
+		if self.Mass != nil then phys:SetMass(self.Mass) end
+		if self.Drag != nil then phys:SetDragCoefficient(self.Drag) end
+		if self.Gravity == false then phys:EnableGravity(false) end
+	end
+end
+
+function ENT:Use(ply, caller, typ)
+	if CLIENT then return end
+	if DRC:HasAttachment(ply, self:GetClass()) then ply:ChatPrint("I already have this.") return end
 	
-	if self.Gravity == false then
-		phys:EnableGravity(false)
-	else end
+	DRC:GiveAttachment(ply, self:GetClass())
+	ply:EmitSound("physics/metal/weapon_footstep1.wav")
+	DRC:SpeakSentence(ply, "Actions", "pickup_".. self:GetClass() .."", false)
+	self:Remove()
 end

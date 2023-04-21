@@ -23,7 +23,7 @@ ENT.AdminOnly = false
 ENT.InfoName = "Buckshot"
 ENT.InfoDescription = "Standard ammunition for this weapon."
 
-ENT.AttachType = "ammo"
+ENT.Model = "models/Items/BoxBuckshot.mdl"
 
 ENT.BulletTable = {
 	Damage = 1,

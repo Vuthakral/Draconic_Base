@@ -12,4 +12,4 @@ _____
 - **[Vuthakral](http://vuthakral.com/)** - Audio mixing for custom sounds.
 - **[Entropy Zero 2](https://store.steampowered.com/app/1583720/Entropy__Zero_2/)** - Weapon sight foley sounds created with samples taken from this mod. 12/10 game, would recommend.
 
-**Draconic Base (c) 2022 Vuthakral. All Rights Reserved.**
+**Draconic Base (c) 2023 Vuthakral. All Rights Reserved.**

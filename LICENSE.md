@@ -1,4 +1,4 @@
-<b>Draconic Base (c) 2022 Vuthakral. All Rights Reserved.</b>
+<b>Draconic Base (c) 2023 Vuthakral. All Rights Reserved.</b>
 
 https://twitter.com/Vuthakral/ <br>
 https://steamcommunity.com/id/Vuthakral/ <br>
@@ -19,10 +19,6 @@ You are free to download & use the Draconic Base as-is. Modifications are allowe
 
 <h3>Making Content with the Draconic Base</h3>
 <b>(1)</b>: Content made utilizing the Draconic Base is solely the property of the individual(s) that created the content. The Draconic Base is merely a set of tools for developers.<br>
-<b>(2)</b>: As with Distribution(1), content made using the Draconic Base cannot repackage parts of the base with exception of the following, with modification:
-
-- lua effect example files
-- LFS extension script
 
 <h3>Other</h3>
 <b>(1)</b>: Just because it's not explicitly stated here does not mean it is acceptable. <b>All Rights Reserved</b> is always implied unless otherwise stated for a reason.

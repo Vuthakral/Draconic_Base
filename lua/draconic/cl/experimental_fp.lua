@@ -5,10 +5,13 @@ end
 
 local bobang = Angle()
 local offsetmul = 1
-hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, origin, ang, fov, zn, zf)
---	if !IsValid(DRC.Convars_CL.EnableEFP) or !IsValid(DRC.Convars_CL.ForceEFP) then return end
-	if EFPChecks() == true then return end
+hook.Add( "CalcView", "EFPTest2", function(ply, origin, ang, fov, zn, zf)
+
+end)
+
+hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf)
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
+	if EFPChecks() == true then return end
 		if !IsValid(ply) then return end
 		if !ply:Alive() then return end
 		local eyesatt = ply:LookupAttachment("eyes")
@@ -135,7 +138,8 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 				["camera"] = 0,
 				["magic"] = 0.05,
 				["revolver"] = 0.03,
-			}			
+			}
+			if !bobpower[ht] then ht = "duel" end
 			DRC.CalcView.InheritStrength = Lerp(0.1, DRC.CalcView.InheritStrength or bobpower[ht], bobpower[ht])
 		else
 			DRC.CalcView.InheritStrength = 0.1
@@ -172,16 +176,22 @@ hook.Add( "CalcView", "!Draconic_Experimental_First_Person_CV", function(ply, or
 				znear = zn,
 				zfar = zfar,
 			}
-
+			
 			if base == "mwb" then
 				wep:CalcView(ply, DRC.CalcView.WorldPos, DRC.CalcView.AimCorrectAngle, ply:GetFOV())
 			end
+			
+			local shake, shakevert, shakeroll = DRC:GetCalcViewShake()
+			view.origin = view.origin + (view.angles:Right() * shake)
+			view.origin = view.origin + (view.angles:Up() * shakevert)
+			view.angles.z = view.angles.z + shakeroll
+				
 			return view
 		end
 	end
 end)
 
-hook.Add( "CalcViewModelView", "!Draconic_Experimental_First_Person_CVMV", function(wpn, vm, oldpos, oldang, eyepos, eyeang)
+hook.Add( "CalcViewModelView", "DRC_EFP_CalcViewModelView", function(wpn, vm, oldpos, oldang, eyepos, eyeang)
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
 	if EFPChecks() == true then return end
 		local base = DRC:GetBaseName(wpn)
@@ -193,6 +203,7 @@ hook.Add( "CalcViewModelView", "!Draconic_Experimental_First_Person_CVMV", funct
 		local newpos = eyes.Pos
 		local hands = ply:GetHands()
 		local et = DRC.CalcView.Trace
+		if !DRC.CalcView.EFP_ISPow then return end
 
 		newpos = pos + Vector(diff.x * .1, diff.y * .1, diff.z * .1)
 		local holdtype = wpn:GetHoldType()
@@ -227,14 +238,19 @@ hook.Add( "CalcViewModelView", "!Draconic_Experimental_First_Person_CVMV", funct
 		local calcvpos, calcvang = Vector(), Angle()
 		
 		if IsValid(wpn) then
-			if base != nil && base != "mwb" then
+			local special = {
+				["mwb"] = "cawadoody",
+				["drc"] = "dragons"
+			}
+			if base != nil && !special[base] then
 				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
 				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
 				newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
-			elseif base == "mwb" then
-			--	wpn:CalcViewModel(wpn.m_ViewModel, newpos, eyeang)
-		--	newpos, eyeang = newpos, ply:EyeAngles()
-		--	wpn.m_ViewModel:SetPos(newpos)
+			elseif base == "drc" then
+				DRCSwepSway(wpn, vm, oldpos, oldang, eyepos, eyeang)
+				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
+				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
+				newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
 			end
 		end
 		return newpos, eyeang
@@ -293,6 +309,13 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	if DRC.CSPlayerModel:GetSkin() != LocalPlayer():GetSkin() then DRC.CSPlayerModel:SetSkin(LocalPlayer():GetSkin()) end
 	
 	local parents = {DRC.CSPlayerModel, DRC.CSShadowModel}
+	local leftarm = ply:LookupBone(DRC.Skel.LeftArm.Name)
+	local rightarm = ply:LookupBone(DRC.Skel.RightArm.Name)
+	local neck = ply:LookupBone(DRC.Skel.Neck.Name)
+	local spine0 = ply:LookupBone(DRC.Skel.Spine.Name)
+	local spine1 = ply:LookupBone(DRC.Skel.Spine1.Name)
+	local spine2 = ply:LookupBone(DRC.Skel.Spine2.Name)
+	local spine4 = ply:LookupBone(DRC.Skel.Spine4.Name)	
 	
 	for k,ent in pairs(parents) do
 		ent:SetNoDraw(false)
@@ -313,41 +336,49 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 		end
 		
 		DRC:CopyPoseParams(ply, ent)
-	end
-	
-	
-	local leftarm = ply:LookupBone(DRC.Skel.LeftArm.Name)
-	local rightarm = ply:LookupBone(DRC.Skel.RightArm.Name)
-	local neck = ply:LookupBone(DRC.Skel.Neck.Name)
-	local spine0 = ply:LookupBone(DRC.Skel.Spine.Name)
-	local spine1 = ply:LookupBone(DRC.Skel.Spine1.Name)
-	local spine2 = ply:LookupBone(DRC.Skel.Spine2.Name)
-	local spine4 = ply:LookupBone(DRC.Skel.Spine4.Name)
-
-	if DRC:ValveBipedCheck(DRC.CSPlayerModel) then
-	DRC.CSPlayerModel:ManipulateBoneScale(spine0, DRC.Skel.Spine.Scale)
-	DRC.CSPlayerModel:ManipulateBoneScale(spine1, DRC.Skel.Spine1.Scale)
-	if spine2 != nil then
-		for k,v in pairs(ply:GetChildBones(spine2)) do
-			DRC.CSPlayerModel:ManipulateBoneScale(v, DRC.Skel.Spine4.Scale)
-		end
-		DRC.CSPlayerModel:ManipulateBoneScale(spine2, DRC.Skel.Spine2.Scale)
-	end
-	if spine4 != nil then
-		for k,v in pairs(ply:GetChildBones(spine4)) do
-			DRC.CSPlayerModel:ManipulateBoneScale(v, DRC.Skel.Spine4.Scale)
-		end
-		DRC.CSPlayerModel:ManipulateBoneScale(spine4, DRC.Skel.Spine4.Scale)
-	end
-	
-	if neck != nil then DRC.CSPlayerModel:ManipulateBonePosition(neck, DRC.Skel.Neck.Offset) end
-	
-		if IsValid(ply:GetVehicle()) == true or !IsValid(ply:GetActiveWeapon()) then
-			DRC.CSPlayerModel:ManipulateBonePosition(leftarm, Vector(0, 0, 0))
-			DRC.CSPlayerModel:ManipulateBonePosition(rightarm, Vector(0, 0, 0))
-		else
-			DRC.CSPlayerModel:ManipulateBonePosition(leftarm, DRC.Skel.LeftArm.Offset)
-			DRC.CSPlayerModel:ManipulateBonePosition(rightarm, DRC.Skel.RightArm.Offset)
+		
+		if DRC:ValveBipedCheck(ent) then
+			if ent == DRC.CSPlayerModel then
+				ent:ManipulateBoneScale(neck, DRC.Skel.Neck.Scale)
+				ent:ManipulateBonePosition(neck, DRC.Skel.Neck.Offset)
+				if neck != nil then
+					for k,v in pairs(ply:GetChildBones(neck)) do
+						ent:ManipulateBoneScale(v, DRC.Skel.Neck.Scale)
+						for _,n in pairs(ply:GetChildBones(ply:LookupBone(ply:GetBoneName(v)))) do
+							ent:ManipulateBoneScale(n, DRC.Skel.Neck.Scale)
+						end
+					end
+					
+					if IsValid(ply:GetVehicle()) == true or !IsValid(ply:GetActiveWeapon()) then
+						ent:ManipulateBonePosition(leftarm, Vector(0, 0, 0))
+						ent:ManipulateBonePosition(rightarm, Vector(0, 0, 0))
+					else
+						ent:ManipulateBonePosition(leftarm, DRC.Skel.LeftArm.Offset)
+						ent:ManipulateBonePosition(rightarm, DRC.Skel.RightArm.Offset)
+					end
+				end
+			end
+			
+			local ScaleVal = GetConVar("cl_drc_experimental_fp_chestscale"):GetFloat()
+			local s1scale = Vector(DRC.Skel.Spine.Scale.x, Lerp(ScaleVal, DRC.Skel.Spine.Scale.y, 1), DRC.Skel.Spine.Scale.z)
+			local s2scale = Vector(DRC.Skel.Spine2.Scale.x, Lerp(ScaleVal, DRC.Skel.Spine2.Scale.y, 1), DRC.Skel.Spine2.Scale.z)
+			local s4scale = Vector(DRC.Skel.Spine4.Scale.x, Lerp(ScaleVal, DRC.Skel.Spine4.Scale.y, 1), DRC.Skel.Spine4.Scale.z)
+			
+			ent:ManipulateBoneScale(spine0, s1scale)
+			ent:ManipulateBoneScale(spine1, s2scale)
+			
+			if spine2 != nil then
+				for k,v in pairs(ply:GetChildBones(spine2)) do
+					ent:ManipulateBoneScale(v, s2scale)
+				end
+				ent:ManipulateBoneScale(spine2, s2scale)
+			end
+			if spine4 != nil then
+				for k,v in pairs(ply:GetChildBones(spine4)) do
+					ent:ManipulateBoneScale(v, s4scale)
+				end
+				ent:ManipulateBoneScale(spine4, s4scale)
+			end
 		end
 	end
 end)

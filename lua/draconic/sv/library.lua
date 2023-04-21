@@ -78,7 +78,7 @@ function DRC:EMP(src, tgt, thyme, sound, effect)
 			tgt:StopEngine()
 			timer.Simple(thyme, function() if IsValid(tgt) then tgt:StartEngine() tgt:SetNWBool("EMPed", false) end end)
 		end
-	elseif tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" then 
+	elseif tgt:GetClass() == "gmod_sent_vehicle_fphysics_base" then
 		if tgt:GetActive() == true then
 			Effects()
 			tgt:StopEngine()
@@ -230,6 +230,11 @@ util.AddNetworkString("DRC_ReceiveLightColour")
 util.AddNetworkString("DRC_SetRPModels")
 util.AddNetworkString("DRC_PlayerSquadHelp")
 util.AddNetworkString("DRC_PlayerSquadMove")
+util.AddNetworkString("DRC_NetworkScreenShake")
+util.AddNetworkString("DRC_WeaponAttachSwitch")
+util.AddNetworkString("DRC_WeaponAttachSwitch_Sync")
+util.AddNetworkString("DRC_WeaponAttachClose")
+util.AddNetworkString("DRC_WeaponAttachSyncInventory")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -239,8 +244,10 @@ hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	end
 end)
 
-local fuckedupmodels = { "models/combine_dropship.mdl" }
-hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
+local fuckedupmodels = { 
+	["models/combine_dropship.mdl"] = "NoMat",
+}
+hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 	if !IsValid(tgt) then return end
 	local inflictor = dmg:GetInflictor()
 	local attacker = dmg:GetAttacker()
@@ -279,6 +286,12 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 			end)
 		end
 		
+		local shieldhp = tgt:GetNWInt("DRC_ShieldHealth") + tgt:GetNWInt("DRC_ShieldHealth_Extra")
+		if shieldhp - dmg:GetDamage() < 0 then
+			dmg:SetDamage(math.abs(shieldhp - dmg:GetDamage()))
+			DRC:ShieldEffects(tgt, dmg)
+		end
+		
 		if tgt:GetNWBool("DRC_ShieldInvulnerable") != true then
 			DRC:SubtractShield(tgt, dmg:GetDamage())
 		else
@@ -288,11 +301,7 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 			dmg:SetDamageCustom(0)
 		end
 		
-		local shieldhp = tgt:GetNWInt("DRC_ShieldHealth") + tgt:GetNWInt("DRC_ShieldHealth_Extra")
-		if shieldhp - dmg:GetDamage() < 0 then
-			dmg:SetDamage(math.abs(shieldhp - dmg:GetDamage()))
-			DRC:ShieldEffects(tgt, dmg)
-		elseif shieldhp > 0 then
+		if shieldhp > 0 then 
 			DRC:ShieldEffects(tgt, dmg)
 			return true
 		end
@@ -303,7 +312,7 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 	if inflictor.Draconic == nil then return end
 	if inflictor.IsMelee == true then return end
 	local mat = nil
-	if CTFK(fuckedupmodels, tgt:GetModel()) then
+	if fuckedupmodels[tgt:GetModel()] then
 		mat = "MAT_DEFAULT"
 	else
 		mat = DRC:SurfacePropToEnum(tgt:GetBoneSurfaceProp(0))
@@ -311,24 +320,24 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 	
 	local damagevalue = dmg:GetDamage()
 	
-	local BaseProfile = scripted_ents.GetStored("drc_att_bprofile_generic")
+	local BaseProfile = scripted_ents.GetStored("drc_abp_generic")
 	local BT, DT, BaseBT, BaseDT, scalar = nil, nil, nil, nil, 0
 	
-	local hl2diff_inflict, hl2diff_take = 1, 1
-	if GetConVarNumber("skill") == 1 then
+	local hl2diff_inflict, hl2diff_take, skilllevel = 1, 1, GetConVarNumber("skill")
+	if skilllevel == 1 then
 		hl2diff_take = GetConVarNumber("sk_dmg_take_scale1")
 		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale1")
-	elseif GetConVarNumber("skill") == 2 then
+	elseif skilllevel == 2 then
 		hl2diff_take = GetConVarNumber("sk_dmg_take_scale2")
 		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale2")
-	elseif GetConVarNumber("skill") == 3 then
+	elseif skilllevel == 3 then
 		hl2diff_take = GetConVarNumber("sk_dmg_take_scale3")
 		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale3")
 	end
 	
 	if inflictor:IsWeapon() then
-		BT = inflictor.ActiveAttachments.Ammunition.t.BulletTable
-		DT = inflictor.ActiveAttachments.Ammunition.t.BulletTable.MaterialDamageMuls
+		BT = inflictor.ActiveAttachments.AmmunitionTypes.t.BulletTable
+		DT = inflictor.ActiveAttachments.AmmunitionTypes.t.BulletTable.MaterialDamageMuls
 		BaseBT = BaseProfile.t.BulletTable
 		BaseDT = BaseBT.MaterialDamageMuls
 		
@@ -380,8 +389,8 @@ hook.Add("EntityTakeDamage", "drc_materialdamagescale", function(tgt, dmg)
 		if vehicle == true then damagevalue = damagevalue * inflictor:GetAttachmentValue("Ammunition", "VehicleDamageMul") end
 	elseif inflictor.BProfile == true or inflictor.OverrideBProfile != nil then
 		if !inflictor:GetCreator().ActiveAttachments then return end
-		BT = inflictor:GetCreator().ActiveAttachments.Ammunition.t.BulletTable
-		DT = inflictor:GetCreator().ActiveAttachments.Ammunition.t.BulletTable.MaterialDamageMuls
+		BT = inflictor:GetCreator().ActiveAttachments.AmmunitionTypes.t.BulletTable
+		DT = inflictor:GetCreator().ActiveAttachments.AmmunitionTypes.t.BulletTable.MaterialDamageMuls
 		BaseBT = BaseProfile.t.BulletTable
 		BaseDT = BaseBT.MaterialDamageMuls
 		
@@ -465,7 +474,7 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 		end
 	return end
 	
-	if infl then
+	if IsValid(infl) then
 		if DRC:IsVehicle(infl) or att:GetClass() == "npc_antlionguard" or infl:GetClass() == "npc_antlionguard" then
 			if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
 				DRC:SpeakSentence(vic, "Pain", "Death")
@@ -557,9 +566,9 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 		local hp = DRC:Health(tgt)
 		if hp <= 0 then
 			if !DRC:IsVSentenceValid(DRC:GetVoiceSet(dmg:GetAttacker()), "Reactions", str) then
-				DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", "kill_postgeneric")
+				timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", "kill_postgeneric") end)
 			else
-				DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", str)
+				timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", str) end)
 			end
 			
 			if class == "npc_barnacle" then
@@ -704,6 +713,46 @@ function DRC:RequestLightColour(ent)
 		end)
 	end
 end
+
+local bandaid1 = {
+	["drc_att_bprofile_generic"] = "drc_abp_generic",
+	["drc_att_bprofile_buckshot"] = "drc_abp_buckshot",
+	["drc_att_bprofile_explosive"] = "drc_abp_explosive",
+}
+
+net.Receive("DRC_WeaponAttachSwitch", function(l,ply)
+	local wpn = net:ReadEntity()
+	local lply = net:ReadEntity()
+	local req = net:ReadString()
+	local slot = net:ReadString()
+	
+	if ply != lply then
+		DRC:CheaterWarning(ply, "This player's client attempted to change the weapon attachment of another player.")
+	else
+		if !table.HasValue(wpn.AttachmentTable[slot], req) then
+			DRC:CheaterWarning(ply, "This player's client attempted to apply an attachment to their weapon which it is not allowed to use.")
+		else
+			local att = scripted_ents.GetStored(req)
+			if slot == "AmmunitionTypes" then wpn:SetupAttachments(req, slot, true, false) else wpn:SetupAttachments(req, slot, false, false) end
+			net.Start("DRC_WeaponAttachSwitch_Sync")
+			net.WriteEntity(wpn)
+			net.WriteString(req)
+			net.WriteString(slot)
+			net.Broadcast()
+		end
+	return end
+end)
+
+net.Receive("DRC_WeaponAttachClose", function(l,ply)
+	local wpn = net:ReadEntity()
+	local lply = net:ReadEntity()
+	
+	if ply != lply then
+		DRC:CheaterWarning(ply, "This player's client attempted to close the attachment menu of another player")
+	else
+		wpn:ToggleInspectMode()
+	return end
+end)
 
 
 

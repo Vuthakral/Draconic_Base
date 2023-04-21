@@ -20,7 +20,7 @@ hook.Add("PreRegisterSWEP", "DRC_NPCWeaponList", function(swep, cl)
 end)
 
 list.Set( "DesktopWindows", "Draconic Menu", {
-	title = "Draconic Base",
+	title = "Draconic Menu",
 	icon = "icon64/draconic_base.png",
 	init = function( icon, window )
 		DRCMenu(LocalPlayer())

@@ -25,4 +25,4 @@ ENT.ProjectileType	= "explosive"
 ENT.ExplodeShakePower = 25
 ENT.ExplodeShakeTime  = 0.5	
 ENT.ExplodeShakeDistance = 500
-ENT.OverrideBProfile = "drc_att_bprofile_explosion"
+ENT.OverrideBProfile = "drc_abp_explosion"

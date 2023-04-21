@@ -169,17 +169,25 @@ SWEP.OCNPCSound 		= nil
 SWEP.OCProjectile 		= nil
 SWEP.OCProjSpeed = 500
 
+SWEP.RegenAmmo			= false
+SWEP.RegenAmmo_Delay	= 1
+SWEP.RegenAmmo_Amount	= 1
+SWEP.RegenAmmo_Interval	= 0.5
+
 SWEP.AttachmentTable = {
-	AmmunitionTypes = {"drc_att_bprofile_generic"},
-	Optics = nil,
-	Foregrips = nil,
-	Barrels = nil,
-	Stocks = nil,
-	Internals = nil,
-	Charm = nil
+	["AmmunitionTypes"] = {"drc_abp_generic"},
+}
+
+SWEP.AttachmentTitles = {
+	["AmmunitionTypes"] = "Ammo",
+	["Header"] = "Available Attachments"
 }
 
 -- "DO NOT TOUCH" Zone. Touching any of these settings in your SWEP WILL break something. So DON'T.
+SWEP.DummyAttachmentTable = {
+	["AmmunitionTypes"] = {},
+}
+
 SWEP.Loading = false
 SWEP.IronCD = false
 SWEP.FireDelay = 0
@@ -240,14 +248,14 @@ end
 
 function SWEP:CanPrimaryAttackNPC()
 	local npc = self:GetOwner()
-	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
+	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	
 	if self:Clip1() < 1 or self:GetNWInt("LoadedAmmo") < 1 then
 	--	npc:SetSchedule(SCHED_RELOAD)
 		self:LoadNextShot()	
-		self:SetNWInt("LoadedAmmo", (self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
-		self:SetClip1(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
-		if !npc:IsNextBot() && !npc.Draconic then 
+		self:SetLoadedAmmo((self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
+--		self:SetClip1(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
+		if (!npc:IsNextBot() && !npc.Draconic) && SERVER && !CLIENT then 
 			npc:ClearSchedule()
 			npc:SetSchedule(SCHED_PATROL_WALK)
 		end
@@ -280,9 +288,11 @@ function SWEP:PrimaryAttack()
 	
 	self:DoCustomPrimary()
 	
+--	print(self, self.Primary.Projectile, self:GetClass(), self:GetOwner())
+	
 	local ply = self:GetOwner()
 	
-	if !ply:IsPlayer() && !self:CanPrimaryAttackNPC() then return end
+--	if !ply:IsPlayer() && !self:CanPrimaryAttackNPC() then return end
 	
 	local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
 	local firetime = self:SequenceDuration( fireseq )
@@ -479,20 +489,22 @@ function SWEP:FinishLoading()
 end
 
 function SWEP:SecondaryAttack()
-local ply = self:GetOwner()
-local cv = ply:Crouching()
-local usekey = ply:KeyDown(IN_USE)
-local reloadkey = ply:KeyDown(IN_RELOAD)
-local sprintkey = ply:KeyDown(IN_SPEED)
-local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
-local firetime = self:SequenceDuration( fireseq )
-local vm = ply:GetViewModel()
+	local ply = self:GetOwner()
+	local cv = ply:Crouching()
+	local usekey = ply:KeyDown(IN_USE)
+	local reloadkey = ply:KeyDown(IN_RELOAD)
+	local sprintkey = ply:KeyDown(IN_SPEED)
+	local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
+	local firetime = self:SequenceDuration( fireseq )
+	local vm = ply:GetViewModel()
+	local dc = self.Secondary.UsesCharge
 	
 	self:DoCustomSecondary()
+	if dc == true then return end
 	
-if dc && self.ChargeType == "default" && charge < 99 then
-elseif dc && (self.ChargeType == "dualaction" or self.ChargeType == "discharge") && charge >= 99 then self:DoOvercharge()
-elseif dc && self.ChargeType != "default" then
+	if dc && self.ChargeType == "default" && charge < 99 then
+	elseif dc && (self.ChargeType == "dualaction" or self.ChargeType == "discharge") && charge >= 99 then self:DoOvercharge()
+	elseif dc && self.ChargeType != "default" then
 	else
 		if self.Secondary.Ironsights == true then
 			if usekey && !sprintkey then
@@ -548,36 +560,6 @@ function SWEP:TogglePassive()
 		ply:EmitSound("draconic.IronInGeneric")
 		timer.Simple(0.42, function()
 			self.Loading = false 
-			self.Idle = 1
-		end)
-	end
-end
-
-function SWEP:ToggleInspectMode()
-	local ply = self:GetOwner()
-	
-	if GetConVar("sv_drc_inspections"):GetString() == "0" then return end
-	
-	if self:GetNWBool("Inspecting") == false then
-		self.Inspecting = true
-		self:DoPassiveHoldtype()
-		self:SetNWBool("Inspecting", true)
-		if self:GetNWBool("ironsights") == true then 
-			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
-			self:SetNWBool("ironsights", false)
-		else end
-		ply:EmitSound("draconic.IronOutGeneric")
-		if self:GetNWBool("Passive") == true then
-			self:TogglePassive()
-		end
-	else
-		self.Idle = 0
-		self:SetHoldType(self.HoldType)
-		self.Inspecting = false
-		self:SetNWBool("Inspecting", false)
-		ply:EmitSound("draconic.IronInGeneric")
-		timer.Simple(0.42, function()
-			self.Inspecting = false 
 			self.Idle = 1
 		end)
 	end
@@ -667,14 +649,14 @@ end
 
 function SWEP:Reload()
 	self:DoCustomReload()
---	if game.SinglePlayer() then self:CallOnClient("Reload") end -- why
+	if game.SinglePlayer() then self:CallOnClient("Reload") end -- why
 	local ply = self:GetOwner()
 	if !ply:IsPlayer() then self:DoReload() return end
 	local usekey = ply:KeyDown(IN_USE)
 	local reloadkey = ply:KeyDown(IN_RELOAD)
 	local walkkey = ply:KeyDown(IN_WALK)
 	local sprintkey = ply:KeyDown(IN_SPEED)
-	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
+	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
 
@@ -768,7 +750,7 @@ function SWEP:DoReload()
 	local reloadtime = self:SequenceDuration( reloadseq )
 	local emptyreloadseq = self:SelectWeightedSequence( ACT_VM_RELOAD_EMPTY )
 	local emptyreloadtime = self:SequenceDuration( emptyreloadseq )
-	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
+	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
 	local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
@@ -783,6 +765,9 @@ function SWEP:DoReload()
 		self.Loading = true
 		self:SetNextPrimaryFire( CurTime() + reloadtime)
 		self:SetNextSecondaryFire( CurTime() + reloadtime)
+		
+		self.BloomValue = 1
+		self:DoCustomReloadStartEvents()
 		
 		if self.SightsDown == true && CLIENT && self.Secondary.IronOutFP != nil then
 			surface.PlaySound(Sound(self.Secondary.IronOutFP))
@@ -825,9 +810,6 @@ function SWEP:DoReload()
 		else
 			self:SetNWInt("LoadedAmmo", CM)
 		end
-
-		self.BloomValue = 1
-		self:DoCustomReloadStartEvents()
 		
 		if self:Clip1() <= 0 then
 			if emptyreloadseq == -1 then
@@ -859,7 +841,7 @@ function SWEP:EndReload()
 	
 	if !(self:IsValid() && ply:IsValid() && ply:Health() > 0.001) then return end
 --	if SERVER then self:CallOnClient("EndReload") end
-	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
+	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	
 	self.IdleTimer = CurTime()
@@ -952,7 +934,7 @@ end
 
 function SWEP:ManualReloadLoop()
 	local ply = self:GetOwner()
-	local BT = self.ActiveAttachments.Ammunition.t.BulletTable
+	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	
 	if self:IsValid() && ply:IsValid() && ply:Alive() then
@@ -1031,7 +1013,13 @@ function SWEP:GetShootPos()
 	local attnum = self:LookupAttachment("muzzle")
 	local attinfo = self:GetAttachment(attnum)
 	
-	if attinfo == nil then MsgC(Color(255, 0, 0), "Draconic: ".. self:GetModel() .." / ".. self.ViewModel .." does not have a muzzle attachment!") end
+	if attinfo == nil then 
+		MsgC(Color(255, 0, 0), "Draconic: ".. self:GetModel() .." / ".. self.ViewModel .." does not have a muzzle attachment!")
+		attinfo = {
+			["Pos"] = self:GetPos(),
+			["Ang"] = Angle()
+		}
+	end
 	
 	return attinfo.Pos
 end
@@ -1081,22 +1069,22 @@ end
 
 -- ADDON COMPATIBILITY. DO NOT USE ANYTHING BELOW THIS LINE!
 SWEP.ignorepcs = { -- NPCS to avoid targeting
-	"npc_bullseye", -- Yes I know blocking this is a bad idea. I'll deal with it later, as instances where this matters are close to none.
-	"npc_enemyfinder",
-	"cycler_actor",
-	"generic_actor",
-	"info_npc_spawn_destination",
-	"npc_furniture",
-	"npc_heli_avoidbox",
-	"npc_heli_avoidsphere",
-	"npc_heli_nobomb",
-	"npc_launcher",
-	"npc_maker",
-	"npc_missiledefense",
-	"npc_particlestorm",
-	"npc_spotlight",
-	"npc_template_maker",
-	"npc_template_maker",
+	["npc_bullseye"] = true, -- Yes I know blocking this is a bad idea. I'll deal with it later, as instances where this matters are close to none.
+	["npc_enemyfinder"] = true,
+	["cycler_actor"] = true,
+	["generic_actor"] = true,
+	["info_npc_spawn_destination"] = true,
+	["npc_furniture"] = true,
+	["npc_heli_avoidbox"] = true,
+	["npc_heli_avoidsphere"] = true,
+	["npc_heli_nobomb"] = true,
+	["npc_launcher"] = true,
+	["npc_maker"] = true,
+	["npc_missiledefense"] = true,
+	["npc_particlestorm"] = true,
+	["npc_spotlight"] = true,
+	["npc_template_maker"] = true,
+	["npc_template_maker"] = true,
 }
 
 function SWEP:AI_PrimaryAttack() -- Iv04
@@ -1106,28 +1094,30 @@ end
 
 function SWEP:NPC_ServerNextFire() -- VJ
 	local ply = self:GetOwner()
-	if !ply.IsVJBaseSNPC then return end
-	if CLIENT or (!IsValid(self) or !IsValid(ply) or !ply:IsNPC()) then return end
-	if self.NPCBursting == true then return end
-	if ply:GetActiveWeapon() != self then return end
+--	if !ply.IsVJBaseSNPC then return end
+--	if CLIENT or (!IsValid(self) or !IsValid(ply) or !ply:IsNPC()) then return end
+--	if self.NPCBursting == true then return end
+--	if ply:GetActiveWeapon() != self then return end
 	
-	local enemy = ply:GetEnemy()
+	local enemy
+	if ply.GetEnemy then enemy = ply:GetEnemy() end
 	
-	if ply:GetActivity() == nil then return end
+--	if ply:GetActivity() == nil then return end
 	
-	if enemy == nil then return end
-	if IsValid(enemy) && CTFK(self.ignorepcs, enemy:GetClass()) then ply:SetEnemy(nil, true) end
-	if IsValid(enemy) && ply:GetEnemyLastTimeSeen(enemy) > CurTime() then return end
+--	if enemy == nil then return end
+	if IsValid(enemy) && self.ignorepcs[enemy:GetClass()] then ply:SetEnemy(nil, true) end
+--	if IsValid(enemy) && ply:GetEnemyLastTimeSeen(enemy) > CurTime() then return end
 	
-	if IsValid(enemy) && !ply:IsLineOfSightClear(enemy:GetPos()) then return end
+--	if IsValid(enemy) && !ply:IsLineOfSightClear(enemy:GetPos()) then return end
 	
-	if IsValid(enemy) then
+--	if IsValid(enemy) then
 		self:PrimaryAttack()
-	end
+--	end
 end
 
 function SWEP:NPCAbleToShoot() -- VJ...
-	if self:CanPrimaryAttackNPC() then return true end
+--	if self:CanPrimaryAttackNPC() then return true end
+	return true
 end
 
 function SWEP:NPC_Reload() -- Still VJ.
@@ -1139,4 +1129,7 @@ function SWEP:NPC_Reload() -- Still VJ.
 	if VJ_AnimationExists(ply, ply:TranslateToWeaponAnim(VJ_PICK(ply.AnimTbl_WeaponReload))) == true then
 		ply:VJ_ACT_PLAYACTIVITY(seq, true, 1, ply.WeaponReloadAnimationFaceEnemy, ply.WeaponReloadAnimationDelay, {SequenceDuration=dur, PlayBackRateCalculated=true})
 	end
+end
+
+function SWEP:CustomOnReload_Finish() -- Seriously, still VJ.
 end

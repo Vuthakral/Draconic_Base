@@ -458,36 +458,6 @@ function SWEP:TogglePassive()
 	end
 end
 
-function SWEP:ToggleInspectMode()
-	local ply = self:GetOwner()
-	
-	if GetConVar("sv_drc_inspections"):GetString() == "0" then return end
-	
-	if self:GetNWBool("Inspecting") == false then
-		self.Inspecting = true
-		self:DoPassiveHoldtype()
-		self:SetNWBool("Inspecting", true)
-		if self:GetNWBool("ironsights") == true then 
-			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
-			self:SetNWBool("ironsights", false)
-		else end
-		ply:EmitSound("draconic.IronOutGeneric")
-		if self:GetNWBool("Passive") == true then
-			self:TogglePassive()
-		end
-	else
-		self.Idle = 0
-		self:SetHoldType(self.HoldType)
-		self.Inspecting = false
-		self:SetNWBool("Inspecting", false)
-		ply:EmitSound("draconic.IronInGeneric")
-		timer.Simple(0.42, function()
-			self.Inspecting = false 
-			self.Idle = 1
-		end)
-	end
-end
-
 function SWEP:DoCustomPrimaryAttack()
 end
 
@@ -510,7 +480,7 @@ function SWEP:NPC_ServerNextFire() -- VJ
 	if CLIENT or (!IsValid(self) or !IsValid(ply) or !ply:IsNPC()) then return end
 	if self.NPCBursting == true then return end
 	if ply:GetActiveWeapon() != self then return end
-	if ply:CanDoCertainAttack("MeleeAttack") != true then return end
+	--if ply:CanDoCertainAttack("MeleeAttack") != true then return end -- removed silently, cool.
 	if self:CanPrimaryAttackNPC() == false then return end
 	
 	local enemy = ply:GetEnemy()

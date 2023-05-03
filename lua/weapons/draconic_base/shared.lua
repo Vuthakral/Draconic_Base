@@ -43,6 +43,7 @@ SWEP.CrosshairCorrectX		= 1
 SWEP.CrosshairCorrectY		= 1
 SWEP.CrosshairSizeMul		= 1
 SWEP.CrosshairNoIronFade 	= false
+SWEP.CrosshairFOVPower		= 1
 SWEP.Crosshair 				= nil
 
 SWEP.ViewModelFOV		= 54
@@ -2084,6 +2085,7 @@ end
 function SWEP:SetupDataTables()
 --	self:SetNWInt("Heat", 0)
 --	self.ChargeValue = 0)
+	self:SetNWFloat("Charge", 0)
 	self:SetNWBool("Passive", false)
 	self:SetNWBool("Inspecting", false)
 	

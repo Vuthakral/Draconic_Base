@@ -880,6 +880,7 @@ end
 function DRC:EmitSound(source, near, far, distance, hint, listener)
 	if !IsValid(source) then return end
 	if near == nil && far == nil then return end
+	if near == "" && far == "" then return end
 	if far == nil && near != nil then source:EmitSound(near) return end
 	
 	source:EmitSound(near, nil, nil, nil, nil, nil, nil)

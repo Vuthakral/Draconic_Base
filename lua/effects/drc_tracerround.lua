@@ -74,6 +74,7 @@ function EFFECT:Init(data)
 			particle:SetAirResistance( math.Rand(5,10) )  
 			particle:SetStartSize(math.Rand(1,3)) 
 			particle:SetEndSize(math.Rand(2, 6))
+			particle.DoCustomLighting = false
 			if i > 300 then -- BE the BULLET.
 				particle:SetVelocity(self.Normal * 20000) -- outer
 				particle:SetStartLength(150)
@@ -88,13 +89,16 @@ function EFFECT:Init(data)
 				particle:SetEndSize(3)
 			elseif i < 300 && i > 200 then
 				particle:SetVelocity(self.Normal * math.Rand(0, 10000)) -- outer
-				particle:SetDieTime(math.Rand(2, 3)) 
+				particle:SetDieTime(math.Rand(2, 3))
+				particle.DoCustomLighting = true
 			elseif i < 201 && i > 200 then
 				particle:SetVelocity(self.Normal * math.Rand(0, 7500)) -- inner
-				particle:SetDieTime(math.Rand(2, 3)) 
+				particle:SetDieTime(math.Rand(2, 3))
+				particle.DoCustomLighting = true
 			else
 				particle:SetVelocity(self.Normal * math.Rand(0, 5000)) -- center
-				particle:SetDieTime(math.Rand(2, 3)) 
+				particle:SetDieTime(math.Rand(2, 3))
+				particle.DoCustomLighting = true
 			end
 			if i > 100 then
 				particle:SetStartSize(math.Rand(2,7)) 
@@ -119,16 +123,18 @@ function EFFECT:Init(data)
 			end )
 			particle:SetNextThink(CurTime())
 			particle:SetThinkFunction(function(part)
-				local ll = render.GetLightColor(part:GetPos())
-				local lla = ll.x + ll.y + ll.z / 3
-				local mini = 1
-				local smoketint = Vector(math.Clamp((200 * ll.x), mini, 255), math.Clamp((200 * ll.y), mini, 255), math.Clamp((200 * ll.z), mini, 255))
-				local boost = 50
-				smoketint.x = smoketint.x + (boost * lla)
-				smoketint.y = smoketint.y + (boost * lla)
-				smoketint.z = smoketint.z + (boost * lla)
-				part:SetColor(smoketint.x,smoketint.y,smoketint.z)
-				part:SetNextThink(CurTime())
+				if part.DoCustomLighting == true then
+					local ll = render.GetLightColor(part:GetPos())
+					local lla = ll.x + ll.y + ll.z / 3
+					local mini = 1
+					local smoketint = Vector(math.Clamp((200 * ll.x), mini, 255), math.Clamp((200 * ll.y), mini, 255), math.Clamp((200 * ll.z), mini, 255))
+					local boost = 50
+					smoketint.x = smoketint.x + (boost * lla)
+					smoketint.y = smoketint.y + (boost * lla)
+					smoketint.z = smoketint.z + (boost * lla)
+					part:SetColor(smoketint.x,smoketint.y,smoketint.z)
+					part:SetNextThink(CurTime() + math.Rand(0.2, 1))
+				end
 			end)
 		end
 	end

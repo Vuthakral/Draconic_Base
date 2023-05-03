@@ -56,7 +56,7 @@ function EFFECT:Init( data )
 				smoketint.y = smoketint.y + (boost * lla)
 				smoketint.z = smoketint.z + (boost * lla)
 				part:SetColor(smoketint.x,smoketint.y,smoketint.z)
-				part:SetNextThink(CurTime())
+				part:SetNextThink(CurTime() + math.Rand(0.2, 1))
 			end)
 		end
 	end

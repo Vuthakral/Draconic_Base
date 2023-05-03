@@ -160,6 +160,8 @@ ENT.BulletTable = {
 		Size = 150,
 		LifeTime = 0.5,
 	},
+	AdditiveSoundNear = "",
+	AdditiveSoundFar = "",
 	Callback = function(info)
 	end,
 }

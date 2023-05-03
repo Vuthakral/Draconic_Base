@@ -2,19 +2,19 @@ AddCSLuaFile()
 
 SWEP.ChargeValue = 0
 function SWEP:GetCharge()
-	return self.ChargeValue
+	return self:GetNWInt("Charge")
 end
 
 function SWEP:SetCharge(val)
-	self.ChargeValue = val
+	self:SetNWInt("Charge", val)
 end
 
 function SWEP:AddCharge(val)
-	self.ChargeValue = math.Clamp(self:GetCharge() + val, 0, 100)
+	self:SetNWFloat("Charge", math.Clamp(self:GetCharge() + val, 0, 100))
 end
 
 function SWEP:SubCharge(val)
-	self.ChargeValue = math.Clamp(self:GetCharge() - val, 0, 100)
+	self:SetNWFloat("Charge", math.Clamp(self:GetCharge() - val, 0, 100))
 end
 
 SWEP.HeatValue = 0
@@ -275,13 +275,13 @@ function SWEP:DisperseCharge()
 		
 		if self:GetNWInt("LoadedAmmo") >= 0 then
 			if self.Primary.UsesCharge == true then
-				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self.ChargeValue = math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100)
-				else self.ChargeValue = math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100) end
+				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetCharge(math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
+				else self:SetCharge(math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
 			else end
 			
 			if self.Secondary.UsesCharge == true then
-				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self.ChargeValue = math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100)
-				else self.ChargeValue = math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100) end
+				if m2d && self:CanSecondaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetCharge(math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
+				else self:SetCharge(math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
 			else end
 			
 			if self:GetCharge() >= 101 then
@@ -377,12 +377,12 @@ function SWEP:UpdateBloom(mode)
 	local oa, cv, bs, pbs, mul = self.OwnerActivity, ply:Crouching(), self:GetBS(), self:GetPBS(), 1
 	if cv then mul = 0.5 end
 	
-	local kickmodes = {
+	local kickmodes = { -- defined in here in case anyone codes custom kick modifiers; though don't rely on these as this'll need to be changed later for attachment base integration.
 		["primary"] = self.Primary.Kick,
 		["secondary"] = self.Secondary.Kick,
 		["overcharge"] = self.OCKick
 	}
-	if !self.Kick then self.Kick = kickmodes[mode] end
+	self.Kick = kickmodes[mode]
 	
 	self.PrevBS = math.Clamp(bs, 0, bloom_maximums[oa])
 	self.BloomValue = math.Clamp((self.BloomValue + bloom_updates[oa] + self.Kick) * mul, 0, bloom_maximums[oa])
@@ -862,15 +862,16 @@ end
 
 function SWEP:SetLoadedAmmo(amount)
 	if !IsValid(self) then return end
+	if CLIENT then return end
 	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 1 then return end
 	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 0 && self.IsBatteryBased == true then return end
-	self:SetNWInt("LoadedAmmo", amount)
+	self:SetNWFloat("LoadedAmmo", amount)
 	self:SetClip1(amount)
 end
 
 function SWEP:GetLoadedAmmo()
 	if !IsValid(self) then return end
-	return self:GetNWInt("LoadedAmmo", self:Clip1())
+	return self:GetNWFloat("LoadedAmmo", self:Clip1())
 end
 
 function SWEP:DoShoot(mode)
@@ -918,12 +919,12 @@ function SWEP:DoShoot(mode)
 	self.LastFireAnimTime = CurTime() + firetime
 	
 	local function GetProjectile()
-		if AA.AmmunitionTypes == IA.AmmunitionTypes[1] then return stats.Projectile
+		if AA.AmmunitionTypes.t.ClassName == IA.AmmunitionTypes[1] then return stats.Projectile
 		else return AA.AmmunitionTypes.t.BulletTable.ProjectileOverride or stats.Projectile end
 	end
 	
 	local function GetSpeed()
-		if AA.AmmunitionTypes == IA.AmmunitionTypes[1] then return stats.ProjSpeed
+		if AA.AmmunitionTypes.t.ClassName == IA.AmmunitionTypes[1] then return stats.ProjSpeed
 		else return AA.AmmunitionTypes.t.BulletTable.ProjectileSpeed or stats.ProjSpeed end
 	end
 	
@@ -1303,13 +1304,17 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	
 	if (game.SinglePlayer() or CLIENT) && GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
 		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() >= 1 then
-			DRC:EmitSound(self, self.DistSound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
+			DRC:EmitSound(self, self.DistSound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE)
 		else
-			DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
+			DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE)
 		end
 	else
-		DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE, listener)
+		DRC:EmitSound(self, self.Sound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE)
 	end
+	local asndnear, asndfar = self:GetAttachmentValue("Ammunition", "AdditiveSoundNear"), self:GetAttachmentValue("Ammunition", "AdditiveSoundFar")
+	if !asndnear then asndnear = "" end
+	if !asndfar then asndfar = "" end
+	DRC:EmitSound(self, asndnear, asndfar, self.SoundDistance, SOUND_CONTEXT_GUNFIRE)
 end
 
 function SWEP:DoRecoil(mode)

@@ -501,13 +501,11 @@ matproxy.Add( {
 		if ( !IsValid( ent )) then return end
 		if !IsValid(lply) then return end
 		local owner = ent:GetOwner()
-		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
-		local wepn = owner:GetActiveWeapon()
-		if ( !IsValid( wepn ) or !wepn:IsWeapon() ) then return end
-		if wepn == nil then return end
-		if wepn == nil then return end
-		if wepn:GetNWInt("Charge") == nil then return end
-		local charge = wepn:GetNWInt("Charge")
+		if (!IsValid(owner) or !DRC:IsCharacter(owner)) then return end
+		local wpn = owner:GetActiveWeapon()
+		if (!IsValid(wpn) or !wpn:IsWeapon()) then return end
+		if !wpn:GetCharge() then return end
+		local charge = wpn:GetCharge()
 		
 		if charge == nil then return end
 		

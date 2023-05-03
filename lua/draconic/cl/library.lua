@@ -22,7 +22,7 @@ end
 function DRC:PlayGesture(ply, slot, gesture, b)
 	if ply:IsValid() && ply:IsPlayer() then 
 		timer.Simple(engine.TickInterval(), function() 
-			ply:AnimRestartGesture(slot, gesture, b)
+			if IsValid(ply) then ply:AnimRestartGesture(slot, gesture, b) end
 		end)
 	end
 end
@@ -85,6 +85,15 @@ function DRC:DistFromLocalPlayer(pos, sqr)
 	else
 		return pos:DistToSqr(plypos)
 	end
+end
+
+-- To scale something relative to 1920x1080 to make its size accurate on all resolutions.
+function DRC:GetHUDScale()
+	return ScrW()/1920, ScrH()/1080
+end
+
+function DRC:GetFOVScale()
+	return 90/LocalPlayer():GetFOV()
 end
 
 net.Receive("DRC_UpdatePlayerHands", function()
@@ -839,6 +848,7 @@ concommand.Add("drc_refreshcsents", function()
 	if IsValid(DRC.CSShadowModel) then DRC.CSShadowModel:Remove() end
 	if IsValid(DRC.CSWeaponShadow) then DRC.CSWeaponShadow:Remove() end
 	if IsValid(DRC.CSPlayerHandShield) then DRC.CSPlayerHandShield:Remove() end
+	if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
 end)
 
 

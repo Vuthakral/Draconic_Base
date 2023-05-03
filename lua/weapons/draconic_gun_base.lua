@@ -965,9 +965,11 @@ function SWEP:FinishManualReload()
 		self:SetNextSecondaryFire( CurTime() + looptime)
 		
 		timer.Simple( looptime, function() 
-			self.ManuallyReloading = false
-			self.IronCD = false
-			self:ManuallyLoadAfterReload() 
+			if IsValid(self) then
+				self.ManuallyReloading = false
+				self.IronCD = false
+				self:ManuallyLoadAfterReload() 
+			end
 		end)
 	else end
 end

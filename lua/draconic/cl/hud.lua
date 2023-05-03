@@ -122,6 +122,9 @@ local function drc_Crosshair()
 	
 	local artificial = curswep.CrosshairSizeMul
 	local static = curswep.CrosshairStaticSize
+	local hx, hy = DRC:GetHUDScale()
+--	artificial = artificial * hx
+--	print(artificial)
 	
 	local modspread = nil
 	local modspreaddiv = nil
@@ -160,10 +163,9 @@ local function drc_Crosshair()
 	
 	local spread = (curswep.PrimaryStats.Spread * modspread)
 	local spreaddiv = (curswep.PrimaryStats.SpreadDiv * modspreaddiv)
-	local artificial = curswep.CrosshairSizeMul
 	local cx = curswep.CrosshairCorrectX
 	local cy = curswep.CrosshairCorrectY
-	local smath = (spread/spreaddiv)
+	local smath = Lerp(curswep.CrosshairFOVPower, ((spread/spreaddiv) * hx), ((spread/spreaddiv) * hx) * DRC:GetFOVScale())
 	local smathoffset = smath * 150
 	
 	local b = math.Clamp(curswep.BloomValue * 100 or 0, 0, 100) * smath * 10
@@ -1536,4 +1538,16 @@ hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 	drc_vm_angmedian = Lerp(FrameTime() * 5, drc_vm_angdiff_median / (drc_vm_lerpdivval / 6) or 0, drc_vm_angdiff_median / (drc_vm_lerpdivval / 6))
 	
 	drc_vmaangle = (drc_vm_offangle + drc_vm_angdiff)
+end)
+
+hook.Add("Tick", "DRC_PreventBrokenHUD", function()
+	if !LocalPlayer():Alive() then if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end end
+	if IsValid(LocalPlayer():GetActiveWeapon()) then
+		local wpn = LocalPlayer():GetActiveWeapon()
+		if wpn.Draconic then
+			if DRC.AttachMenu then
+				if DRC.AttachMenu.mpanel && wpn.Customizing != true then DRC.AttachMenu.mpanel:Remove() end
+			end
+		end
+	end
 end)

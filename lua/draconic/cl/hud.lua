@@ -1541,7 +1541,7 @@ hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 end)
 
 hook.Add("Tick", "DRC_PreventBrokenHUD", function()
-	if !LocalPlayer():Alive() then if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end end
+	if !LocalPlayer():Alive() then if DRC.AttachMenu then if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end end end
 	if IsValid(LocalPlayer():GetActiveWeapon()) then
 		local wpn = LocalPlayer():GetActiveWeapon()
 		if wpn.Draconic then

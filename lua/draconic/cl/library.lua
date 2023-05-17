@@ -96,16 +96,23 @@ function DRC:GetFOVScale()
 	return 90/LocalPlayer():GetFOV()
 end
 
+function DRC:DrawCroppedRect(mat, pos, scale, uv, col)
+	surface.SetMaterial(mat)
+	surface.SetDrawColor(col)
+	surface.DrawTexturedRectUV(pos.x, pos.y, scale.x, scale.y, uv[1], uv[2], uv[3], uv[4])
+end
+
 net.Receive("DRC_UpdatePlayerHands", function()
 	if !IsValid(LocalPlayer()) then return end
-	local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
+	local ply = LocalPlayer()
+	local handval = player_manager.TranslatePlayerModel(ply:GetInfo("cl_playerhands"))
 	local pmname = player_manager.TranslateToPlayerModelName(handval)
-	if LocalPlayer():GetInfo("cl_playerhands") == "disabled" then
-		pmname = player_manager.TranslateToPlayerModelName(LocalPlayer():GetModel())
+	if ply:GetInfo("cl_playerhands") == "disabled" or ply:GetInfo("cl_playerhands") == "" then
+		pmname = player_manager.TranslateToPlayerModelName(ply:GetModel())
 	else
 		local handstable = player_manager.TranslatePlayerHands(pmname)
-		handstable.skin = LocalPlayer():GetInfo("cl_playerhands_skin")
-		handstable.bodygroups = LocalPlayer():GetInfo("cl_playerhands_bodygroups")
+		handstable.skin = ply:GetInfo("cl_playerhands_skin")
+		handstable.bodygroups = ply:GetInfo("cl_playerhands_bodygroups")
 		DRC:ChangeCHandModel(handstable)
 	end
 end)
@@ -692,8 +699,8 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 					
 					local holdang = LocalPlayer():EyeAngles()
 					wpn.dang = LerpAngle((wpn.SS/15), wpn.dang, holdang - wpn.oang)
-					if CurTime() > wpn.LLTime + (RealFrameTime() * 0.001) then
-						wpn.LLTime = CurTime()
+					if RealTime() > wpn.LLTime + (RealFrameTime() * 0.001) then
+						wpn.LLTime = RealTime()
 						wpn.oang = LocalPlayer():EyeAngles()
 						wpn.dang = wpn.dang * sightkill
 					end

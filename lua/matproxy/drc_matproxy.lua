@@ -98,16 +98,13 @@ local function LightPollEntity(ent, mat)
 	local pos
 	if ent:EntIndex() == lply:GetHands():EntIndex() or ent:EntIndex() == lply:GetViewModel():EntIndex() then
 		pos = lply:EyePos()
-	--	print("A", ent, lply:GetViewModel())
 	else
-	--	print("B", ent, lply:GetViewModel())
 		pos = ent:GetPos() + ent:OBBCenter()
 		if game.SinglePlayer() && ent:IsWeapon() && !DRC:ThirdPersonEnabled(lply) && ent:GetOwner() == lply then pos = lply:EyePos() end
 	end
 	
 	local lightlevel = render.GetLightColor(pos)
 	local lla = (lightlevel.x + lightlevel.y + lightlevel.z) / 3
---	print(lply:ChatPrint(tostring(lightlevel)))
 	ent.DRCLightPolling["LightTint"] = lightlevel
 	return lightlevel, lla
 end
@@ -190,7 +187,7 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 	if ent.Preview == true or ent.preview == true then
 		local mul = Vector(1, 1, 1)
 		if HDR then mul = mat.HDRCorrectionLevel else mul = (10 * mat.LDRCorrectionLevel) end
-		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.MapInfo.MapAmbientAvg * DRC.WeathermodScalar
+		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.WeathermodScalar
 	return col end
 	
 	local function ReturnValue()
@@ -711,7 +708,7 @@ matproxy.Add( {
 		if self.LerpPower == nil then self.LerpPower = 1 end
 		
 		if ent.Preview == true or ent.preview == true then
-			mat:SetFloat("$rimlightboost", (self.PowerFloat * DRC.MapInfo.MapAmbientAvg) /10)
+			mat:SetFloat("$rimlightboost", self.PowerFloat /10)
 		else			
 			local name = mat:GetName()
 			if ent:EntIndex() == lply:GetViewModel():EntIndex() then ent = lply:GetActiveWeapon() end
@@ -728,7 +725,13 @@ matproxy.Add( {
 			
 			
 			local weatheravg = ((DRC.WeathermodScalar.x + DRC.WeathermodScalar.y + DRC.WeathermodScalar.z)/3)
-			local ll, lla = LightPollEntity(ent)
+			
+			LightPollEntity(ent)
+			if !ent.DRCLightPolling then LightPollEntity(ent) return end
+			if !ent.DRCLightPolling.LightTint then LightPollEntity(ent) return end
+			
+			local ll = ent.DRCLightPolling["LightTint"]
+			local lla = (ll.r + ll.g + ll.b) /3
 				
 			if lla then
 				ent.DRCScalingRimLightParams["Value"] = (lla * self.PowerFloat) * weatheravg
@@ -746,7 +749,12 @@ matproxy.Add( {
 
 			ent.DRCScalingRimLightParams[name]["Value"] = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.DRCScalingRimLightParams[name]["Value"] or ent.DRCScalingRimLightParams.Stored[name]["Value"], ent.DRCScalingRimLightParams.Stored[name]["Value"])
 		--	PrintTable(ent.DRCScalingRimLightParams)
-			mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] )
+			
+			if HDR then
+				mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] )
+			else
+				mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] * 100 )
+			end
 		end
 	end
 } )
@@ -1575,6 +1583,7 @@ matproxy.Add( {
 		
 		local ohp, mohp = nil, nil
 		if ent:GetClass() == "drc_dummy" then ohp, mohp, ent = DRC:GetShield(lply) end
+		if !ent.DRCShieldVis then ent.DRCShieldVis = 0 end
 		
 		local parent = ent:GetOwner()
 		local hp, mhp, ent = DRC:GetShield(parent)

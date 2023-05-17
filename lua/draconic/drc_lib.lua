@@ -697,6 +697,7 @@ function DRC:SightsDown(ent, irons)
 end
 
 local ConversionRates = {
+	-- "Convert to" formats
 	["km"] = 0.0000254,
 	["m"] = 0.0254,
 	["cm"] = 2.54,
@@ -706,16 +707,24 @@ local ConversionRates = {
 	["ft"] = 0.08333,
 	["yd"] = 0.02777,
 	["mile"] = 1 / 63360,
+	
+	-- "Convert from" formats
+	["halo"] = 160/1, -- Halo Units to Hammer Units
+}
+
+local cfrom = {
+	["halo"] = true,
 }
 
 function DRC:ConvertUnit(input, output)
 	if !ConversionRates[tostring(output)] then print("Draconic Base: Requested unit conversion ''".. tostring(output) .."'' is not valid!") end
 	local inches = input * 0.75
+	if cfrom[output] then inches = input end
 	return inches * ConversionRates[output]
 end
 
 function DRC:GetVelocityAngle(ent, absolute, flipy, islocal)
-	local ang
+	local ang = Angle()
 	if isvector(ent) then 
 		ang = ent:Angle()
 	else
@@ -741,6 +750,15 @@ function DRC:GetVelocityAngle(ent, absolute, flipy, islocal)
 	if absolute == true then velangxy.y = math.abs(velangxy.y) end
 	velangxy.x = -velangxy.x
 	return velangxy ]]
+end
+
+function DRC:LerpColor(fraction, mini, maxi)
+	local col = Color(255, 255, 255, 255)
+	col.r = Lerp(fraction, mini.r, maxi.r)
+	col.g = Lerp(fraction, mini.g, maxi.g)
+	col.b = Lerp(fraction, mini.b, maxi.b)
+	col.a = Lerp(fraction, mini.a, maxi.a)
+	return col
 end
 
 function DRC:GetColours(ent, rgb)
@@ -922,7 +940,6 @@ function DRC:BreakInteraction(ply, ent)
 end
 
 function DRC:ProjectedTexture(ent, att, tbl)
---	print(ent, att)
 	if !IsValid(ent) or att == nil then return end
 	local attnum = ent:LookupAttachment(att)
 	if attnum == -1 then return end
@@ -2026,10 +2043,10 @@ end)
 
 DraconicAmmoTypes = {}
 function DRC:AddAmmoType(tbl)
-	table.Add(DraconicAmmoTypes, tbl)
+	table.insert(DraconicAmmoTypes, tbl)
 end
 
-local batteryammo = {{
+local batteryammo = {
 	Name = "ammo_drc_battery",
 	Text = "Don't give yourself this ammo. It will only break your weapons.",
 	DMG = DMG_BULLET,
@@ -2040,28 +2057,32 @@ local batteryammo = {{
 	SplashMin = 5,
 	SplashMax = 10,
 	MaxCarry = 100,
-}}
+}
 DRC:AddAmmoType(batteryammo)
 
-hook.Add( "Initialize", "drc_SetupAmmoTypes", function()
+function DRC:RefreshAmmoTypes()
 	for k,v in pairs(DraconicAmmoTypes) do
 		if CLIENT then
 			language.Add("" ..v.Name .."_ammo", v.Text)
 		end
 
 		game.AddAmmoType({
-		name = v.Name,
-		dmgtype = v.DMG,
-		tracer = v.Tracer,
-		plydmg = v.DamagePlayer,
-		npcdmg = v.DamageNPC,
-		force = v.Force,
-		minsplash = v.SplashMin,
-		maxsplash = v.SplashMax,
-		maxcarry = v.MaxCarry
+			name = v.Name,
+			dmgtype = v.DMG,
+			tracer = v.Tracer,
+			plydmg = v.DamagePlayer,
+			npcdmg = v.DamageNPC,
+			force = v.Force,
+			minsplash = v.SplashMin,
+			maxsplash = v.SplashMax,
+			maxcarry = v.MaxCarry
 		})
 	end
-end )
+end
+
+hook.Add("Initialize", "drc_SetupAmmoTypes", function()
+	DRC:RefreshAmmoTypes()
+end)
 
 function DRC:SurfacePropToEnum(str)
 	local prefix = "MAT_"
@@ -2140,7 +2161,6 @@ function DRC:DynamicParticle(source, magnitude, distance, special, target)
 		if !tab then return end
 		for k,v in pairs(tab) do
 			local part = "drc_".. v ..""
-		--	print(k,v, part)
 			util.Effect(part, data)
 		end
 	end
@@ -2193,7 +2213,6 @@ function DRC:EnvelopTrace(ent1, ent2, expensive)
 		
 		local tr3
 		if ent1:LookupAttachment("eyes") > 0 then
-		--	print(ent1:LookupAttachment("eyes"))
 			local start = ent1:GetAttachment(ent1:LookupAttachment("eyes")).Pos
 			tr3 = util.TraceLine({
 				start = start + ang:Forward() * 10,
@@ -2342,7 +2361,7 @@ if SERVER then
 			ed:SetStart(dinfo:GetDamagePosition())
 			ed:SetEntity(ent)
 			util.Effect(ent:GetNWString("DRC_Shield_ImpactEffect"), ed)
-		elseif hp < 1 && ent:GetNWBool("DRC_ShieldDown") == false then
+		elseif hp <= 0 && ent:GetNWBool("DRC_ShieldDown") == false then
 			DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_DepleteSound"), nil, 1500)
 			local ed = EffectData()
 			ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
@@ -2377,6 +2396,7 @@ if SERVER then
 		local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
 		local overshieldhp = ent:GetNWInt("DRC_ShieldHealth_Extra")
 		if shieldhp <= 0 then ent:SetNWBool("DRC_ShieldDown", true) end
+		if ent.DoCustomShieldHit then tgt:DoCustomShieldHit(dmg) end
 		
 		if overshieldhp <= 0 then
 			ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
@@ -2423,17 +2443,16 @@ if SERVER then
 end
 
 function DRC:PopShield(ent)
+	if ent.DoCustomShieldBreak then tgt:DoCustomShieldBreak(dmg) end
 	ent:SetNWInt("DRC_ShieldHealth", 0)
 	ent:SetNWInt("DRC_ShieldHealth_Extra", 0)
-	ent:TakeDamage(0)
+--	ent:TakeDamage(0)
 end
 
 function DRC:GetShield(ent)
 	if CLIENT then
-	--	if IsValid(ent.ShieldEntity) && ent.ShieldEntity != nil then
-			local val, maxi, ent = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth"), ent.ShieldEntity
-			return val, maxi, ent
-	--	else return nil end
+		local val, maxi, ent = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth"), ent.ShieldEntity
+		return val, maxi, ent
 	else
 		local val, maxi = ent:GetNWInt("DRC_ShieldHealth"), ent:GetNWInt("DRC_ShieldMaxHealth")
 		return val, maxi
@@ -2862,18 +2881,178 @@ function DRC:GetBaseName(ent)
 	if ent.ASTWTWO then return "astw2" end
 	if ent.ARC9 then return "arc9" end
 	if ent.mg_IsPlayerReverbOutside && ent.SprintBehaviourModule then return "mwb" end
-	if ent.IsSimfphyscar then return "sphys" end
+	if ent.IsSimfphyscar or IsValid(ent:GetOwner()) && ent:GetOwner():GetClass() == "gmod_sent_vehicle_fphysics_base" then return "sphys" end
+	if ent.States && ent.WeaponTypes then return "ma2" end
 	if ent:GetClass() == "decal" then return "decal" end
 	return nil
+end
+
+local hardcoded = {
+	["npc_seagull"] = "Seagull",
+	["npc_crow"] = "Crow",
+	["npc_pigeon"] = "Pigeon",
+	["npc_combine_s"] = "Combine Soldier",
+	["npc_hunter"] = "Hunter",
+	["npc_manhack"] = "Manhack",
+	["npc_helicopter"] = "Hunter-Chopper",
+	["npc_combine_camera"] = "Camera",
+	["npc_turret_ceiling"] = "Ceiling Turrret",
+	["npc_cscanner"] = "City Scanner",
+	["npc_combinedropship"] = "Combine Dropship",
+	["npc_combinegunship"] = "Combine Gunship",
+	["npc_metropolice"] = "Civil Protection",
+	["npc_rollermine"] = "Rollermine",
+	["npc_clawscanner"] = "Shield Scanner",
+	["npc_stalker"] = "Stalker",
+	["npc_strider"] = "Strider",
+	["npc_turret_floor"] = "Turret",
+	["npc_citizen"] = "Refugee",
+	["npc_alyx"] = "Alyx",
+	["npc_barney"] = "Barney",
+	["npc_dog"] = "D0G",
+	["npc_magnusson"] = "Magnusson",
+	["npc_monk"] = "Grigori",
+	["npc_kleiner"] = "Kleiner",
+	["npc_mossman"] = "Mossman",
+	["npc_eli"] = "Eli",
+	["npc_gman"] = "G-Man",
+	["npc_odessa"] = "Odessa",
+	["npc_vortigaunt"] = "Vortigaunt",
+	["npc_breen"] = "Breen",
+	["npc_antlion"] = "Antlion",
+	["npc_antlion_grub"] = "Antlion Grub",
+	["npc_antlionguard"] = "Antlion Guardian",
+	["npc_antlion_worker"] = "Antlion Worker",
+	["npc_barnacle"] = "Barnacle",
+	["npc_headcrab_fast"] = "Headcrab (Fast)",
+	["npc_fastzombie"] = "Fast Zombie",
+	["npc_fastzombie_torso"] = "Fast Zombie Torso",
+	["npc_headcrab"] = "Headcrab",
+	["npc_headcrab_black"] = "Headcrab (Poison)",
+	["npc_poisonzombie"] = "Poison Zombie",
+	["npc_zombie"] = "Zombie",
+	["npc_zombie_torso"] = "Zombie Torso",
+	["npc_zombine"] = "Zombine",
+	["monster_alien_grunt"] = "Alien Grunt",
+	["monster_alien_slave"] = "Vortigaunt (Slave)",
+	["monster_human_assassin"] = "Assassin",
+	["monster_babycrab"] = "Baby Headcrab",
+	["monster_bullchicken"] = "Bullsquid",
+	["monster_cockroach"] = "Cockroach",
+	["monster_alien_controller"] = "Alien Controller",
+	["monster_gargantua"] = "Gargantua",
+	["monster_bigmomma"] = "Gonarch",
+	["monster_human_grunt"] = "Grunt",
+	["monster_headcrab"] = "Headcrab",
+	["monster_turret"] = "Ceiling Turret",
+	["monster_houndeye"] = "Houndeye",
+	["monster_miniturret"] = "Ceiling Turret",
+	["monster_nihilanth"] = "Nihilanth",
+	["monster_scientist"] = "Scientist",
+	["monster_barney"] = "Guard",
+	["monster_sentry"] = "Sentry",
+	["monster_snark"] = "Snark",
+	["monster_tentacle"] = "Tentacle",
+	["monster_zombie"] = "Zombie",
+	["prop_vehicle_airboat"] = "Airboat",
+	["prop_vehicle_jeep"] = "Junker",
+	["prop_vehicle_prisoner_pod"] = "", -- too many use cases to give a proper name
+	["weapon_357"] = "357",
+	["weapon_pistol"] = "Pistol",
+	["weapon_bugbait"] = "Bug Bait",
+	["weapon_crossbow"] = "Crossbow",
+	["weapon_crowbar"] = "Crowbar",
+	["weapon_frag"] = "Grenade",
+	["weapon_physcannon"] = "Gravity Gun",
+	["weapon_ar2"] = "Pulse Rifle",
+	["weapon_rpg"] = "RPG",
+	["weapon_slam"] = "S.L.A.M.",
+	["weapon_shotgun"] = "Shotgun",
+	["weapon_smg1"] = "SMG",
+	["weapon_stunstick"] = "Stunstick",
+	["weapon_357_hl1"] = "357",
+	["weapon_crossbow_hl1"] = "Crossbow",
+	["weapon_crossbow_hl1"] = "Crossbow",
+	["weapon_glock_hl1"] = "Glock",
+	["weapon_egon"] = "Gluon Gun",
+	["weapon_handgrenade"] = "Hand Grenade",
+	["weapon_hornetgun"] = "Hive Hand",
+	["weapon_mp5_hl1"] = "MP5",
+	["weapon_rpg_hl1"] = "RPG",
+	["weapon_satchel"] = "Satchel",
+	["weapon_snark"] = "Snarks",
+	["weapon_shotgun_hl1"] = "SPAS-12",
+	["weapon_gauss"] = "Tau Cannon",
+	["weapon_tripmine"] = "Tripmine",
+	["item_ammo_357"] = "357 Ammo",
+	["item_ammo_357_large"] = "357 Ammo",
+	["item_ammo_ar2"] = "Pulse Rifle Ammo",
+	["item_ammo_ar2_large"] = "Pulse Rifle Ammo",
+	["item_ammo_ar2_altfire"] = "Combine's Balls",
+	["combine_mine"] = "Combine Mine",
+	["item_ammo_crossbow"] = "Crossbow Bolts",
+	["item_healthcharger"] = "Health Charger",
+	["item_healthkit"] = "Healthkit",
+	["item_healthvial"] = "Health Vial",
+	["grenade_helicopter"] = "Chopper Grenade",
+	["item_suit"] = "H.E.V. Suit",
+	["weapon_striderbuster"] = "Magnusson Device",
+	["item_ammo_pistol"] = "Pistol Ammo",
+	["item_ammo_pistol_large"] = "Pistol Ammo",
+	["item_rpg_round"] = "RPG Rocket",
+	["item_box_buckshot"] = "Shotgun Ammo",
+	["item_ammo_smg1"] = "SMG Ammo",
+	["item_ammo_smg1_large"] = "SMG Ammo",
+	["item_ammo_smg1_grenade"] = "SMG Grenade",
+	["item_battery"] = "Suit Battery",
+	["item_suitcharger"] = "Suit Charger",
+	["prop_thumper"] = "Combine Thumper",
+	["npc_grenade_frag"] = "Armed Grenade",
+}
+
+function DRC:GetName(ent, fallback) -- Used to get the accurate name for entities and other bases' entities
+	if !IsValid(ent) then return end
+	local str = "Null"
+	local ent2 = nil
+	if ent:IsPlayer() then str = ent:Nick() return str end
+	if ent.GetOwner then
+		if IsValid(ent:GetOwner()) then
+			ent2 = ent:GetOwner()
+			local base = DRC:GetBaseName(ent2)
+			if base == "sphys" then
+			elseif base == "lfs" or base == "lvs" then str = ent2.PrintName end
+		--	if base == "sphys" then str = list.Get("simfphys_vehicles")[] end
+			if ent2.PrintName then str = ent2.PrintName return str end
+		else
+			str = ent.PrintName
+		end
+	end
+	if hardcoded[ent:GetClass()] then str = hardcoded[ent:GetClass()] end
+	if fallback && str == "Null" then str = fallback end
+	return str, ent2
 end
 
 function DRC:Health(ent) -- This is what happens when people try to reinvent the wheel.
 	if !IsValid(ent) then return end
 	local base = DRC:GetBaseName(ent)
-	if base == nil or base == "drc" then return ent:Health(), ent:GetMaxHealth()
-	elseif base == "lfs" or base == "lvs" then return ent:GetHP(), ent:GetMaxHP()
-	elseif base == "sphys" then return ent:GetCurHealth(), ent:GetMaxHealth()
+	
+	local function gethp(entity)
+		base = DRC:GetBaseName(entity)
+		if base == nil or base == "drc" then return entity:Health(), entity:GetMaxHealth()
+		elseif base == "lfs" or base == "lvs" then return entity:GetHP(), entity:GetMaxHP()
+		elseif base == "sphys" then return entity:GetCurHealth(), entity:GetMaxHealth()
+		elseif base == "ma2" then return entity:GetMechHealth(), entity.MaxHealth
+		end
 	end
+	
+	if ent.GetOwner then
+		if IsValid(ent:GetOwner()) then
+			local ent2 = ent:GetOwner()
+			return gethp(ent2)
+		end
+	end
+	
+	return gethp(ent)
 end
 
 function DRC:SetHealth(ent, amount, maxamount)

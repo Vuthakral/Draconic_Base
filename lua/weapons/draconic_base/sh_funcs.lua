@@ -791,6 +791,7 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	bullet.Force = force
 	bullet.Damage = damage
 	bullet.Spread = cone
+	bullet.HullSize = self:GetAttachmentValue("Ammunition", "HullSize") or 1
 	bullet.Callback = function(ent, tr, takedamageinfo) -- https://imgur.com/a/FCDZOEx
 		if IsValid(self) then
 			if !tr.Entity:IsWorld() then
@@ -802,6 +803,7 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 			takedamageinfo:SetAttacker(self:GetOwner())
 			takedamageinfo:SetInflictor(self)
 			takedamageinfo:SetDamageType( self:GetAttachmentValue("Ammunition", "DamageType") )
+			if tr.Contents == 1 && DRC:IsCharacter(tr.Entity) then print("B") takedamageinfo:SetDamage(takedamageinfo:GetDamage() * self:GetAttachmentValue("Ammunition", "HullDamage")) end
 			
 			self.LastHitPos = tr.HitPos
 			if self:GetAttachmentValue("Ammunition", "NumShots") > 1 then self:DoEffects(mode, true, true) end

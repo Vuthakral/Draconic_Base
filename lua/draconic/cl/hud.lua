@@ -1,3 +1,4 @@
+--- ###Helpers
 --- ###Crosshair
 --- ###Scope
 --- ###Inspection
@@ -5,6 +6,16 @@
 --- ###Attachments
 --- ###Debug
 
+
+
+
+
+--- ###Helpers
+DRC.HUDAnchors = {
+	["TL"] = {x=0, y=0}, ["T"] = {x=ScrW()/2, y=0}, ["TR"] = {x=ScrW(), y=0},
+	["L"] = {x=0, ScrH()/2}, ["C"] = {x=ScrW()/2, y=ScrH()/2}, ["R"] = {x=ScrW(), y=ScrH()/2},
+	["BL"] = {x=0, y=ScrH()}, ["B"] = {x=ScrW()/2, y=ScrH()}, ["BR"] = {x=ScrW(), y=ScrH()}
+}
 
 
 
@@ -143,7 +154,7 @@ local function drc_Crosshair()
 			if curswep.CrosshairStatic != nil then
 				if curswep.CrosshairShadow == true then
 				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch*1.5 )
-				surface.SetMaterial( Material(curswep.CrosshairStatic) )
+				surface.SetMaterial( Material(curswep.CrosshairStatic, "smooth") )
 				surface.DrawTexturedRect(pos.x, pos.y, artificial, artificial)
 				surface.DrawTexturedRect(pos.x, pos.y, artificial, artificial)
 			end
@@ -153,7 +164,7 @@ local function drc_Crosshair()
 		else
 			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphalerpch )
 		end
-		surface.SetMaterial( Material(curswep.CrosshairStatic) )
+		surface.SetMaterial( Material(curswep.CrosshairStatic, "smooth") )
 		surface.DrawTexturedRectRotated(pos.x * artificial, pos.y * artificial, ScrH()/8 * artificial, ScrH()/8 * artificial, 0)
 		end
 	end
@@ -274,7 +285,7 @@ local function drc_Crosshair()
 				else
 					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 				end
-				surface.SetMaterial( Material(curswep.CrosshairStatic) )
+				surface.SetMaterial( Material(curswep.CrosshairStatic, "smooth") )
 				if curswep.CrosshairStaticSize != nil then
 					surface.DrawTexturedRectRotated(pos.x-0.1 - static * cx, pos.y - static * cy, static*50, static*50, 0)
 					surface.DrawTexturedRectRotated(pos.x+0.1 - static * cx, pos.y - static * cy, static*50, static*50, 0)
@@ -291,7 +302,7 @@ local function drc_Crosshair()
 			else
 				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 			end
-			surface.SetMaterial( Material(curswep.CrosshairStatic) )
+			surface.SetMaterial( Material(curswep.CrosshairStatic, "smooth") )
 			if curswep.CrosshairStaticSize != nil then
 				surface.DrawTexturedRectRotated(pos.x - static * cx, pos.y - static * cy, static*50, static*50, 0)
 			else
@@ -306,7 +317,7 @@ local function drc_Crosshair()
 				else
 					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 				end
-				surface.SetMaterial( Material(curswep.CrosshairDynamic) )
+				surface.SetMaterial( Material(curswep.CrosshairDynamic, "smooth") )
 				surface.DrawTexturedRect(pos.x - smathoffset * 3.1275 * artificial - DRCCrosshairLerp / 2 * cx, pos.y - smathoffset * 3.1275 * artificial - DRCCrosshairLerp / 2 * cy, smathoffset * 6.25 * artificial + DRCCrosshairLerp, smathoffset * 6.25 * artificial + DRCCrosshairLerp)
 				surface.DrawTexturedRect(pos.x - smathoffset * 3.3775 * artificial - DRCCrosshairLerp / 2 * cx, pos.y - smathoffset * 3.3775 * artificial - DRCCrosshairLerp / 2 * cy, smathoffset * 6.75 * artificial + DRCCrosshairLerp, smathoffset * 6.75 * artificial + DRCCrosshairLerp)
 			end
@@ -316,7 +327,7 @@ local function drc_Crosshair()
 			else
 				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 			end
-			surface.SetMaterial( Material(curswep.CrosshairDynamic) )
+			surface.SetMaterial( Material(curswep.CrosshairDynamic, "smooth") )
 			surface.DrawTexturedRect(pos.x - smathoffset * 3.25 * artificial - DRCCrosshairLerp / 2 * cx, pos.y - smathoffset * 3.25 * artificial - DRCCrosshairLerp / 2 * cy, smathoffset * 6.5 * artificial + DRCCrosshairLerp, smathoffset * 6.5 * artificial + DRCCrosshairLerp)
 		end
 	end
@@ -397,34 +408,34 @@ local function drc_Scope()
 	
 	if Q2Mat == nil then
 		if Q1Mat == nil then
-			surface.SetMaterial(Material("sprites/scope_arc"))
+			surface.SetMaterial(Material("sprites/scope_arc", "smooth"))
 		else
-			surface.SetMaterial(Material(Q1Mat))
+			surface.SetMaterial(Material(Q1Mat, "smooth"))
 		end
 	else 
-		surface.SetMaterial(Material(Q2Mat))
+		surface.SetMaterial(Material(Q2Mat, "smooth"))
 	end
 	surface.DrawTexturedRectUV( w / 2, (h/2 - hi) * YOffset, hi * sw, hi * sh, 0, 1, 1, 0 )
 	
 	if Q3Mat == nil then
 		if Q1Mat == nil then
-			surface.SetMaterial(Material("sprites/scope_arc"))
+			surface.SetMaterial(Material("sprites/scope_arc", "smooth"))
 		else
-			surface.SetMaterial(Material(Q1Mat))
+			surface.SetMaterial(Material(Q1Mat, "smooth"))
 		end
 	else 
-		surface.SetMaterial(Material(Q3Mat))
+		surface.SetMaterial(Material(Q3Mat, "smooth"))
 	end
 	surface.DrawTexturedRectUV( w/2 - hi / 2 * sw * 2, h/2, hi * sw, hi * sh, 1, 0, 0, 1 )
 	
 	if Q4Mat == nil then
 		if Q1Mat == nil then
-			surface.SetMaterial(Material("sprites/scope_arc"))
+			surface.SetMaterial(Material("sprites/scope_arc", "smooth"))
 		else
-			surface.SetMaterial(Material(Q1Mat))
+			surface.SetMaterial(Material(Q1Mat, "smooth"))
 		end
 	else 
-		surface.SetMaterial(Material(Q4Mat))
+		surface.SetMaterial(Material(Q4Mat, "smooth"))
 	end
 	surface.DrawTexturedRectUV( w/2, h/2, hi * sw, hi * sh, 0, 0, 1, 1 )
 	

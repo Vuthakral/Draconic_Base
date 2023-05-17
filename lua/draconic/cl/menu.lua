@@ -580,6 +580,8 @@ function DRCMenu( player )
 	tab1.tab1Hands:DockPadding(0, 0, 0, 0)
 	tab1.tab1Hands:SetBackgroundColor( Color(245, 245, 245, 0) )
 	tab1:AddSheet( "Hands", tab1.tab1Hands, "icon16/folder_page.png")
+	
+	
 				
 	local tab2 = vgui.Create( "DPanel", tabs )
 	tab2:SetBackgroundColor( Color(255, 255, 255, 255) )

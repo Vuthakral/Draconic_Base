@@ -1,8 +1,6 @@
 local CLDir = "draconic/cl"
 local SVDir = "draconic/sv"
 local SHDir = "draconic/sh"
-local DRCAddons = "draconic/addons"
-local DRCPlayermodels = "draconic/addons/playermodels"
 
 function DRC:Load()
 	if SERVER then AddCSLuaFile("draconic/drc_lib.lua") end
@@ -58,8 +56,6 @@ DRC:Load()
 DRC:IncludeDir( CLDir )
 DRC:IncludeDir( SVDir )
 DRC:IncludeDir( SHDir )
-DRC:IncludeDir( DRCAddons )
-DRC:IncludeDir( DRCPlayermodels )
 
 if SERVER then
 	concommand.Add("drc_reload", function(ply, cmd, args)
@@ -80,8 +76,8 @@ if SERVER then
 		DRC:IncludeDir( CLDir )
 		DRC:IncludeDir( SVDir )
 		DRC:IncludeDir( SHDir )
-		DRC:IncludeDir( DRCAddons )
-		DRC:IncludeDir( DRCPlayermodels )
+		
+		DRC:RefreshAmmoTypes()
 		
 		if SERVER then
 			net.Start("DRC_MapVersion")

@@ -286,7 +286,8 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 			end)
 		end
 		
-		local shieldhp = tgt:GetNWInt("DRC_ShieldHealth") + tgt:GetNWInt("DRC_ShieldHealth_Extra")
+		local function getshieldhp() return tgt:GetNWInt("DRC_ShieldHealth") + tgt:GetNWInt("DRC_ShieldHealth_Extra") end
+		local shieldhp = getshieldhp()
 		if shieldhp - dmg:GetDamage() < 0 then
 			dmg:SetDamage(math.abs(shieldhp - dmg:GetDamage()))
 			DRC:ShieldEffects(tgt, dmg)
@@ -301,9 +302,14 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 			dmg:SetDamageCustom(0)
 		end
 		
+		shieldhp = getshieldhp()
+		
 		if shieldhp > 0 then 
 			DRC:ShieldEffects(tgt, dmg)
 			return true
+		else
+			DRC:PopShield(tgt)
+			DRC:ShieldEffects(tgt, dmg)
 		end
 	return end
 	
@@ -685,7 +691,6 @@ function DRC:GetBestPlayerConnection()
 	end
 	
 	table.sort( players, function(a, b) return a:GetNWInt("Ping") < b:GetNWInt("Ping") end )
---	print(players[1], players[1]:GetNWInt("Ping"))
 	return players[1], players[1]:GetNWInt("Ping")
 end
 

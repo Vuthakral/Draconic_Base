@@ -3,8 +3,10 @@
 	"$baseTexture" "Models/ShaderTest/envball_2"
 	"$envmap" "env_cubemap"
 
-	$cubemappower	1
-	$cubemaptint	"[ 1 1 1 ]"
+	$cmpower	1
+
+	$envmapfallback	"engine/defaultcubemap"
+	$cmpower_fb	1
 
 	Proxies
 	{

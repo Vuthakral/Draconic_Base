@@ -3,9 +3,14 @@
 	"$baseTexture" "models\vuthakral\grey63-0"
 	"$envmap" "env_cubemap"
 
-	$cmpower	1
+	$cmpower	5
 	$cmtint		"[ 1 1 1 ]"
 	$cmlightsat	0
+
+	$envmapfallback	"engine\defaultcubemap"
+	$cmpower_fb	1
+
+	$bpm 30
 
 	Proxies
 	{
@@ -16,7 +21,8 @@
 		caramell
 		{
 			resultVar	$cmtint
-			resultVar2	$color2
+			resultVar2	$cmtint_fb
+			resultVar3	$color2
 		}
 	}
 }

@@ -21,8 +21,10 @@ SWEP.Slot				= 0
 SWEP.SlotPos			= 0
 SWEP.DrawAmmo			= false
 
-SWEP.PassivePos = Vector(0, -25, -25)
-SWEP.PassiveAng = Vector(0, 0, 0)
+SWEP.PassivePos 		= Vector(0, -25, -25)
+SWEP.PassiveAng 		= Vector(0, 0, 0)
+SWEP.InspectPos			= Vector(0, 0, -2)
+SWEP.InspectAng			= Vector(5, 5, 0)
 
 SWEP.ViewModelFlip  = false
 SWEP.ShowWorldModel = true
@@ -409,6 +411,7 @@ function SWEP:Reload()
 	if usekey && reloadkeypressed then
 		if sprintkey then
 			self:ToggleInspectMode()
+			if self.Inspecting == true then self:Inspect() end
 		else
 			if self.Inspecting == false then
 				self.Idle = 0

@@ -56,8 +56,8 @@ function ENT:Draw()
 	local parent = self:GetOwner()
 	local hp, maxhp, ent = DRC:GetShield(parent)
 	
-	if parent:Health() < 0.01 && !DRC:IsVehicle(parent) && (parent:GetClass() != "prop_physics") then self:SetMaterial("models/vuthakral/nodraw") return end
-	
+	if DRC:Health(parent) < 0.01 && !DRC:IsVehicle(parent) && (parent:GetClass() != "prop_physics") then self:SetMaterial("models/vuthakral/nodraw") return end
+
 	self:SetPos(self:GetOwner():GetPos())
 	
 	local scale = parent:GetNWInt("DRC_Shield_PingScale") * self:GetModelScale()

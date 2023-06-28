@@ -70,8 +70,9 @@ ENT.ExplodePressure		= 5
 ENT.AffectRadius		= 0.0001
 ENT.SuperAffectRadius	= 0.0001
 
-ENT.SpawnEffect			= nil
+ENT.EffectTickRate		= 66
 ENT.Effect				= nil
+ENT.SpawnEffect			= nil
 ENT.LuaExplEffect		= nil
 ENT.SuperLuaExplEffect	= nil
 
@@ -156,8 +157,18 @@ function ENT:GetCreatorAttachmentValue(att, val)
 	return self:GetCreator():GetAttachmentValue(att, val)
 end
 
+ENT.EffectTick = 0
 function ENT:Think()
 	if !IsValid(self) then return end
+	
+	if CLIENT && self.Effect != nil && RealTime() > self.EffectTick then
+		local ed = EffectData()
+		ed:SetOrigin(self:GetPos())
+		ed:SetEntity(self)
+		util.Effect(self.Effect, ed)
+		self.EffectTick = (RealTime() + 1/self.EffectTickRate)
+	end
+	
 	local phys = self:GetPhysicsObject()
 	if !IsValid(phys) then return end
 	local vel = self:GetVelocity()
@@ -227,16 +238,9 @@ function ENT:Think()
 	end
 	
 	if vel == vector_origin then return end
-	
-	if self.Effect != nil then
-		if !phys:IsValid() then return end
-		local ed = EffectData()
-		ed:SetOrigin(self:GetPos())
-		ed:SetEntity(self)
-		util.Effect(self.Effect, ed)
-	end
 
 	self:DoCustomThink()
+
 	
 	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
 	local tr = util.TraceLine({
@@ -253,6 +257,7 @@ function ENT:Think()
 			self:Touch(tr.Entity)
 		end
 	end
+	
 end
 
 function ENT:DoCustomThink()
@@ -454,6 +459,8 @@ function ENT:Initialize()
 		end
 	end
 	
+	self:SetNWBool("Stuck", false)
+	
 	self.Initialized = true
 	
 	if SERVER then
@@ -534,6 +541,16 @@ function ENT:Touch(ent)
 	end
 end
 
+function ENT:Stick(data, tgt)
+	self:SetSolid(SOLID_NONE)
+	self:SetMoveType(MOVETYPE_NONE)
+	if !tgt:IsWorld() then self:SetParent(tgt) end
+	self:DoImpactEffect()
+	self:SetVelocity(Vector())
+	self:SetPos(data.HitPos)
+	self:SetNWBool("Stuck", true)
+end
+
 function ENT:PhysicsCollide( data, phys )
 	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
 	local typ = self.ProjectileType
@@ -577,20 +594,14 @@ function ENT:PhysicsCollide( data, phys )
 			if self.EMP == true then self:DoEMP(tgt) end
 		elseif typ == "playersticky" then 
 			if tgt:IsNPC() or tgt:IsNextBot() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
-				self:SetSolid(SOLID_NONE)
-				self:SetMoveType(MOVETYPE_NONE)
-				self:SetParent(tgt)
+				self:Stick(data, tgt)
 				self:DoImpactEffect()
 				if self.Explosive == false then self:DamageTarget(tgt, tr) end
 				if self.EMP == true then self:DoEMP(tgt) end
 			end
 		elseif typ == "sticky" then
 			if tgt != self:GetOwner() then
-				self:SetSolid(SOLID_NONE)
-				self:SetMoveType(MOVETYPE_NONE)
-				self:SetParent(tgt)
-				self:DoImpactEffect()
-				self:SetPos(data.HitPos)
+				self:Stick(data, tgt)
 				if self.Explosive == false then self:DamageTarget(tgt, tr) end
 				timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
 				if self.EMP == true then self:DoEMP(tgt) end
@@ -599,9 +610,7 @@ function ENT:PhysicsCollide( data, phys )
 			if self.FirstBounce == false then self.FirstBounce = true end
 			if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
 		elseif typ == "supercombine" then
-			self:SetSolid(SOLID_NONE)
-			self:SetMoveType(MOVETYPE_NONE)
-			self:SetParent(tgt)
+			self:Stick(data, tgt)
 			self:DoImpactEffect()
 			if self.EMP == true then self:DoEMP(tgt) end
 			if self:GetParent() != nil && self:GetParent():IsNPC() or self:GetParent():IsPlayer() or self:GetParent():IsNextBot() then
@@ -640,12 +649,7 @@ function ENT:PhysicsCollide( data, phys )
 			self:TriggerExplosion()
 			self:DoImpactEffect()
 		elseif typ == "sticky" or typ == "supercombine" then
-			self:SetSolid(SOLID_NONE)
-			self:SetMoveType(MOVETYPE_NONE)
-			self:SetPos(data.HitPos)
-			self:SetVelocity(Vector())
-		--	timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
-		--	self:SetParent(tgt)
+			self:Stick(data, tgt)
 			self:DoImpactEffect()
 		elseif typ == "FuseAfterFirstBounce" then
 			if self.FirstBounce == false then self.FirstBounce = true end

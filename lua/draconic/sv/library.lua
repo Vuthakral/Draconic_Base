@@ -368,8 +368,16 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "PvPDamageMul")
 		elseif attacker:IsNPC() && tgt:IsPlayer() then
 			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "EvPDamageMul")
+			if inflictor:IsWeapon() && inflictor.Draconic && inflictor:GetAttachmentValue("Ammunition", "NumShots") > 1 then
+				local mul = inflictor:GetAttachmentValue("Ammunition", "NumShots") / 2
+				damagevalue = damagevalue * mul
+			end -- Shotguns require bonus damage from NPCs to be accurate, as default Half-Life 2 behaviour has NPCs dealing 2.6x damage than the player with the shotgun (3 player, 8 npc). I suspect this is because shotgun spread is too RNG for NPCs to properly engage with.
 		elseif attacker:IsNPC() && tgt:IsNPC() then
 			damagevalue = (damagevalue * scalar) * inflictor:GetAttachmentValue("Ammunition", "EvEDamageMul")
+			if inflictor:IsWeapon() && inflictor.Draconic && inflictor:GetAttachmentValue("Ammunition", "NumShots") > 1 then
+				local mul = inflictor:GetAttachmentValue("Ammunition", "NumShots") / 4
+				damagevalue = damagevalue * mul
+			end
 		else
 			damagevalue = (damagevalue * scalar)
 		end
@@ -550,16 +558,17 @@ hook.Add("PlayerStartTaunt", "VoiceSets_Taunts", function(ply, act, length)
 end)
 
 hook.Add("EntityEmitSound", "VoiceSets_Responses", function(tab)
-	tab.SoundName = string.Replace(tab.SoundName, "*", "") -- For when dialogue is called by a scripted sequence; they're prefixed with *
-	if DRC.VoiceSetResponses[tab.SoundName] then
+	local sname = tab.SoundName
+	sname = string.Replace(sname, "*", "") -- For when dialogue is called by a scripted sequence; they're prefixed with *
+	if DRC.VoiceSetResponses[sname] then
 		local class = tab.Entity:GetClass()
 		local ent = tab.Entity
 		
 		local entcheck = ents.FindInSphere(ent:GetPos(), 500)
 		for k,v in pairs(entcheck) do
 			if DRC:IsCharacter(v) then
-				local delay = SoundDuration(tab.SoundName)
-				DRC:ResponseSentence(v, class, tab.SoundName, delay)
+				local delay = SoundDuration(sname)
+				DRC:ResponseSentence(v, class, sname, delay)
 			end
 		end
 	end

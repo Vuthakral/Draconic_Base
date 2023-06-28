@@ -5,7 +5,8 @@
 	"$bumpmap" "models/shadertest/envball_6_normal"
 	"$normalmapalphaenvmapmask" 1
 
-	$cubemaptint	"[ 2 2 2 ]"
+	$envmapfallback	"engine/defaultcubemap"
+	$cmpower_fb	1
 
 	Proxies
 	{

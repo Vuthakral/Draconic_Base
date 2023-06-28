@@ -141,7 +141,7 @@ function SWEP:RegeneratingAmmo(self)
 			if maxammo < ammo then return end
 			if self.Loading == false then
 				self:SetLoadedAmmo(math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
-				self:SetClip1(self:GetNWInt("LoadedAmmo"))
+				self:SetClip1(self:GetLoadedAmmo())
 			end
 		end)
 end ]]
@@ -273,7 +273,7 @@ function SWEP:DisperseCharge()
 		local m2d = ply:KeyDown(IN_ATTACK2)
 		local ukd = ply:KeyDown(IN_USE)
 		
-		if self:GetNWInt("LoadedAmmo") >= 0 then
+		if self:GetLoadedAmmo() >= 0 then
 			if self.Primary.UsesCharge == true then
 				if m1d && self:CanPrimaryAttack() && (self:GetNWBool("Passive") == false && self.ManuallyReloading == false) && !ukd then self:SetCharge(math.Clamp( self:GetCharge() + self.ChargeRate, 0, 100))
 				else self:SetCharge(math.Clamp( self:GetCharge() - self.ChargeRate * 10, 0, 100)) end
@@ -289,8 +289,8 @@ function SWEP:DisperseCharge()
 			end
 			
 			if self:GetCharge() > 99 then
-				self:SetLoadedAmmo(self:GetNWInt("LoadedAmmo") - self.ChargeHoldDrain)
-				self:SetClip1( self:GetNWInt("LoadedAmmo") )
+				self:SetLoadedAmmo(self:GetLoadedAmmo() - self.ChargeHoldDrain)
+				self:SetClip1( self:GetLoadedAmmo() )
 			end
 		else end
 	end)
@@ -362,6 +362,8 @@ local bloom_updates = {
 	["crouchrunning"] = 0.1,
 	["sprinting"] = 0.3,
 	["crouchingsprinting"] = 0.3,
+	["swimidle"] = 0,
+	["swimming"] = 0.1,
 }
 local bloom_maximums = {
 	["standidle"] = 1,
@@ -370,6 +372,8 @@ local bloom_maximums = {
 	["crouchrunning"] = 1.3,
 	["sprinting"] = 1.7,
 	["crouchingsprinting"] = 1.7,
+	["swimidle"] = 0.9,
+	["swimming"] = 1.1,
 }
 
 function SWEP:UpdateBloom(mode)
@@ -679,6 +683,7 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 			elseif i > rhm then
 				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * ( i / 10 ), swingtrace.HitPos )
 			end
+			damageinfo:SetDamageForce(Vector())
 			
 			if swingtrace.Entity:Health() > 0 then
 			swingtrace.Entity:TakeDamage( self.Damage, self.Owner, self.Owner:GetActiveWeapon() )
@@ -711,22 +716,28 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	
 end
 
-function SWEP:TakePrimaryAmmo( num )
+function SWEP:TakePrimaryAmmo(num)
 	if !SERVER then return end
+	local ply = self:GetOwner()
 	
 	if GetConVar("sv_drc_infiniteammo"):GetFloat() == 2 then return end
 	
-	if ( self:Clip1() == 0 ) && self.Owner:IsPlayer() then
-		if ( self:Clip1() == 0 ) then return end
-		self.Owner:RemoveAmmo( num, self:GetPrimaryAmmoType() )
+	if self:Clip1() == 0 && ply:IsPlayer() then
+		if self:Clip1() == 0 then return end
+		ply:RemoveAmmo( num, self:GetPrimaryAmmoType() )
 	return end
-	self:SetClip1(self:GetNWInt("LoadedAmmo"))
+	self:SetClip1(self:GetLoadedAmmo())
 end
 
 function SWEP:TakeSecondaryAmmo( num )
-	if ( self:Clip2() <= 0 ) then
-		if ( self:Ammo2() <= 0 ) then return end
-		self.Owner:RemoveAmmo( num, self:GetSecondaryAmmoType() )
+	if !SERVER then return end
+	local ply = self:GetOwner()
+	
+	if GetConVar("sv_drc_infiniteammo"):GetFloat() == 2 then return end
+
+	if self:Clip2() <= 0 && ply:IsPlayer() then
+		if self:Ammo2() <= 0 then return end
+		ply:RemoveAmmo( num, self:GetSecondaryAmmoType() )
 	return end
 	self:SetClip2( self:Clip2() - num )
 end
@@ -774,15 +785,14 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	local fm = self:GetNWString("FireMode")
 --	if !IsFirstTimePredicted() then return end
 	
-	force = self.Primary.Force * self:GetAttachmentValue("Ammunition", "Force")
+	force = force * self:GetAttachmentValue("Ammunition", "Force")
 	
 	if self.Primary.Tracer == nil then
 		tracer = self:GetAttachmentValue("Ammunition", "Tracer")
 	end
 	
---	local tgt = self:GetConeTarget()
---	print(tgt)
-
+	if CLIENT then tracer = 0 end
+	
 	local bullet = {}
 	bullet.Num = num
 	bullet.Src = ply:GetShootPos()
@@ -803,7 +813,7 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 			takedamageinfo:SetAttacker(self:GetOwner())
 			takedamageinfo:SetInflictor(self)
 			takedamageinfo:SetDamageType( self:GetAttachmentValue("Ammunition", "DamageType") )
-			if tr.Contents == 1 && DRC:IsCharacter(tr.Entity) then print("B") takedamageinfo:SetDamage(takedamageinfo:GetDamage() * self:GetAttachmentValue("Ammunition", "HullDamage")) end
+			if tr.Contents == 1 && DRC:IsCharacter(tr.Entity) then takedamageinfo:SetDamage(takedamageinfo:GetDamage() * self:GetAttachmentValue("Ammunition", "HullDamage")) end
 			
 			self.LastHitPos = tr.HitPos
 			if self:GetAttachmentValue("Ammunition", "NumShots") > 1 then self:DoEffects(mode, true, true) end
@@ -819,24 +829,51 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 						local dinfo = DamageInfo()
 						dinfo:SetInflictor(self)
 						dinfo:SetAttacker(ply)
-						dinfo:SetDamage( (bullet.Damage * self:GetAttachmentValue("Ammunition", "SplashDamageMul")) / (v:EyePos():DistToSqr(tr.HitPos) / 50) )
+						dinfo:SetDamage( (bullet.Damage * self:GetAttachmentValue("Ammunition", "SplashDamageMul")) / ((v:GetPos() + v:OBBCenter()):DistToSqr(tr.HitPos) / 50) )
 						if v:IsValid() then
 							v:TakeDamageInfo(dinfo)
+						end
+						
+						if self:GetAttachmentValue("Ammunition", "SplashDoBlast") == true then
+							local tr2 = util.TraceLine({
+								start = tr.HitPos,
+								endpos = v:GetPos() + v:OBBCenter(),
+								filter = function(ent) if ent != v then return false else return true end end
+							})
+							local dir, pos = tr2.Normal:Angle():Forward() * 500, tr2.HitPos
+							
+							if DRC:IsCharacter(v) then v:SetVelocity(dir*takedamageinfo:GetDamage()/(v:OBBCenter()):Distance(pos) * 50) end
+							if v.GetPhysicsObject && IsValid(v:GetPhysicsObject()) then v:GetPhysicsObject():AddVelocity(dir*takedamageinfo:GetDamage()/(v:OBBCenter()):Distance(pos) * 50) end
 						end
 					end
 				end
 			end
 
-			if self:GetAttachmentValue("Ammunition", "ImpactDecal") != nil then
+			if self:GetAttachmentValue("Ammunition", "ImpactDecal") != nil && SERVER then
 				util.Decal( self:GetAttachmentValue("Ammunition", "ImpactDecal"), tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, {self, ply})
 			end
 			
-			if self:GetAttachmentValue("Ammunition", "BurnDecal") != nil then
+			if self:GetAttachmentValue("Ammunition", "BurnDecal") != nil && SERVER then
 				util.Decal( self:GetAttachmentValue("Ammunition", "BurnDecal"), tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, {self, ply})
 			end
 			
 			self:RunAttachmentFunction("Ammunition", "Callback", nil, {ent, tr, takedamageinfo})
 			self:DoCustomBulletImpact(tr.HitPos, tr.Normal, takedamageinfo)
+			
+			if tr.Hit && !tr.Entity:IsPlayer() && self.Primary.Tracer == 0 then
+				local tr2 = util.TraceHull({
+					start = ply:GetShootPos(),
+					endpos = ply:GetShootPos() + ( ply:GetAimVector() * 56756 ),
+					filter = function(ent) if ent == ply then return false elseif ent:IsPlayer() then return true end end,
+					mins = Vector( -20, -20, -20 ),
+					maxs = Vector( 20, 20, 20 ),
+					mask = MASK_SHOT
+				})
+				if tr2.Hit && tr2.Entity && tr2.Entity:IsPlayer() then
+					local rng = tr2.Entity:EyeAngles():Right() * math.Rand(-15,15)
+					DRC:EmitSound(tr2.HitPos + rng, self.Primary.SoundTable.NearMiss, nil, 100, nil, tr2.Entity)
+				end
+			end
 		end
 	end
 	
@@ -908,11 +945,14 @@ function SWEP:DoShoot(mode)
 	local fireseq2 = self:SelectWeightedSequence(ACT_VM_SECONDARYATTACK)
 	local fireseq3 = self:SelectWeightedSequence(ACT_SPECIAL_ATTACK1)
 	local ironseq = self:SelectWeightedSequence(ACT_VM_DEPLOYED_IRON_FIRE)
+	local m2
 	if mode == "primary" then
 		if sd && ironseq != -1 then fireseq = ironseq end
 		firetime = self:SequenceDuration(fireseq)
+		m2 = "Primary"
 	elseif mode == "secondary" then
 		firetime = self:SequenceDuration(fireseq2)
+		m2 = "Secondary"
 	elseif mode == "overcharge" then
 		firetime = self:SequenceDuration(fireseq3)
 	end
@@ -937,35 +977,35 @@ function SWEP:DoShoot(mode)
 	if mode == "primary" then
 		if ply:IsPlayer() then
 			self:UpdateBloom("primary")
-			if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "primary") end
+		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "primary") end
 		end
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - stats.OCAPS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumePerShot), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - batstats.BatteryConsumePerShot), 0, self.Primary.ClipSize))
 			else
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - stats.APS), 0, self.Primary.ClipSize))
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumePerShot )
 		end
 	elseif mode == "secondary" then
 		if ply:IsPlayer() then
 			self:UpdateBloom("secondary")
-			if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "secondary") end
+		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "secondary") end
 		end
 		
 		self:TakeSecondaryAmmo( stats.APS )
 	elseif mode == "overcharge" then
 		if ply:IsPlayer() then
 			self:UpdateBloom("overcharge")
-			if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "overcharge") end
+		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "overcharge") end
 		end
 		
 		self.ChargeValue = 0
@@ -973,16 +1013,16 @@ function SWEP:DoShoot(mode)
 		
 		if self.Base == "draconic_gun_base" then
 			if stats != self.OCStats then
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			else
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - stats.APS), 0, (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))))
 			end
 			self:TakePrimaryAmmo( stats.APS )
 		elseif self.Base == "draconic_battery_base" then
 			if stats != self.OCStats then
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - batstats.BatteryConsumePerShot), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - batstats.BatteryConsumePerShot), 0, self.Primary.ClipSize))
 			else
-				self:SetLoadedAmmo(math.Clamp((self:GetNWInt("LoadedAmmo") - stats.APS), 0, self.Primary.ClipSize))
+				self:SetLoadedAmmo(math.Clamp((self:GetLoadedAmmo() - stats.APS), 0, self.Primary.ClipSize))
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumePerShot )
 		end
@@ -1012,7 +1052,7 @@ function SWEP:DoShoot(mode)
 		if self.SightsDown == true && self.Secondary.SightsSuppressAnim == true then else
 			local vm = ply:GetViewModel()
 			if mode == "primary" then
-				if SERVER or game.SinglePlayer() then 
+				if SERVER then 
 					vm:SendViewModelMatchingSequence(fireseq)
 				end
 				self:ResetSequence(fireseq)
@@ -1074,11 +1114,10 @@ function SWEP:DoShoot(mode)
 	return end
 	
 	if projectile == nil then
-		if CLIENT then self:CalculateSpread() end
-		if ply:IsNextBot() then self:CalculateSpread() end
+		local spr = self:CalculateSpread(false)
 		if self.PreventAllBullets == true then return end
 		if ply:IsPlayer() then ply:LagCompensation(true) end
-		if self.PreventAllBullets == false then self:ShootBullet(stats.Damage, shotnum, self:CalculateSpread(), stats.Ammo, stats.Force, stats.Tracer) end
+		if self.PreventAllBullets == false then self:ShootBullet(stats.Damage, shotnum, spr, stats.Ammo, stats.Force, stats.Tracer) end
 		if ply:IsPlayer() then ply:LagCompensation(false) end
 	elseif mode == "secondary" && self.Projectile == "scripted" then
 		timer.Simple(self.Secondary.ProjectileSpawnDelay, function()
@@ -1091,16 +1130,20 @@ function SWEP:DoShoot(mode)
 		if SERVER then
 			local muzzleattachment = self:LookupAttachment("muzzle")
 			local muzzle = self:GetAttachment(muzzleattachment)
+			local Valve = DRC:ValveBipedCheck(ply)
+			local ptu
+			if Valve then ptu = ply:GetBonePosition(RightHand) else eyeheight = ply:EyePos().z - ply:GetPos().z ptu = ply:GetPos() + Vector(0, 0, eyeheight/1.1) + ply:EyeAngles():Forward() * 10 + ply:EyeAngles():Right() * 5 end
 			
 			for i=1,shotnum do
 				local class = ""
 				if istable(stats.Projectile) then class = stats.Projectile[math.Round(math.Rand(1, #stats.Projectile))] else class = projectile end
 				if IsValid(class) && class != "" then return false end
+				
 				local SpreadCalc = self:CalculateSpread(true) * self.BloomValue
 				local AmmoSpread = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv"))) * 1000 * self.BloomValue
 				local FinalSpread = Angle(math.Rand(SpreadCalc.x, -SpreadCalc.x) * AmmoSpread, math.Rand(SpreadCalc.y, -SpreadCalc.y) * AmmoSpread, 0) * self.BloomValue + stats.MuzzleAngle
-				local projang = ply:GetAimVector():Angle() + FinalSpread
-				local projpos = Vector()
+				local projang = FinalSpread
+				local projpos = ptu
 				if ply:IsPlayer() && self.SightsDown == true then
 					if self.SightsDown == true && self.Secondary.Scoped == true then
 						projpos = ply:EyePos()
@@ -1117,20 +1160,38 @@ function SWEP:DoShoot(mode)
 						projpos = ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25)
 						projang = projang - Angle(-10, 0 ,0) -- wtf
 					end
-				else
-					if !DRC:ValveBipedCheck(ply) then -- Unfortunately, muzzle pos does not work in singleplayer unless the local player is being rendered.
-						local eyeheight = ply:EyePos().z - ply:GetPos().z
-						projpos = ply:GetPos() + Vector(0, 0, eyeheight/1.1) + ply:EyeAngles():Forward() * 10 + ply:EyeAngles():Right() * 5
-					else
-						projpos = ply:GetBonePosition(RightHand)
-					end
+				end
+
+				local dir = ply:GetAimVector():Angle()
+				if ply:IsPlayer() then
+					local tr2 = ply:GetEyeTrace()
+					local tr3 = util.TraceLine({
+						start = ptu,
+						endpos = tr2.HitPos + ply:EyeAngles():Forward() * 100,
+						filter = function(ent) if ent != tr2.Entity then return false else return true end end,
+					})
+					dir = tr3.Normal:Angle()
 				end
 				
-				local proj = DRC:CreateProjectile(class, projpos, projang, speeeeed, ply, stats.ProjInheritVelocity)
-				self:PassToProjectile(proj)
+				projang = projang + dir
 				
-				if !self.PTable then self.PTable = {} end
-				if proj.Draconic == true then table.insert(self.PTable, proj) end
+				local function SpawnProj()
+					local proj = DRC:CreateProjectile(class, projpos, projang, speeeeed, ply, stats.ProjInheritVelocity)
+					self:PassToProjectile(proj)
+					if !self.PTable then self.PTable = {} end
+					if proj.Draconic == true then table.insert(self.PTable, proj) end
+				end
+				
+				if m2 then
+					local delay = self[m2].ProjSpawnDelay or 0
+					timer.Simple(delay, function()
+						if IsValid(self) then
+							SpawnProj()
+						end
+					end)
+				else
+					SpawnProj()
+				end
 			end
 		end
 	end
@@ -1207,7 +1268,8 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	local muzzleattachment = self:LookupAttachment("muzzle")
 	local muzzle = self:GetAttachment(muzzleattachment)
 	local fm = self:GetNWString("FireMode")
-		
+	
+	local ttu = nil
 	if mode == "primary" then
 		self.vFire = self.Primary.isvFire
 		self.Projectile = self.Primary.Projectile
@@ -1220,9 +1282,10 @@ function SWEP:DoEffects(mode, nosound, multishot)
 			self.DistSound = self.Primary.SoundTable.Semiauto.Far
 			self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
 		else
-			self.Sound = self.Primary.SoundTable.Burst.Near
-			self.DistSound = self.Primary.SoundTable.Burst.Far
-			self.SoundDistance = self.Primary.SoundTable.Burst.FarDistance
+			ttu = self.Primary.SoundTable.Burst or self.Primary.SoundTable.Semiauto
+			self.Sound = ttu.Near
+			self.DistSound = ttu.Far
+			self.SoundDistance = ttu.FarDistance
 		end
 		
 		self.LastHitPos = self.LastHitPos
@@ -1253,17 +1316,18 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		self.LastHitPos = self.LastHitPos
 	end
 	
+	if self.ActiveAttachments.AmmunitionTypes.t.ClassName != self.AttachmentTable.AmmunitionTypes[1] then
+		self.TracerEffect = self:GetAttachmentValue("Ammunition", "TracerOverride") or self.TracerEffect
+	end
 	
 	local effectdata = EffectData()
 	
-	if self.StatsToPull.Projectile == nil && self.vFire == false then
+	if SERVER && self.StatsToPull.Projectile == nil && self.vFire == false then
 		if self.LastHitPos == nil then self.LastHitPos = Vector(0, 0, 0) end
 		effectdata:SetOrigin( self.LastHitPos )
 	else
-		effectdata:SetOrigin( ply:GetShootPos() )
+		if self.LastHitPos then effectdata:SetOrigin( self.LastHitPos ) end
 	end
-
-
 
 	if self.SightsDown == false then
 		effectdata:SetAttachment( muzzleattachment )
@@ -1271,10 +1335,17 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		effectdata:SetStart( ply:EyePos() + Vector(0, 0, -2) )
 		effectdata:SetAttachment( -1 )
 	end
-		
-	effectdata:SetEntity( self )
+	
+	effectdata:SetEntity(self)
 	if self.TracerEffect != nil && effectdata != nil then
-		util.Effect( self.TracerEffect, effectdata )
+		if CLIENT then
+			local effe = {
+				["muzzle"] = {self.TracerEffect, 0},
+			}
+			self:EffectChain(effe, effectdata)
+		elseif SERVER && self:GetOwner() != Entity(1) then -- fucking singleplayer
+			util.Effect(self.TracerEffect, effectdata)
+		end
 	end
 		
 	if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true && self:CanOvercharge() then
@@ -1282,11 +1353,12 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	end
 	
 	if not IsFirstTimePredicted() or nosound == true or self.BurstSound == true then return end
-	if mode == "primary" && fm == "Burst" && self.Primary.SoundTable.Burst.Single == false then
+	if mode == "primary" && fm == "Burst" && ttu.Single == false then
 		self.BurstSound = true
 		timer.Simple(CurTime() - self:GetNextPrimaryFire() + 0.2, function() self.BurstSound = false end)
 	end
 	
+	if self.Primary.SoundTable.Envs then
 	local roomsize = DRC:RoomSize(ply)
 	local RoomType = DRC:GetRoomSizeName(roomsize)
 
@@ -1299,11 +1371,18 @@ function SWEP:DoEffects(mode, nosound, multishot)
 			self.Sound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Near
 			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Far
 		else
-			self.Sound = self.Primary.SoundTable.Envs[RoomType].Burst.Near
-			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Burst.Far
+			ttu = self.Primary.SoundTable.Envs[RoomType].Burst or self.Primary.SoundTable.Envs[RoomType].Semiauto
+			self.Sound = ttu.Near
+			self.DistSound = ttu.Far
 		end
 	end
+	end
 	
+	if CLIENT && !game.SinglePlayer() && self.Sound then
+		self:EmitSound(self.Sound)
+	end
+	
+	-- Distant sounds have to be networked because their origin doesn't actually exist on the client when outside the PVS
 	if (game.SinglePlayer() or CLIENT) && GetConVar("cl_drc_debugmode"):GetFloat() > 0 then
 		if GetConVar("cl_drc_debug_invertnearfar"):GetFloat() >= 1 then
 			DRC:EmitSound(self, self.DistSound, self.DistSound, self.SoundDistance, SOUND_CONTEXT_GUNFIRE)
@@ -1316,12 +1395,19 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	local asndnear, asndfar = self:GetAttachmentValue("Ammunition", "AdditiveSoundNear"), self:GetAttachmentValue("Ammunition", "AdditiveSoundFar")
 	if !asndnear then asndnear = "" end
 	if !asndfar then asndfar = "" end
+	
+	if CLIENT && !game.SinglePlayer() && asndnear then
+		self:EmitSound(asndnear)
+	end
+	
 	DRC:EmitSound(self, asndnear, asndfar, self.SoundDistance, SOUND_CONTEXT_GUNFIRE)
 end
 
 function SWEP:DoRecoil(mode)
 	if !game.SinglePlayer() && !IsFirstTimePredicted() then return end
 	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
+	if !ply:IsPlayer() then return end
 	local eyeang = ply:EyeAngles()
 	local cv = ply:Crouching()
 	local sk = ply:KeyDown(IN_SPEED)
@@ -1386,14 +1472,15 @@ function SWEP:DoRecoil(mode)
 end
 
 function SWEP:MuzzleFlash()
-	if SERVER then return end
+	if !game.SinglePlayer() && SERVER then return end
+	if self.PreventMuzzleFlash && self.PreventMuzzleFlash == true then return end
 	local col = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Colour")
 	local epileptic, mul = GetConVar("cl_drc_accessibility_photosensitivity_muzzle"):GetFloat(), 1
-	if epileptic == 1 then mul = 0.5 end
+	if epileptic == 1 then mul = 0.25 end
 		
 	if self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Dynamic") == true then
 		DRC.CalcView.MuzzleLamp_Time = CurTime() + math.Rand(0.005, 0.01)
-		local bright = (col.a/3) * (math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1)) * mul
+		local bright = (col.a/30) * (1 - math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1)) * mul
 		local ent = DRC.CalcView.MuzzleLamp
 		ent.Texture = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Mask")
 		ent.Light:SetColor(Color(col.r, col.g, col.b))
@@ -1409,7 +1496,7 @@ function SWEP:MuzzleFlash()
 	end
 end
 
-function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as a "sequence of triggers" to cause a myriad of functions / effects, but splits to multiple functions for SWEP authors to be able to call any of them independently.	
+function SWEP:CallShoot(mode, ignoreimpossibility)
 	local ply = self:GetOwner()
 	if ignoreimpossibility == nil then ignoreimpossibility = false end
 	
@@ -1421,39 +1508,29 @@ function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as
 			if ignoreimpossibility != true && !self:CanPrimaryAttackNPC() then return end
 		end
 		
-		if ignoreimpossibility && self:GetNWString("FireMode") == "Burst" then
-			if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
-			if self:GetNWInt("LoadedAmmo") <= 0 then
+		if ignoreimpossibility && self:GetFireMode() == 3 then
+			if ply:IsPlayer() && (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetFloat() == 1) && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
+			if self:GetLoadedAmmo() <= 0 then
 				if CurTime() > self:GetNextPrimaryFire() then self:EmitSound (self.Primary.EmptySound) end
 				self:SetNextPrimaryFire(CurTime() + (60/self.Primary.RPM * 2)) return
 			elseif self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true then
 			return end
 		end
-		
 		self.StatsToPull = self.PrimaryStats
 		self:DoShoot("primary")
 		self:DoEffects("primary")
+		self:DoRecoil("primary")
 		self:ShootEffects()
-		--self:CallOnClient("DoEffects", "primary")
-		if ply:IsPlayer() then
-			if game.SinglePlayer() then
-				self:CallOnClient("DoRecoil", "primary")
-				self:DoRecoil("primary")
-			else
-				self:DoRecoil("primary")
-			end
-		end
 		
-		if IsValid(self) && self:GetNWInt("LoadedAmmo") > -0.01 then self:DoCustomPrimaryAttackEvents() end
+		if IsValid(self) && self:GetLoadedAmmo() > -0.01 then self:DoCustomPrimaryAttackEvents() end
 	elseif mode == "secondary" then
 		if ignoreimpossibility != true && !self:CanSecondaryAttack() then return end
 		self.StatsToPull = self.SecondaryStats
 		self:DoShoot("secondary")
 		self:DoEffects("secondary")
+		self:DoRecoil("secondary")
 		
-		if ply:IsPlayer() then self:DoRecoil("secondary") end
-		
-		if IsValid(self) && self:GetNWInt("LoadedAmmo") > -1 then self:DoCustomSecondaryAttackEvents() end
+		if IsValid(self) && self:GetLoadedAmmo() > -1 then self:DoCustomSecondaryAttackEvents() end
 	elseif mode == "overcharge" then
 		if ply:IsPlayer() then
 			if ignoreimpossibility != true && !self:CanPrimaryAttack() then return end
@@ -1463,9 +1540,9 @@ function SWEP:CallShoot(mode, ignoreimpossibility) -- This function acts more as
 		self.StatsToPull = self.OCStats
 		self:DoShoot("overcharge")
 		self:DoEffects("overcharge")
+		self:DoRecoil("overcharge")
 		
-		if ply:IsPlayer() then self:DoRecoil("overcharge") end
-		if IsValid(self) && self:GetNWInt("LoadedAmmo") > 0 then self:DoCustomOverchargeAttackEvents() end
+		if IsValid(self) && self:GetLoadedAmmo() > 0 then self:DoCustomOverchargeAttackEvents() end
 	end
 end
 
@@ -1486,21 +1563,6 @@ function SWEP:GetMovementValues()
 	ply:SetNWFloat( "PlayerOGWalk", ply:GetWalkSpeed() )
 	ply:SetNWFloat( "PlayerOGJump", ply:GetJumpPower() )
 	ply:SetNWFloat( "PlayerOGCrouch", ply:GetCrouchedWalkSpeed() )
-end
-
-function SWEP:ValveBipedCheck()
-	local ply = self:GetOwner()
-	local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
-	local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
-	local Spine1 = ply:LookupBone("ValveBiped.Bip01_Spine1")
-	local Spine2 = ply:LookupBone("ValveBiped.Bip01_Spine2")
-	local Spine4 = ply:LookupBone("ValveBiped.Bip01_Spine4")
-	local LeftClav = ply:LookupBone("ValveBiped.Bip01_L_Clavicle")
-	local RightClav = ply:LookupBone("ValveBiped.Bip01_R_Clavicle")
-	local LeftThigh = ply:LookupBone("ValveBiped.Bip01_L_Thigh")
-	local RightThigh = ply:LookupBone("ValveBiped.Bip01_R_Thigh")
-	
-	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh then return false else return true end
 end
 
 local BaseABP = scripted_ents.GetStored("drc_abp_generic")

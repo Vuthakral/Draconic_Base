@@ -127,7 +127,8 @@ function SWEP:CanPrimaryAttack()
 	
 	if self.Secondary.UsesCharge == true && ply:KeyDown(IN_ATTACK2) then return end
 
-	if self:GetNextPrimaryFire() > CurTime() then return false end
+	if !game.SinglePlayer() && CurTime() < self:GetNextPrimaryFire() then return end
+	if game.SinglePlayer() && SERVER && CurTime() < self:GetNextPrimaryFire() then return end -- ugh
 	if self.IsOverheated == true then return false end
 	if self:GetNWBool("Overheated") == true then return false end
 
@@ -141,7 +142,7 @@ function SWEP:CanPrimaryAttack()
 			ply:SetFOV(0, 0.05)
 			return true
 		elseif self:GetNWInt("LoadedAmmo") < 0.01 && self.InfAmmo == false then
-			self:EmitSound ( self.Primary.EmptySound )
+			if CLIENT then self:EmitSound(self.Primary.EmptySound) end
 			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
 			return false
 		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && eself:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == true then

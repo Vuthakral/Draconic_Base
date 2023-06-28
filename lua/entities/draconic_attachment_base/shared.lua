@@ -31,8 +31,10 @@ ENT.InfoName = nil
 ENT.InfoDescription = nil
 
 ENT.Model = "models/Items/item_item_crate.mdl"
+ENT.AttachSound = "this is null"
+ENT.PickupSound = "physics/metal/weapon_footstep1.wav"
 
-ENT.BulletTable = {
+ENT.BulletTable = { -- LOOK AT DRC_ABP_GENERIC FOR A PROPER FULL LIST, IT IS THE FALLBACK FOR BULLET PROFILES.
 	Damage = 1,
 	PvPDamageMul = 1,
 	PvEDamageMul = 1,
@@ -135,7 +137,7 @@ function ENT:Use(ply, caller, typ)
 	if DRC:HasAttachment(ply, self:GetClass()) then ply:ChatPrint("I already have this.") return end
 	
 	DRC:GiveAttachment(ply, self:GetClass())
-	ply:EmitSound("physics/metal/weapon_footstep1.wav")
+	ply:EmitSound(self.PickupSound)
 	DRC:SpeakSentence(ply, "Actions", "pickup_".. self:GetClass() .."", false)
 	self:Remove()
 end

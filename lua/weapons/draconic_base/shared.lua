@@ -318,20 +318,26 @@ end
 function SWEP:InitialFireMode()
 	if self.Primary.Automatic == false then
 		self:SetNWString("FireMode", "Semi")
+		self:SetNWInt("CurFireMode", 1)
 	elseif self.Primary.Automatic == true && self.FireModes_CanAuto == true then
 		self:SetNWString("FireMode", "Auto")
+		self:SetNWInt("CurFireMode", 2)
 	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
 		self:SetNWString("FireMode", "Burst")
+		self:SetNWInt("CurFireMode", 3)
 		self.Primary.Automatic = false
 	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == false && self.FireModes_CanAuto == false && self.FireModes_CanSemi == true then
 		self:SetNWString("FireMode", "Semi")
+		self:SetNWInt("CurFireMode", 1)
 		self.Primary.Automatic = false
 	else 
 		self:SetNWString("FireMode", "Semi")
+		self:SetNWInt("CurFireMode", 1)
 	end
 	
 	if self.FireModes_CanBurst == true && self.FireModes_CanAuto == false && self.FireModes_CanSemi == false then
 		self:SetNWString("FireMode", "Burst")
+		self:SetNWInt("CurFireMode", 3)
 	end
 end
 
@@ -397,7 +403,8 @@ function SWEP:Initialize()
 				["FarDistance"] = self.Primary.SoundDistance,
 				["Single"] = true,
 			},
-			["Envs"] = {}
+			["Envs"] = {},
+			["NearMiss"] = "Bullets.DefaultNearmiss"
 		}
 	end
 	
@@ -448,56 +455,16 @@ function SWEP:Initialize()
 		end
 	end
 	
-	-- Stupidity protection
+	-- Allow custom reload gestures while supporting the old system
 	if self.Primary.ReloadAct == nil && !self.IsMelee then
 		if self.Primary.ReloadHoldType == nil then
-			local ht = self:GetHoldType()
-			if ht == "pistol" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PISTOL
-			elseif ht == "smg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SMG1
-			elseif ht == "grenade" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RELOAD
-			elseif ht == "ar2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_AR2
-			elseif ht == "shotgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SHOTGUN
-			elseif ht == "rpg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RPG
-			elseif ht == "physgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PHYSGUN
-			elseif ht == "crossbow" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CROSSBOW
-			elseif ht == "melee" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE
-			elseif ht == "slam" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SLAM
-			elseif ht == "normal" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
-			elseif ht == "fist" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_FIST
-			elseif ht == "melee2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE2
-			elseif ht == "passive" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
-			elseif ht == "knife" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_KNIFE
-			elseif ht == "duel" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_DUEL
-			elseif ht == "camera" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CAMERA
-			elseif ht == "magic" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MAGIC
-			elseif ht == "revolver" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_REVOLVER
-			end
+			self.Primary.ReloadAct = DRC:GetHoldTypeAnim(string.lower(self:GetHoldType()), "reload", false)
 		else
-			local ht = self.Primary.ReloadHoldType
-			if ht == "pistol" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PISTOL
-			elseif ht == "smg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SMG1
-			elseif ht == "grenade" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RELOAD
-			elseif ht == "ar2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_AR2
-			elseif ht == "shotgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SHOTGUN
-			elseif ht == "rpg" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_RPG
-			elseif ht == "physgun" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_PHYSGUN
-			elseif ht == "crossbow" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CROSSBOW
-			elseif ht == "melee" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE
-			elseif ht == "slam" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_SLAM
-			elseif ht == "normal" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
-			elseif ht == "fist" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_FIST
-			elseif ht == "melee2" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MELEE2
-			elseif ht == "passive" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD
-			elseif ht == "knife" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_KNIFE
-			elseif ht == "duel" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_DUEL
-			elseif ht == "camera" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_CAMERA
-			elseif ht == "magic" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_MAGIC
-			elseif ht == "revolver" then self.Primary.ReloadAct = ACT_HL2MP_GESTURE_RELOAD_REVOLVER
-			end
+			self.Primary.ReloadAct = DRC:GetHoldTypeAnim(string.lower(self.Primary.ReloadHoldType), "reload", false)
 		end
 	end
 	
-	if self.IsMelee == true then
+	if self.IsMelee == true then -- rewrite / integrate with getholdtypeanim at some point
 		if self.Primary.MeleeAct == nil then
 			local ht = self.Primary.HoldType
 			if ht == "pistol" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
@@ -731,7 +698,7 @@ function SWEP:Think()
 	self:ManageAnims()
 	
 	if CLIENT && game.SinglePlayer() && RealTime() > self.RealTime then
-		self.RealTime = RealTime() + RealFrameTime() -- For some reason, calling :GetCycle() inside of Think() will be called three times per frame. The first one will always return 0. This prevents it from being called multiple times and prevents glitchy-looking-behaviour.
+		self.RealTime = RealTime() + RealFrameTime() -- For some reason, calling :GetCycle() inside of Think() will be called three times per frame. The first one will always return 0. This prevents it from being called multiple times and creates glitchy-looking-behaviour.
 		local seq, cycle = ply:GetViewModel(0):GetSequence(), ply:GetViewModel(0):GetCycle()
 		self.VMSequence = seq
 		self.VMCycle = cycle
@@ -769,7 +736,10 @@ function SWEP:Think()
 		end
 	end
 	
-	if self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
+	if !self:CanUseSights() then
+		self:SetIronsights(false, self.Owner)
+		ply:SetFOV(0, 0)
+	elseif self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
 		if self.SightsDown != self:GetNWBool("SightsDown") then self.SightsDown = self:GetNWBool("SightsDown") end
 		--if ply:KeyPressed(IN_ATTACK2) == true && self:GetNWBool("ironsights") == false && self:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
 		if ply:KeyPressed(IN_ATTACK2) == true && self.SightsDown == false && self:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
@@ -793,9 +763,6 @@ function SWEP:Think()
 		end
 	elseif self:CanUseSights() && self.Secondary.Ironsights == false or self.IronCD == true or self.Loading == true then
 		self:SetIronsights(false, self.Owner)
-	elseif !self:CanUseSights() then
-		self:SetIronsights(false, self.Owner)
-		ply:SetFOV(0, 0)
 	end
 	
 	if CurTime() > self.SightsSwapCD && self.IronSightsPosAlt != nil && ply:KeyDown(IN_WALK) && ply:KeyPressed(IN_RELOAD) then
@@ -824,7 +791,7 @@ function SWEP:Think()
 		local m1r = ply:KeyReleased(IN_ATTACK)
 		local ukd = ply:KeyDown(IN_USE)
 			
-		if (SERVER or !game.IsDedicated()) && ply:IsPlayer() then
+		if ply:IsPlayer() then
 			if game.SinglePlayer() && !IsFirstTimePredicted() then return end
 			if self.ChargeType == "dualheld" then
 				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then
@@ -978,7 +945,6 @@ end
 
 function SWEP:CanGunMelee()
 	local ply = self:GetOwner()
-	--local sights = self:GetNWBool("ironsights")
 	local sights = self.SightsDown
 	local passive = self:GetNWBool("Passive")
 	local inspection = self:GetNWBool("Inspecting")
@@ -1504,6 +1470,8 @@ function SWEP:Deploy()
 	local drawaniminitial = vm:SelectWeightedSequence( ACT_VM_DRAW_EMPTY )
 	local drawanimdur = vm:SequenceDuration(drawanim)
 	local drawaniminitialdur = vm:SequenceDuration(drawaniminitial)
+	self:SetNextPrimaryFire( CurTime() + drawanimdur)
+	self:SetNextSecondaryFire( CurTime() + drawanimdur)
 	vm:SetPlaybackRate( 1 )
 	self:SetIronsights(false)
 	self.SightsDown = false
@@ -1511,6 +1479,7 @@ function SWEP:Deploy()
 	self.Idle = 1
 	self.IsTaunting = 0
 	self.Inspecting = false
+	self:SetNWBool("Inspecting", false)
 	self.EmptyReload = 0
 	self.ManuallyReloading 	= false
 	self.Loading			= false
@@ -1558,9 +1527,6 @@ function SWEP:Deploy()
 	if self.Primary.Ammo != nil then
 		self:SetNWInt("LoadedAmmo", self:Clip1() )
 	else end
-
-	self:SetNextPrimaryFire( CurTime() + drawanimdur)
-	self:SetNextSecondaryFire( CurTime() + drawanimdur)
 	
 	if ply:IsPlayer() && self.HealthRegen == true then self:RegeneratingHealth(ply) end
 	if self.SpecialScripted != true then
@@ -1747,6 +1713,7 @@ function SWEP:Inspect()
 	local vm = ply:GetViewModel()
 	
 	self.Inspecting = true
+	self:SetNWBool("InspectCamLerp", true)
 	if game.SinglePlayer() && !IsFirstTimePredicted() then return end
 	local inspectanim = self:SelectWeightedSequence(ACT_VM_FIDGET)
 	local inspectdur = self:SequenceDuration(inspectanim)
@@ -1761,6 +1728,7 @@ end
 
 function SWEP:EnableInspection()
 	self.Inspecting = false
+	self:SetNWBool("InspectCamLerp", false)
 end
 
 function SWEP:Taunt()
@@ -1853,7 +1821,7 @@ function SWEP:CanUseSights()
 	if IsValid(ply:GetVehicle()) then self:SetIronsights(false) return false end
 	if self:GetNWBool("Passive") == true then return false end
 	
-	if self.Loading == true then self:SetIronsights(false) return end
+	if self.Loading == true then self:SetIronsights(false) return false end
 	
 	if (oh or self.Loading == true or self.ManuallyReloading == true) && self.LoadAfterShot == false then 
 		self.SightsDown = false
@@ -2252,7 +2220,7 @@ function SWEP:GetNPCBurstSettings()
 	
 	local burst = self.NPCBurstShots or 1
 	local rpm = self.Primary.RPM
-	local fm = self:GetNWString("FireMode")
+	local fm = self:GetFireMode()
 	if fm == "" then self:InitialFireMode() end -- Sometimes NPCs spawning with guns can break stuff like this. Don't ask me why, I don't know either.
 	
 	if (ply:IsNPC() or ply:IsNextBot()) && self.FireModes_CanBurst == true then
@@ -2261,11 +2229,11 @@ function SWEP:GetNPCBurstSettings()
 	
 	local mini, maxi, delay = nil, nil, nil
 
-	if fm == "Semi" then
+	if fm == 1 then
 		mini = 1
 		maxi = 1
 		delay = (60 / rpm)
-	elseif fm == "Auto" then
+	elseif fm == 2 then
 		mini = math.Rand(1, burst)
 		maxi = burst * 3
 		delay = (60 / rpm)
@@ -2273,11 +2241,13 @@ function SWEP:GetNPCBurstSettings()
 			mini = mini * self.BatteryConsumePerShot
 			maxi = (maxi * self.BatteryConsumePerShot / 5)
 		end
-	elseif fm == "Burst" then
+	elseif fm == 3 then
 		mini = self.FireModes_BurstShots
 		maxi = self.FireModes_BurstShots
 		delay = (60 / rpm)
-	elseif self.LoadAfterShot == true then
+	end
+	
+	if self.LoadAfterShot == true then
 		mini = 1
 		maxi = 1
 		delay = (self.Primary.Spread / self.Primary.SpreadDiv) * self.Primary.Kick
@@ -2323,6 +2293,7 @@ end
 function SWEP:PreDrawViewModel(vm, wep, ply)
 	if ply:GetNWBool("Interacting") == true then return true end
 --	self:DoCustomVMDraw(vm, wep, ply)
+
 	if game.SinglePlayer() then return end -- Find the singleplayer compatible version inside of Think() because why.
 	
 	local ammo = wep:Clip1()
@@ -2371,6 +2342,20 @@ function SWEP:PreDrawViewModel(vm, wep, ply)
 	end
 
 	return false
+end
+
+function SWEP:PostDrawViewModel(vm, wpn, ply)
+	if !self.VMA then self.VMA = {} end
+	for k,v in pairs(vm:GetAttachments()) do
+		if !self.VMA[v.name] then self.VMA[v.name] = {} end
+		local attinfo = vm:GetAttachment(v.id)
+		
+		self.VMA[v.name] = {
+			["id"] = v.id,
+			["pos"] = wpn:FormatViewModelAttachment(ply:GetFOV(), attinfo.Pos, false),
+			["ang"] = attinfo.Ang,
+		}
+	end
 end
 
 function SWEP:OnReloaded()

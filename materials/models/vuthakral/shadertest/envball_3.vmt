@@ -8,8 +8,9 @@
 	"$envmapsaturation" "[1 1 1]"
 	"$bumpframe" "0"
 
-	$cubemappower	1
-	$cubemaptint	"[ 3 3 3 ]"
+	$cmpower	1
+	$envmapfallback	"engine\defaultcubemap"
+	$cmpower_fb	0.25
 
 	"Proxies"
 	{
@@ -19,10 +20,7 @@
 			"animatedtextureframenumvar" "$bumpframe"
 			"animatedtextureframerate" 29.00
 		}
-		drc_ReflectionTint
-		{
-			resultVar	$envmaptint
-		}
+		drc_ReflectionTint{}
 	}
 }
 

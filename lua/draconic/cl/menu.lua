@@ -1821,7 +1821,7 @@ function DRCMenu( player )
 	t2tab1.AMDUser.Label:SetColor(TextCol)
 	t2tab1.AMDUser:SetEnabled(true)
 	
-	MakeHint(t2tab1, 495, 80, "- Forces models to use a fallback cubemap if they are set up for one, as AMD cards frequently have envmaps become missing textures.")
+	MakeHint(t2tab1, 495, 80, "Forces Draconic-Enabled materials to use a fallback cubemap, as AMD cards frequently have maps' envmaps become missing textures.\n\n[ WARNING ] Enabling this is a one-way ticket until you reload, due to limitations of the Source engine.\nAfter the envmap has been changed from a dynamic one, it cannot be changed back.\nIf you are not using an AMD GPU and just messing with settings, leave this OFF.")
 	
 	--[[
 	local DRCSway = vgui.Create( "DCheckBoxLabel", t2tab1 )
@@ -2174,6 +2174,20 @@ function DRCMenu( player )
 					margin-bottom: 0.1em;
 					width: 90vw;
 				}
+				marquee{
+					font-family: Verdana;
+					color: lightgrey;
+					width: 100vw;
+					
+					position: fixed;
+					bottom: 0;
+					margin-bottom: 0;
+					margin-top: 10em;
+				}
+				body{
+					width: 100vw;
+					height: 100vh;
+				}
 				.ultitle{
 					font-family: "Lucida Console";
 					margin-left: 3em;
@@ -2209,6 +2223,8 @@ function DRCMenu( player )
 						<li>The various people of various Discord servers I have to ask for help in every so often.</li>
 						<li>Clavus, creator of the "SWEP Construction Kit". Seriously dude, your addon & the standards for SWEPs it set has greatly contributed to the Garry's Mod 13 community & experience. Thank you.</li>
 					</ul>
+					
+				<marquee>If this text is scrolling below 30FPS, you are on Awesomium. If it is scrolling at 60fps or more, you are on Chromium.</marquee>
 			</body>
 		</html>
 				]] )
@@ -2268,19 +2284,19 @@ function DRCMenu( player )
 	ControlsTitle:SetContentAlignment(4)
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(15, 47)
+	DebugInfo:SetPos(15, 37)
 	DebugInfo:SetSize(200, 20)
 	DebugInfo:SetText("Gamemode: ".. engine.ActiveGamemode() .."")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(15, 60)
+	DebugInfo:SetPos(15, 50)
 	DebugInfo:SetSize(200, 20)
 	DebugInfo:SetText("Map: ".. game.GetMap() .."")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(15, 73)
+	DebugInfo:SetPos(15, 63)
 	DebugInfo:SetSize(200, 20)
 		if game.SinglePlayer() then
 			DebugInfo:SetText("Type: Singleplayer")
@@ -2290,7 +2306,13 @@ function DRCMenu( player )
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(5, 100)
+	DebugInfo:SetPos(15, 76)
+	DebugInfo:SetSize(200, 20)
+	DebugInfo:SetText("Tickrate: ".. math.floor(1/engine.TickInterval()))
+	DebugInfo:SetColor(TextCol)
+	
+	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
+	DebugInfo:SetPos(5, 110)
 	DebugInfo:SetSize(200, 40)
 	DebugInfo:SetText("Map Information")
 	DebugInfo:SetFont("DermaLarge")
@@ -2308,7 +2330,8 @@ function DRCMenu( player )
 	else
 		text = "Unverified"
 	end
-	
+
+--[[	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
 	DebugInfo:SetPos(15, 140)
 	DebugInfo:SetSize(200, 20)
@@ -2324,7 +2347,7 @@ function DRCMenu( player )
 	elseif text == "Verified Pass" or text == "Author Pass" then
 		DebugInfo:SetColor(Color(0,255,0,255))
 	else
-		DebugInfo:SetColor(Color(255,255,0,255))
+		DebugInfo:SetColor(Color(200,200,200,255))
 	end
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
@@ -2341,26 +2364,28 @@ function DRCMenu( player )
 		DebugInfo:SetText("")
 	end
 	DebugInfo:SetColor(TextCol)
+--]]
 	
+	local argb = Color(math.Round(DRC.MapInfo.MapAmbient.r*255), math.Round(DRC.MapInfo.MapAmbient.g*255), math.Round(DRC.MapInfo.MapAmbient.b*255), 0)
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(15, 180)
+	DebugInfo:SetPos(15, 140)
 	DebugInfo:SetSize(300, 20)
-	DebugInfo:SetText("Ambient light: ".. tostring(DRC.MapInfo.MapAmbient) .."")
+	DebugInfo:SetText("Ambient light: ".. argb.r ..", ".. argb.g ..", ".. argb.b .."")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
 	DebugInfo:SetFont("Marlett")
-	DebugInfo:SetPos(235, 180)
+	DebugInfo:SetPos(0, 140)
 	DebugInfo:SetSize(50, 20)
 	DebugInfo:SetText("g")
-	DebugInfo:SetColor(Color(render.GetAmbientLightColor().x * 255, render.GetAmbientLightColor().y * 255, render.GetAmbientLightColor().z * 255, 255))
+	DebugInfo:SetColor(Color(argb.r, argb.g, argb.b, 255))
 	
 	local versionname = tostring(DRC.MapInfo.Versions[DRC.MapInfo.Version]) or "Unknown"
 	
 	local DebugInfo = vgui.Create( "DLabel", debug_gameinfo)
-	DebugInfo:SetPos(15, 200)
-	DebugInfo:SetSize(300, 20)
-	DebugInfo:SetText("Compiled for: ".. versionname .." (BSP V".. DRC.MapInfo.Version ..")")
+	DebugInfo:SetPos(15, 145)
+	DebugInfo:SetSize(300, 50)
+	DebugInfo:SetText("Compiled for: ".. versionname .." (BSP V".. DRC.MapInfo.Version ..")\nNumber of Envmaps: ".. #drc_cubesamples .."")
 	DebugInfo:SetColor(TextCol)
 	
 	local DebugInfo = vgui.Create( "DLabel", t4tab1)
@@ -2385,7 +2410,7 @@ function DRCMenu( player )
 		["r_radiosity"] = {						3, "Radiosity Mode", 3, 3, "r_radiosity\n(Recommended: 3)\nAmbient lighting mode.\n\n0: No ambient lighting\n1: Cheap ambient lighting\n2: Raycasted indirect ambient lighting on everything (accurate, but slow with a lot of lights.)\n3: Raycast on static props, cheap on everything else (slightly inaccurate, but runs well)\n4: Raycast on static props, faked lighting on everything else (highly inaccurate, overbright)."},
 		["r_ambientmin"] = {					4, "Ambient Minimum", 0, 0, "r_ambientmin\n(Recommended: 0)\nDefaulted at 0.3, this value will make some dynamic entities inconsistently overbright in darker spaces.\n\nI suspect this is an oversight/bug with Garry's Mod's weird shaders."},
 		["mat_picmip"] = {						5, "PicMip", nil, false, "mat_picmip\n-10 to 20\nControls texture resolution display & mipmap fade distance. -10 displays the highest resolution available at all times."},
-		["r_lod"] = {							6, "LOD Models", nil, false, "r_lod\n-8 to 5\nControls how close models will drop off in visual quality, if they have LOD (Level of Detail) mesh support."},
+		["r_lod"] = {							6, "LOD Models", nil, false, "r_lod\n\nControls how close models will drop off in visual quality, if they have LOD (Level of Detail) mesh support.\n\n-1: Automatic (Default)\n0: Highest detail at any distance\n1+: Decreases model quality"},
 		["mat_antialias"] = {					7, "Anti-Aliasing", nil, false, "mat_antialias\n0 to 8\nControls the amount, but not type, of antialising employed. Type must be set in your game's settings menu.\nNewer/modern GPUs only support MSAA in Garry's Mod. You're better off setting a post-AA from your GPU's control panel.\n\nIf you are using ReShade or similar, they will not work if you have antialising enabled in Garry's Mod."},
 		["mat_viewportscale"] = {				8, "Render Scale", 1, false, "mat_viewportscale\n0 to 1 (Set to 1)\nThis controls the percentage resolution your game will display at."},
 		["r_shadows"] = {						9, "Simple Shadows", 1, false, "r_shadows\n0 or 1 (Set to 1)"},

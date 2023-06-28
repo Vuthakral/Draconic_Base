@@ -55,31 +55,48 @@ function SWEP:GetWeaponAttachment(att)
 	local ent = self
 	if ply == LocalPlayer() && !DRC:ThirdPersonEnabled(ply) then ent = ply:GetViewModel() end
 	local attinfo = ent:GetAttachment(ent:LookupAttachment(att))
-	if ply:IsPlayer() then 
-		if ent == ply:GetViewModel() then
-			attinfo.Pos = self:FormatViewModelAttachment(self.ViewModelFOV, attinfo.Pos, false)
-		end
+	local newpos, newang = attinfo.Pos, attinfo.Ang
+	if ply:IsPlayer() && ent == ply:GetViewModel() then
+		newpos = self.VMA[att].pos
+		newang = self.VMA[att].ang
 	end
+	attinfo.Pos = newpos
 	attinfo.ID = ent:LookupAttachment(att)
 	attinfo.ent = ent
+	attinfo.Ang = newang
+	
+	if att == "muzzle" && DRC:SightsDown(self) && self.Secondary.Scoped == true then
+		local ea = ply:EyeAngles()
+		attinfo.Pos = ((ply:EyePos() - ea:Up() * 5) - ea:Forward() * 5)
+	end
 	
 	return attinfo
 end
 
-function SWEP:EffectChain(tbl)
+function SWEP:EffectChain(tbl, ed)
 	local ply = self:GetOwner()
 	if !DRC:IsCharacter(ply) then return end
 	if !tbl then return end
 	for k,v in pairs(tbl) do
 		local effect, thyme = v[1], v[2]
 		local effectdata = EffectData()
-			timer.Simple(thyme, function() if IsValid(self) then
+		timer.Simple(thyme, function() if IsValid(self) then
 			if ply:GetActiveWeapon() != self then return end
 			local attinfo = self:GetWeaponAttachment(k)
-			effectdata:SetOrigin(attinfo.Pos)
-			effectdata:SetAngles(attinfo.Ang)
-			effectdata:SetAttachment(attinfo.ID)
-			effectdata:SetEntity(attinfo.ent)
+			if !ed then
+				effectdata:SetOrigin(attinfo.Pos)
+				effectdata:SetStart(attinfo.Pos)
+				effectdata:SetAngles(attinfo.Ang)
+				effectdata:SetAttachment(attinfo.ID)
+				effectdata:SetEntity(attinfo.ent)
+			else
+				effectdata:SetOrigin(ed:GetOrigin())
+				effectdata:SetStart(ed:GetStart())
+				effectdata:SetAngles(ed:GetAngles())
+				effectdata:SetAttachment(ed:GetAttachment())
+				effectdata:SetEntity(attinfo.ent)
+			end
+			
 			util.Effect( effect, effectdata )
 		end end)
 	end

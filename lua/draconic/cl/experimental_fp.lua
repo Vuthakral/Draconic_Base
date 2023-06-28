@@ -346,6 +346,12 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 						ent:ManipulateBoneScale(v, DRC.Skel.Neck.Scale)
 						for _,n in pairs(ply:GetChildBones(ply:LookupBone(ply:GetBoneName(v)))) do
 							ent:ManipulateBoneScale(n, DRC.Skel.Neck.Scale)
+							for f,y in pairs(ply:GetChildBones(ply:LookupBone(ply:GetBoneName(n)))) do
+								ent:ManipulateBoneScale(y, DRC.Skel.Neck.Scale)
+								for pieceof,shit in pairs(ply:GetChildBones(ply:LookupBone(ply:GetBoneName(y)))) do
+									ent:ManipulateBoneScale(shit, DRC.Skel.Neck.Scale)
+								end
+							end
 						end
 					end
 					

@@ -9,28 +9,34 @@ include("sh/convars.lua")
 
 DRC.MapInfo.Name = game.GetMap()
 DRC.MapInfo.Versions = {
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"Unknown",
-	"HL2 Beta SDK",
-	"HL2 Beta SDK",
-	"SDK 2004-2006",
-	"SDK 2007-2009",
-	"SDK 2013",
-	"SDK 2013",
+	"Unknown", -- V1 no known use
+	"Unknown", -- V2 no known use
+	"Unknown", -- V3 no known use
+	"Unknown", -- V4 no known use
+	"Unknown", -- V5 Counter Strike Online 2?????
+	"Unknown", -- V6 no known use
+	"Unknown", -- V7 no known use
+	"Unknown", -- V8 no known use
+	"Unknown", -- V9 no known use
+	"Unknown", -- V10 no known use
+	"Unknown", -- V11 no known use
+	"Unknown", -- V12 no known use
+	"Unknown", -- V13 no known use
+	"Unknown", -- V14 no known use
+	"Unknown", -- V15 no known use
+	"Unknown", -- V16 no known use
+	"HL2 Beta SDK", -- V17: Vempire The Masquerade, HL2 Beta
+	"HL2 Beta SDK", -- V18: HL2 Beta
+	"SDK 2004-2006", -- V19: HL2, HL2DM, CSS, DODS, Jabroni Brawl EP3
+	"SDK 2007-2009", -- V20: HL2, HL2DM, CSS, DODS, EP1, EP2, LC, Gmod, TF2, Portal, L4D1, Zeno Clash, DMMM, Vindictus, The Ship, BGT, Black Mesa, Fairy Tale Busters, Jabroni Brawl EP3
+	"SDK 2013", -- V21: L4D2, Alien Swarm, Portal 2, CSGO, Dear Esther, Insurgency, Stanley Parable, Jabroni Brawl EP3
+	"SDK 2013", -- V22: INFRA, DOTA 2
+	"SDK 2013-DOTA", -- V23: DOTA 2
+	"Unknown", -- V24: Not documented
+	"SDK 2013-CSGO", -- V25: CSGO, Portal 2 Community Edition
+	"Unknown", -- V26: Not documented
+	"SDK 2009? (Contagion)", -- V27: Contagion
+	"How the fuck did you load a Titanfall map?", -- V29: Titanfall 1
 }
 
 if SERVER then
@@ -63,8 +69,9 @@ DRC.Skel = {
 	["Spine2"] = { ["Name"] = "ValveBiped.Bip01_Spine2", ["Scale"] = Vector(1,0.5,1) },
 	["Spine4"] = { ["Name"] = "ValveBiped.Bip01_Spine4", ["Scale"] = Vector(1,0.5,1) },
 	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(0,0,0), ["Scale"] = Vector(0, 0, 0) },
-	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -50, 0) },
-	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -50, 0) },
+	["Head"] = { ["Name"] = "ValveBiped.Bip01_Head1", ["Offset"] = Vector(0,0,0), ["Scale"] = Vector(0, 0, 0) },
+	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -25, 0) },
+	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -25, 0) },
 	["LeftHand"] = { ["Name"] = "ValveBiped.Bip01_L_Hand", ["Offset"] = Vector(0, 0, 0) },
 	["RightHand"] = { ["Name"] = "ValveBiped.Bip01_R_Hand", ["Offset"] = Vector(0, 0, 0) },
 }
@@ -602,7 +609,7 @@ function DRC:GetServerMode()
 	end
 end
 
-function DRC:Notify(source, type, severity, msg, enum, time, sound)
+function DRC:Notify(source, typ, severity, msg, enum, thyme, sound)
 	if source != nil && (severity == "warning" or severity == "error" or severity == "critical") then
 		MsgC( Color(255, 0, 0), "Error from ".. tostring(source) ..": " )
 	end
@@ -610,10 +617,10 @@ function DRC:Notify(source, type, severity, msg, enum, time, sound)
 	local var = GetConVar("cl_drc_disable_errorhints"):GetFloat()
 	if var != 1 or severity == "critical" then
 		if sound != nil then surface.PlaySound( sound ) end
-		if type == "hint" && CLIENT then
+		if typ == "hint" && CLIENT then
 			if enum == nil then enum = NOTIFY_HINT end
-			if time == nil then time = 10 end
-			notification.AddLegacy( msg, enum, time )
+			if thyme == nil then thyme = 10 end
+			notification.AddLegacy( msg, enum, thyme )
 		else
 		 -- Will implement a proper error logging system later
 		end
@@ -653,21 +660,17 @@ function DRC:MismatchWarn(ply, ent)
 end
 
 function DRC:ValveBipedCheck(ent)
-	local LeftHand = ent:LookupBone("ValveBiped.Bip01_L_Hand")
-	local RightHand = ent:LookupBone("ValveBiped.Bip01_R_Hand")
-	local Spine = ent:LookupBone("ValveBiped.Bip01_Spine")
-	local Spine1 = ent:LookupBone("ValveBiped.Bip01_Spine1")
-	local Spine2 = ent:LookupBone("ValveBiped.Bip01_Spine2")
-	local Spine4 = ent:LookupBone("ValveBiped.Bip01_Spine4")
-	local LeftClav = ent:LookupBone("ValveBiped.Bip01_L_Clavicle")
-	local RightClav = ent:LookupBone("ValveBiped.Bip01_R_Clavicle")
-	local LeftThigh = ent:LookupBone("ValveBiped.Bip01_L_Thigh")
-	local RightThigh = ent:LookupBone("ValveBiped.Bip01_R_Thigh")
-	local Pelvis = ent:LookupBone("ValveBiped.Bip01_Pelvis")
-	
-	if !LeftHand or !RightHand or !Spine1 or !Spine2 or !Spine4 or !LeftClav or !RightClav or !LeftThigh or !RightThigh or !Pelvis then return false
-	elseif ent:GetBoneParent(Spine1) != Spine then return false
-	else return true end
+	if !ent:LookupBone("ValveBiped.Bip01_R_Hand") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_L_Hand") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_Spine1") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_Spine2") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_Spine4") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_L_Clavicle") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_R_Clavicle") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_L_Thigh") then return false end
+	if !ent:LookupBone("ValveBiped.Bip01_R_Thigh") then return false end
+	if ent:GetBoneParent(ent:LookupBone("ValveBiped.Bip01_Spine1")) != ent:LookupBone("ValveBiped.Bip01_Spine") then return false end
+	return true
 end
 
 function DRC:SightsDown(ent, irons)
@@ -896,21 +899,24 @@ function DRC:AddText(ply, varargs)
 end
 
 function DRC:EmitSound(source, near, far, distance, hint, listener)
-	if !IsValid(source) then return end
+	if !source then return end
 	if near == nil && far == nil then return end
 	if near == "" && far == "" then return end
-	if far == nil && near != nil then source:EmitSound(near) return end
+--	if far == nil && near != nil then source:EmitSound(near) return end
 	
-	source:EmitSound(near, nil, nil, nil, nil, nil, nil)
+	if isvector(source) && near then
+		sound.Play(near, source)
+	else
+		if IsValid(source) && near && (SERVER && IsFirstTimePredicted()) then source:EmitSound(near, nil, nil, nil, nil, nil, nil) end
+	end
 
 	if CLIENT then return end
-
 	net.Start("DRCSound")
 	net.WriteEntity(source)
-	net.WriteFloat(distance)
-	net.WriteString(near)
-	net.WriteString(far)
-	net.Broadcast()
+	if distance then net.WriteFloat(distance) end
+	if near then net.WriteString(near) end
+	if far then net.WriteString(far) end
+	if listener then net.Send(listener) else net.Broadcast() end
 	
 	if distance && hint then sound.EmitHint(hint, source:GetPos(), math.Rand(distance/5, distance), 0.25, source) end
 end
@@ -1134,6 +1140,7 @@ if CLIENT then
 	local drc_LUMP_CUBEMAPS = 42 -- THIS is the juicy stuff
 	 
 	drc_cubeLookup = {}
+	DRC.MapInfo.Cubemaps = {}
 	 
 	function DRC_CollectCubemaps( filename )
 		local bsp = file.Open( "maps/" .. filename .. ".bsp", "rb", "GAME" )
@@ -1173,6 +1180,7 @@ if CLIENT then
 			local str = string.format( "maps/%s/c%i_%i_%i", filename, pos.x, pos.y, pos.z )
 			drc_cubeLookup[str] = { pos, render.GetLightColor( pos ) }
 			drc_cubeLookup[str .. ".hdr"] = drc_cubeLookup[str]
+			DRC.MapInfo.Cubemaps[i] = {["mat"] = "".. str ..".hdr" or str, ["pos"] = pos}
 		end
 	end
 
@@ -1181,6 +1189,16 @@ if CLIENT then
 	end )
 end
 -- End cubemap collection code
+
+function DRC:GetEnvmap(src)
+	if !DRC.MapInfo.Cubemaps[1] then DRC_CollectCubemaps(game.GetMap()) end
+--	if #drc_cubeLookup == 0 or #drc_cubeLookup > 1000 then return nil end
+	local pos
+	if IsEntity(src) then pos = src:GetPos() + src:OBBCenter() else pos = src end
+	local d = function(st) return pos:DistToSqr(st) end --math.abs(st.x - pos.x) + math.abs(st.y - pos.y) end
+	table.sort(DRC.MapInfo.Cubemaps, function(a,b) return d(a.pos) < d(b.pos) end)
+	return DRC.MapInfo.Cubemaps[1].mat
+end
 
 function DRC:DLight(ent, pos, col, size, lifetime, emissive, debugcolourmultiplier, style)
 	local HDR = render.GetHDREnabled()
@@ -2303,7 +2321,10 @@ function DRC:IsVehicle(ent)
 end
 
 function DRC:IsCharacter(ent)
-	if ent:IsPlayer() == true or ent:IsNPC() == true or ent:IsNextBot() == true then return true else return false end
+	if ent:IsPlayer() == true then return true end
+	if ent:IsNPC() == true then return true end
+	if ent:IsNextBot() == true then return true end
+	return false
 end
 
 if SERVER then
@@ -3102,7 +3123,10 @@ DRC:RegisterPlayerModel(NewPlayermodel)
 ]]
 function DRC:RegisterPlayerModel(tbl)
 	if !istable(tbl) then return end
-	local newtab = {}
+	
+	if tbl.RequiredModel then
+		if !file.Exists(tbl.RequiredModel, "GAME") then return end
+	end
 	
 	list.Set( "PlayerOptionsModel", tbl.Name, tbl.Model)
 	player_manager.AddValidModel(tbl.Name, tbl.Model)
@@ -3120,6 +3144,7 @@ function DRC:RegisterPlayerModel(tbl)
 		["Extensions"] = tbl.Extensions or { 
 			["Claws"] = false,
 		},
+		["RequiredModel"] = tbl.RequiredModel or "",
 	}
 end
 
@@ -3199,6 +3224,8 @@ hook.Add( "AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
 		if DRC.GamemodeCompat[gm] then return end
 		timer.Simple(0.75, function()
 			if !IsValid(ent) then return end
+			local po = ent:GetPhysicsObject()
+			if po:GetMass() > 249 then return end
 			local dist = ply:GetPos():DistToSqr(ent:GetPos()) / 10
 			if ply:KeyDown(IN_USE) && dist < 1000 then ply:PickupObject(ent) end
 		end)
@@ -3383,7 +3410,7 @@ end)
 hook.Add("PlayerAmmoChanged", "drc_StopImpulse101FromBreakingBatteries", function(ply, id, old, new)
 	local batteryammo = game.GetAmmoID("ammo_drc_battery")
 	if id == batteryammo && new > 110 then
-		if CLIENT then DRC:Notify(nil, "hint", "critical", "Don't give yourself this ammo type! You'll only break your battery-based weapon!", NOTIFY_HINT, 5) end
+--		if CLIENT then DRC:Notify(nil, "hint", "critical", "Don't give yourself this ammo type! You'll only break your battery-based weapon!", NOTIFY_HINT, 5) end
 		ply:SetAmmo(old, batteryammo)
 		timer.Simple(0.2, function() ply:SetAmmo(old, batteryammo) end)
 	end

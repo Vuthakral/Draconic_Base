@@ -81,7 +81,7 @@ hook.Add("Think", "DRC_Lighting", function()
 		if attinfo == nil then return end
 		ent:SetPos(attinfo.Pos)
 		ent:SetAngles(attinfo.Ang)
-		ent.Light:SetColor( Color(255, 150, 25) )
+	--	ent.Light:SetColor( Color(255, 150, 25) )
 		if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() then ent.Enabled = false end end
 	end
 end)

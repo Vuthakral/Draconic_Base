@@ -164,6 +164,7 @@ end) --]]
 
 local CSModelCheck = 0
 local CSShieldModelCheck = 0
+local MBlurCheck = 0
 hook.Add("Think", "drc_CSThinkStuff", function()
 	if !IsValid(LocalPlayer()) then return end
 	local ply = LocalPlayer()
@@ -205,6 +206,14 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 				shield.FollowEnt = v
 				shield:Spawn()
 			end
+		end
+	end
+	
+	if CurTime() > MBlurCheck then -- https://github.com/Facepunch/garrysmod-requests/issues/2110
+		MBlurCheck = MBlurCheck + 1
+		if GetConVar("mat_motion_blur_enabled"):GetInt() < 1 then
+			LocalPlayer():ConCommand("mat_motion_blur_enabled 1")
+			LocalPlayer():ConCommand("mat_motion_blur_strength 0")
 		end
 	end
 end)
@@ -517,6 +526,9 @@ net.Receive("DRC_WeaponAttachSwitch_Sync", function()
 	local slot = net:ReadString()
 	
 	wpn:SetupAttachments(req, slot, false, false)
+	
+	local snd = scripted_ents.GetStored(req).t.AttachSound
+	if snd then surface.PlaySound(snd) else surface.PlaySound(DRC.Inspection.Theme.Sounds.Select) end
 end)
 
 net.Receive("DRC_WeaponAttachSyncInventory", function()
@@ -583,10 +595,9 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	end
 	
 	drc_vm_lerppos = Vector(Lerp(FrameTime() * 25, 0 or pos.x, 0), Lerp(FrameTime() * 25, 0 or pos.y, 0), Lerp(FrameTime() * 25, 0 or pos.z, 0))
-	
-	if wpn.Loading == true then
+	if wpn:GetNWBool("Loading") == true then
 		drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or 30, 30)
-	elseif wpn.Inspecting == true then
+	elseif wpn:GetNWBool("InspectCamLerp") == true then
 		drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or 16, 16)
 	else
 		drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or 50, 50)
@@ -855,7 +866,12 @@ concommand.Add("drc_refreshcsents", function()
 	if IsValid(DRC.CSShadowModel) then DRC.CSShadowModel:Remove() end
 	if IsValid(DRC.CSWeaponShadow) then DRC.CSWeaponShadow:Remove() end
 	if IsValid(DRC.CSPlayerHandShield) then DRC.CSPlayerHandShield:Remove() end
-	if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
+	if IsValid(DRC.CalcView.MuzzleLamp) then DRC.CalcView.MuzzleLamp:Remove() end
+	if DRC.AttachMenu && DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
+	
+	for k,v in pairs(ents.GetAll()) do
+		if v.DRCReflectionTints then v.DRCReflectionTints = nil end
+	end
 end)
 
 
@@ -1018,17 +1034,19 @@ local function drc_TraceInfo()
 	surface.SetTextPos(pos.x - pos.x/2, pos.y + 16)
 	if enum != "MAT_" then surface.DrawText(tostring(enum)) end
 	
-	if ent:IsWorld() then return end
+--	if ent:IsWorld() then return end
 	surface.SetFont("DermaDefault")
 	surface.SetTextColor(255, 255, 255)
 	surface.SetTextPos(pos.x - pos.x/2, pos.y + 48)
-	surface.DrawText(tostring(ent:GetPos()))
+	surface.DrawText(tostring(ent:GetPos()) or "")
 	
 	surface.SetTextPos(pos.x - pos.x/2, pos.y + 64)
-	surface.DrawText(tostring(ent:GetModel()))
+	local str2
+	if ent:IsWorld() then str2 = data.HitTexture else str2 = tostring(ent:GetModel()) end
+	surface.DrawText(str2)
 	
 	surface.SetTextPos(pos.x - pos.x/2, pos.y + 80)
-	surface.DrawText("Owner: ".. tostring(ent:GetOwner()) .."")
+	surface.DrawText("Owner: ".. tostring(ent:GetOwner()) .."" or "")
 end
 hook.Add("HUDPaint", "drc_TraceInfo", drc_TraceInfo)
 

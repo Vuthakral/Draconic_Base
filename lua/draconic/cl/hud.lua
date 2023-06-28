@@ -82,7 +82,9 @@ local function drc_Crosshair()
 	-- Replace base game crosshair with a duplicate that uses the actual hitpos, for compatibility with mods that offset the view (thirdperson, first person offsets, etc).
 	local pos = DRC.CalcView.ToScreen
 	if DRC.HoldTypes.HardcodedWeapons[string.lower(curswep:GetClass())] && !IsValid(ply:GetVehicle()) && pos.x && pos.y then
-		if DRC.CalcView.ToScreen then
+		local centered = (pos.x <= ScrW()/2 + 5 && pos.x >= ScrW()/2 - 5) && (pos.y <= ScrH()/2 + 5 && pos.y >= ScrH()/2 - 5)
+		if centered then pos.x = ScrW()/2 pos.y = ScrH()/2 end
+		if DRC.CalcView.ToScreen && GetConVar("crosshair"):GetInt() > 0 then
 			surface.SetFont("Crosshairs")
 			surface.SetTextPos(pos.x-10, pos.y-18)
 			surface.SetTextColor( 255, 211, 64, 255 )
@@ -278,6 +280,9 @@ local function drc_Crosshair()
 			surface.DrawTexturedRectRotated(vpos.x, vpos.y, lengthx, lengthy, ang)
 		end ]]
 	else
+		if !pos then return end
+		if !pos.x then return end
+		if !pos.y then return end
 		if curswep.CrosshairStatic != nil then
 			if curswep.CrosshairShadow == true then
 				if curswep.CrosshairNoIronFade == false then
@@ -1008,7 +1013,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 						net.WriteString(selection[new][1])
 						net.WriteString(selection[new][3])
 						net.SendToServer()
-						surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
+					--	surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
 					end
 				end
 			end
@@ -1024,30 +1029,32 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 			if wpn.AttachmentTable[relevancy] then tab = wpn.AttachmentTable[relevancy] end
 			for k,v in pairs(tab) do
 				if !istable(v) then
-					m[relevancy].Section[k] = vgui.Create("SpawnIcon", m[relevancy].Section)
-					local icon = m[relevancy].Section[k]
-					local info = scripted_ents.GetStored(v).t
-					icon:SetModel(info.Model or "models/Items/item_item_crate.mdl")
-					icon:SetSize(64, 64)
-					icon:SetTooltip("".. info.InfoName .."\n\n".. info.InfoDescription .."")
-					
-					if !GetCanUseAttachment(info.ClassName, relevancy) then
-						icon:SetEnabled(false)
-						icon:SetTooltip("Not in inventory - ".. info.InfoName .."\n\n".. info.InfoDescription .."")
+					if scripted_ents.GetStored(v) then
+						m[relevancy].Section[k] = vgui.Create("SpawnIcon", m[relevancy].Section)
+						local icon = m[relevancy].Section[k]
+						local info = scripted_ents.GetStored(v).t
+						icon:SetModel(info.Model or "models/Items/item_item_crate.mdl")
+						icon:SetSize(64, 64)
+						icon:SetTooltip("".. info.InfoName .."\n\n".. info.InfoDescription .."")
 						
-						local blocker = vgui.Create("DImageButton", icon)
-						blocker:SetSize(icon:GetWide(), icon:GetTall())
-						blocker:SetImage("gui/cross.png")
-						blocker:SetColor(Color(255, 0, 0, 127))
-						
-						blocker.DoClick = function()
-							surface.PlaySound(DRC.Inspection.Theme.Sounds.Deny)
+						if !GetCanUseAttachment(info.ClassName, relevancy) then
+							icon:SetEnabled(false)
+							icon:SetTooltip("Not in inventory - ".. info.InfoName .."\n\n".. info.InfoDescription .."")
+							
+							local blocker = vgui.Create("DImageButton", icon)
+							blocker:SetSize(icon:GetWide(), icon:GetTall())
+							blocker:SetImage("gui/cross.png")
+							blocker:SetColor(Color(255, 0, 0, 127))
+							
+							blocker.DoClick = function()
+								surface.PlaySound(DRC.Inspection.Theme.Sounds.Deny)
+							end
 						end
+						
+						selection:AddPanel( icon )
+						selection.Panels[v] = {icon, info.ClassName, info.InfoName}
+						selection[icon] = {info.ClassName, info.InfoName, relevancy}
 					end
-					
-					selection:AddPanel( icon )
-					selection.Panels[v] = {icon, info.ClassName, info.InfoName}
-					selection[icon] = {info.ClassName, info.InfoName, relevancy}
 				end
 			end
 			

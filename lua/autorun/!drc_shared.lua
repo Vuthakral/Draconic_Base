@@ -10,12 +10,11 @@ include("draconic/load.lua")
 hook.Add("PreRegisterSWEP", "DRC_NPCWeaponList", function(swep, cl)
 	if !string.find(cl, "drc_") then return end
 	local ignore = {"drc_camera", "drc_cubemap" }
-	local bases = {"draconic_melee_base", "draconic_gun_base", "draconic_battery_base"}
 	if ignore[cl] then return end
 	
 	if swep.NPCSpawnable == false then return end
 	
-	if !swep.PrintName then swep.PrintName = "NO NAME???" end
+	if !swep.PrintName then swep.PrintName = cl end
 	list.Add("NPCUsableWeapons", {class = cl, title = "[DRC] ".. swep.PrintName .."", category = Category})
 end)
 

@@ -15,7 +15,7 @@ DRC.WeathermodScalar = Vector(1,1,1)
 DRC.MatProxy = {}
 
 function DRC:CubemapCheck()
-	if (DRC:DebugModeEnabled() && GetConVar("cl_drc_debug_cubefallbacks"):GetFloat() == 1) or (GetConVar("cl_drc_accessibility_amduser"):GetFloat() == 1)  then return false end
+	if (DRC:DebugModeEnabled() && GetConVar("cl_drc_debug_cubefallbacks"):GetFloat() == 1) or (GetConVar("cl_drc_accessibility_amduser"):GetFloat() == 1) then return false end
 	if #drc_cubesamples != 0 then return true else return false end
 end
 
@@ -23,6 +23,7 @@ local addict = achievements.GetCount(5) >= achievements.GetGoal(5)
 
 if CLIENT then
 	hook.Add("Think", "Draconic_Base_Matproxy_Clientside_Think_Please_Just_Trust_Me_It_Isnt_Laggy", function()
+		if !lply or !IsValid(lply) or lply != LocalPlayer() then lply = LocalPlayer() end
 		if StormFox2 then
 			DRC.WeathermodScalar = Lerp(RealFrameTime() * 2.5, GetSF2LightLevel(0.05), GetSF2LightLevel(0.05))
 			DRC.WeathermodScalar = Vector(DRC.WeathermodScalar, DRC.WeathermodScalar, DRC.WeathermodScalar)
@@ -40,7 +41,9 @@ hook.Add("InitPostEntity", "DRC_MatProxy_InitPost", function()
 end)
 
 local function GetPlayerColour(src, channel)
-	if !IsValid(src) then return end
+	if !IsValid(src) then src = LocalPlayer() end
+	if !lply then lply = LocalPlayer() end
+	if !lply or !IsValid(lply) then return Vector() end
 	local col = Vector(0.5, 0.5, 0.5)
 	local translation = {
 		["PlayerColour_DRC"] = "Player",
@@ -120,34 +123,30 @@ end ]]
 local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 	if CurTime() < ent:GetCreationTime() + 0.03 then return Vector() end
 	if !IsValid(ent) then return Vector() end
+	local envmaps = DRC:CubemapCheck()
 	
 	local blacklist = {
 		["drc_csshadowmodel"] = true,
 	}
 	if blacklist[ent:GetClass()] then return Vector() end
-
-	mat.TintVector = imat:GetVector("$cubemaptint") or imat:GetVector("$cmtint")
-	mat.PowerFloat = imat:GetFloat("$cubemappower") or imat:GetFloat("$cmpower")
-	mat.MinFloat	= imat:GetFloat("$cubemapmin") or imat:GetFloat("$cmmin")
-	mat.MaxFloat	= imat:GetFloat("$cubemapmax") or imat:GetFloat("$cmmax")
-	mat.HDRCorrectionLevel	= imat:GetFloat("$cubemapHDRMul") or imat:GetFloat("$cmhdr")
-	mat.LDRCorrectionLevel	= imat:GetFloat("$cubemapLDRMul") or imat:GetFloat("$cmldr")
 	if imat:GetFloat("$cubemaplightingsaturation") then mat.Saturation = imat:GetFloat("$cubemaplightingsaturation") mat.Saturation = 1 end
 	if imat:GetFloat("$cmlightsat") then mat.Saturation = imat:GetFloat("$cmlightsat") else mat.Saturation = 1 end
-	if DRC:CubemapCheck() == false then
-		if imat:GetVector("$cubemaptintfallback") then mat.TintVector = imat:GetVector("$cubemaptintfallback") end
-		if imat:GetVector("$cmtint_fb") then mat.TintVector = imat:GetVector("$cmtint_fb") end
-		if imat:GetFloat("$cubemappowerfallback") then mat.PowerFloat = imat:GetFloat("$cubemappowerfallback") end
-		if imat:GetFloat("$cmpower_fb") then mat.PowerFloat = imat:GetFloat("$cmpower_fb") end
-		if imat:GetFloat("$cubemapminfallback") then mat.MinFloat = imat:GetFloat("$cubemapminfallback") end
-		if imat:GetFloat("$cmmin_fb") then mat.MinFloat = imat:GetFloat("$cmmin_fb") end
-		if imat:GetFloat("$cubemapmaxfallback") then mat.MaxFloat = imat:GetFloat("$cubemapmaxfallback") end
-		if imat:GetFloat("$cmmax_fb") then mat.MaxFloat = imat:GetFloat("$cmmax_fb") end
-		if imat:GetFloat("$cubemapHDRMulfallback") then mat.MaxFloat = imat:GetFloat("$cubemapHDRMulfallback") end
-		if imat:GetFloat("$cmhdr_fb") then mat.MaxFloat = imat:GetFloat("$cmhdr_fb") end
-		if imat:GetFloat("$cubemapLDRMulfallback") then mat.MaxFloat = imat:GetFloat("$cubemapLDRMulfallback") end
-		if imat:GetFloat("$cmldr_fb") then mat.MaxFloat = imat:GetFloat("$cmldr_fb") end
+	
+	mat.TintVector 			= imat:GetVector("$cmtint") or imat:GetVector("$cubemaptint")
+	mat.PowerFloat 			= imat:GetFloat("$cmpower") or imat:GetFloat("$cubemappower")
+	mat.MinFloat			= imat:GetFloat("$cmmin") or imat:GetFloat("$cubemapmin")
+	mat.MaxFloat			= imat:GetFloat("$cmmax") or imat:GetFloat("$cubemapmax")
+	mat.HDRCorrectionLevel	= imat:GetFloat("$cmhdr") or imat:GetFloat("$cubemapHDRMul")
+	mat.LDRCorrectionLevel	= imat:GetFloat("$cmldr") or imat:GetFloat("$cubemapLDRMul")
+	if envmaps == false then
+		mat.TintVector = imat:GetVector("$cmtint_fb") or imat:GetVector("$cubemaptintfallback") or mat.TintVector
+		mat.PowerFloat = imat:GetFloat("$cmpower_fb") or imat:GetFloat("$cubemappowerfallback") or mat.PowerFloat
+		mat.MinFloat = imat:GetFloat("$cmmin_fb") or imat:GetFloat("$cubemapminfallback") or mat.MinFloat
+		mat.MaxFloat = imat:GetFloat("$cmmax_fb") or imat:GetFloat("$cubemapmaxfallback") or mat.MaxFloat
+		mat.HDRCorrectionLevel = imat:GetFloat("$cmhdr_fb") or imat:GetFloat("$cubemapHDRMulfallback") or mat.HDRCorrectionLevel
+		mat.LDRCorrectionLevel = imat:GetFloat("$cmldr_fb") or imat:GetFloat("$cubemapLDRMulfallback") or mat.LDRCorrectionLevel
 	end
+	
 	if mat.LerpPower == nil then mat.LerpPower = 1 end
 	if mat.TintVector == nil then mat.TintVector = Vector(1,1,1) end
 	if mat.PowerFloat == nil then mat.PowerFloat = 1 end
@@ -161,13 +160,15 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 	if !ent.DRCLightPolling["LightPollTime"] then ent.DRCLightPolling["LightPollTime"] = 0 end	
 	if !ent.DRCReflectionTints then ent.DRCReflectionTints = {} end	
 	if !ent.DRCReflectionTints.Stored then ent.DRCReflectionTints.Stored = {} end
-	
+
 	local name = imat:GetName()
 	if ent:EntIndex() == lply:GetViewModel():EntIndex() then ent = lply:GetActiveWeapon() end
 	if !IsValid(ent) then return end 
 	if !ent.DRCReflectionTints then ent.DRCReflectionTints = {} end
 	if !ent.DRCReflectionTints[name] then ent.DRCReflectionTints[name] = {} end
 	if !ent.DRCReflectionTints[name]["UpdateTime"] then ent.DRCReflectionTints[name]["UpdateTime"] = 0 end
+	if !ent.DRCReflectionTints[name]["EnvmapUpdateTime"] then ent.DRCReflectionTints[name]["EnvmapUpdateTime"] = 0 end
+	if !ent.DRCReflectionTints[name]["Envmap"] then ent.DRCReflectionTints[name]["Envmap"] = "" end
 	if !ent.DRCReflectionTints[name][channel] then ent.DRCReflectionTints[name][channel] = Vector() end
 	if !ent.DRCReflectionTints.Stored then ent.DRCReflectionTints.Stored = {} end
 	if !ent.DRCReflectionTints.Stored[name] then ent.DRCReflectionTints.Stored[name] = {} end
@@ -183,10 +184,31 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 			return colnew
 		end
 	end
-		
+	
+	local function ReturnEnvmap()
+		if envmaps == false then
+			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "engine/defaultcubemap"
+		else
+			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "engine/defaultcubemap"
+		end
+	end
+	
+	if (RealTime() > ent.DRCReflectionTints[name]["EnvmapUpdateTime"]) then
+		local fps = 1/RealFrameTime()
+		local nexttick = RealTime() + (0.5 + (math.Rand(-0.25, 0.5)))
+		if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.3, 0.5))) end
+		if fps < 20 then nexttick = RealTime() + (2 + (math.Rand(0, 3))) end
+		ent.DRCReflectionTints["EnvmapUpdateTime"] = nexttick
+		if envmaps == false then ReturnEnvmap() end
+	end
+	local cubemap = ent.DRCReflectionTints[name]["Envmap"] or ""
+	
+	if envmaps == false && imat:GetTexture("$envmap") != cubemap then imat:SetTexture("$envmap", cubemap) end
+	
 	if ent.Preview == true or ent.preview == true then
 		local mul = Vector(1, 1, 1)
-		if HDR then mul = mat.HDRCorrectionLevel else mul = (10 * mat.LDRCorrectionLevel) end
+		if !HDR then mul = (10 * mat.LDRCorrectionLevel) end
+		if cubemap == "engine/defaultcubemap" then mat.PowerFloat = 0.1 end
 		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.WeathermodScalar
 	return col end
 	
@@ -200,9 +222,6 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 		if ent:EntIndex() == lply:GetHands():EntIndex() then
 			ent.DRCLightPolling["Realtime"] = true
 			col = GetColour(lply, channel)
-			
-			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
-			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
 		elseif ent:EntIndex() == lply:GetViewModel():EntIndex() then
 			local newent = lply:GetActiveWeapon()
 			ent.DRCLightPolling["Realtime"] = true
@@ -210,36 +229,27 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 			if !IsValid(newent) then return Vector() end
 			if !newent.DRCReflectionTints then newent.DRCReflectionTints = {} end
 			col = GetColour(newent, channel)
-			
-			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
-			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
-		elseif ent:IsRagdoll() then
-			col = GetColour(ent, channel)
-			
-			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
-			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
 		else
 			col = GetColour(ent, channel)
-			
-			if HDR then col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
-			else col = col * Vector(ll.r, ll.g, ll.b) * (10 * mat.LDRCorrectionLevel) end
 		end
+		col = col * Vector(ll.r, ll.g, ll.b) * mat.HDRCorrectionLevel
+		col = col * (Vector(DRC.MapInfo.MapAmbient.r + 1, DRC.MapInfo.MapAmbient.g + 1, DRC.MapInfo.MapAmbient.b +1))
 		return col
 	end
 	
-	--if (RealTime() > ent.DRCReflectionTints[name]["UpdateTime"]) then
+	if (RealTime() > ent.DRCReflectionTints[name]["UpdateTime"]) then
 		local fps = 1/RealFrameTime()
 		local nexttick = RealTime() + (0.2 + (math.Rand(-0.1, 0.1)))
 		if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.5, 0.25))) end
-		if fps < 20 then nexttick = RealTime() + (1 + (math.Rand(-1, 2))) end
+		if fps < 20 then nexttick = RealTime() + (2 + (math.Rand(-1, 2))) end
 		ent.DRCReflectionTints.Stored[name][channel] = (ReturnValue() * LMCor * DRC.WeathermodScalar) * (DRC.WeathermodScalar * mat.TintVector) * mat.PowerFloat
 		ent.DRCReflectionTints[name]["UpdateTime"] = nexttick
-	--	PrintTable(ent.DRCReflectionTints)
---	end
-
+	end
+	
 	ent.DRCReflectionTints[name][channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), ent.DRCReflectionTints[name][channel] or ent.DRCReflectionTints.Stored[name][channel], ent.DRCReflectionTints.Stored[name][channel])
 	local avg = (ent.DRCReflectionTints[name][channel].x + ent.DRCReflectionTints[name][channel].y + ent.DRCReflectionTints[name][channel].z) / 3
 	local final = (LerpVector(mat.Saturation, Vector(avg, avg, avg), ent.DRCReflectionTints[name][channel]) * mat.TintVector)
+	
 	return final
 end
 
@@ -331,7 +341,7 @@ matproxy.Add( {
 	end,
 
 	bind = function( self, mat, ent )
-		if !IsValid(ent) then return end
+		if !IsValid(ent) then ent = LocalPlayer() end
 		if !IsValid(lply) then return end
 		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
@@ -695,6 +705,7 @@ matproxy.Add( {
 	init = function( self, mat, values )
 		self.ResultTo = values.resultvar
 		self.PowerFloat = mat:GetFloat("$rimlightpower")
+		self.TintBool = mat:GetFloat("$rimlightdotint")
 		self.LerpPower = mat:GetFloat("$rimlight_ls")
 	end,
 
@@ -706,9 +717,12 @@ matproxy.Add( {
 		
 		if self.PowerFloat == nil then self.PowerFloat = 1 end
 		if self.LerpPower == nil then self.LerpPower = 1 end
+		if self.TintBool == nil then self.TintBool = 0 end
 		
 		if ent.Preview == true or ent.preview == true then
-			mat:SetFloat("$rimlightboost", self.PowerFloat /10)
+			local col = mat:GetVector("$color2")
+			local calc = (col.x + col.y + col.z) / 3
+			mat:SetFloat("$rimlightboost", self.PowerFloat/10 * calc)
 		else			
 			local name = mat:GetName()
 			if ent:EntIndex() == lply:GetViewModel():EntIndex() then ent = lply:GetActiveWeapon() end
@@ -718,6 +732,7 @@ matproxy.Add( {
 			if !ent.DRCScalingRimLightParams[name] then ent.DRCScalingRimLightParams[name] = {} end
 			if !ent.DRCScalingRimLightParams[name]["Value"] then ent.DRCScalingRimLightParams[name]["Value"] = 0 end
 			if !ent.DRCScalingRimLightParams[name]["UpdateTime"] then ent.DRCScalingRimLightParams[name]["UpdateTime"] = 0 end
+			if !ent.DRCScalingRimLightParams[name]["RimTint"] then ent.DRCScalingRimLightParams[name]["RimTint"] = 1 end
 			if !ent.DRCScalingRimLightParams.Stored then ent.DRCScalingRimLightParams.Stored = {} end
 			if !ent.DRCScalingRimLightParams.Stored[name] then ent.DRCScalingRimLightParams.Stored[name] = {} end
 			if !ent.DRCScalingRimLightParams.Stored[name]["Value"] then ent.DRCScalingRimLightParams.Stored[name]["Value"] = 0 end
@@ -743,7 +758,16 @@ matproxy.Add( {
 				local nexttick = RealTime() + (0.2 + (math.Rand(-0.1, 0.1)))
 				if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.5, 0.25))) end
 				if fps < 20 then nexttick = RealTime() + (1 + (math.Rand(-1, 2))) end
-				ent.DRCScalingRimLightParams.Stored[name]["Value"] = ent.DRCScalingRimLightParams["Value"]
+				
+				if self.TintBool == 1 then
+					local col = mat:GetVector("$color2")
+					local calc = (col.x + col.y + col.z) / 3
+					ent.DRCScalingRimLightParams[name]["RimTint"] = calc
+				else
+					ent.DRCScalingRimLightParams[name]["RimTint"] = 1
+				end
+				
+				ent.DRCScalingRimLightParams.Stored[name]["Value"] = ent.DRCScalingRimLightParams["Value"] * ent.DRCScalingRimLightParams[name]["RimTint"]
 				ent.DRCScalingRimLightParams[name]["UpdateTime"] = nexttick
 			end
 
@@ -753,7 +777,7 @@ matproxy.Add( {
 			if HDR then
 				mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] )
 			else
-				mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] * 100 )
+				mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] )
 			end
 		end
 	end
@@ -830,6 +854,7 @@ matproxy.Add( {
 		self.HDRCorrectionLevel	= mat:GetFloat("$cubemapHDRMul")
 		self.LDRCorrectionLevel	= mat:GetFloat("$cubemapLDRMul")
 		self.LerpPower	= mat:GetFloat("$cubemap_ls")
+		self.Envmap = mat:GetString("$envmapfallback")
 	end,
 
 	bind = function( self, mat, ent )
@@ -837,7 +862,6 @@ matproxy.Add( {
 		if !IsValid(lply) then return end
 		local owner = ent
 		if !IsValid( owner ) then return end
-		
 		if !self.ResultTo then self.ResultTo = "$envmaptint" end
 		
 		local val = GetCubemapStrength(self, ent, "None", mat)
@@ -1007,6 +1031,10 @@ matproxy.Add( {
 		if ( !IsValid( owner ) or !owner:IsPlayer() ) then return end
 		local wpn = owner:GetActiveWeapon()
 		if !IsValid(wpn) then return end
+		
+		if !self.FlipVar then self.FlipVar = 0 end
+		if !self.VarMult then self.VarMult = 1 end
+		if !self.LerpPower then self.LerpPower = 1 end
 		
 		local mag = nil
 		local maxmag = nil
@@ -1617,6 +1645,7 @@ matproxy.Add( {
 		self.Power = mat:GetFloat("$psx_mul")
 		self.Speed = mat:GetFloat("$psx_speed")
 		self.World = mat:GetFloat("$psx_world")
+		self.Framerate = mat:GetFloat("$psx_fps")
 	end,
 
 	bind = function( self, mat, ent )
@@ -1626,6 +1655,7 @@ matproxy.Add( {
 		if !self.Power then self.Power = 1 end
 		if !self.Speed then self.Speed = 1 end
 		if !self.World then self.World = 0 end
+		if !self.Framerate then self.Framerate = 24 end
 		
 		local localvel = lply:GetVelocity()
 		local localspeed = localvel:Length()
@@ -1648,13 +1678,32 @@ matproxy.Add( {
 		
 		if !ent.psxcd then ent.psxcd = 0 end
 		if !ent.psxbool then ent.psxbool = 1 end
-
+		if !ent.PSXCycle then ent.PSXCycle = 0 end
+		if !ent.PSXTick then ent.PSXTick = 0 end
+		
 		if CurTime() > ent.psxcd then
-		--	lply:ChatPrint(ent.psxbool)
-			ent.psxcd = CurTime() + 0.04
+			local fps = 1/self.Framerate
+			ent.psxcd = CurTime() + fps
 			if ent.psxbool == 0 then ent.psxbool = 1 else ent.psxbool = 0 end
+			
+			local mspd, mul, amount
+			if ent.preview == true or ent.Preview == true then
+				amount = 0.0052
+			elseif ent:IsPlayer() then
+				mspd = ent:GetRunSpeed() - (ent:GetRunSpeed() * 0.25)
+				if ent:KeyDown(IN_WALK) then mspd = ent:GetSlowWalkSpeed() * 3.75 end
+				if ent:KeyDown(IN_DUCK) then mspd = mspd * 1.5 end
+				mul = Lerp(localspeed/64000, 0, mspd) * 2.5
+				amount = (fps * mul)
+			else
+				amount = fps
+			end
+			
+			ent.PSXCycle = ent.PSXCycle + amount or 0 + amount
+			ent.PSXTick = ent.PSXTick + amount or 0 + amount
 		end
 		
+		if DRC:FloorDist(ent) < 10 or (ent.preview == true or ent.Preview == true) then ent:SetCycle(ent.PSXCycle) end
 		
 		if self.World < 1 then
 			mat:SetInt("$treesway", ent.psxbool)

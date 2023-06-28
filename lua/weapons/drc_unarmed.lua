@@ -21,6 +21,8 @@ SWEP.SprintPos			= Vector(0, 0, 0)
 SWEP.SprintAng			= Vector(0, 0, 0)
 SWEP.PassivePos			= Vector(0, 0, 0)
 SWEP.PassiveAng			= Vector(0, 0, 0)
+SWEP.InspectPos			= Vector(0, 0, 0)
+SWEP.InspectAng			= Vector(0, 0, 0)
 SWEP.UseHands			= true
 
 SWEP.InfoDescription = "When your rounds are spent, blades dull, and patience diminished;\nall you have left is your own two hands.\n\nRip and tear, until it is done."

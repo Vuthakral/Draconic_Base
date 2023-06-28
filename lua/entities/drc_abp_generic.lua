@@ -133,6 +133,7 @@ ENT.BulletTable = {
 	},
 	SplashRadius = nil,
 	SplashDamageMul = 1,
+	SplashDoBlast = false,
 	AmmoType = "Pistol",
 	FallbackBaseAmmoType = "Pistol",
 	NumShots = 1,

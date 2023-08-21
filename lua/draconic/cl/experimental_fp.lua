@@ -5,9 +5,6 @@ end
 
 local bobang = Angle()
 local offsetmul = 1
-hook.Add( "CalcView", "EFPTest2", function(ply, origin, ang, fov, zn, zf)
-
-end)
 
 hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf)
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then

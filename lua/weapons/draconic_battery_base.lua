@@ -132,7 +132,7 @@ function SWEP:CanPrimaryAttack()
 	if self.IsOverheated == true then return false end
 	if self:GetNWBool("Overheated") == true then return false end
 
-	if GetConVar("sv_drc_infiniteammo"):GetFloat() < 1 then
+	if DRC.SV.drc_infiniteammo < 1 then
 	if ply:IsPlayer() then
 		if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
 			self:Overheat(false, nil, true)
@@ -175,7 +175,7 @@ function SWEP:CanPrimaryAttack()
 		return false
 	end
 	
-	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") or ((self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) or (self.Overheated == true or self.IsOverheated == true) then
+	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self.Passive == true or self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") or ((self.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1) && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) or (self.Overheated == true or self.IsOverheated == true) then
 		return false
 	else 
 		return true
@@ -332,7 +332,7 @@ end
 function SWEP:Overheat(scripted, cooldown, animate)
 	if self.OverheatScripted == true && scripted != true then return end
 	if !IsValid(self) then return end
-	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 1 then return end
+	if DRC.SV.drc_infiniteammo > 1 then return end
 	local ply = self:GetOwner()
 	local loopseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_START )
 	local looptime = self:SequenceDuration( loopseq )

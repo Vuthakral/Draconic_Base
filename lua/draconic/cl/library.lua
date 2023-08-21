@@ -51,8 +51,8 @@ end)
 
 function DRC:GetCustomizationAllowed()
 	local gamemode = tostring(engine.ActiveGamemode())
-	local svtoggle = GetConVar("sv_drc_playerrep_disallow"):GetFloat()
-	local svtweaktoggle = GetConVar("sv_drc_playerrep_tweakonly"):GetFloat()
+	local svtoggle = DRC.SV.drc_playerrep_disallow
+	local svtweaktoggle = DRC.SV.drc_playerrep_tweakonly
 		
 	if !table.IsEmpty(DRC.CurrentRPModelOptions) then return true end
 		
@@ -212,6 +212,7 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 	if CurTime() > MBlurCheck then -- https://github.com/Facepunch/garrysmod-requests/issues/2110
 		MBlurCheck = MBlurCheck + 1
 		if GetConVar("mat_motion_blur_enabled"):GetInt() < 1 then
+			print("Disabling motion blur will break addons' effects. Setting mat_motion_blur_strength to 0 instead...")
 			LocalPlayer():ConCommand("mat_motion_blur_enabled 1")
 			LocalPlayer():ConCommand("mat_motion_blur_strength 0")
 		end
@@ -330,6 +331,14 @@ net.Receive("DRC_SetRPModels", function(length, ply)
 	local models = net.ReadTable()
 	DRC.CurrentRPModelOptions = models
 --	PrintTable(DRC.CurrentRPModelOptions)
+end)
+
+net.Receive("DRC_ReflectionModifier", function(length, ply)
+	DRC.ReflectionModifier = net.ReadFloat()
+end)
+
+net.Receive("DRC_WeaponAttachForceOpen", function(length, ply)
+	DRC:ToggleAttachmentMenu(LocalPlayer():GetActiveWeapon(), true, true)
 end)
 
 local HideHUDElements = {
@@ -460,7 +469,7 @@ function DRC:ThirdPersonEnabled(ply)
 	if curswep.ASTWTWO == true then return true end
 	if ply:GetNWString("Draconic_ThirdpersonForce") == "On" then return true end
 	if ply:GetNWString("Draconic_ThirdpersonForce") == "Off" then return false end
-	if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
+	if DRC.SV.drc_disable_thirdperson == 1 then return false end
 	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true else return false end
 	return false
 end
@@ -478,11 +487,11 @@ function DRC:IsDraconicThirdPersonEnabled(ply)
 	if !IsValid(ply) then return end
 	local curswep = ply:GetActiveWeapon()
 	if !IsValid(curswep) then
-		if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
+		if DRC.SV.drc_disable_thirdperson == 1 then return false end
 		if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
 	else
 		if curswep.Draconic == true && curswep.Thirdperson == true then return true end
-		if GetConVar("sv_drc_disable_thirdperson"):GetFloat() == 1 then return false end
+		if DRC.SV.drc_disable_thirdperson == 1 then return false end
 		if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
 	end
 	return false
@@ -543,8 +552,8 @@ hook.Add("PlayerBindPress", "DRC_ClientsideHotkeys", function(ply, bind, pressed
 	if !IsValid(ply) or !ply:Alive() then return end
 	local wpn = ply:GetActiveWeapon()
 	
-	if wpn.Draconic && wpn:GetNWBool("Inspecting") == true && bind == "+zoom" then
-		if wpn:CanCustomize() then DRC:ToggleAttachmentMenu(wpn, true) end
+	if bind == "+zoom" && wpn.Draconic && wpn:GetNWBool("Inspecting") == true then
+		if wpn:CanCustomize() then DRC:ToggleAttachmentMenu(wpn, true, false) end
 	return true end
 end)
 
@@ -552,7 +561,7 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	if !IsValid(ply) then return end
 	if ThirdPersonModEnabled(ply) then return end
 	if not !game.IsDedicated() then return end
-	if GetConVar("sv_drc_viewdrag"):GetString() != "1" then return end
+	if DRC.SV.drc_viewdrag != 1 then return end
 	if ply:GetViewEntity() ~= ply then return end
 	if ply:InVehicle() then return end
 
@@ -885,7 +894,7 @@ local drc_frame = 0
 local drc_framesavg = 0
 local function drc_DebugUI()
 	if !LocalPlayer():Alive() then return end
-	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
+	if DRC.SV.drc_allowdebug == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
 	if CurTime() > drc_frame then
 		drc_frame = CurTime() + engine.TickInterval() * 30
@@ -980,7 +989,7 @@ end
 hook.Add("HUDPaint", "drc_DebugUI", drc_DebugUI)
 
 local function drc_TraceInfo()
-	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
+	if DRC.SV.drc_allowdebug == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
 	local pos = DRC.CalcView.ToScreen
 	local data = DRC.CalcView.Trace
@@ -1026,6 +1035,8 @@ local function drc_TraceInfo()
 		if !IsValid(ent) then return end
 		enum = DRC:SurfacePropToEnum(ent:GetBoneSurfaceProp(0))
 	end
+	local e2 = DRC.SurfacePropDefinitions[enum][1] or "UNDEFINED, PLEASE REPORT"
+	enum = "".. enum .." | DRC: ''".. e2 .."''" 
 	
 	if BaseDT[enum] && enum != "MAT_" == nil then
 		col = Color(255, 0, 0)
@@ -1060,7 +1071,7 @@ hook.Add("PostDrawTranslucentRenderables", "drc_DebugMenuPM", function()
 end)
 
 hook.Add("PostDrawTranslucentRenderables", "drc_DebugStuff", function()
-	if GetConVar("sv_drc_allowdebug"):GetFloat() == 0 then return end
+	if DRC.SV.drc_allowdebug == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
 	
 	if GetConVar("cl_drc_debug_tracelines"):GetFloat() != 0 then

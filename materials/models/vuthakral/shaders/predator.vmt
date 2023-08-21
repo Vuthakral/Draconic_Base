@@ -1,0 +1,25 @@
+"VertexLitGeneric"
+{
+	$basetexture	"models\vuthakral\white-50"
+	$bumpmap	"models\vuthakral\flatnormal-50"
+	$translucent	1
+
+	$cloakpassenabled	1
+	$cloakfactor	0.99
+	$refractamount	0.3
+
+	Proxies
+	{
+		drc_FunctionA
+		{
+			resultvar	$cloakfactor
+			resultvar2	$refractamount
+			target	"self"
+			input	"velocity"
+			inputmax	1000
+			min	"1.01"
+			max	"0.2"
+			mul2	0.5
+		}
+	}
+}

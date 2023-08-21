@@ -11,6 +11,7 @@ end
 function DRCMenu( player )
     local ply = player
 	local VSelection = ply:GetNWString("DRCVoiceSet")
+	local FSelection = ply:GetNWString("DRCFootsteps")
 	local Customization, TweakMode = DRC:GetCustomizationAllowed()
     
 	local usekey = string.upper(ReturnKey("+use"))
@@ -182,6 +183,8 @@ function DRCMenu( player )
 		
 		frame.previewfloor:SetModel(tab.Podium[1])
 		frame.previewfloor.PodiumOffset = tab.Podium[2]
+		frame.previewfloor:GetEntity():SetParent(frame.preview:GetEntity())
+		frame.previewfloor:GetEntity():AddEffects(EF_BONEMERGE)
 		
 		if tab.DefaultCam then
 			if tab.DefaultCam.Pos then
@@ -250,6 +253,8 @@ function DRCMenu( player )
 		frame.previewfloor:SetLookAng(ang)
 		frame.previewfloor:SetCamPos(pos)
 		frame.previewfloor:SetFOV(frame.preview:GetFOV())
+		frame.previewfloor:GetEntity():SetParent(frame.preview:GetEntity())
+		frame.previewfloor:GetEntity():AddEffects(EF_BONEMERGE)
     end
 	
 	function frame.previewfloor:LayoutEntity(ent)
@@ -304,6 +309,8 @@ function DRCMenu( player )
 	function toolsbutton:DoClick()
 		local tools = {
 			bottompanel.copy,
+			bottompanel.copy1,
+			bottompanel.copy2,
 			bottompanel.hidepodium,
 			bottompanel.debugrender,
 		}
@@ -326,6 +333,8 @@ function DRCMenu( player )
 		function toolsbutton.faketoolsbutton:DoClick()
 			local tools = {
 				bottompanel.copy,
+				bottompanel.copy1,
+				bottompanel.copy2,
 				bottompanel.hidepodium,
 				bottompanel.debugrender,
 			}
@@ -386,14 +395,30 @@ function DRCMenu( player )
 	frame.tools.fov:SetPos(16, 92)
 	
 	bottompanel.copy = vgui.Create("DButton", bottompanel)
-	bottompanel.copy:SetSize(128,16)
+	bottompanel.copy:SetSize(64,16)
 	bottompanel.copy:SetPos(375,bottompanel:GetTall() - 40)
-	bottompanel.copy:SetText("Copy model information")
-	bottompanel.copy:SetTooltip("Copies current model path, name, c_arm path, etc to clipboard.")
+	bottompanel.copy:SetText("Copy model")
+	bottompanel.copy:SetTooltip("Copies current model's path to clipboard.")
 	bottompanel.copy:SetEnabled(false)
 	bottompanel.copy:SetVisible(false)
 	
-	function bottompanel.copy:DoClick()
+	bottompanel.copy1 = vgui.Create("DButton", bottompanel)
+	bottompanel.copy1:SetSize(64,16)
+	bottompanel.copy1:SetPos(375,bottompanel:GetTall() - 22)
+	bottompanel.copy1:SetText("Copy voice")
+	bottompanel.copy1:SetTooltip("Copies current model's Voice Set ID to the clipboard.")
+	bottompanel.copy1:SetEnabled(false)
+	bottompanel.copy1:SetVisible(false)
+	
+	bottompanel.copy2 = vgui.Create("DButton", bottompanel)
+	bottompanel.copy2:SetSize(64,16)
+	bottompanel.copy2:SetPos(440,bottompanel:GetTall() - 40)
+	bottompanel.copy2:SetText("Copy hands")
+	bottompanel.copy2:SetTooltip("Copies current model's c_arm path to the clipboard.")
+	bottompanel.copy2:SetEnabled(false)
+	bottompanel.copy2:SetVisible(false)
+	
+--[[	function bottompanel.copy:DoClick()
 		bottompanel.copy:SetText("Copied!")
 		local tbl = {
 			["path"] = frame.preview:GetModel(),
@@ -408,7 +433,31 @@ function DRCMenu( player )
 		tbl.vs = "VoiceSet: ".. tbl.vs ..""
 		local str = "".. tbl.name .."\n".. tbl.path .."\n".. tbl.hands .."\n".. tbl.vs ..""
 		SetClipboardText(str)
-		timer.Simple(1, function() bottompanel.copy:SetText("Copy model information") end)
+		timer.Simple(1, function() bottompanel.copy:SetText("Copy model") end)
+	end ]]
+	
+	function bottompanel.copy:DoClick()
+		bottompanel.copy:SetText("Copied!")
+		local path = frame.preview:GetModel()
+		local name = player_manager.TranslateToPlayerModelName(frame.preview:GetModel())
+		SetClipboardText(path)
+		timer.Simple(1, function() bottompanel.copy:SetText("Copy model") end)
+	end
+	
+	function bottompanel.copy1:DoClick()
+		bottompanel.copy1:SetText("Copied!")
+		local name = player_manager.TranslateToPlayerModelName(frame.preview:GetModel())
+		local vs = "nil"
+		if DRC.Playermodels[name] then if DRC.Playermodels[name].VoiceSet != "" then vs = DRC.Playermodels[name].VoiceSet end end
+		SetClipboardText(vs)
+		timer.Simple(1, function() bottompanel.copy1:SetText("Copy voice") end)
+	end
+	
+	function bottompanel.copy2:DoClick()
+		bottompanel.copy2:SetText("Copied!")
+		local hands = player_manager.TranslatePlayerHands(player_manager.TranslateToPlayerModelName(frame.preview:GetModel())).model
+		SetClipboardText(hands)
+		timer.Simple(1, function() bottompanel.copy2:SetText("Copy hands") end)
 	end
 	
 	bottompanel.hidepodium = vgui.Create("DButton", bottompanel)
@@ -580,23 +629,22 @@ function DRCMenu( player )
 	tab1.tab1Hands:DockPadding(0, 0, 0, 0)
 	tab1.tab1Hands:SetBackgroundColor( Color(245, 245, 245, 0) )
 	tab1:AddSheet( "Hands", tab1.tab1Hands, "icon16/folder_page.png")
+
 	
-	
-				
-	local tab2 = vgui.Create( "DPanel", tabs )
+	local tab2 = vgui.Create( "DPanel", tab1 )
 	tab2:SetBackgroundColor( Color(255, 255, 255, 255) )
-	tabs:AddSheet( "Colours", tab2, "icon16/color_wheel.png" )
+	tab1:AddSheet( "Colours", tab2, "icon16/color_wheel.png" )
 	
-	local t3c = vgui.Create( "DPanel", tabs )
+	local t3c = vgui.Create( "DPanel", tab1 )
 	t3c:SetBackgroundColor( Color(0, 0, 0, 0) )
 	t3c:SetPos(-200, 0)
 	
 	local t3p = t3c:Add( "DPanelList" )
-	t3p:DockPadding( 64, 8, 8, 8 )
+	t3p:DockPadding( 32, 8, 8, 8 )
 	t3p:EnableVerticalScrollbar( true )
 	t3p:Dock(FILL)
 	
-	local tab3 = tabs:AddSheet( "#smwidget.bodygroups", t3p, "icon16/cog.png" )
+	local tab3 = tab1:AddSheet( "#smwidget.bodygroups", t3p, "icon16/cog.png" )
 	
 	local modelListPnl = tab1PMs:Add( "DPanel" )
 	modelListPnl:DockPadding( 8, 0, 8, 0 )
@@ -634,6 +682,10 @@ function DRCMenu( player )
 				icon:SetTooltip( name )
 				icon.playermodel = name
 				icon.model_path = model
+				
+				icon.OpenMenu = function( icon )
+					icon:RebuildSpawnIcon()
+				end
 				
 				PanelSelect:AddPanel( icon, { cl_playermodel = name } )
 				PanelSelect.Models[model] = model
@@ -908,6 +960,7 @@ function DRCMenu( player )
 				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
+				["footsteps"] = FSelection,
 				["hands"] = {
 					["model"] = handval,
 					["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
@@ -929,6 +982,7 @@ function DRCMenu( player )
 				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
+				["footsteps"] = FSelection,
 				["hands"] = {
 					["model"] = handval,
 					["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
@@ -950,6 +1004,7 @@ function DRCMenu( player )
 				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
 				["voiceset"] = VSelection,
+				["footsteps"] = FSelection,
 				["hands"] = {
 					["model"] = handval,
 					["bodygroups"] = LocalPlayer():GetInfo("cl_playerhands_bodygroups"),
@@ -999,6 +1054,11 @@ function DRCMenu( player )
 	tab5.VoiceSetSettings:DockPadding(0, 0, 0, 0)
 	tab5.VoiceSetSettings:SetBackgroundColor( Color(245, 245, 245, 0) )
 	tab5:AddSheet( "VoiceSet", tab5.VoiceSetSettings, "icon16/sound.png")
+	
+	tab5.FootstepSounds = vgui.Create( "DPanel", tab1 )
+	tab5.FootstepSounds:DockPadding(0, 0, 0, 0)
+	tab5:AddSheet( "Footsteps", tab5.FootstepSounds, "icon16/sound_add.png")
+	tab5.FootstepSounds:SetBackgroundColor( Color(245, 245, 245, 0) )
 	
 	local tab4 = vgui.Create( "DPanel", tabs )
 	tab4:SetBackgroundColor( Color(255, 255, 255, 255) )
@@ -1175,6 +1235,102 @@ function DRCMenu( player )
 		timer.Simple(1, function() tab5.VoiceSetSettings.copy:SetText("Copy selected VoiceSet ID to clipboard") end)
 	end
 	
+	local function RefreshFootsteps()
+		DRCMenu_VoiceSelector = vgui.Create("DScrollPanel", tab5.FootstepSounds)
+		DRCMenu_VoiceSelector:SetSize(tab5:GetWide(), tab5:GetTall())
+		DRCMenu_VoiceSelector:SetPos(0, 0)
+		DRCMenu_VoiceSelector:Dock(FILL)
+		DRCMenu_VoiceSelector:DockMargin(4, 4, 4, 4)
+		DRCMenu_VoiceSelector:SetBackgroundColor(Color(32, 32, 32, 255))
+		
+		DRCMenu_VoiceSelector.DisableButton = vgui.Create("DButton", DRCMenu_VoiceSelector)
+		DRCMenu_VoiceSelector.DisableButton:SetText("None (Disable)")
+		DRCMenu_VoiceSelector.DisableButton:Dock(TOP)
+		DRCMenu_VoiceSelector.DisableButton:DockMargin(0, 0, 0, 1)
+		DRCMenu_VoiceSelector.DisableButton.DoClick = function()
+			LocalPlayer():ConCommand("cl_drc_footstepset None")
+			FSelection = "None"
+			DRCMenu_VoiceSelector.DisableButton:SetEnabled(false)
+			timer.Simple(0.1, function()
+				LocalPlayer():ConCommand("cl_drc_footstepset None")
+				DRCMenu_VoiceSelector:Remove()
+				RefreshFootsteps()
+			end)
+		end
+		if LocalPlayer():GetInfo("cl_drc_footstepset") == "None" then DRCMenu_VoiceSelector.DisableButton:SetEnabled(false) end
+	
+		for k,v in SortedPairsByMemberValue(DRC.FootSteps, "Name", false) do
+		--[[	local container = vgui.Create("DPanel", DRCMenu_VoiceSelector)
+			container:SetSize(DRCMenu_VoiceSelector:GetWide(), 20)
+			container:SetPos(0, 0)
+			container:Dock(TOP)
+			container:DockMargin(0, 2, 0, 2)
+			container:SetBackgroundColor(Color(0, 0, 0, 255)) ]]
+			
+			local label = vgui.Create("DButton", DRCMenu_VoiceSelector)
+			label:SetText(v.Name)
+			label:Dock(TOP)
+			label:DockMargin(0, 0, 0, 1)
+			if string.lower(LocalPlayer():GetInfo("cl_drc_footstepset")) != "none" && DRC.FootSteps[LocalPlayer():GetInfo("cl_drc_footstepset")] then
+				if v.Name == DRC.FootSteps[LocalPlayer():GetInfo("cl_drc_footstepset")].Name then
+					label:SetEnabled(false)
+				end
+			end
+			label.DoClick = function()
+				LocalPlayer():ConCommand("cl_drc_footstepset ".. v.ID .."")
+				FSelection = v.ID
+				label:SetEnabled(false)
+				timer.Simple(0, function()
+					LocalPlayer():ConCommand("cl_drc_footstepset ".. v.ID .."")
+					DRCMenu_VoiceSelector:Remove()
+					RefreshFootsteps()
+				end)
+			end
+		end
+	end
+	RefreshFootsteps()
+	
+	tab5.FootstepSounds.Enforced = ""
+	if LocalPlayer():GetNWInt("DRCVoiceSet_Enforced", "None") == "None" then
+		tab5.FootstepSounds.Enforced = "\n\nYou are NOT currently being enforced to use a specific set."
+	else
+		tab5.FootstepSounds.Enforced = "\n\nYou ARE currently being enforced to use a specific set."
+	end
+	
+	tab5.FootstepSounds.Binding = vgui.Create("DLabel", tab5.FootstepSounds)
+	tab5.FootstepSounds.Binding:SetSize(300, tab5:GetTall())
+	tab5.FootstepSounds.Binding:SetPos(300, 0)
+	tab5.FootstepSounds.Binding:SetTextColor(Color(0, 0, 0, 255))
+	tab5.FootstepSounds.Binding:Dock(RIGHT)
+	tab5.FootstepSounds.Binding:DockMargin(4, 8, 4, 4)
+	tab5.FootstepSounds.Binding:SetContentAlignment(7)
+	tab5.FootstepSounds.Binding:SetText("''What is this page?''\nThis panel allows you to pick from any installed footstep\nsounds, or disable it entirely to allow compatibility with\nother addons or systems.\n\n''How can I add my own custom set?''\nPlease refer to the Draconic Base Wiki, as there is a page\ndedicated to explaining this. It is very easy to do,\nand I'm confident that anyone is able to do it.\n\nIf a gamemode, server, or etc has enforced a specific set on\nyou, you will not be able to change your footstep sounds.".. tab5.FootstepSounds.Enforced .."")
+	
+	
+	-- 
+	
+	tab5.FootstepSounds.AutoVS = vgui.Create("DCheckBoxLabel", tab5.FootstepSounds)
+	tab5.FootstepSounds.AutoVS:SetPos(280, 220)
+	tab5.FootstepSounds.AutoVS:SetSize(200, 20)
+	tab5.FootstepSounds.AutoVS:SetText( "Use Playermodel Footsteps" )
+	tab5.FootstepSounds.AutoVS:SetConVar( "cl_drc_footstepset_automatic" )
+	tab5.FootstepSounds.AutoVS.Label:SetColor(color_black)
+	tab5.FootstepSounds.AutoVS:SetEnabled(true)
+	
+	MakeHint(tab5.FootstepSounds, 435, 220, "When enabled this will automatically utilize a set of footsteps tied to a playermodel, should it have one.")
+	
+	tab5.FootstepSounds.copy = vgui.Create("DButton", tab5.FootstepSounds)
+	tab5.FootstepSounds.copy:SetSize(300,20)
+	tab5.FootstepSounds.copy:SetPos(280,195)
+	tab5.FootstepSounds.copy:SetText("Copy selected Footstep set's ID to clipboard")
+	tab5.FootstepSounds.copy:SetTooltip("Copies selected Footstep set's ID to clipboard.")
+	
+	function tab5.FootstepSounds.copy:DoClick()
+		tab5.FootstepSounds.copy:SetText("Copied!")
+		SetClipboardText(FSelection)
+		timer.Simple(1, function() tab5.FootstepSounds.copy:SetText("Copy selected Footstep set's ID to clipboard") end)
+	end
+	
 	local function UpdateGmodColours()
 		RunConsoleCommand( "cl_playercolor", tostring( playercolour:GetVector() ))
 		RunConsoleCommand( "cl_weaponcolor", tostring( weaponcolour:GetVector() ))
@@ -1242,7 +1398,7 @@ function DRCMenu( player )
 		local function RebuildBodygroupTab()
 			t3p:Clear()
 
-			tab3.Tab:SetVisible( false )
+		--	tab3.Tab:SetVisible( false )
 
 			local nskins = frame.preview.Entity:SkinCount() - 1
 			if ( nskins > 0 ) then
@@ -1645,27 +1801,27 @@ function DRCMenu( player )
 	
 	if Customization == nil then
 		for k,v in pairs(tabs:GetItems()) do
-			if v.Name == "Player" then
-				tabs:CloseTab(v.Tab)
-			elseif v.Name == "Saved Avatars" then
-				tabs:CloseTab(v.Tab)
-			end
+			if v.Name == "Saved Avatars" then tabs:CloseTab(v.Tab) end
 		end
-		tab1:Remove()
 		tab4:Remove()
 	--	GreyOut(tab5.VoiceSetSettings)
 		
-		if TweakMode == 2 then
-			for k,v in pairs(tabs:GetItems()) do
-				if v.Name == "#smwidget.bodygroups" then tabs:CloseTab(v.Tab) end
+		if TweakMode == 1 then
+			tab1PMs:Remove()
+			for k,v in pairs(tab1:GetItems()) do
+				if v.Name == "Playermodels" then tab1:CloseTab(v.Tab) end
+			end
+		elseif TweakMode == 2 then
+			for k,v in pairs(tab1:GetItems()) do
+				if v.Name == "#smwidget.bodygroups" then tab1:CloseTab(v.Tab) end
 			end
 		elseif TweakMode == 3 then
-			for k,v in pairs(tabs:GetItems()) do
-				if v.Name == "Colours" then tabs:CloseTab(v.Tab) end
+			for k,v in pairs(tab1:GetItems()) do
+				if v.Name == "Colours" then tab1:CloseTab(v.Tab) end
 			end
 		end
 		
-		tabs:SetActiveTab(tabs:GetItems()[1].Tab)
+		tab1:SetActiveTab(tab1:GetItems()[1].Tab)
 	elseif Customization == false then
 		for k,v in pairs(tabs:GetItems()) do
 			if v.Name == "Player" then
@@ -2558,7 +2714,7 @@ function DRCMenu( player )
 	t4tab2panel_left.Tracelines.Label:SetColor(TextCol)
 	t4tab2panel_left.Tracelines:SetEnabled(true)
 	
-	MakeHint(t4tab2panel_left, 150, 135, "Renders TraceLines used by the Draconic Base.\nServer-sided traces will only render in singleplayer.\n\nWhite = Undefined/generic\nRed = Harmful hit connection\nYellow = DRC:TraceDir() trace.")
+	MakeHint(t4tab2panel_left, 150, 135, "Renders TraceLines used by the Draconic Base.\nServer-sided traces will only render in singleplayer.\n\nWhite = Undefined/generic\nRed = Harmful hit connection\nYellow = DRC:TraceDir() trace.\nBlue = DRC:FloorDist() trace.")
 	
 	t4tab2panel_left.Lights = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
 	t4tab2panel_left.Lights:SetPos(25, 155)

@@ -1078,6 +1078,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 	local sk = ply:KeyDown(IN_SPEED)
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 	local issprinting = sk && mk
+	local forcesprintoffset = DRC.SV.drc_force_sprint >= 1
 
 	local ironBool = self.SightsDown
 	local passiveBool = self:GetNWBool( "Passive" )
@@ -1087,7 +1088,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 	if passiveBool == true or issprinting == true then self.InterpolateHolsterBoolVal = 1 holsterbool = true else self.InterpolateHolsterBoolVal = 0 end
 	self.InterpolatedHolsterVal = Lerp(RealFrameTime() * 10, self.InterpolatedHolsterVal or self.InterpolateHolsterBoolVal, self.InterpolateHolsterBoolVal)
 	
-	if self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetFloat() == 1 then
+	if self.DoesPassiveSprint == true or forcesprintoffset then
 		local upperstrength = math.abs(eyeangforward.x/2) / 45
 		ang = ang + Angle(math.Clamp(-eyeangforward.x/2, -30, 45), 0, 0) * self.InterpolatedHolsterVal * upperstrength
 		local holsteroffset = (Vector(0, -7.5, -3) * self.InterpolatedHolsterVal) * (math.abs(eyeangforward.x/2) / 45)
@@ -1343,7 +1344,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 			self.SRAngLerp = LerpVector( MulS, self.Sang, self.SRAng)
 	
 	if oa == "standidle" or oa == "running" or oa == "swimidle" or oa == "swimming" then -- STANDING | Controls final interp mixes
-		if self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1" then
+		if self.DoesPassiveSprint == true or forcesprintoffset then
 			if passiveBool == true then
 				self:DoPassiveHoldtype()
 			elseif inspectBool == true then
@@ -1365,7 +1366,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 			end
 		end
 	elseif (oa == "sprinting" or oa =="fastswimming") then
-		if self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1" then
+		if self.DoesPassiveSprint == true or forcesprintoffset then
 			self:DoPassiveHoldtype()
 		end
 	end
@@ -1407,7 +1408,7 @@ function SWEP:GetViewModelPosition( pos, ang )
 	if !self.dynmove then self.dynmove = {["Pos"] = Vector(), ["Ang"] = Vector(), ["Roll"] = 0} end
 	local dyn = self.dynmove
 	dyn.Ang = Vector(dyn.Ang.x, dyn.Ang.y, dyn.Ang.z)
-	if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") then
+	if (self.DoesPassiveSprint == true or forcesprintoffset) then
 		self.VariablePos=( self.VMPos -(self.VMPos - self.CrouchPosLerp) + (self.VMPos - self.PassivePosLerp) + (self.VMPos - self.InspectPosLerp) + (self.VMPos - self.SprintPosLerp) + (self.VMPos - self.IronPosLerp) ) + DrcGlobalVMOffset
 		self.VariableAng=( self.VMAng -(self.VMAng - self.CrouchAngLerp) + (self.VMAng - self.PassiveAngLerp) + (self.VMAng - self.InspectAngLerp) + (self.VMAng - self.SprintAngLerp) + (self.VMAng - self.IronAngLerp) )
 		self.VariableAng = self.VariableAng + dyn.Ang
@@ -1670,7 +1671,7 @@ return true
 end
 
 function SWEP:RestoreMovement()
-	if GetConVar("sv_drc_movement"):GetString() == "0" then return end
+	if DRC.SV.drc_movement > 1 then return end
 	local ply = self:GetOwner()
 
 		local ogs = ply:GetNWFloat("PlayerOGSpeed")
@@ -2012,11 +2013,13 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 				if bandaid1[v] then self.AttachmentTable.AmmunitionTypes[k] = bandaid1[v] end
 			end
 		end
+		
+		local basegameammo = DRC.SV.drc_forcebasegameammo == 0
 	
 		ammo = scripted_ents.GetStored(self.AttachmentTable.AmmunitionTypes[1])
 		local ammotype = ammo.t.BulletTable.AmmoType
 		local basegameammotype = ammo.t.BulletTable.FallbackBaseAmmoType
-		if GetConVarNumber("sv_drc_forcebasegameammo") == 0 then
+		if basegameammo then
 			if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = ammotype end
 			if self.PrimaryStats.OriginalAmmo == "replaceme" then self.PrimaryStats.OriginalAmmo = ammotype end
 		else
@@ -2032,7 +2035,7 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 		ammo = scripted_ents.GetStored(att)
 		local ammotype = ammo.t.BulletTable.AmmoType
 		local basegameammotype = ammo.t.BulletTable.FallbackBaseAmmoType
-		if GetConVarNumber("sv_drc_forcebasegameammo") == 0 && !self.IsBatteryBased then
+		if basegameammo && !self.IsBatteryBased then
 			self.Primary.Ammo = ammotype
 		else
 			if !CTFK(BaseGameAmmoTypes, basegameammotype) && !self.IsBatteryBased then
@@ -2065,6 +2068,8 @@ function SWEP:SetupDataTables()
 		IronRecoilMul = self.Primary.IronRecoilMul,
 		Spread = self.Primary.Spread,
 		SpreadDiv = self.Primary.SpreadDiv,
+		SpreadX = self.Primary.SpreadXMul,
+		SpreadY = self.Primary.SpreadYMul,
 		Kick = self.Primary.Kick,
 		KickHoriz = self.Primary.KickHoriz,
 		RecoilUp = self.Primary.RecoilUp,
@@ -2372,7 +2377,7 @@ function SWEP:OnReloaded()
 		self.Primary.Ammo = "ammo_drc_battery"
 	elseif !self.IsBatteryBased && !self.IsMelee then
 		if ammostat == nil then
-			if GetConVarNumber("sv_drc_forcebasegameammo") == 0 then
+			if DRC.SV.drc_forcebasegameammo == 0 then
 				self.Primary.Ammo = self:GetAttachmentValue("Ammunition", "AmmoType")
 			else
 				self.Primary.Ammo = self:GetAttachmentValue("Ammunition", "BaseGameAmmoType")

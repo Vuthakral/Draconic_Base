@@ -13,7 +13,7 @@
 --- ###Helpers
 DRC.HUDAnchors = {
 	["TL"] = {x=0, y=0}, ["T"] = {x=ScrW()/2, y=0}, ["TR"] = {x=ScrW(), y=0},
-	["L"] = {x=0, ScrH()/2}, ["C"] = {x=ScrW()/2, y=ScrH()/2}, ["R"] = {x=ScrW(), y=ScrH()/2},
+	["L"] = {x=0, y=ScrH()/2}, ["C"] = {x=ScrW()/2, y=ScrH()/2}, ["R"] = {x=ScrW(), y=ScrH()/2},
 	["BL"] = {x=0, y=ScrH()}, ["B"] = {x=ScrW()/2, y=ScrH()}, ["BR"] = {x=ScrW(), y=ScrH()}
 }
 
@@ -72,7 +72,7 @@ end)
 local function drc_Crosshair()
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	if GetConVar("cl_drc_disable_crosshairs"):GetFloat() == 1 then return end
-	if GetConVar("sv_drc_disable_crosshairs"):GetFloat() == 1 then return end
+	if DRC.SV.drc_disable_crosshairs == 1 then return end
 	
 	local ply = LocalPlayer()
 	if !IsValid(ply) or !ply:Alive() then return end
@@ -565,7 +565,7 @@ local attachmenttranslations = {
 local attalpha, attalphalerp = 0
 local function drc_Inspect()
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
-	if GetConVar("sv_drc_inspect_hideHUD"):GetFloat() == 1 then return end
+	if DRC.SV.drc_inspect_hideHUD == 1 then return end
 	
 	local ply = LocalPlayer() 
 	local wpn = ply:GetActiveWeapon()
@@ -1020,7 +1020,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 			
 			local function GetCanUseAttachment(class, rel)
 				if class == wpn.AttachmentTable[rel][1] then return true end
-				if GetConVar("sv_drc_attachments_autounlock"):GetFloat() != 0 then return true end
+				if DRC.SV.drc_attachments_autounlock != 0 then return true end
 				if table.HasValue(ply.DRCAttachmentInventory, class) then return true end
 				return false
 			end

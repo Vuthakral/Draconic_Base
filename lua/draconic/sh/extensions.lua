@@ -2,6 +2,7 @@ DRC:RegisterPlayerExtension("zombie", "Extensions", "Claws", true)
 DRC:RegisterPlayerExtension("zombiefast", "Extensions", "Claws", true)
 DRC:RegisterPlayerExtension("zombine", "Extensions", "Claws", true)
 
+-- Infinite Map Extensions
 if InfMap then
 	DRC.InfMap = {}
 

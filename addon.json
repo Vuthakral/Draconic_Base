@@ -1,0 +1,18 @@
+{
+    "description": "Description",
+    "ignore": [
+        "*.psd",
+        "*.vcproj",
+        "*.svn*",
+        "*.ini",
+        "*.txt"
+    ],
+    "logo": "V:/Backups/Steam Shit/Source/Garry's Mod/Server Content/dsb.jpg",
+    "tags": [
+        "fun",
+        "build"
+    ],
+    "title": "Draconic Base",
+    "type": "ServerContent",
+    "workshopid": 1847505933.0
+}

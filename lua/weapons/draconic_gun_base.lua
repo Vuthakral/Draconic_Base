@@ -39,6 +39,8 @@ SWEP.FireModes_BurstShots = 3
 SWEP.Primary.IronRecoilMul	= 0.5
 SWEP.Primary.Spread			= 1
 SWEP.Primary.SpreadDiv		= 90
+SWEP.Primary.SpreadXMul		= 1
+SWEP.Primary.SpreadYMul		= 1
 SWEP.Primary.Kick			= 0.76
 SWEP.Primary.KickHoriz		= 0.26
 SWEP.Primary.RecoilUp		= 0
@@ -239,7 +241,7 @@ function SWEP:CanPrimaryAttack()
 		return false
 	end
 	
-	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true or ((self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) then
+	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true or ((self.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1) && issprinting) or (self.Primary.CanFireUnderwater == false && wl >= 3) then
 		if wl >= 3 then self:EmitSound ( "draconic.EmptyGeneric" ) end
 		return false
 	else 
@@ -479,7 +481,7 @@ function SWEP:TogglePassive()
 	local ply = self:GetOwner()
 	self:EmitSound(self.FireModes_SwitchSound)
 	
-	if GetConVar("sv_drc_passives"):GetString() == "0" then return end
+	if DRC.SV.drc_passive == 0 then return end
 	
 	if self:GetNWBool("Passive") == false then
 		self.Passive = true
@@ -843,7 +845,7 @@ function SWEP:EndReload()
 		self:SetLoadedAmmo(math.Clamp(CM, 0, CM))
 	end
 	
-	if SERVER && GetConVar("sv_drc_infiniteammo"):GetFloat() < 1 then
+	if SERVER && DRC.SV.drc_infiniteammo < 1 then
 		if self.Primary.DropMagReload == false then
 			ply:RemoveAmmo(CM - ATR, self.Primary.Ammo)
 		else

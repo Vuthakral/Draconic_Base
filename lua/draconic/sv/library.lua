@@ -184,6 +184,7 @@ net.Receive("DRC_ApplyPlayermodel", function(len, ply)
 	local colours = tbl.colours
 	local model = tbl.model
 	local vs = tbl.voiceset
+	local fs = tbl.footsteps
 	local hands = tbl.hands
 	
 	if !util.IsValidModel(model) then return end
@@ -197,6 +198,7 @@ net.Receive("DRC_ApplyPlayermodel", function(len, ply)
 	if ent:GetInfo("cl_playerhands") == "disabled" then ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model) end
 	DRC:RefreshColours(ent)
 	ent:SetNWString("DRCVoiceSet", vs)
+	ent:SetNWString("DRCFootsteps", fs)
 	ent:SetNWString("DRC_SpawnModel", model)
 	
 	net.Start("DRC_UpdatePlayermodel")
@@ -234,7 +236,10 @@ util.AddNetworkString("DRC_NetworkScreenShake")
 util.AddNetworkString("DRC_WeaponAttachSwitch")
 util.AddNetworkString("DRC_WeaponAttachSwitch_Sync")
 util.AddNetworkString("DRC_WeaponAttachClose")
+util.AddNetworkString("DRC_WeaponAttachForceOpen")
 util.AddNetworkString("DRC_WeaponAttachSyncInventory")
+util.AddNetworkString("DRC_ReflectionModifier")
+util.AddNetworkString("DRC_SyncServerVar")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -733,6 +738,16 @@ local bandaid1 = {
 	["drc_att_bprofile_buckshot"] = "drc_abp_buckshot",
 	["drc_att_bprofile_explosive"] = "drc_abp_explosive",
 }
+
+function DRC:ForceAttachmentMenu(ply, wpn)
+	if wpn:CanCustomize(true) == true then
+		wpn:ToggleInspectMode(true)
+		net.Start("DRC_WeaponAttachForceOpen")
+		net.WriteEntity(ply)
+		net.WriteEntity(wpn)
+		net.Send(ply)
+	end
+end
 
 net.Receive("DRC_WeaponAttachSwitch", function(l,ply)
 	local wpn = net:ReadEntity()

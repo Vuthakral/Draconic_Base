@@ -45,6 +45,27 @@ if SERVER then
 	hook.Add( "InitPostEntity", "DRC_GetNavMeshInfo", function()
 		timer.Simple(10, function() DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas() end)
 	end)
+	
+	concommand.Add("drc_reflectionamount", function(ply, cmd, args)
+		if !args or !args[1] or !isnumber(tonumber(args[1])) then print("Please supply a number value.") return end
+		if !file.Exists("draconic", "DATA") then file.CreateDir("draconic") end
+		local ftu = file.Read("draconic/reflectionmodifiers.json", "DATA")
+		if !ftu then
+			local tbl = {}
+			tbl[string.lower(game.GetMap())] = tonumber(args[1])
+			local json = util.TableToJSON(tbl)
+			file.Write("draconic/reflectionmodifiers.json", json)
+		else
+			local tbl = util.JSONToTable(ftu)
+			tbl[string.lower(game.GetMap())] = args[1]
+			local json = util.TableToJSON(tbl)
+			file.Write("draconic/reflectionmodifiers.json", json)
+		end
+		
+		net.Start("DRC_ReflectionModifier")
+		net.WriteFloat(tonumber(args[1]))
+		net.Broadcast()
+	end)
 end
 
 if CLIENT then
@@ -117,60 +138,91 @@ DRC.MaterialCategories.Metal = {
 DRC.MaterialCategories.Dust = {
 }
 
-DRC.SurfacePropDefinitions = { -- Todo: flesh, tile, synth, plastic, gas, liquid, computer, cardboard
-	["MAT_CONCRETE"] = {"stone", "rubble"},
-	["MAT_BRICK"] = {"stone", "rubble"},
-	["MAT_PLASTER"] = {"dust"},
-	["MAT_DIRT"] = {"dirt", "dust"},
-	["MAT_WOOD"] = {"dirt", "wood"},
-	["MAT_WOOD_FURNITURE"] = {"wood"},
-	["MAT_WOOD_SOLID"] = {"wood"},
-	["MAT_WOOD_CRATE"] = {"wood"},
-	["MAT_WOOD_PLANK"] = {"wood"},
-	["MAT_WOOD_PANEL"] = {"wood"},
-	["MAT_BOULDER"] = {"rubble", "stone", "dirt"},
-	["MAT_ROCK"] = {"rubble", "stone", "dirt"},
-	["MAT_GRAVEL"] = {"rubble", "dirt"},
-	["MAT_GRASS"] = {"dirt", "dust"},
-	["MAT_SAND"] = {"sand", "dust"},
-	["MAT_SNOW"] = {"snow", "dust"},
-	["MAT_ICE"] = {"shards"},
-	["MAT_POTTERY"] = {"tile"},
-	["MAT_GLASS"] = {"glass", "shards"},
-	["MAT_GLASS_BOTTLE"] = {"shards"},
+-- First entry in table is used for sound references, anything else is for particle systems.
+-- Sound references: cardboard, dirt, flesh, glass, metal, metalhollow/metaldrum, metalvent, mud, rubber, rubble, sand/dust, shards, snow, synth/bugshell, tile, wood, stone
+-- All existing references: cardboard, bugshell, dirt, dust, flesh, gas, glass, liquid, metal, metaldrum, metalhollow, paint, plastic, rubble, sand, shards, snow, synth, tile, wood, stone
+DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth, plastic, gas, liquid, computer, cardboard
+	["MAT_DEFAULT"] = {"stone", "dust"},
+	["MAT_CLIP"] = {"stone", "dust"},
+	["MAT_NO_DECAL"] = {"stone", "dust"},
 	["MAT_ANTLION"] = {"flesh"},
 	["MAT_FLESH"] = {"flesh"},
 	["MAT_ARMORFLESH"] = {"flesh"},
 	["MAT_BLOODYFLESH"] = {"flesh"},
 	["MAT_ZOMBIEFLESH"] = {"flesh"},
+	["MAT_ALIENFLESH"] = {"flesh"},
+	["MAT_WATERMELON"] = {"flesh"},
 	["MAT_STRIDER"] = {"metal", "synth"},
 	["MAT_HUNTER"] = {"bugshell", "synth"},
-	["MAT_PAINTCAN"] = {"paint", "metal"},
-	["MAT_POPCAN"] = {"liquid", "metal"},
-	["MAT_CANISTER"] = {"gas", "metaldrum"},
+	["MAT_PAPER"] = {"dirt", "dust"},
+	["MAT_EGGSHELL"] = {"dirt"},
+	["MAT_ANTLION_EGGSHELL"] = {"bugshell"},
+	["MAT_PLASTIC"] = {"plastic", "dust"},
+	["MAT_PLASTIC_BARREL"] = {"plastic", "dust"},
+	["MAT_PLASTIC_BOX"] = {"plastic", "dust"},
+	["MAT_PAINTCAN"] = {"metal", "paint"},
+	["MAT_POPCAN"] = {"metal", "liquid"},
+	["MAT_CANISTER"] = {"metaldrum", "gas"},
 	["MAT_VENT"] = {"metal"},
 	["MAT_GRENADE"] = {"metal"},
 	["MAT_WEAPON"] = {"plastic", "metal"},
+	["MAT_ITEM"] = {"metal"},
+	["MAT_CROWBAR"] = {"metal"},
 	["MAT_METAL"] = {"metal"},
+	["MAT_GRATE"] = {"metal"},
+	["MAT_METALGRATE"] = {"metal"},
 	["MAT_METALVEHICLE"] = {"metal", "metalhollow"},
+	["MAT_METALVENT"] = {"metalvent", "metal"},
+	["MAT_CHAINLINK"] = {"chainlink"},
+	["MAT_WARPSHIELD"] = {"metal"},
 	["MAT_COMBINE_METAL"] = {"metal", "metalhollow"},
 	["MAT_COMBINE_GLASS"] = {"glass", "shards"},
 	["MAT_GUNSHIP"] = {"synth", "metalhollow"},
-	["MAT_ROLLER"] = {"computer", "metalhollow"},
+	["MAT_ROLLER"] = {"metalhollow", "computer"},
 	["MAT_SOLIDMETAL"] = {"metal"},
 	["MAT_SLIPPERYMETAL"] = {"metal"},
 	["MAT_METALPANEL"] = {"metal"},
 	["MAT_METAL_BARREL"] = {"metaldrum"},
 	["MAT_FLOATING_METAL_BARREL"] = {"metaldrum"},
 	["MAT_METAL_BOX"] = {"metal"},
-	["MAT_GRATE"] = {"metal"},
 	["MAT_COMPUTER"] = {"computer"},
-	["MAT_JALOPY"] = {"metalhollow"},
-	["MAT_AIRBOAT"] = {"metalhollow"},
-	["MAT_DEFAULT"] = {"dust"},
-	["MAT_PLASTIC"] = {"plastic", "dust"},
-	["MAT_PLASTIC_BARREL"] = {"plastic", "dust"},
+	["MAT_JALOPY"] = {"metal", "metalhollow"},
+	["MAT_AIRBOAT"] = {"metal", "metalhollow"},
+	["MAT_CONCRETE"] = {"stone", "rubble"},
+	["MAT_BRICK"] = {"stone", "rubble"},
+	["MAT_PLASTER"] = {"dust"},
+	["MAT_DIRT"] = {"dirt", "dust"},
+	["MAT_MUD"] = {"mud", "liquid"},
+	["MAT_SLOSH"] = {"water", "liquid"},
+	["MAT_WADE"] = {"water", "liquid"},
+	["MAT_FOLIAGE"] = {"wood", "dirt"},
+	["MAT_WOOD"] = {"wood", "dirt"},
+	["MAT_WOOD_FURNITURE"] = {"wood"},
+	["MAT_WOOD_SOLID"] = {"wood"},
+	["MAT_WOOD_CRATE"] = {"wood"},
+	["MAT_WOOD_PLANK"] = {"wood"},
+	["MAT_WOOD_PANEL"] = {"wood"},
+	["MAT_BOULDER"] = {"stone", "rubble", "dirt"},
+	["MAT_ROCK"] = {"stone", "rubble", "dirt"},
+	["MAT_STONE"] = {"stone", "rubble", "dirt"},
+	["MAT_GRAVEL"] = {"rubble", "dirt"},
+	["MAT_GRASS"] = {"grass", "dirt", "dust"},
+	["MAT_SAND"] = {"sand", "dust"},
+	["MAT_ANTLIONSAND"] = {"sand", "stone"},
+	["MAT_SNOW"] = {"snow", "dust"},
+	["MAT_ICE"] = {"shards"},
+	["MAT_POTTERY"] = {"tile"},
+	["MAT_PORCELAIN"] = {"tile"},
+	["MAT_TILE"] = {"tile"},
+	["MAT_GLASS"] = {"glass", "shards"},
+	["MAT_GLASSBOTTLE"] = {"shards"},
+	["MAT_GLASS_BOTTLE"] = {"shards"},
+	["MAT_RUBBER"] = {"rubber", "plastic"},
+	["MAT_RUBBERTIRE"] = {"rubber", "plastic"},
 	["MAT_CARDBOARD"] = {"cardboard", "dust"},
+	["MAT_CARPET"] = {"fabric"},
+	["MAT_FABRIC"] = {"fabric"},
+	["MAT_CLOTH"] = {"fabric"},
 }
 
 function DRC:GetDRCMaterial(ent, optbone)
@@ -1188,7 +1240,7 @@ if CLIENT then
 		DRC_CollectCubemaps(game.GetMap())
 	end )
 end
--- End cubemap collection code
+-- end cubemap collection code
 
 function DRC:GetEnvmap(src)
 	if !DRC.MapInfo.Cubemaps[1] then DRC_CollectCubemaps(game.GetMap()) end
@@ -1324,6 +1376,18 @@ hook.Add("PlayerInitialSpawn", "drc_InitialSpawnHook", function(ply)
 	local info = { ply, ver }
 	net.WriteTable(info)
 	net.Send(ply)
+	
+	timer.Simple(0, function()
+		if !file.Exists("draconic", "DATA") then file.CreateDir("draconic") end
+		local ftu = file.Read("draconic/reflectionmodifiers.json", "DATA")
+		if ftu then
+			local tbl = util.JSONToTable(ftu)
+			
+			net.Start("DRC_ReflectionModifier")
+			net.WriteFloat(tbl[string.lower(game.GetMap())] or 1)
+			net.Send(ply)
+		end
+	end)
 end)
 
 hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
@@ -1342,8 +1406,10 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	ply:SetNWBool("DRC_ShieldInvulnerable", false)
 	ply:SetNWFloat("DRC_VoiceSetDSP", 0)
 	ply:SetNWInt("DRCVoiceSet_Enforced", "None")
+	ply:SetNWInt("DRCFootsteps_Enforced", "None")
 	
 	DRC:SetVoiceSet(ply, ply:GetInfo("cl_drc_voiceset"), false)
+	DRC:SetFootsteps(ply, ply:GetInfo("cl_drc_footstepset"), false)
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
@@ -1498,7 +1564,7 @@ hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
 end)
 
 hook.Add("PlayerTick", "drc_movementhook", function(ply) -- holy fuck I need to rewrite this someday
-	if GetConVar("sv_drc_movement"):GetString() == "0" then return end
+	if DRC.SV.drc_movement == 0 then return end
 	local wpn = ply:GetActiveWeapon()
 	local cv = ply:Crouching()
 	local forwkey = ply:KeyDown(IN_FORWARD)
@@ -1856,7 +1922,7 @@ hook.Add("PlayerTick", "drc_movementhook", function(ply) -- holy fuck I need to 
 		end
 		end
 		
-	if GetConVar("sv_drc_movesounds"):GetString() == "1" then
+	if DRC.SV.drc_movesounds == 1 then
 	if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_SPEED) && wpn.DoSSCrouchFwd == true then
 	-- crouch sprint sound forward
 		ply:EmitSound( wpn.SprintSoundCrouch )
@@ -2080,6 +2146,18 @@ DRC:AddAmmoType(batteryammo)
 
 function DRC:RefreshAmmoTypes()
 	for k,v in pairs(DraconicAmmoTypes) do
+		if !istable(v) then DRC:Notify(nil, nil, "critical", "Someone put a non-table into the Draconic ammo registry, aborting.", ENUM_ERROR, 10) return end
+		if !v.Name then DRC:Notify(nil, nil, "critical", "Ammo Registry - Name not defined for ammo type, aborting.", ENUM_ERROR, 10) return end
+		if !v.Text then DRC:Notify(nil, nil, "critical", "Ammo Registry - Text not set for ".. v.Name ..", Assigning stupid text for you to realize your mistake.", ENUM_ERROR, 10) v.Name = "YOU DIDN'T GIVE ME A NAME" end
+		if !v.DMG then v.DMG = DMG_BULLET end
+		if !v.Tracer then v.DMG = TRACER_LINE_AND_WHIZ end
+		if !v.DamagePlayer then v.DamagePlayer = 0 end
+		if !v.DamageNPC then v.DamageNPC = 0 end
+		if !v.Force then v.Force = 500 end
+		if !v.SplashMin then v.SplashMin = 5 end
+		if !v.SplashMax then v.SplashMax = 10 end
+		if !v.MaxCarry then DRC:Notify(nil, nil, "critical", "Ammo Registry - MaxCarry not defined for ".. v.Name ..", Setting to 9999.", ENUM_ERROR, 10) v.MaxCarry = 9999 end
+	
 		if CLIENT then
 			language.Add("" ..v.Name .."_ammo", v.Text)
 		end
@@ -2317,7 +2395,7 @@ end
 
 function DRC:IsVehicle(ent)
 	if !IsValid(ent) then return false end
-	if ent:IsVehicle() or ent:GetClass() == "gmod_sent_vehicle_fphysics_base" or ent:GetClass() == "npc_helicopter" or ent:GetClass() == "npc_combinegunship" or ent.LFS or ent.Base == "haloveh_base" or ent.Base == "ma2_mech" or ent.Base == "ma2_battlesuit" then return true else return false end
+	if ent:IsVehicle() or ent:GetClass() == "gmod_sent_vehicle_fphysics_base" or ent:GetClass() == "npc_helicopter" or ent:GetClass() == "npc_combinegunship" or ent.LFS or ent.LVS or ent.Base == "haloveh_base" or ent.Base == "ma2_mech" or ent.Base == "ma2_battlesuit" then return true else return false end
 end
 
 function DRC:IsCharacter(ent)
@@ -2497,6 +2575,277 @@ end
 function DRC:GetShieldInvulnerability(ent)
 	if ent:GetNWBool("DRC_ShieldInvulnerable") == true then return true else return false end
 end
+
+function DRC:RegisterFootSteps(fs)
+	if !fs then return end
+	local name = fs.ID
+
+	DRC.FootSteps[name] = fs
+end
+
+--[[
+local testfootsteps = {
+	["ID"] = "testfootsteps",
+	["Name"] = "Test set",
+	["crouch"] = {
+		["overlay"] = "",
+	--	["default"] = "",
+	},
+	["walk"] = {
+		["overlay"] = "",
+	--	["default"] = "",
+	},
+	["run"] = {
+		["overlay"] = "",
+		["default"] = "player/footsteps/concrete1.wav",
+	--	["stone"] = "",
+	},
+	["sprint"] = {
+		["overlay"] = "",
+	--	["default"] = "",
+	},
+	["shuffle"] = {
+		["overlay"] = "",
+		["default"] = "player/footsteps/concrete4.wav",
+	},
+}
+DRC:RegisterFootSteps(testfootsteps)
+]]
+
+function DRC:GetFloorMat(ply)
+	local pos2 = ply:GetPos()
+	local ftrace = util.TraceLine({ start = pos2, endpos = pos2 - Vector(0,0,15), filter = function(ent) if ent == ply then return false else return true end end })
+	local fmat
+	
+	if ftrace.Hit then fmat = ftrace.SurfaceProps end
+	if !fmat then fmat = ply:GetTouchTrace().SurfaceProps end
+	fmat = DRC:SurfacePropToEnum(util.GetSurfacePropName(fmat))
+	return fmat
+end
+
+local fsmodes = {
+	"run",
+	"walk",
+	"crouch",
+	"sprint"
+}
+
+local fsvols = {
+	0.45,
+	0.4,
+	0.35,
+	0.75
+}
+
+local function ProcessInput(ply, shuffle, key)
+	if !IsFirstTimePredicted() then return end
+	local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
+	local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
+	
+	if shuffle == true then
+		if !inp then
+			local set = DRC.FootSteps[DRC:GetFootsteps(ply)]
+			ply:EmitSound(testfootsteps.shuffle.default)
+		return 0 end
+	end
+	
+	local walk, crouch, run = ply:KeyDown(IN_WALK), ply:Crouching(), ply:KeyDown(IN_SPEED)
+	
+	if inp && !crouch && !run && !walk then return 1 end -- standing movement
+	if inp && walk && !run && !crouch then return 2 end -- standing walking
+	if inp && crouch then return 3 end -- crouching movement
+	if inp && run then return 4 end -- sprinting
+end
+
+local function SelectFootstep(ply, shuffle, fs, jump, wade, landing, overlay)
+	if !fs or string.lower(fs) == "none" then return "" end
+	local input = ProcessInput(ply)
+	local fmat = DRC:GetFloorMat(ply)
+	local sel, smat, subset, sel2, vol, om
+	local set = DRC.FootSteps[fs]
+	vol = fsvols[input] or 0.5
+	local volm = fsmodes[input]
+	if set.Volumes then volm = set.Volumes[volm] or 1 else volm = 1 end
+	vol = vol * volm
+	
+	if wade then fmat = "MAT_WADE" end
+	if !shuffle then subset = fsmodes[input]
+	else subset = "shuffle" end
+	if fmat == "MAT_DEFAULT_SILENT" then
+		fmat = nil
+		sel = ""
+		sel2 = ""
+	end
+	
+	if fmat then
+		om = set.OverrideMode
+		local ogsubset = subset
+		if set[subset] == nil then subset = "run" end
+		if set[subset][fmat] then sel = set[subset][fmat] end
+		
+		if !sel && om != 0 then
+			smat = DRC.SurfacePropDefinitions[fmat][1]
+			sel = smat or "default"
+			smat = smat or "default"
+			if !set[subset][sel] then sel = "default" end
+			
+			if shuffle then
+				shuffle = "".. sel .."_shuffle"
+				if landing && set[subset]["".. sel .."_land"] then shuffle = "".. sel .."_land" end
+				if set[subset][shuffle] then sel = shuffle end
+			end
+			if jump then
+				jump = "".. sel .."_jump"
+				if set[subset][jump] then sel = jump else sel = "default_jump" end
+			end
+			if overlay then
+				overlay = "".. sel .."_overlay"
+				if set[subset][overlay] then sel2 = overlay else sel2 = "overlay" end
+			end
+			
+			sel = set[subset][sel] or set[subset].default
+			if !sel then sel = set[subset][sel] or set[subset].default end
+			if !sel then sel = set.run[smat] or set.run.default end
+			
+			
+		elseif sel then -- MAT_ override
+			sel = fmat
+			smat = DRC.SurfacePropDefinitions[fmat][1]
+			smat = smat or "default"
+			if shuffle then
+				shuffle = "".. fmat .."_shuffle"
+				if landing && set[subset]["".. fmat .."_land"] then shuffle = "".. fmat .."_land" end
+				if set[subset][shuffle] then sel = shuffle end
+			end
+			if jump then
+				jump = "".. fmat .."_jump"
+				if set[subset][jump] then sel = jump else sel = "default_jump" end
+			end
+			if overlay then
+				overlay = "".. fmat .."_overlay"
+				if set[subset][overlay] then sel2 = overlay else sel2 = "overlay" end
+			end
+			
+			sel = set[subset][sel] or set[subset].default
+			if !sel then sel = set[subset][sel] or set[subset].default end
+			if !sel then sel = set.run[smat] or set.run.default end
+			
+			sel = sel[math.Round(math.Rand(0.5, #sel))]
+		end
+		
+		if !istable(sel2) then sel2 = set[subset][sel2] or set[subset].overlay end
+		if istable(sel) then sel = sel[math.Round(math.Rand(0.5, #sel))] end
+		if istable(sel2) then sel2 = sel2[math.Round(math.Rand(0.5, #sel2))] end
+		
+		if om == 0 then sel = "" end
+		
+		local finalvol
+		if smat then finalvol = "".. smat .."_volume" else finalvol = 1 end
+		if set[subset][finalvol] then vol = vol * set[subset][finalvol] end
+	end
+--	print(sel2)
+	return sel, sel2, vol, om
+end
+
+hook.Add( "KeyRelease", "DRC_FootStepShuffle", function(ply, key)
+	if SERVER then
+	if key == IN_FORWARD or key == IN_BACK or key == IN_MOVERIGHT or key == IN_MOVELEFT then
+		local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
+		local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
+		local fs = DRC:GetFootsteps(ply)
+		if fs && !inp then
+			local ss, so, vol, om = SelectFootstep(ply, true, fs, false, false, false, false)
+			if !ply.fsshuffletime then ply.fsshuffletime = CurTime() end
+			if ply.fsshuffletime + 0.2 < CurTime() && ply:OnGround() then
+				ply.fsshuffletime = CurTime()
+				timer.Simple(0.1, function()
+					if IsValid(ply) then
+						ply:EmitSound(ss)
+						if ply:WaterLevel() >= 1 then
+							ss, so, vol, om = SelectFootstep(ply, true, fs, ply:KeyPressed(IN_JUMP), true)
+							ply:EmitSound(ss, vol)
+						end
+					end
+				end)
+			end
+		end
+	end
+	end
+end )
+
+local wades = {
+	["player/footsteps/wade1.wav"] = 0,
+	["player/footsteps/wade2.wav"] = 0,
+	["player/footsteps/wade3.wav"] = 0,
+	["player/footsteps/wade4.wav"] = 0,
+	["player/footsteps/wade5.wav"] = 0,
+	["player/footsteps/wade6.wav"] = 0,
+	["player/footsteps/wade7.wav"] = 0,
+	["player/footsteps/wade8.wav"] = 0,
+}
+local wades2 = {
+	"player/footsteps/wade1.wav",
+	"player/footsteps/wade2.wav",
+	"player/footsteps/wade3.wav",
+	"player/footsteps/wade4.wav",
+	"player/footsteps/wade5.wav",
+	"player/footsteps/wade6.wav",
+	"player/footsteps/wade7.wav",
+	"player/footsteps/wade8.wav",
+}
+
+hook.Add("PlayerFootstep", "DRC_FootStepSets", function(ply, pos, foot, snd, vol, filt)
+	if CLIENT or game.SinglePlayer() then
+		local fs = DRC:GetFootsteps(ply)
+		if fs then
+			local ss, so, vol, om = SelectFootstep(ply, false, fs, ply:KeyPressed(IN_JUMP), false, false, true)
+			local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
+			local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
+			vol = 100 * vol
+			if ss then ply:EmitSound(ss, vol) end
+			if so then ply:EmitSound(so, vol) end
+			if ply:WaterLevel() >= 1 then
+				local water = DRC.FootSteps[fs].run.water
+				ss = SelectFootstep(ply, false, fs, ply:KeyPressed(IN_JUMP), true)
+				if !water then ss = wades2[math.Round(math.Rand(0.5, #wades2))] end
+				ply:EmitSound(ss, vol)
+			end
+			if om == 1 then return true end
+		end
+	end
+end)
+
+hook.Add("EntityEmitSound", "DRC_Footsteps_Wade", function(tbl)
+	if tbl.Entity && tbl.Entity:IsPlayer() then
+		local ply = tbl.Entity
+		if !ply.fsshuffletime then ply.fsshuffletime = 0 end
+		local fs = DRC:GetFootsteps(ply)
+		if fs && DRC.FootSteps[fs].run.water then
+			if wades[tbl.SoundName] then
+				local ss = SelectFootstep(ply, true, fs, false, true)
+				if ss then
+					ply:EmitSound(ss)
+				return false end
+			end
+		end
+	end
+end)
+
+hook.Add("OnPlayerHitGround", "DRC_Footsteps_Landing", function(ply, water, floater, speed)
+	if CLIENT or game.SinglePlayer() then
+	local fs = DRC:GetFootsteps(ply)
+	if fs then
+		local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
+		local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
+		if !inp then 
+			ply:StopSound("player/pl_fallpain1.wav")
+			ply:StopSound("player/pl_fallpain3.wav")
+			ss = SelectFootstep(ply, true, fs, false, false, true)
+			if ss then ply:EmitSound(ss, vol) end
+		end
+	end
+	end
+end)
 
 DRC.VoiceSetDefs = {
 	["slot1"] = "RequestHelp",
@@ -2857,22 +3206,90 @@ function DRC:DeathSentence(vic, att, dmg)
 	DRC:SpeakSentence(vic, "Pain", "Death")
 end
 
-function DRC:FloorDist(e, sqr)
+function DRC:GetFootsteps(ent)
+	local vs = ent:GetNWString("DRCFootsteps")
+	local enforced = ent:GetNWString("DRCFootsteps_Enforced", "None")
+	local tab = DRC.FootSteps
+	
+	if enforced != "None" then vs = enforced end
+	
+	if ent:IsPlayer() then
+		if ent:GetInfoNum("cl_drc_footstepset_automatic", 0) == 1 then
+			local mdl = player_manager.TranslateToPlayerModelName(ent:GetModel())
+			local val = DRC:GetPlayerModelValue(mdl, "Footsteps")
+			if val then vs = val end
+		end
+	end
+	
+	if vs == "none" or vs == nil or vs == "" then return nil end
+	if !tab[vs] then return nil end
+	return vs
+end
+
+function DRC:SetFootsteps(ent, id, enforced)
+	if !DRC.FootSteps[id] then return end
+	if !enforced then ent:SetNWString("DRCFootsteps", id) end
+	if enforced then timer.Simple(0, function() ent:SetNWString("DRCFootsteps_Enforced", id) end) end
+end
+
+local function floorgetdist(ent, sqr, tr)
+	if sqr != true then
+		local sp = ent:GetPos()
+		local dist = sp:Distance(tr.HitPos)
+		return dist
+	else
+		local sp = ent:GetPos()
+		local dist = sp:DistToSqr(tr.HitPos)
+		return dist
+	end
+end
+
+local tr = { collisiongroup = COLLISION_GROUP_WORLD, output = {} }
+
+function IsInWorld( pos ) -- yoinked from example on https://wiki.facepunch.com/gmod/util.IsInWorld
+	tr.start = pos
+	tr.endpos = pos
+
+	return not util.TraceLine( tr ).HitWorld
+end
+
+function DRC:FloorDist(e, sqr, edgecheck)
 	local tr = util.TraceLine({
 		start = e:GetPos(),
 		endpos = e:GetPos() - Vector(0, 0, 100000000),
 		filter = function(ent) if ent != e then return true end end
 	})
 	
-	if sqr != true then
-		local sp = e:GetPos()
-		local dist = sp:Distance(tr.HitPos)
-		return dist
-	else
-		local sp = e:GetPos()
-		local dist = sp:DistToSqr(tr.HitPos)
-		return dist
+	local tr2, tr3, tr4, tr5
+	local edge = false
+	if edgecheck == true then
+		local mi,ma = e:GetCollisionBounds()
+		
+		local s1 = e:GetPos() + e:GetAngles():Forward() * mi.y + e:GetAngles():Right() * mi.x
+		local s2 = e:GetPos() + e:GetAngles():Forward() * -mi.y + e:GetAngles():Right() * -mi.x
+		local s3 = e:GetPos() + e:GetAngles():Forward() * mi.x + e:GetAngles():Right() * -mi.y
+		local s4 = e:GetPos() + e:GetAngles():Forward() * -mi.x + e:GetAngles():Right() * mi.y
+		
+		if IsInWorld(s1) then tr2 = util.TraceLine({ start = s1, endpos = s1 - Vector(0, 0, 5), filter = function(ent) if ent != e then return true end end }) end
+		if IsInWorld(s2) then tr3 = util.TraceLine({ start = s2, endpos = s2 - Vector(0, 0, 5), filter = function(ent) if ent != e then return true end end }) end
+		if IsInWorld(s3) then tr4 = util.TraceLine({ start = s3, endpos = s3 - Vector(0, 0, 5), filter = function(ent) if ent != e then return true end end }) end
+		if IsInWorld(s4) then tr5 = util.TraceLine({ start = s4, endpos = s4 - Vector(0, 0, 5), filter = function(ent) if ent != e then return true end end }) end
+		
+		if tr2 then DRC:RenderTrace(tr2, Color(0, 0, 255, 255), FrameTime(), true) end
+		if tr3 then DRC:RenderTrace(tr3, Color(0, 0, 255, 255), FrameTime(), true) end
+		if tr4 then DRC:RenderTrace(tr4, Color(0, 0, 255, 255), FrameTime(), true) end
+		if tr5 then DRC:RenderTrace(tr5, Color(0, 0, 255, 255), FrameTime(), true) end
+		
+		if tr2 && tr2.Hit then edge = true end
+		if tr3 && tr3.Hit then edge = true end
+		if tr4 && tr4.Hit then edge = true end
+		if tr5 && tr5.Hit then edge = true end
 	end
+	
+	if tr then DRC:RenderTrace(tr, Color(0, 0, 255, 255), FrameTime(), true) end
+	
+	local dist = floorgetdist(e, sqr, tr)
+	return dist, edge
 end
 
 function DRC:ChangeCHandModel(tbl)
@@ -3175,9 +3592,14 @@ function DRC:RegisterPlayerExtension(model, val1, val2, val3)
 		DRC.Playermodels[model] = {
 			["Model"] = player_manager.TranslatePlayerModel(model),
 			["Hands"] = player_manager.TranslatePlayerHands(model),
-			["Background"] = "",
-			["Podium"] = "",
+			["Background"] = "vgui/drc_playerbg",
+			["Podium"] = {"models/props_phx/construct/glass/glass_angle360.mdl", Vector(0, 0, -2)},
+			["DefaultCam"] = {
+				["Pos"] = Vector(80.69, 36.7, 52.02),
+				["Ang"] = Angle(10.278, 203.334, 0),
+			},
 			["VoiceSet"] = "",
+			["Footsteps"] = "",
 			["Extensions"] = { 
 				["Claws"] = false,
 			},
@@ -3360,8 +3782,11 @@ hook.Add("PlayerSpawnedNPC", "drc_NPCWeaponOverride", function(ply, ent)
 	end
 end)
 
-hook.Add("OnEntityCreated", "drc_SetupWeaponColours", function(ent)
+hook.Add("OnEntityCreated", "drc_OnEntityCreated", function(ent)
 	if !IsValid(ent) then return end
+	
+	if CLIENT then ent.DRCInitialLightPoll = false end
+	
 	if ent:IsNPC() or ent:IsNextBot() then
 		ent:SetNWInt("DRC_GunSpreadMod", 1)
 		ent:SetNWInt("DRC_GunDamageMod", 1)
@@ -3465,7 +3890,7 @@ end)
 
 hook.Add( "EntityEmitSound", "drc_timewarpsnd", function( t )
 	local cheats = GetConVar( "sv_cheats" )
-	local bool = GetConVar("sv_drc_soundtime_disabled"):GetFloat()
+	local bool = DRC.SV.drc_soundtime_disabled
 	if bool != 0 then return end
 	local timeScale = GetConVar( "host_timescale" )
 	local p = t.Pitch

@@ -5,6 +5,8 @@ function SWEP:GetCharge()
 	return self:GetNWInt("Charge")
 end
 
+function SWEP:GetMaxCharge() return 100 end
+
 function SWEP:SetCharge(val)
 	self:SetNWInt("Charge", val)
 end
@@ -21,6 +23,8 @@ SWEP.HeatValue = 0
 function SWEP:GetHeat()
 	return self:GetNWFloat("Heat")
 end
+
+function SWEP:GetMaxHeat() return 100 end
 
 function SWEP:SetHeat(val)
 	self.HeatValue = val
@@ -58,10 +62,10 @@ end
 
 
 
-function SWEP:CanCustomize()
+function SWEP:CanCustomize(bypassinspect)
 	if self.IsMelee == true then return false end
-	if GetConVar("sv_drc_attachments_disallowmodification"):GetFloat() == 1 then return false end
-	if self:GetNWBool("Inspecting", false) == false then return false end
+	if DRC.SV.drc_attachments_disallowmodification == 1 then return false end
+	if self:GetNWBool("Inspecting", false) == false && bypassinspect != true then return false end
 	
 	local cando = true
 	for k,v in pairs(self.AttachmentTable) do
@@ -75,7 +79,7 @@ end
 function SWEP:ToggleInspectMode()
 	local ply = self:GetOwner()
 	
-	if GetConVar("sv_drc_inspections"):GetString() == "0" then return end
+	if DRC.SV.drc_inspections == 0 then return end
 	
 	if self:GetNWBool("Inspecting") == false then
 		self.Inspecting = true
@@ -720,7 +724,7 @@ function SWEP:TakePrimaryAmmo(num)
 	if !SERVER then return end
 	local ply = self:GetOwner()
 	
-	if GetConVar("sv_drc_infiniteammo"):GetFloat() == 2 then return end
+	if DRC.SV.drc_infiniteammo == 2 then return end
 	
 	if self:Clip1() == 0 && ply:IsPlayer() then
 		if self:Clip1() == 0 then return end
@@ -733,7 +737,7 @@ function SWEP:TakeSecondaryAmmo( num )
 	if !SERVER then return end
 	local ply = self:GetOwner()
 	
-	if GetConVar("sv_drc_infiniteammo"):GetFloat() == 2 then return end
+	if DRC.SV.drc_infiniteammo == 2 then return end
 
 	if self:Clip2() <= 0 && ply:IsPlayer() then
 		if self:Ammo2() <= 0 then return end
@@ -888,22 +892,25 @@ function SWEP:CalculateSpread(isprojectile)
 	local stats = self.StatsToPull
 	local calc = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv")))
 	
+	local x, y = calc * stats.SpreadX, calc * stats.SpreadY
+	
 	if isprojectile == false then
 		if ply:IsPlayer() then
-			return (Vector( calc, calc, 0 ) * self.BloomValue) * SpreadMod
+			return (Vector( x, y, 0 ) * self.BloomValue) * SpreadMod
 		elseif ply:IsNPC() or ply:IsNextBot() then
-			return (Vector(calc, calc, calc))
+			return (Vector(x, y, calc))
 		end
 	else
-		return (Vector( calc, calc, 0 ) * self.BloomValue / 2) * SpreadMod -- This isn't perfectly accurate to the spread cone but what the fuck ever, it's close enough.
+		return (Vector( x, y, 0 ) * self.BloomValue / 2) * SpreadMod -- This isn't perfectly accurate to the spread cone but what the fuck ever, it's close enough.
 	end
 end
 
 function SWEP:SetLoadedAmmo(amount)
 	if !IsValid(self) then return end
 	if CLIENT then return end
-	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 1 then return end
-	if GetConVar("sv_drc_infiniteammo"):GetFloat() > 0 && self.IsBatteryBased == true then return end
+	local inf = DRC.SV.drc_infiniteammo
+	if inf > 1 then return end
+	if inf > 0 && self.IsBatteryBased == true then return end
 	self:SetNWFloat("LoadedAmmo", amount)
 	self:SetClip1(amount)
 end
@@ -1499,6 +1506,7 @@ end
 function SWEP:CallShoot(mode, ignoreimpossibility)
 	local ply = self:GetOwner()
 	if ignoreimpossibility == nil then ignoreimpossibility = false end
+	local forcesprint = DRC.SV.drc_force_sprint >= 1
 	
 	if mode == "primary" then
 		if ply:IsPlayer() then
@@ -1509,7 +1517,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility)
 		end
 		
 		if ignoreimpossibility && self:GetFireMode() == 3 then
-			if ply:IsPlayer() && (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetFloat() == 1) && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
+			if ply:IsPlayer() && (self.DoesPassiveSprint == true or forcesprint) && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
 			if self:GetLoadedAmmo() <= 0 then
 				if CurTime() > self:GetNextPrimaryFire() then self:EmitSound (self.Primary.EmptySound) end
 				self:SetNextPrimaryFire(CurTime() + (60/self.Primary.RPM * 2)) return
@@ -1547,7 +1555,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility)
 end
 
 function SWEP:GetMovementValues()
-	if GetConVar("sv_drc_movement"):GetString() == "0" then return end
+	if DRC.SV.drc_movement == 0 then return end
 	local ply = self:GetOwner()
 	local ogs = ply:GetRunSpeed()
 	local ogw = ply:GetWalkSpeed()

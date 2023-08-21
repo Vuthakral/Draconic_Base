@@ -208,6 +208,6 @@ hook.Add("RenderScreenspaceEffects", "DRC_Camera_Overlays", function()
 	if !IsValid(ply) && !ply:Alive() then return end
 	local wpn = ply:GetActiveWeapon()
 	if IsValid(wpn) && wpn:GetClass() == "drc_camera" then
-		DrawMaterialOverlay(DRC.CameraOverlay, DRC.CameraPower)
+		DrawMaterialOverlay(DRC.CameraOverlay or "", DRC.CameraPower)
 	end
 end)

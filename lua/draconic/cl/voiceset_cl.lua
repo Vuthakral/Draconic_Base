@@ -84,7 +84,10 @@ hook.Add("PlayerBindPress", "VoiceSets_Menu", function(ply, bind, pressed, code)
 			net.SendToServer()
 		end
 	end
-	if slots[bind] && DRC.VoiceMenuState == true then DRC:SendVoiceCall(bind) return true end
+	if slots[bind] && DRC.VoiceMenuState == true then
+		DRC:SendVoiceCall(bind)
+		if bind != "+use" then return true end
+	end
 	
 	if bind == "+reload" then
 		local wpn = ply:GetActiveWeapon()

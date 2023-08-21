@@ -1,16 +1,25 @@
 DRC = {}
 DRC.MapInfo = {}
 DRC.VoiceSets = {}
+DRC.FootSteps = {}
 if SERVER then 
 	resource.AddWorkshop("1847505933") -- Makes the base auto-download for clients joining your server.
 	AddCSLuaFile("draconic/load.lua")
 end
 include("draconic/load.lua")
 
-hook.Add("PreRegisterSWEP", "DRC_NPCWeaponList", function(swep, cl)
+hook.Add("PreRegisterSWEP", "DRC_SWEPPreRegister", function(swep, cl)
 	if !string.find(cl, "drc_") then return end
 	local ignore = {"drc_camera", "drc_cubemap" }
 	if ignore[cl] then return end
+	
+--	if KMA then
+--		local data = {
+--			["PrintName"] = swep.PrintName,
+--			["Primary.Damage"] = swep.Primary.Damage,
+--		}
+--		KMA.WeaponSpawner:AddTemplate(data, cl)
+--	end
 	
 	if swep.NPCSpawnable == false then return end
 	

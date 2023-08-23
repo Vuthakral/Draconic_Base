@@ -195,9 +195,9 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 	
 	local function ReturnEnvmap()
 		if envmaps == false then
-			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "engine/defaultcubemap"
+			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
 		else
-			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "engine/defaultcubemap"
+			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
 		end
 	end
 	
@@ -209,14 +209,15 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 		ent.DRCReflectionTints["EnvmapUpdateTime"] = nexttick
 		if envmaps == false then ReturnEnvmap() end
 	end
-	local cubemap = ent.DRCReflectionTints[name]["Envmap"] or ""
+--	local cubemap = ent.DRCReflectionTints[name]["Envmap"] or ""
 	
-	if envmaps == false && imat:GetTexture("$envmap") != cubemap then imat:SetTexture("$envmap", cubemap) end
+	if envmaps == false && imat:GetTexture("$envmap") != ent.DRCReflectionTints[name]["Envmap"] then imat:SetTexture("$envmap", ent.DRCReflectionTints[name]["Envmap"]) end
+	local m2 = 1
+	if ent.DRCReflectionTints[name]["Envmap"] == "models/vuthakral/defaultcubemap" then m2 = 0.05 end
 	
 	if ent.Preview == true or ent.preview == true then
 		local mul = Vector(1, 1, 1)
 		if !HDR then mul = (10 * mat.LDRCorrectionLevel) end
-		if cubemap == "engine/defaultcubemap" then mat.PowerFloat = 0.1 end
 		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.WeathermodScalar
 	return col end
 	
@@ -256,9 +257,10 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 	
 	ent.DRCReflectionTints[name][channel] = Lerp(RealFrameTime() * (mat.LerpPower * 2.5), ent.DRCReflectionTints[name][channel] or ent.DRCReflectionTints.Stored[name][channel], ent.DRCReflectionTints.Stored[name][channel])
 	local avg = (ent.DRCReflectionTints[name][channel].x + ent.DRCReflectionTints[name][channel].y + ent.DRCReflectionTints[name][channel].z) / 3
+	avg = avg * m2
 	local final = (LerpVector(mat.Saturation, Vector(avg, avg, avg), ent.DRCReflectionTints[name][channel]) * mat.TintVector)
 	
-	return final * DRC.ReflectionModifier
+	return final * DRC.ReflectionModifier * m2
 end
 
 matproxy.Add( {

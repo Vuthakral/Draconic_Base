@@ -120,6 +120,8 @@ SWEP.Secondary.NumShots 		= 0
 SWEP.Secondary.IronRecoilMul	= 0.5
 SWEP.Secondary.Spread			= 3.5
 SWEP.Secondary.SpreadDiv		= 100
+SWEP.Secondary.SpreadXMul		= 1
+SWEP.Secondary.SpreadYMul		= 1
 SWEP.Secondary.Kick				= 0.5
 SWEP.Secondary.KickHoriz		= 0.26
 SWEP.Secondary.RecoilUp			= 1
@@ -151,6 +153,8 @@ SWEP.Secondary.ProjectileSpawnDelay = 0
 
 SWEP.OCSpread			= 0
 SWEP.OCSpreadDiv		= 200
+SWEP.OCSpreadXMul		= 1
+SWEP.OCSpreadYMul		= 1
 SWEP.OCKick				= 0.87
 SWEP.OCKickHoriz		= 0.26
 SWEP.OCRecoilUp			= 0.06

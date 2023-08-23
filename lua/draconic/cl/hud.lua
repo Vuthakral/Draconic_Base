@@ -56,12 +56,18 @@ local basegameweapons = {
 	["weapon_medkit"] = "E",
 }
 
+local function ShouldDrawHLCrosshair()
+	if DRC:ThirdPersonEnabled(LocalPlayer()) == true then return true end
+	if GetConVar("cl_drc_experimental_fp"):GetInt() >= 1 then return true end
+	return false
+end
+
 hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	local ply = LocalPlayer()
 	if IsValid(ply) then
 		if IsValid(ply:GetActiveWeapon()) then
 			local wpn = string.lower(ply:GetActiveWeapon():GetClass())
-			if DRC.HoldTypes.HardcodedWeapons[wpn] && !IsValid(ply:GetVehicle()) then
+			if DRC.HoldTypes.HardcodedWeapons[wpn] && !IsValid(ply:GetVehicle()) && ShouldDrawHLCrosshair() then
 				if str == "CHudCrosshair" then return false end
 			end
 		end
@@ -84,7 +90,7 @@ local function drc_Crosshair()
 	if DRC.HoldTypes.HardcodedWeapons[string.lower(curswep:GetClass())] && !IsValid(ply:GetVehicle()) && pos.x && pos.y then
 		local centered = (pos.x <= ScrW()/2 + 5 && pos.x >= ScrW()/2 - 5) && (pos.y <= ScrH()/2 + 5 && pos.y >= ScrH()/2 - 5)
 		if centered then pos.x = ScrW()/2 pos.y = ScrH()/2 end
-		if DRC.CalcView.ToScreen && GetConVar("crosshair"):GetInt() > 0 then
+		if DRC.CalcView.ToScreen && GetConVar("crosshair"):GetInt() > 0 && ShouldDrawHLCrosshair() then
 			surface.SetFont("Crosshairs")
 			surface.SetTextPos(pos.x-10, pos.y-18)
 			surface.SetTextColor( 255, 211, 64, 255 )

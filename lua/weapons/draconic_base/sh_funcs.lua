@@ -1175,7 +1175,7 @@ function SWEP:DoShoot(mode)
 					local tr3 = util.TraceLine({
 						start = ptu,
 						endpos = tr2.HitPos + ply:EyeAngles():Forward() * 100,
-						filter = function(ent) if ent != tr2.Entity then return false else return true end end,
+						filter = function(ent) if ent != tr2.Entity or tr2.Entity:GetClass() == class then return false else return true end end,
 					})
 					dir = tr3.Normal:Angle()
 				end

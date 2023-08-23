@@ -190,11 +190,13 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_AIRBOAT"] = {"metal", "metalhollow"},
 	["MAT_CONCRETE"] = {"stone", "rubble"},
 	["MAT_BRICK"] = {"stone", "rubble"},
-	["MAT_PLASTER"] = {"dust"},
+	["MAT_PLASTER"] = {"plaster", "dust"},
+	["MAT_CEILING_TILE"] = {"plaster", "dust"},
 	["MAT_DIRT"] = {"dirt", "dust"},
 	["MAT_MUD"] = {"mud", "liquid"},
 	["MAT_SLOSH"] = {"water", "liquid"},
 	["MAT_WADE"] = {"water", "liquid"},
+	["MAT_WATER"] = {"water", "liquid"},
 	["MAT_FOLIAGE"] = {"wood", "dirt"},
 	["MAT_WOOD"] = {"wood", "dirt"},
 	["MAT_WOOD_FURNITURE"] = {"wood"},
@@ -210,7 +212,7 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_SAND"] = {"sand", "dust"},
 	["MAT_ANTLIONSAND"] = {"sand", "stone"},
 	["MAT_SNOW"] = {"snow", "dust"},
-	["MAT_ICE"] = {"shards"},
+	["MAT_ICE"] = {"stone", "shards"},
 	["MAT_POTTERY"] = {"tile"},
 	["MAT_PORCELAIN"] = {"tile"},
 	["MAT_TILE"] = {"tile"},
@@ -2952,7 +2954,7 @@ function DRC:GetVoiceSet(ent)
 end
 
 function DRC:SetVoiceSet(ent, id, enforced)
-	if !DRC.VoiceSets[id] then return end
+	if !DRC.VoiceSets[id] then ent:SetNWString("DRCVoiceSet", "None") return end
 	if !enforced then ent:SetNWString("DRCVoiceSet", id) end
 	if enforced then timer.Simple(0, function() ent:SetNWString("DRCVoiceSet_Enforced", id) end) end
 end
@@ -3227,7 +3229,7 @@ function DRC:GetFootsteps(ent)
 end
 
 function DRC:SetFootsteps(ent, id, enforced)
-	if !DRC.FootSteps[id] then return end
+	if !DRC.FootSteps[id] then ent:SetNWString("DRCFootsteps", "None") return end
 	if !enforced then ent:SetNWString("DRCFootsteps", id) end
 	if enforced then timer.Simple(0, function() ent:SetNWString("DRCFootsteps_Enforced", id) end) end
 end

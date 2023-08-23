@@ -1035,7 +1035,10 @@ local function drc_TraceInfo()
 		if !IsValid(ent) then return end
 		enum = DRC:SurfacePropToEnum(ent:GetBoneSurfaceProp(0))
 	end
-	local e2 = DRC.SurfacePropDefinitions[enum][1] or "UNDEFINED, PLEASE REPORT"
+	local e2
+	if enum && DRC.SurfacePropDefinitions[enum] then e2 = DRC.SurfacePropDefinitions[enum][1] or "UNDEFINED, PLEASE REPORT" else e2 = "UNDEFINED, PLEASE REPORT" end
+	if enum == "MAT_DEFAULT_SILENT" then e2 = "Invalid" end
+	if enum == "MAT_" then enum = "Unreadable" e2 = "Invalid" end
 	enum = "".. enum .." | DRC: ''".. e2 .."''" 
 	
 	if BaseDT[enum] && enum != "MAT_" == nil then

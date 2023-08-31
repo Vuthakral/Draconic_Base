@@ -12,6 +12,7 @@ SWEP.Instructions		= "Cry when you realize how many people don't know how to set
 SWEP.Spawnable      = false
 SWEP.AdminSpawnable = false
 SWEP.NPCSpawnable	= false
+SWEP.CanStore		= false
 
 SWEP.DrawCrosshair  = false
 SWEP.Slot           = 2

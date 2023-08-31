@@ -29,6 +29,7 @@ SWEP.NPCSpawnable		= true
 SWEP.AutoSwitchTo		= false
 SWEP.AutoSwitchFrom		= false
 SWEP.KeepUpright		= false
+SWEP.CanStore			= true
 SWEP.DeploySpeed		= 1
 SWEP.Weight				= 1
 

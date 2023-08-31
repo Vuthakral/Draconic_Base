@@ -7,6 +7,7 @@ SWEP.Author				= "Vuthakral"
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= false
 SWEP.NPCSpawnable		= false
+SWEP.CanStore			= false
 SWEP.AutoSwitchTo		= true
 SWEP.AutoSwitchFrom		= true
 

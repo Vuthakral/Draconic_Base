@@ -13,6 +13,7 @@ SWEP.Spawnable      = false
 SWEP.AdminSpawnable = false
 SWEP.NPCSpawnable	= false
 SWEP.DrawCrosshair  = false
+SWEP.CanStore		= false
 
 SWEP.Slot           = 2
 SWEP.SlotPos        = 0

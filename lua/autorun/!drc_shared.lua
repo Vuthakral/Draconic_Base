@@ -21,6 +21,17 @@ hook.Add("PreRegisterSWEP", "DRC_SWEPPreRegister", function(swep, cl)
 --		KMA.WeaponSpawner:AddTemplate(data, cl)
 --	end
 	
+	if swep.CanStore != false then
+		if RE2_INV && swep.WorldModel && swep.WorldModel != "" then -- Support for "Resident Evil 2 Inventory" addon.
+			RE2_INV.AddItem({
+				["name"] = swep.PrintName,
+				["classname"] = cl,
+				["model"] = swep.WorldModel,
+				["type"] = "weapon",
+			}) 
+		end
+	end
+	
 	if swep.NPCSpawnable == false then return end
 	
 	if !swep.PrintName then swep.PrintName = cl end
@@ -35,7 +46,8 @@ list.Set( "DesktopWindows", "Draconic Menu", {
 	end
 } )
 
--- Any code beyond this point is considered legacy and should NOT be used as reference.
+-- Any code beyond this point is considered legacy and should NOT be used as reference, or at all.
+-- Anything below is likely to be removed in a future update.
 
 function CTFK(tab, value)
 	for i,v in ipairs(tab) do
@@ -73,6 +85,7 @@ function GetSF2LightLevel(limiter)
 	else return 1 end
 end
 
+--[[
 function GetDRCColours(ent)
 	local tbl = {}
 	tbl.Player = ent:GetNWVector("PlayerColour_DRC")
@@ -95,6 +108,7 @@ function DRCSound(source, near, far, distance, listener)
 	
 	DRC:EmitSound(source, near, far, distance, listener)
 end
+--]]
 
 --[[
 hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
@@ -127,15 +141,9 @@ hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
 		end
 	end )
 end )
---]]
 
-local plc = Vector()
-local wpc = Vector()
-local t1c = Vector()
-local t2c = Vector()
-local eyc = Vector()
-local enc = Vector()
 
 function drc_GetPlayerColours(ply)
 	DRC:GetColours(ply)
 end
+--]]

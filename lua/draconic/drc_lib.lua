@@ -822,7 +822,7 @@ function DRC:GetColours(ent, rgb)
 	if !IsValid(ent) then return end
 	local coltab = {}
 	if ent:IsPlayer() then
-		if !ent:Alive() then return end
+--		if !ent:Alive() then return end
 		coltab = {
 			["Player"] 	= ent:GetNWVector("PlayerColour_DRC"),
 			["Weapon"] 	= ent:GetNWVector("WeaponColour_DRC"),
@@ -1544,7 +1544,8 @@ end)
 hook.Add("CreateClientsideRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	if !IsValid(ply) then return end
 	
-	local colours = GetDRCColours(ply)
+	local colours = DRC:GetColours(ply, false)
+	PrintTable(colours)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
 	rag:SetNWVector("WeaponColour_DRC", colours.Weapon)
 	rag:SetNWVector("EyeTintVec", colours.Eye)
@@ -1556,7 +1557,7 @@ end)
 hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	if !IsValid(ply) then return end
 	
-	local colours = GetDRCColours(ply)
+	local colours = DRC:GetColours(ply, false)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
 	rag:SetNWVector("WeaponColour_DRC", colours.Weapon)
 	rag:SetNWVector("EyeTintVec", colours.Eye)
@@ -2615,7 +2616,7 @@ DRC:RegisterFootSteps(testfootsteps)
 ]]
 
 function DRC:GetFloorMat(ply)
-	local pos2 = ply:GetPos()
+	local pos2 = ply:GetPos() + Vector(0, 0, 0.5)
 	local ftrace = util.TraceLine({ start = pos2, endpos = pos2 - Vector(0,0,15), filter = function(ent) if ent == ply then return false else return true end end })
 	local fmat
 	
@@ -2641,15 +2642,10 @@ local fsvols = {
 
 local function ProcessInput(ply, shuffle, key)
 	if !IsFirstTimePredicted() then return end
+	
+	if shuffle == true then return 1 end
 	local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
 	local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
-	
-	if shuffle == true then
-		if !inp then
-			local set = DRC.FootSteps[DRC:GetFootsteps(ply)]
-			ply:EmitSound(testfootsteps.shuffle.default)
-		return 0 end
-	end
 	
 	local walk, crouch, run = ply:KeyDown(IN_WALK), ply:Crouching(), ply:KeyDown(IN_SPEED)
 	
@@ -2661,7 +2657,8 @@ end
 
 local function SelectFootstep(ply, shuffle, fs, jump, wade, landing, overlay)
 	if !fs or string.lower(fs) == "none" then return "" end
-	local input = ProcessInput(ply)
+	if landing then shuffle = true end
+	local input = ProcessInput(ply, shuffle)
 	local fmat = DRC:GetFloorMat(ply)
 	local sel, smat, subset, sel2, vol, om
 	local set = DRC.FootSteps[fs]
@@ -2761,8 +2758,9 @@ hook.Add( "KeyRelease", "DRC_FootStepShuffle", function(ply, key)
 			if ply.fsshuffletime + 0.2 < CurTime() && ply:OnGround() then
 				ply.fsshuffletime = CurTime()
 				timer.Simple(0.1, function()
+					vol = 100 * vol
 					if IsValid(ply) then
-						ply:EmitSound(ss)
+						ply:EmitSound(ss, vol)
 						if ply:WaterLevel() >= 1 then
 							ss, so, vol, om = SelectFootstep(ply, true, fs, ply:KeyPressed(IN_JUMP), true)
 							ply:EmitSound(ss, vol)
@@ -2804,6 +2802,7 @@ hook.Add("PlayerFootstep", "DRC_FootStepSets", function(ply, pos, foot, snd, vol
 			local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
 			local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
 			vol = 100 * vol
+			if CLIENT && ply != LocalPlayer() then vol = vol * 1.25 end
 			if ss then ply:EmitSound(ss, vol) end
 			if so then ply:EmitSound(so, vol) end
 			if ply:WaterLevel() >= 1 then
@@ -2842,7 +2841,7 @@ hook.Add("OnPlayerHitGround", "DRC_Footsteps_Landing", function(ply, water, floa
 		if !inp then 
 			ply:StopSound("player/pl_fallpain1.wav")
 			ply:StopSound("player/pl_fallpain3.wav")
-			ss = SelectFootstep(ply, true, fs, false, false, true)
+			local ss, so, vol, om = SelectFootstep(ply, false, fs, false, false, true)
 			if ss then ply:EmitSound(ss, vol) end
 		end
 	end

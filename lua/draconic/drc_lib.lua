@@ -1545,7 +1545,6 @@ hook.Add("CreateClientsideRagdoll", "drc_playerragdollcolours", function(ply, ra
 	if !IsValid(ply) then return end
 	
 	local colours = DRC:GetColours(ply, false)
-	PrintTable(colours)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
 	rag:SetNWVector("WeaponColour_DRC", colours.Weapon)
 	rag:SetNWVector("EyeTintVec", colours.Eye)

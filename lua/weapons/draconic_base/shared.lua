@@ -34,7 +34,7 @@ SWEP.DeploySpeed		= 1
 SWEP.Weight				= 1
 
 SWEP.Slot				= 0
-SWEP.SlotPos			= 0
+SWEP.SlotPos			= 1
 
 SWEP.CrosshairColor			= Color(255, 255, 255, 255)
 SWEP.CrosshairShadow		= false
@@ -79,6 +79,7 @@ SWEP.PerspectivePower	= 1
 SWEP.InspectDelay 		= 0.5
 
 SWEP.Thirdperson = false
+SWEP.ThirdpersonForceFreelook = false
 
 SWEP.CanBeSwapped = true
 SWEP.PickupOnly = false
@@ -127,6 +128,69 @@ SWEP.OCProjectile 		= nil
 SWEP.OCProjSpeed 		= 500
 
 -- MOVEMENT MODIFIERS
+
+SWEP.SpeedSprintStand = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.SpeedSprintCrouch = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.SpeedRunStand = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.SpeedRunCrouch = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.SpeedWalkStand = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.SpeedWalkCrouch = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.JumpHeightsStand = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.JumpHeightsCrouch = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.JumpHeightsStandSprint = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+SWEP.JumpHeightsCrouchSprint = {
+	nil, nil, nil,
+	nil, nil, nil,
+	nil, nil, nil
+}
+
+-- MOVEMENT MODIFIERS [OLD AND NO LONGER USED, DEPRECATED. DO NOT USE IN YOUR WEAPONS.]
+--[[
 SWEP.SprintSoundStand		= Sound( "" )
 SWEP.DoSSStandFwd			= false
 SWEP.DoSSStandBack			= false
@@ -184,6 +248,7 @@ SWEP.CrouchingSprintJumpHeightFront		= nil
 SWEP.CrouchingSprintJumpHeightBack		= nil
 SWEP.CrouchingSprintJumpHeightLeft		= nil
 SWEP.CrouchingSprintJumpHeightRight		= nil
+--]]
 
 -- MISC
 SWEP.TauntCooldown 			= 1
@@ -217,6 +282,8 @@ SWEP.VElements = {}
 SWEP.WElements = {}
 
 -- ADDON COMPATIBILITY
+
+-- TTT
 SWEP.Kind 			= WEAPON_NONE
 SWEP.CanBuy 		= {}
 SWEP.Icon 			= SWEP.WepSelectIcon
@@ -235,8 +302,8 @@ function SWEP:IsEquipment()
 	return self.IsEquipment
 end
 
+-- Small misc
 SWEP.CanTFALean = true
-
 SWEP.DManip_AllowFL = true
 
 SWEP.vFireLife 			= 2
@@ -247,6 +314,8 @@ SWEP.vFireStopSound 	= Sound("draconic.vFireStopGeneric")
 SWEP.Primary.isvFire 	= false
 SWEP.Secondary.isvFire 	= false
 
+
+-- nZombies
 SWEP.NZWonderWeapon        	= false    -- Is this a Wonder-Weapon? If true, only one player can have it at a time. Cheats aren't stopped, though.
 -- SWEP.NZRePaPText        	= "your text here"    -- When RePaPing, what should be shown? Example: Press E to your text here for 2000 points.
 --SWEP.NZPaPReplacement     = ""    -- If Pack-a-Punched, replace this gun with the entity class shown here.
@@ -266,47 +335,49 @@ SWEP.nZPAP = {
 }
 
 -- Everything past this is internal code for the SWEP base. DO NOT TOUCH OR USE IN YOUR WEAPONS. THESE VALUES ARE OVERWRITTEN FREQUENTLY.
-SWEP.Draconic 			= true
-SWEP.Idle 				= 0
-SWEP.IdleTimer 			= CurTime()
-SWEP.IsTaunting 		= 0
-SWEP.IsOverheated 		= false
-SWEP.SightsDown 		= false
-SWEP.BloomValue 		= 0
-SWEP.PrevBS 			= 0
-SWEP.VariablePos 		= Vector(0, 0, 0)
-SWEP.CRPo 				= Vector(0, 0, 0)
-SWEP.PRPos 				= Vector(0, 0, 0)
-SWEP.SPRPos 			= Vector(0, 0, 0)
-SWEP.IRPos 				= Vector(0, 0, 0)
-SWEP.VARPos 			= Vector(0, 0, 0)
-SWEP.VariableAng 		= Vector(0, 0, 0)
-SWEP.CRPo 				= Vector(0, 0, 0)
-SWEP.PRAng 				= Vector(0, 0, 0)
-SWEP.SPRAng 			= Vector(0, 0, 0)
-SWEP.IRAng 				= Vector(0, 0, 0)
-SWEP.VARAng 			= Vector(0, 0, 0)
-SWEP.Sound 				= Sound("")
-SWEP.DistSound 			= Sound("")
-SWEP.Passive 			= false
-SWEP.Inspecting 		= false
-SWEP.Idle 				= 0
-SWEP.Loading 			= false
-SWEP.ManuallyReloading 	= false
-SWEP.PistolSlide 		= 1
-SWEP.NPCBursting 		= false
-SWEP.NPCCharging 		= false
-SWEP.DualSettings 		= {}
-SWEP.SightSwapCD 		= false
-SWEP.SightsSwapCD 		= 0
-SWEP.LastFireTime 		= 0
-SWEP.LastFireAnimTime 	= 0
-SWEP.PassiveHealing		= ""
-SWEP.AmmoRegen			= ""
-SWEP.CurPos				= Vector(0, 0, 0)
-SWEP.CurAng				= Vector(0, 0, 0)
-SWEP.FireMode			= "none"
-SWEP.OwnerActivity 		= "standidle"
+SWEP.Draconic 				= true
+SWEP.LockoutTime			= CurTime()
+SWEP.IdleTimer 				= CurTime()
+SWEP.PreventIdleTimer 		= CurTime()
+SWEP.IsTaunting 			= 0
+SWEP.IsOverheated 			= false
+SWEP.SightsDown 			= false
+SWEP.BloomValue 			= 0
+SWEP.PrevBS 				= 0
+SWEP.VariablePos 			= Vector(0, 0, 0)
+SWEP.CRPo 					= Vector(0, 0, 0)
+SWEP.PRPos 					= Vector(0, 0, 0)
+SWEP.SPRPos 				= Vector(0, 0, 0)
+SWEP.IRPos 					= Vector(0, 0, 0)
+SWEP.VARPos 				= Vector(0, 0, 0)
+SWEP.VariableAng 			= Vector(0, 0, 0)
+SWEP.CRPo 					= Vector(0, 0, 0)
+SWEP.PRAng 					= Vector(0, 0, 0)
+SWEP.SPRAng 				= Vector(0, 0, 0)
+SWEP.IRAng 					= Vector(0, 0, 0)
+SWEP.VARAng 				= Vector(0, 0, 0)
+SWEP.Sound 					= Sound("")
+SWEP.DistSound 				= Sound("")
+SWEP.Passive 				= false
+SWEP.Inspecting 			= false
+SWEP.Idle 					= 0
+SWEP.Loading 				= false
+SWEP.ManuallyReloading 		= false
+SWEP.PistolSlide 			= 1
+SWEP.NPCBursting 			= false
+SWEP.NPCCharging 			= false
+SWEP.DualSettings 			= {}
+SWEP.SightSwapCD 			= false
+SWEP.SightsSwapCD 			= 0
+SWEP.LastFireTime 			= 0
+SWEP.LastFireAnimTime 		= 0
+SWEP.PassiveHealing			= ""
+SWEP.AmmoRegen				= ""
+SWEP.CurPos					= Vector(0, 0, 0)
+SWEP.CurAng					= Vector(0, 0, 0)
+SWEP.FireMode				= "none"
+SWEP.OwnerActivity 			= "standidle"
+SWEP.IsDoingMelee 			= false
 
 function SWEP:DoDrawCrosshair( x, y )
 	return true
@@ -356,6 +427,7 @@ function SWEP:Initialize()
 	local ply = self:GetOwner()
 	if !game.SinglePlayer() then self:CallOnClient("Initialize") end
 	
+	self.IdleTimer = CurTime() + 5
 	if self.Auhtor then -- jesus christ you people are fucking blind
 		self.Author = self.Auhtor
 	end
@@ -367,6 +439,7 @@ function SWEP:Initialize()
 	self:CreateIdleSound()
 	self.VARSightPos = self.IronSightsPos
 	self.VARSightAng = self.IronSightsAng
+	self.LastMeleeImpactTime = 0
 	
 	if self.KeepUpright == true then
 		self:AddCallback( "PhysicsCollide", function( ent, newangle )
@@ -375,24 +448,34 @@ function SWEP:Initialize()
 		end )
 	end
 	
-	self.DRCVersion = nil
-	if self.Primary.NumShots or self.OCNumShots then
-		self.DRCVersion = 1
+	self.DRCVersion = DRC:GetVersion()
+	if self.Primary.NumShots or self.OCNumShots then self.DRCVersion = 1 end
+	
+	if !self.IsMelee then
+		if self.MeleeHitSoundWorld != nil then
+			self.DRCVersion = 1.01
+		end
 	else
-		self.DRCVersion = DRC:GetVersion()
+		if self.Primary.HitSoundEnt != nil or self.Secondary.HitSoundEnt != nil or self.Primary.LungeHitSoundEnt != nil then
+			self.DRCVersion = 1.01
+		end
 	end
 	
 	if self.IgnoreVersioning == false then
-		if (SERVER) or (CLIENT && game.SinglePlayer()) && ply:IsPlayer() then
+		if ply:IsPlayer() && CLIENT then
 			if self.DRCVersion < DRC:GetVersion() then
 				DRC:MismatchWarn(ply, self)
 			end
 		end
 	end
 	
+	-- Legacy melee base -> melee base rewrite compatibility
+	if self.LungeHoldType then self.Primary.LungeHoldType = self.LungeHoldType end
+	if self.LungeHoldTypeCrouch then self.Primary.LungeHoldTypeCrouch = self.LungeHoldTypeCrouch end
+	
 	-- 1.0 -> 1.01 sound to soundtable compatibility
 	if !self.IsMelee && !self.Primary.SoundTable then
-		self.Primary.SoundTable 	= {
+		self.Primary.SoundTable = {
 			["Semiauto"] = {
 				["Near"] = self.Primary.Sound,
 				["Far"] = self.Primary.DistSound,
@@ -427,7 +510,7 @@ function SWEP:Initialize()
 	
 	if self.IsBatteryBased == true && self.BatteryConsumPerShot then self.BatteryConsumePerShot = self.BatteryConsumPerShot end -- Fixing my own mistake of an old typo, keeps peoples' weapons compatible without needing to account for my own mistake.
 	
-	-- Ivan's Nextbot compatiblity, DO NOT TOUCH OR USE.
+	-- IV04 Nextbot compatiblity, DO NOT TOUCH OR USE.
 	self.HoldType_Aim = self.HoldType
 	if self.Primary.Ammo != nil && self:GetOwner():IsNextBot() then
 		if self.IsMelee == false then
@@ -441,12 +524,12 @@ function SWEP:Initialize()
 			end
 		end
 	end
-	-- end
 
+	-- Fix playback rate if swapped-from weapon alters playback rate.
 	if ply:IsPlayer() then
 		local vm = ply:GetViewModel()
 		if not vm:IsValid() then return end
-		vm:SetPlaybackRate( 1 )
+		vm:SetPlaybackRate(1)
 	end
 	
 	-- VJ NPC Compatibility
@@ -465,144 +548,43 @@ function SWEP:Initialize()
 		end
 	end
 	
-	if self.IsMelee == true then -- rewrite / integrate with getholdtypeanim at some point
+	-- Metroid Prime HUD compatibility
+	if !self.LogBook && self.InfoDescription != nil then
+		self.LogBook = {
+			["Description"] = self.InfoDescription
+		}
+	end
+	
+	-- Fallback to set up thirdperson melee acts if one isn't defined by a weapon author
+	if self.IsMelee == true then
 		if self.Primary.MeleeAct == nil then
 			local ht = self.Primary.HoldType
-			if ht == "pistol" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
-			elseif ht == "smg" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
-			elseif ht == "grenade" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
-			elseif ht == "ar2" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
-			elseif ht == "shotgun" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
-			elseif ht == "rpg" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
-			elseif ht == "physgun" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
-			elseif ht == "crossbow" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
-			elseif ht == "melee" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
-			elseif ht == "slam" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
-			elseif ht == "normal" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "fist" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
-			elseif ht == "melee2" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
-			elseif ht == "passive" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "knife" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
-			elseif ht == "duel" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
-			elseif ht == "camera" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
-			elseif ht == "magic" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
-			elseif ht == "revolver" then self.Primary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
-			end
+			self.Primary.MeleeAct = DRC:GetHoldTypeAnim(ht, "attack", false)
 		end
 		if self.Primary.MeleeActCrouch == nil then
 			local ht = self.Primary.HoldTypeCrouch
-			if ht == "pistol" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
-			elseif ht == "smg" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
-			elseif ht == "grenade" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
-			elseif ht == "ar2" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
-			elseif ht == "shotgun" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
-			elseif ht == "rpg" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
-			elseif ht == "physgun" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
-			elseif ht == "crossbow" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
-			elseif ht == "melee" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
-			elseif ht == "slam" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
-			elseif ht == "normal" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "fist" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
-			elseif ht == "melee2" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
-			elseif ht == "passive" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "knife" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
-			elseif ht == "duel" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
-			elseif ht == "camera" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
-			elseif ht == "magic" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
-			elseif ht == "revolver" then self.Primary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
-			end
+			self.Primary.MeleeActCrouch = DRC:GetHoldTypeAnim(ht, "attack", false)
 		end
 		if self.Secondary.MeleeAct == nil then
 			local ht = self.Secondary.HoldType
-			if ht == "pistol" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
-			elseif ht == "smg" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
-			elseif ht == "grenade" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
-			elseif ht == "ar2" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
-			elseif ht == "shotgun" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
-			elseif ht == "rpg" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
-			elseif ht == "physgun" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
-			elseif ht == "crossbow" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
-			elseif ht == "melee" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
-			elseif ht == "slam" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
-			elseif ht == "normal" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "fist" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
-			elseif ht == "melee2" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
-			elseif ht == "passive" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "knife" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
-			elseif ht == "duel" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
-			elseif ht == "camera" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
-			elseif ht == "magic" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
-			elseif ht == "revolver" then self.Secondary.MeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
-			end
+			self.Secondary.MeleeAct = DRC:GetHoldTypeAnim(ht, "attack", false)
 		end
 		if self.Secondary.MeleeActCrouch == nil then
 			local ht = self.Secondary.HoldTypeCrouch
-			if ht == "pistol" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
-			elseif ht == "smg" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
-			elseif ht == "grenade" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
-			elseif ht == "ar2" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
-			elseif ht == "shotgun" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
-			elseif ht == "rpg" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
-			elseif ht == "physgun" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
-			elseif ht == "crossbow" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
-			elseif ht == "melee" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
-			elseif ht == "slam" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
-			elseif ht == "normal" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "fist" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
-			elseif ht == "melee2" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
-			elseif ht == "passive" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "knife" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
-			elseif ht == "duel" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
-			elseif ht == "camera" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
-			elseif ht == "magic" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
-			elseif ht == "revolver" then self.Secondary.MeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
-			end
+			self.Secondary.MeleeActCrouch = DRC:GetHoldTypeAnim(ht, "attack", false)
 		end
 		if self.Primary.LungeMeleeAct == nil then
-			local ht = self.LungeHoldType
-			if ht == "pistol" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
-			elseif ht == "smg" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
-			elseif ht == "grenade" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
-			elseif ht == "ar2" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
-			elseif ht == "shotgun" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
-			elseif ht == "rpg" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
-			elseif ht == "physgun" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
-			elseif ht == "crossbow" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
-			elseif ht == "melee" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
-			elseif ht == "slam" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
-			elseif ht == "normal" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "fist" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
-			elseif ht == "melee2" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
-			elseif ht == "passive" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "knife" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
-			elseif ht == "duel" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
-			elseif ht == "camera" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
-			elseif ht == "magic" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
-			elseif ht == "revolver" then self.Primary.LungeMeleeAct = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
-			end
+			local ht = self.Primary.LungeHoldType
+			self.Primary.LungeHoldType = DRC:GetHoldTypeAnim(ht, "attack", false)
 		end
 		if self.Primary.LungeMeleeActCrouch == nil then
-			local ht = self.LungeHoldTypeCrouch
-			if ht == "pistol" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL
-			elseif ht == "smg" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SMG1
-			elseif ht == "grenade" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RELOAD
-			elseif ht == "ar2" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_AR2
-			elseif ht == "shotgun" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SHOTGUN
-			elseif ht == "rpg" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG
-			elseif ht == "physgun" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN
-			elseif ht == "crossbow" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
-			elseif ht == "melee" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE
-			elseif ht == "slam" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_SLAM
-			elseif ht == "normal" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "fist" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST
-			elseif ht == "melee2" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
-			elseif ht == "passive" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK
-			elseif ht == "knife" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE
-			elseif ht == "duel" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL
-			elseif ht == "camera" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA
-			elseif ht == "magic" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC
-			elseif ht == "revolver" then self.Primary.LungeMeleeActCrouch = ACT_HL2MP_GESTURE_RANGE_ATTACK_REVOLVER
-			end
+			local ht = self.Primary.LungeHoldTypeCrouch
+			self.Primary.LungeHoldTypeCrouch = DRC:GetHoldTypeAnim(ht, "attack", false)
+		end
+	else
+		if self.Primary.MeleeActTP == nil then
+			local ht = self.HoldType
+			self.Primary.MeleeActTP = DRC:GetHoldTypeAnim(ht, "melee", false)
 		end
 	end
 	
@@ -618,7 +600,11 @@ function SWEP:Initialize()
 		if !self.ModifyText then self.ModifyText = "modify ".. (self.InfoName or self.PrintName or "null") .."" end
 	end)
 	
-	self:InitialFireMode()
+	if !self.IsMelee then 
+	--	self:PreCalcSpreadAttachments()
+	--	self:PreCalcSpreadMain()
+		self:InitialFireMode()
+	end
 	self:DoCustomInitialize()
 	
 	-- SCK Stuff
@@ -694,12 +680,15 @@ function SWEP:Think()
 	local cv = ply:Crouching()
 	local vm = ply:GetViewModel(0)
 	local hands = ply:GetHands()
+	local ct = CurTime()
 	
 	self:DoCustomThink()
 	self:ManageAnims()
 	
+	if ct > self.LockoutTime then self.Idle = 1 else self.Idle = 0 end
+	
 	if CLIENT && game.SinglePlayer() && RealTime() > self.RealTime then
-		self.RealTime = RealTime() + RealFrameTime() -- For some reason, calling :GetCycle() inside of Think() will be called three times per frame. The first one will always return 0. This prevents it from being called multiple times and creates glitchy-looking-behaviour.
+		self.RealTime = RealTime() + RealFrameTime() -- For some reason, calling :GetCycle() inside of Think() will be called three times per frame. The first one will always return 0. This prevents it from being called multiple times and creating glitchy-looking-behaviour.
 		local seq, cycle = ply:GetViewModel(0):GetSequence(), ply:GetViewModel(0):GetCycle()
 		self.VMSequence = seq
 		self.VMCycle = cycle
@@ -712,6 +701,11 @@ function SWEP:Think()
 	if !self.IsMelee then -- For some other reason, this breaks animations on the melee base.
 		if self:HasViewModel() && string.lower(vm:GetModel()) != string.lower(self.ViewModel) then vm:SetModel(self.ViewModel) end
 		if self.ShowWorldModel == true && (self.WorldModel != nil or self.WorldModel != "") then self:SetModel(self.WorldModel) end
+	end
+	
+	if self.IdleTimer < CurTime() && self.IsDoingMelee == true then
+		self.IsDoingMelee = false
+		self.Loading = false
 	end
 	
 	if CLIENT then
@@ -786,29 +780,27 @@ function SWEP:Think()
 		self.ScopeUp = false
 	end
 
-	if self.Primary.UsesCharge == true then
+	if ply:IsPlayer() && self.Primary.UsesCharge == true && self:GetLoadedAmmo() > 0 && self:CanPrimaryAttack() then
 		local m1p = ply:KeyPressed(IN_ATTACK)
 		local m1d = ply:KeyDown(IN_ATTACK)
 		local m1r = ply:KeyReleased(IN_ATTACK)
 		local ukd = ply:KeyDown(IN_USE)
 			
-		if ply:IsPlayer() then
-			if game.SinglePlayer() && !IsFirstTimePredicted() then return end
-			if self.ChargeType == "dualheld" then
-				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then
-					if FireTime < CurTime() then FireTime = CurTime() + 60 / self.Primary.RPM self:CallShoot("primary") end
-				elseif m1r && self:CanOvercharge() && self:CanPrimaryAttack() then self:CallShoot("overcharge") end
-			elseif self.ChargeType == "dualaction" then
-				if m1d && self:CanPrimaryAttack() && self:CanOvercharge() then self:CallShoot("overcharge") end
-				if m1r && self:CanPrimaryAttack() == true && !self:CanOvercharge() && !ukd then self:CallShoot("primary") end
-			elseif self.ChargeType == "discharge" then
-				if m1d && self:CanPrimaryAttack() == true && self:CanOvercharge() && !ukd then
-					self:CallShoot("overcharge")
-				end
-			elseif self.ChargeType == "held" then
-				if m1r && self:CanOvercharge() then self:CallShoot("overcharge") end
-			elseif self.ChargeType == "default" then
+	--	if game.SinglePlayer() && !IsFirstTimePredicted() then return end
+		if self.ChargeType == "dualheld" then
+			if m1r && !self:CanOvercharge() && !ukd then
+				self:CallShoot("primary")
+			elseif m1r && self:CanOvercharge()  then self:CallShoot("overcharge") end
+		elseif self.ChargeType == "dualaction" then
+			if m1d && self:CanOvercharge() then self:CallShoot("overcharge") end
+			if m1r && !self:CanOvercharge() && !ukd then self:CallShoot("primary") end
+		elseif self.ChargeType == "discharge" then
+			if m1d && self:CanOvercharge() && !ukd then
+				self:CallShoot("overcharge")
 			end
+		elseif self.ChargeType == "held" then
+			if m1r && self:CanOvercharge() then self:CallShoot("overcharge") end
+		elseif self.ChargeType == "default" then
 		end
 	end
 	
@@ -833,7 +825,7 @@ function SWEP:Think()
 				end
 			elseif self.ChargeType == "held" then
 				if m1r && self:CanOvercharge() then self:CallShoot("overcharge") end
-			elseif self.ChargeType == "default" then
+--			elseif self.ChargeType == "default" then
 			end
 		end
 	end
@@ -920,6 +912,48 @@ function SWEP:Think()
 		end
 	end
 	
+	if self.MeleeQueue && IsFirstTimePredicted() then
+		if #self.MeleeQueue <= 0 then self:ClearMeleeQueue() end -- apparently a table with 0 elements isn't empty?
+		if !table.IsEmpty(self.MeleeQueue) then
+			self.IsDoingMelee = true
+			for i=1,#self.MeleeQueue do
+				local info = self.MeleeQueue[i]
+				if info && CurTime() >= info[1] then
+					local swing = info[2]
+					self:MeleeImpact(swing, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), swing.x[1], swing.x[2]), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), swing.y[1], swing.y[2]), i, "primary")
+					self.MeleeQueue[i] = nil
+				end
+			end
+		else
+			self.IsDoingMelee = false
+		end
+	end
+	
+	if self.BurstQueue then
+		if !table.IsEmpty(self.BurstQueue) then
+			self.Bursting = true
+			for i=1,#self.BurstQueue do
+				local thyme = self.BurstQueue[i]
+				if thyme && CurTime() >= thyme then
+	--				PrintTable(self.BurstQueue)
+					if !IsValid(self) or !IsValid(self:GetOwner()) then return end
+					if self:GetLoadedAmmo() <= 0 then return end
+					local kill = false
+					if i >= self.FireModes_BurstShots then kill = true end
+	--				print(#self.BurstQueue, i, self.FireModes_BurstShots, kill)
+					if kill == false then self.BurstQueue[i] = nil end
+					if self.Loading == false then
+						self:CallShoot("primary", true, kill)
+					end
+	--				print("---------------")
+				end
+			end
+		else
+			self.Bursting = false
+		end
+		if #self.BurstQueue <= 0 then self:ClearBurstQueue() end
+	end
+	
 	if ply:IsPlayer() && self.RegenAmmo == true then self:RegeneratingAmmo(self, self.RegenAmmo_Delay, self.RegenAmmo_Amount) end
 	
 	if !game.SinglePlayer() then return end -- I have to set viewmodel poseparameters in here because they're controlled by the server in singleplayer for some reason, and PreDrawViewModel is client only. Epic.
@@ -944,7 +978,12 @@ function SWEP:Think()
 	if vm:GetPoseParameter("drc_charge") != nil then vm:SetPoseParameter("drc_charge", self.ChargeCL / 100) end
 end
 
+function SWEP:CanMelee()
+	if self.IsDoingMelee == true then return false else return true end
+end
+
 function SWEP:CanGunMelee()
+	if !self:CanMelee() then return false end
 	local ply = self:GetOwner()
 	local sights = self.SightsDown
 	local passive = self:GetNWBool("Passive")
@@ -958,7 +997,7 @@ end
 function SWEP:ManageAnims()
 	if !IsValid(self) then return end
 	if !self:IsIdle() then return end
-	if !IsFirstTimePredicted() then return end
+--	if !IsFirstTimePredicted() then return end
 	local ply = self:GetOwner()
 	
 	if !IsValid(ply) then return end
@@ -969,82 +1008,77 @@ function SWEP:ManageAnims()
 	local oa = self.OwnerActivity
 	local cv = ply:Crouching()
 	local slowvar = ply:Crouching() or ply:KeyDown(IN_WALK)
-	local walking = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK)) && !ply:KeyDown(IN_SPEED)
-	local sprinting = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK)) && ply:KeyDown(IN_SPEED)
 	
-		if self.ManuallyReloading == true or self.Loading == true or self.Idle == 0 then return end
+	local n, s, e, w = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT)
+	local walking = (n or s or e or w)
+	local sprinting = walking && ply:KeyDown(IN_SPEED)
 	
-		local idleanim = vm:SelectWeightedSequence(ACT_VM_IDLE)
-		local walkanim = vm:SelectWeightedSequence(ACT_WALK)
-		local sprintanim = vm:SelectWeightedSequence(ACT_RUN)
-		local swimidleanim = vm:SelectWeightedSequence(ACT_SWIM_IDLE)
-		local swimminganim = vm:SelectWeightedSequence(ACT_SWIM)
-		local fireanim = vm:SelectWeightedSequence(ACT_VM_PRIMARYATTACK)
-		local firedur = vm:SequenceDuration(fireanim)
-		
-		local reloadanim = vm:SelectWeightedSequence( ACT_VM_RELOAD )
-		local walkanim = vm:SelectWeightedSequence( ACT_WALK )
-		
-		local anim = vm:GetSequence()
-		local animdata = vm:GetSequenceInfo(anim)
-		
-		if self.SightsDown && CurTime() > self.LastFireAnimTime then
-			vm:SendViewModelMatchingSequence(idleanim)
-		return end
-		
-		if self.IsDoingMelee == true then 
-			self.FPAnimMul = 1
+	local ct = CurTime()
+	
+	if self.ManuallyReloading == true or self.Loading == true or self:GetNextPrimaryFire() > ct or self:GetNextSecondaryFire() > ct or self.PreventIdleTimer > ct then return end
+	
+	local idleanim = vm:SelectWeightedSequence(ACT_VM_IDLE)
+	local walkanim = vm:SelectWeightedSequence(ACT_WALK)
+	local sprintanim = vm:SelectWeightedSequence(ACT_RUN)
+	local swimidleanim = vm:SelectWeightedSequence(ACT_SWIM_IDLE)
+	local swimminganim = vm:SelectWeightedSequence(ACT_SWIM)
+	local fireanim = vm:SelectWeightedSequence(ACT_VM_PRIMARYATTACK)
+	local firedur = vm:SequenceDuration(fireanim)
+	local jumpanim = vm:SelectWeightedSequence(ACT_JUMP)
+	local jumpdur = vm:SequenceDuration(jumpanim)
+	
+	if !self.JumpWait then self.JumpWait = 0 end
+	
+	local reloadanim = vm:SelectWeightedSequence( ACT_VM_RELOAD )
+	local walkanim = vm:SelectWeightedSequence( ACT_WALK )
+	
+	local anim = vm:GetSequence()
+	local animdata = vm:GetSequenceInfo(anim)
+	local animact = animdata.activity
+	
+	if self.SightsDown && ct > self.LastFireAnimTime then
+		vm:SendViewModelMatchingSequence(idleanim)
+	return end
+	
+	if jumpanim != -1 && ply:KeyPressed(IN_JUMP) && (ct >= self.JumpWait) then
+		self:PlayAnim(ACT_JUMP)
+		self.JumpWait = ct + jumpdur
+	end
+	
+	if DRC:FloorDist(ply, 25) < 1 or ply:IsOnGround() then
+		if self.JumpWait > ct then self.JumpWait = 0 end
+		self.ShouldWalkBlend = true
+	else
+		self.ShouldWalkBlend = false
+	end
+	
+	if !walking && !sprinting then
+		self.AnimToPlay = ACT_VM_IDLE
+	elseif walking && !sprinting then
+		if walkanim == -1 then
+			self.AnimToPlay = ACT_VM_IDLE
 		else
-			if slowvar && CurTime() > self.LastFireAnimTime then
-				self.FPAnimMul = 0.5
-			else
-				self.FPAnimMul = 1
-			end
+			self.AnimToPlay = ACT_WALK
 		end
+	elseif sprinting && !cv then
+		if sprintanim == -1 then
+			self.AnimToPlay = ACT_VM_IDLE
+		else
+			self.AnimToPlay = ACT_RUN
+		end
+	end
+	
+--	if animact != self.AnimToPlay then self.IdleTimer = CurTime() end
+--	ply:ChatPrint(""..tostring(animact).." - "..tostring(self.AnimToPlay).."")
+	
+	if animact != self.AnimToPlay && (ct >= self.JumpWait) then self.IdleTimer = ct end
+	
 		
-		if !walking && !sprinting then
-			self.AnimToPlay = idleanim
-		elseif walking then
-			vm:SetPlaybackRate(self.FPAnimMul)
-			if walkanim == -1 then
-				self.AnimToPlay = idleanim
-			else
-				self.AnimToPlay = walkanim
-			end
-		elseif sprinting && !cv then
-			if sprintanim == -1 then
-				self.AnimToPlay = idleanim
-			else
-				self.AnimToPlay = sprintanim
-			end
-		end
+--	self.AnimToPlay = ACT_VM_IDLE
 		
-		if walking then
-			if animdata.activityname == "ACT_VM_IDLE" or animdata.activityname == "ACT_RUN" then self.IdleTimer = CurTime() end
-		elseif sprinting then
-			if animdata.activityname == "ACT_WALK" or animdata.activityname == "ACT_VM_IDLE" then self.IdleTimer = CurTime() end
-		elseif !walking or !sprinting then
-			if animdata.activityname == "ACT_WALK" or animdata.activityname == "ACT_RUN" then self.IdleTimer = CurTime() end
-		end
-		
-		if self.IdleTimer <= CurTime() then
-			if idleanim == -1 then return end
-			vm:SendViewModelMatchingSequence(self.AnimToPlay)
-			if self.AnimToPlay == walkanim then
-				if slowvar then
-					self.IdleTimer = CurTime() + (vm:SequenceDuration(self.AnimToPlay) * 2)
-				else
-					self.IdleTimer = CurTime() + vm:SequenceDuration(self.AnimToPlay)
-				end
-			else
-				self.IdleTimer = CurTime() + vm:SequenceDuration(self.AnimToPlay)
-			end
-		end
-
-	if self.IdleTimer <= CurTime() then
-		vm:ResetSequence(idleanim)
-		vm:ResetSequence(reloadanim)
-		vm:ResetSequence(walkanim)
+	if self.IdleTimer <= ct then
+		if idleanim == -1 then return end
+		self:PlayAnim(self.AnimToPlay)
 	end
 end
 
@@ -1460,6 +1494,7 @@ function SWEP:Reload()
 end
 
 function SWEP:Deploy()
+	if game.SinglePlayer() then self:CallOnClient("Deploy") end
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
 	
@@ -1472,19 +1507,20 @@ function SWEP:Deploy()
 	local drawaniminitial = vm:SelectWeightedSequence( ACT_VM_DRAW_EMPTY )
 	local drawanimdur = vm:SequenceDuration(drawanim)
 	local drawaniminitialdur = vm:SequenceDuration(drawaniminitial)
+	self.IdleTimer = CurTime() + drawaniminitialdur
 	self:SetNextPrimaryFire( CurTime() + drawanimdur)
 	self:SetNextSecondaryFire( CurTime() + drawanimdur)
 	vm:SetPlaybackRate( 1 )
 	self:SetIronsights(false)
 	self.SightsDown = false
 	if self:GetNWBool("Passive") == true then self:TogglePassive() end
-	self.Idle = 1
+	self.Idle = 0
 	self.IsTaunting = 0
 	self.Inspecting = false
 	self:SetNWBool("Inspecting", false)
 	self.EmptyReload = 0
 	self.ManuallyReloading 	= false
-	self.Loading			= false
+	self.Loading			= true
 	
 	if self.Thirdperson == true && ply:IsPlayer() && CLIENT then DRC:ThirdPerson_PokeLiveAngle(ply) end
 	
@@ -1494,20 +1530,22 @@ function SWEP:Deploy()
 	
 	if ply:IsPlayer() then
 		self.DManip_PlyID = "DRC_DManip_" ..ply:Name().. ""
-		self.Idle = 0
+		self.IdleTimer = CurTime() + drawanimdur
 		if self.Readied == true or drawaniminitial == -1 then
-			self:SendWeaponAnim( ACT_VM_DRAW )
+			self:PlayAnim( ACT_VM_DRAW )
 			timer.Simple(drawanimdur, function()
 				self.Readied = true
+				self.Loading = false
 				self.Idle = 1
 			end)
 			self.IdleTimer = CurTime() + drawanimdur
 		else
-			self:SendWeaponAnim( ACT_VM_DRAW_EMPTY )
-			self.IdleTimer = CurTime() + drawaniminitialdur
+			self:PlayAnim( ACT_VM_DRAW_EMPTY )
+		--	self.IdleTimer = CurTime() + drawaniminitialdur
 			timer.Simple(drawaniminitialdur, function()
 				self.Readied = true
-				self:SetNWBool("Readied", true)
+			--	self:SetNWBool("Readied", true)
+				self.Loading = false
 				self.Idle = 1
 			end)
 
@@ -1614,6 +1652,8 @@ function SWEP:Holster()
 	self.SightsDown = false
 	self:SetNWBool("Inspecting", false)
 	
+	self:ClearBurstQueue()
+	
 	if self.ChargeSound then self:StopSound(self.ChargeSound) end
 	if self.Primary.LoopingFireSound then self:StopSound(self.Primary.LoopingFireSound) end
 	if self.Primary.LoopingFireSoundIn then self:StopSound(self.Primary.LoopingFireSoundIn) end
@@ -1712,18 +1752,13 @@ function SWEP:Inspect()
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
 	if !ply:IsPlayer() then return end
-	local vm = ply:GetViewModel()
 	
 	self.Inspecting = true
 	self:SetNWBool("InspectCamLerp", true)
-	if game.SinglePlayer() && !IsFirstTimePredicted() then return end
+	if !IsFirstTimePredicted() then return end
 	local inspectanim = self:SelectWeightedSequence(ACT_VM_FIDGET)
 	local inspectdur = self:SequenceDuration(inspectanim)
-	
---	self:SendWeaponAnim(ACT_VM_FIDGET)
-	vm:SendViewModelMatchingSequence(inspectanim)
-	
-	self.IdleTimer = CurTime() + inspectdur
+	self:PlayAnim(ACT_VM_FIDGET)
 	
 	timer.Simple( inspectdur, function() if IsValid(self) then self:EnableInspection() end end)
 end
@@ -1756,12 +1791,19 @@ function SWEP:IdleCheck()
 	elseif ply:GetVelocity():Length() > 0 then return false else return true end
 end
 
+function SWEP:DoImpactEffect(tr, dt)
+	if game.SinglePlayer() && CLIENT then return true end
+	if !game.SinglePlayer() && SERVER then return true end
+	if CurTime() < self.LastMeleeImpactTime + 0.1 then return true else return false end
+	if self.HideImpacts == true then return true else return false end
+end
+
 function SWEP:DrawWeaponSelection( x, y, wide, tall, alpha )
 
 	if isnumber(self.WepSelectIcon) then
-		surface.SetTexture( self.WepSelectIcon )
+		surface.SetTexture(self.WepSelectIcon)
 	elseif isstring(self.WepSelectIcon) then
-		surface.SetTexture( surface.GetTextureID( self.WepSelectIcon ) )
+		surface.SetTexture(surface.GetTextureID( self.WepSelectIcon ))
 	end
 	surface.SetDrawColor( 255, 255, 255, alpha )
 
@@ -1820,6 +1862,8 @@ function SWEP:CanUseSights()
 	if !ply:IsPlayer() then return end
 	local oh = self:GetNWBool("Overheated")
 	
+	if self.IsDoingMelee == true then self:SetIronsights(false) return false end
+	
 	if IsValid(ply:GetVehicle()) then self:SetIronsights(false) return false end
 	if self:GetNWBool("Passive") == true then return false end
 	
@@ -1828,8 +1872,9 @@ function SWEP:CanUseSights()
 	if (oh or self.Loading == true or self.ManuallyReloading == true) && self.LoadAfterShot == false then 
 		self.SightsDown = false
 		self:SetIronsights(false)
-		return false
-	else return true end
+	return false end
+	
+	return true
 end
 
 function SWEP:IronCoolDown()
@@ -2052,6 +2097,37 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 	self.ActiveAttachments = {
 		AmmunitionTypes = ammo,
 	}
+	
+	self:PreCalcSpread()
+end
+
+function SWEP:PreCalcRPM()
+	self.PrimaryStats.PreCalcRPM = 60/self.Primary.RPM
+	self.SecondaryStats.PreCalcRPM = 60/self.Secondary.RPM
+	self.OCStats.PreCalcRPM = 60/self.Primary.OCRPM
+end
+
+function SWEP:PreCalcSpreadAttachments()
+	if !IsValid(self) then return end
+	if !self.AttachmentStats then self.AttachmentStats = {} end
+	
+	self.AttachmentStats.PreCalcSpread = self:GetAttachmentValue("Ammunition", "Spread") / self:GetAttachmentValue("Ammunition", "SpreadDiv")
+end
+
+function SWEP:PreCalcSpreadMain()
+	if !IsValid(self) then return end
+	if !self.PrimaryStats then self.PrimaryStats = {} end
+	if !self.SecondaryStats then self.SecondaryStats = {} end
+	if !self.OCStats then self.OCStats = {} end
+
+	self.PrimaryStats.PreCalcSpread = self.Primary.Spread / self.Primary.SpreadDiv
+	self.SecondaryStats.PreCalcSpread = self.Secondary.Spread / self.Secondary.SpreadDiv
+	self.OCStats.PreCalcSpread = self.OCSpread / self.OCSpreadDiv
+end
+
+function SWEP:PreCalcSpread()
+	self:PreCalcSpreadAttachments()
+	self:PreCalcSpreadMain()
 end
 
 function SWEP:SetupDataTables()
@@ -2060,7 +2136,11 @@ function SWEP:SetupDataTables()
 	self:SetNWFloat("Charge", 0)
 	self:SetNWBool("Passive", false)
 	self:SetNWBool("Inspecting", false)
+	self:SetNWBool("ThirdpersonForceFreelook", false)
 	
+	self.AttachmentStats = {}
+	
+	if self.IsMelee == false then
 	self.PrimaryStats = {
 		Damage = self.Primary.Damage,
 		Projectile = self.Primary.Projectile,
@@ -2083,6 +2163,7 @@ function SWEP:SetupDataTables()
 		Automatic = self.Primary.Automatic,
 		CanFireUnderwater = self.Primary.CanFireUnderwater,
 		RPM = self.Primary.RPM,
+		PreCalcRPM = 60/self.Primary.RPM,
 		ClipSize = self.Primary.ClipSize,
 		DefaultClip = self.Primary.DefaultClip,
 		DropMagReload = self.Primary.DropMagReload,
@@ -2122,6 +2203,7 @@ function SWEP:SetupDataTables()
 		Automatic = self.Secondary.Automatic,
 		CanFireUnderwater = self.Secondary.CanFireUnderwater,
 		RPM = self.Secondary.RPM,
+		PreCalcRPM = 60/self.Secondary.RPM,
 		ClipSize = self.Secondary.ClipSize,
 		DefaultClip = self.Secondary.DefaultClip,
 		DropMagReload = self.Secondary.DropMagReload,
@@ -2161,6 +2243,7 @@ function SWEP:SetupDataTables()
 		Automatic = self.OCAutomatic,
 		CanFireUnderwater = self.OCCanFireUnderwater,
 		RPM = self.OCRPM,
+		PreCalcRPM = 60/self.OCRPM,
 		ClipSize = self.OCClipSize,
 		DefaultClip = self.OCDefaultClip,
 		DropMagReload = self.OCDropMagReload,
@@ -2178,6 +2261,7 @@ function SWEP:SetupDataTables()
 		DistSound = self.OCDistSound,
 		SoundDistance = self.OCSoundDistance
 	}
+	end
 	
 	self.InfoStats = {
 		Name = self.PrintName,
@@ -2219,6 +2303,35 @@ function SWEP:SetupDataTables()
 	}
 	
 	if self.BatteryConsumPerShot then self.BatteryStats.BatteryConsumePerShot = self.BatteryConsumPerShot end
+end
+
+function SWEP:PlayAnim(act, preventstuff, important)
+	if !game.IsDedicated() && !IsFirstTimePredicted() then return end
+	local seq = self:SelectWeightedSequence(act)
+	if seq == -1 then return end
+	local ct = CurTime()
+	local seqdur = self:SequenceDuration(seq)
+	self:ResetSequence(seq)
+	self:ResetSequenceInfo()
+	self:SendWeaponAnim(act)
+	self.IdleTimer = ct + seqdur
+	
+	if important && important == true then
+		self.PreventIdleTimer = ct + seqdur
+	end
+	
+	if preventstuff && preventstuff == true then
+		self:SetNextPrimaryFire(ct + seqdur)
+		self:SetNextSecondaryFire(ct + seqdur)
+		self.LockoutTime = ct + seqdur
+	end
+	
+--	local ply = self:GetOwner()
+--	if IsValid(ply) && IsValid(self) && ply:IsPlayer() then
+--		local vm = ply:GetViewModel()
+--		vm:ResetSequence(seq)
+--		vm:ResetSequenceInfo()
+--	end
 end
 
 function SWEP:GetNPCBurstSettings()

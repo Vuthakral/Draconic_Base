@@ -31,9 +31,7 @@ SWEP.InfoDescription = "When your rounds are spent, blades dull, and patience di
 SWEP.HoldType	= "normal"
 
 SWEP.Primary.SwingSound			= Sound( "draconic.PunchFoley" )
-SWEP.Primary.HitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
-SWEP.Primary.HitSoundFlesh 		= Sound( "draconic.PunchImpact" )
-SWEP.Primary.HitSoundEnt 		= Sound( "draconic.PunchImpact_obj" )
+SWEP.Primary.HitSound 			= "meleesoft"
 SWEP.Primary.HoldType			= "fist"
 SWEP.Primary.CrouchHoldType		= "melee"
 SWEP.Primary.ImpactDecal 		= ""
@@ -46,7 +44,7 @@ SWEP.Primary.Force				= 10
 SWEP.Primary.DelayMiss			= 0.65
 SWEP.Primary.DelayHit 			= 0.65
 SWEP.Primary.CanAttackCrouched = true
-SWEP.Primary.HitActivity		= ACT_VM_IDLE
+SWEP.Primary.HitActivity		= nil
 SWEP.Primary.CrouchHitActivity	= nil
 SWEP.Primary.MissActivity		= ACT_VM_SECONDARYATTACK
 SWEP.Primary.CrouchMissActivity	= ACT_VM_HITLEFT
@@ -63,11 +61,9 @@ SWEP.Primary.LungeRequiresTarget= false
 SWEP.Primary.LungeVelocity		= 1000
 SWEP.Primary.LungeMaxDist		= 100
 SWEP.Primary.LungeSwingSound	= Sound( "draconic.PunchFoley" )
-SWEP.Primary.LungeHitSoundWorld = Sound( "draconic.PunchImpact_obj" )
-SWEP.Primary.LungeHitSoundFlesh = Sound( "draconic.PunchImpact" )
-SWEP.Primary.LungeHitSoundEnt	= Sound( "draconic.PunchImpact_obj" )
-SWEP.LungeHoldType				= "fist"
-SWEP.LungeHoldTypeCrouch		= "melee"
+SWEP.Primary.LungeHitSound		= "meleehard"
+SWEP.Primary.LungeHoldType		= "fist"
+SWEP.Primary.LungeHoldTypeCrouch= "melee"
 SWEP.Primary.LungeImpactDecal 	= ""
 SWEP.Primary.LungeBurnDecal 	= ""
 SWEP.Primary.LungeHitAct		= nil
@@ -87,9 +83,7 @@ SWEP.Primary.LungeEndY			= 3
 SWEP.Primary.LungeShakeMul		= 1
 
 SWEP.Secondary.SwingSound			= Sound( "draconic.PunchFoley" )
-SWEP.Secondary.HitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
-SWEP.Secondary.HitSoundFlesh 		= Sound( "draconic.PunchImpact" )
-SWEP.Secondary.HitSoundEnt 			= Sound( "draconic.PunchImpact_obj" )
+SWEP.Secondary.HitSound 			= "meleesoft"
 SWEP.Secondary.HoldType				= "fist"
 SWEP.Secondary.CrouchHoldType		= "melee"
 SWEP.Secondary.ImpactDecal 			= ""
@@ -102,7 +96,7 @@ SWEP.Secondary.Force				= 10
 SWEP.Secondary.DelayMiss			= 0.65
 SWEP.Secondary.DelayHit 			= 0.65
 SWEP.Secondary.CanAttackCrouched 	= true
-SWEP.Secondary.HitActivity			= ACT_VM_IDLE
+SWEP.Secondary.HitActivity			= nil
 SWEP.Secondary.CrouchHitActivity	= nil
 SWEP.Secondary.MissActivity			= ACT_VM_PRIMARYATTACK
 SWEP.Secondary.CrouchMissActivity	= ACT_VM_HITRIGHT
@@ -146,16 +140,16 @@ function SWEP:DoCustomThink()
 	end
 	
 	if cv then
-		self.Primary.StartX		= -45
-		self.Primary.StartY		= -20
-		self.Primary.EndX		= 45
-		self.Primary.EndY		= 20
+		self.Primary.StartX		= 45
+		self.Primary.StartY		= 20
+		self.Primary.EndX		= -45
+		self.Primary.EndY		= -20
 		self.Primary.Range		= 15
 		
-		self.Secondary.StartX	= 45
-		self.Secondary.StartY	= -20
-		self.Secondary.EndX		= -45
-		self.Secondary.EndY		= 20
+		self.Secondary.StartX	= -45
+		self.Secondary.StartY	= 20
+		self.Secondary.EndX		= 45
+		self.Secondary.EndY		= -20
 		self.Secondary.Range	= 15
 	else
 		self.Primary.StartX		= 50
@@ -232,34 +226,17 @@ function SWEP:DoCustomDeploy()
 		self.Secondary.MissActivity = ACT_VM_HITLEFT2
 		self.Secondary.CrouchMissActivity = ACT_VM_HITLEFT2
 		self.Primary.SwingSound					= Sound( "draconic.ClawFoley" )
-		self.Primary.HitSoundWorld 				= Sound( "draconic.PunchImpact_obj" )
-		self.Primary.HitSoundFlesh 				= Sound( "draconic.ClawImpact" )
-		self.Primary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
 		self.Primary.LungeSwingSound			= Sound( "draconic.PunchFoley" )
-		self.Primary.LungeHitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
-		self.Primary.LungeHitSoundFlesh 		= Sound( "draconic.PunchFoley" )
-		self.Primary.LungeHitSoundEnt 			= Sound( "draconic.PunchImpact_obj" )
 		self.Secondary.SwingSound				= Sound( "draconic.ClawFoley" )
-		self.Secondary.HitSoundWorld 			= Sound( "draconic.PunchImpact_obj" )
-		self.Secondary.HitSoundFlesh 			= Sound( "draconic.ClawImpact" )
-		self.Secondary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
+	--	self.Secondary.HitSoundFlesh 			= Sound( "draconic.ClawImpact" )
 	else
 		self.Primary.MissActivity = ACT_VM_SECONDARYATTACK
 		self.Primary.CrouchMissActivity = ACT_VM_SECONDARYATTACK
 		self.Secondary.MissActivity = ACT_VM_PRIMARYATTACK
 		self.Secondary.CrouchMissActivity = ACT_VM_PRIMARYATTACK
 		self.Primary.SwingSound					= Sound( "draconic.PunchFoley" )
-		self.Primary.HitSoundWorld 				= Sound( "draconic.PunchImpact_obj" )
-		self.Primary.HitSoundFlesh 				= Sound( "draconic.PunchImpact" )
-		self.Primary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
 		self.Primary.LungeSwingSound			= Sound( "draconic.PunchFoley" )
-		self.Primary.LungeHitSoundWorld 		= Sound( "draconic.PunchImpact_obj" )
-		self.Primary.LungeHitSoundFlesh 		= Sound( "draconic.PunchImpact" )
-		self.Primary.LungeHitSoundEnt 			= Sound( "draconic.PunchImpact_obj" )
 		self.Secondary.SwingSound				= Sound( "draconic.PunchFoley" )
-		self.Secondary.HitSoundWorld 			= Sound( "draconic.PunchImpact_obj" )
-		self.Secondary.HitSoundFlesh 			= Sound( "draconic.PunchImpact" )
-		self.Secondary.HitSoundEnt 				= Sound( "draconic.PunchImpact_obj" )
 	end
 end
 

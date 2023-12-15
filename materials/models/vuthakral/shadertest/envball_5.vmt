@@ -7,9 +7,6 @@
 	$cmtint		"[ 1 1 1 ]"
 	$cmlightsat	0
 
-	$envmapfallback	"engine\defaultcubemap"
-	$cmpower_fb	1
-
 	$bpm 30
 
 	Proxies

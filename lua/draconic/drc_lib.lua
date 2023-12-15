@@ -1,5 +1,5 @@
 Draconic = {
-	["Version"] = 1.01,
+	["Version"] = 1.02,
 	["Help"] = "https://github.com/Vuthakral/Draconic_Base/wiki",
 	["Author"] = "Vuthakral",
 }
@@ -91,8 +91,8 @@ DRC.Skel = {
 	["Spine4"] = { ["Name"] = "ValveBiped.Bip01_Spine4", ["Scale"] = Vector(1,0.5,1) },
 	["Neck"] = { ["Name"] = "ValveBiped.Bip01_Neck1", ["Offset"] = Vector(0,0,0), ["Scale"] = Vector(0, 0, 0) },
 	["Head"] = { ["Name"] = "ValveBiped.Bip01_Head1", ["Offset"] = Vector(0,0,0), ["Scale"] = Vector(0, 0, 0) },
-	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -25, 0) },
-	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -25, 0) },
+	["LeftArm"] = { ["Name"] = "ValveBiped.Bip01_L_Clavicle", ["Offset"] = Vector(0, -35, 0) },
+	["RightArm"] = { ["Name"] = "ValveBiped.Bip01_R_Clavicle", ["Offset"] = Vector(0, -35, 0) },
 	["LeftHand"] = { ["Name"] = "ValveBiped.Bip01_L_Hand", ["Offset"] = Vector(0, 0, 0) },
 	["RightHand"] = { ["Name"] = "ValveBiped.Bip01_R_Hand", ["Offset"] = Vector(0, 0, 0) },
 }
@@ -139,98 +139,235 @@ DRC.MaterialCategories.Dust = {
 }
 
 -- First entry in table is used for sound references, anything else is for particle systems.
--- Sound references: cardboard, dirt, flesh, glass, metal, metalhollow/metaldrum, metalvent, mud, rubber, rubble, sand/dust, shards, snow, synth/bugshell, tile, wood, stone
--- All existing references: cardboard, bugshell, dirt, dust, flesh, gas, glass, liquid, metal, metaldrum, metalhollow, paint, plastic, rubble, sand, shards, snow, synth, tile, wood, stone
+-- Sound references: cardboard, computer, dirt, flesh, glass, metal, metalhollow, metaldrum, metalvent, mud, plastic, rubber, rubble, sand, snow, bugshell, tile, wood, stone
+-- All existing references: cardboard, computer, bugshell, dirt, dust, flesh, gas, glass, liquid, metal, metaldrum, metalhollow, paint, plastic, rubble, sand, shards, snow, synth, tile, wood, stone
 DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth, plastic, gas, liquid, computer, cardboard
-	["MAT_DEFAULT"] = {"stone", "dust"},
-	["MAT_CLIP"] = {"stone", "dust"},
-	["MAT_NO_DECAL"] = {"stone", "dust"},
-	["MAT_ANTLION"] = {"flesh"},
-	["MAT_FLESH"] = {"flesh"},
-	["MAT_ARMORFLESH"] = {"flesh"},
-	["MAT_BLOODYFLESH"] = {"flesh"},
-	["MAT_ZOMBIEFLESH"] = {"flesh"},
-	["MAT_ALIENFLESH"] = {"flesh"},
-	["MAT_WATERMELON"] = {"flesh"},
-	["MAT_STRIDER"] = {"metal", "synth"},
-	["MAT_HUNTER"] = {"bugshell", "synth"},
-	["MAT_PAPER"] = {"dirt", "dust"},
-	["MAT_EGGSHELL"] = {"dirt"},
-	["MAT_ANTLION_EGGSHELL"] = {"bugshell"},
-	["MAT_PLASTIC"] = {"plastic", "dust"},
-	["MAT_PLASTIC_BARREL"] = {"plastic", "dust"},
-	["MAT_PLASTIC_BOX"] = {"plastic", "dust"},
-	["MAT_PAINTCAN"] = {"metal", "paint"},
-	["MAT_POPCAN"] = {"metal", "liquid"},
-	["MAT_CANISTER"] = {"metaldrum", "gas"},
-	["MAT_VENT"] = {"metal"},
-	["MAT_GRENADE"] = {"metal"},
-	["MAT_WEAPON"] = {"plastic", "metal"},
-	["MAT_ITEM"] = {"metal"},
-	["MAT_CROWBAR"] = {"metal"},
-	["MAT_METAL"] = {"metal"},
-	["MAT_GRATE"] = {"metal"},
-	["MAT_METALGRATE"] = {"metal"},
-	["MAT_METALVEHICLE"] = {"metal", "metalhollow"},
-	["MAT_METALVENT"] = {"metalvent", "metal"},
-	["MAT_CHAINLINK"] = {"chainlink"},
-	["MAT_WARPSHIELD"] = {"metal"},
-	["MAT_COMBINE_METAL"] = {"metal", "metalhollow"},
-	["MAT_COMBINE_GLASS"] = {"glass", "shards"},
-	["MAT_GUNSHIP"] = {"synth", "metalhollow"},
-	["MAT_ROLLER"] = {"metalhollow", "computer"},
-	["MAT_SOLIDMETAL"] = {"metal"},
-	["MAT_SLIPPERYMETAL"] = {"metal"},
-	["MAT_METALPANEL"] = {"metal"},
-	["MAT_METAL_BARREL"] = {"metaldrum"},
-	["MAT_FLOATING_METAL_BARREL"] = {"metaldrum"},
-	["MAT_METAL_BOX"] = {"metal"},
-	["MAT_COMPUTER"] = {"computer"},
-	["MAT_JALOPY"] = {"metal", "metalhollow"},
-	["MAT_AIRBOAT"] = {"metal", "metalhollow"},
-	["MAT_CONCRETE"] = {"stone", "rubble"},
-	["MAT_BRICK"] = {"stone", "rubble"},
-	["MAT_PLASTER"] = {"plaster", "dust"},
-	["MAT_CEILING_TILE"] = {"plaster", "dust"},
-	["MAT_DIRT"] = {"dirt", "dust"},
-	["MAT_MUD"] = {"mud", "liquid"},
-	["MAT_SLOSH"] = {"water", "liquid"},
-	["MAT_WADE"] = {"water", "liquid"},
-	["MAT_WATER"] = {"water", "liquid"},
-	["MAT_FOLIAGE"] = {"wood", "dirt"},
-	["MAT_WOOD"] = {"wood", "dirt"},
-	["MAT_WOOD_FURNITURE"] = {"wood"},
-	["MAT_WOOD_SOLID"] = {"wood"},
-	["MAT_WOOD_CRATE"] = {"wood"},
-	["MAT_WOOD_PLANK"] = {"wood"},
-	["MAT_WOOD_PANEL"] = {"wood"},
-	["MAT_BOULDER"] = {"stone", "rubble", "dirt"},
-	["MAT_ROCK"] = {"stone", "rubble", "dirt"},
-	["MAT_STONE"] = {"stone", "rubble", "dirt"},
-	["MAT_GRAVEL"] = {"rubble", "dirt"},
-	["MAT_GRASS"] = {"grass", "dirt", "dust"},
-	["MAT_SAND"] = {"sand", "dust"},
-	["MAT_ANTLIONSAND"] = {"sand", "stone"},
-	["MAT_SNOW"] = {"snow", "dust"},
-	["MAT_ICE"] = {"stone", "shards"},
-	["MAT_POTTERY"] = {"tile"},
-	["MAT_PORCELAIN"] = {"tile"},
-	["MAT_TILE"] = {"tile"},
-	["MAT_GLASS"] = {"glass", "shards"},
-	["MAT_GLASSBOTTLE"] = {"shards"},
-	["MAT_GLASS_BOTTLE"] = {"shards"},
-	["MAT_RUBBER"] = {"rubber", "plastic"},
-	["MAT_RUBBERTIRE"] = {"rubber", "plastic"},
-	["MAT_CARDBOARD"] = {"cardboard", "dust"},
-	["MAT_CARPET"] = {"fabric"},
-	["MAT_FABRIC"] = {"fabric"},
-	["MAT_CLOTH"] = {"fabric"},
+	["MAT_DEFAULT"] = {"stone", "dust"}, -- engine
+	["MAT_CLIP"] = {"stone", "dust"}, -- engine
+	["MAT_NO_DECAL"] = {"stone", "dust"}, -- engine
+	["MAT_ANTLION"] = {"bugshell"}, -- hl2
+	["MAT_FLESH"] = {"flesh"}, -- engine
+	["MAT_ARMORFLESH"] = {"flesh"}, -- hl2
+	["MAT_BLOODYFLESH"] = {"flesh"}, -- hl2
+	["MAT_ZOMBIEFLESH"] = {"flesh"}, -- hl2
+	["MAT_ALIENFLESH"] = {"flesh"}, -- hl2
+	["MAT_WATERMELON"] = {"flesh"}, -- hl2
+	["MAT_STRIDER"] = {"metal", "synth"}, -- hl2
+	["MAT_HUNTER"] = {"bugshell", "synth"}, -- ep2
+	["MAT_PAPER"] = {"dirt", "dust"}, -- ???
+	["MAT_EGGSHELL"] = {"dirt"}, -- ???
+	["MAT_ANTLION_EGGSHELL"] = {"bugshell"}, -- ep2
+	["MAT_PLASTIC"] = {"plastic", "dust"}, -- hl2
+	["MAT_PLASTIC_BARREL"] = {"plastic", "dust"}, -- hl2
+	["MAT_PLASTIC_BARREL_BUOYANT"] = {"plastic", "dust"}, -- hl2
+	["MAT_PLASTIC_BOX"] = {"plastic", "dust"}, -- hl2
+	["MAT_PAINTCAN"] = {"metal", "paint"}, -- hl2
+	["MAT_POPCAN"] = {"metal", "liquid"}, -- hl2
+	["MAT_CANISTER"] = {"metaldrum", "gas"}, -- hl2
+	["MAT_CANNISTER"] = {"metaldrum", "gas"}, -- hl2, thanks valve
+	["MAT_VENT"] = {"metal"}, -- engine
+	["MAT_GRENADE"] = {"metal"}, -- hl2
+	["MAT_WEAPON"] = {"plastic", "metal"}, -- engine
+	["MAT_ITEM"] = {"metal"}, -- engine
+	["MAT_CROWBAR"] = {"metal"}, -- hl2
+	["MAT_METAL"] = {"metal"}, -- engine
+	["MAT_GRATE"] = {"metal"}, -- engine
+	["MAT_METALGRATE"] = {"metal"}, -- engine
+	["MAT_METALVEHICLE"] = {"metal", "metalhollow"}, -- hl2
+	["MAT_METALVENT"] = {"metal", "metalhollow"}, -- engine
+	["MAT_CHAINLINK"] = {"chainlink"}, -- engine
+	["MAT_WARPSHIELD"] = {"metal"}, -- hl2
+	["MAT_COMBINE_METAL"] = {"metal", "metalhollow"}, -- hl2
+	["MAT_COMBINE_GLASS"] = {"glass", "shards"}, -- hl2
+	["MAT_GUNSHIP"] = {"bugshell", "synth", "metalhollow"}, -- hl2
+	["MAT_ROLLER"] = {"metalhollow", "computer"}, -- hl2
+	["MAT_SOLIDMETAL"] = {"metal"}, -- engine
+	["MAT_SLIPPERYMETAL"] = {"metal"}, -- engine
+	["MAT_METALPANEL"] = {"metal"}, -- hl2
+	["MAT_METAL_BARREL"] = {"metaldrum"}, -- hl2
+	["MAT_FLOATING_METAL_BARREL"] = {"metaldrum"}, -- hl2
+	["MAT_METAL_BOX"] = {"metal"}, -- hl2
+	["MAT_COMPUTER"] = {"computer"}, -- hl2
+	["MAT_JALOPY"] = {"metal", "metalhollow"}, -- hl2
+	["MAT_AIRBOAT"] = {"metal", "metalhollow"}, -- hl2
+	["MAT_CONCRETE"] = {"stone", "rubble"}, -- engine
+	["MAT_CONCRETE_BLOCK"] = {"stone", "rubble"}, -- ???
+	["MAT_BRICK"] = {"stone", "rubble"}, -- hl2
+	["MAT_PLASTER"] = {"plaster", "dust"}, -- engine
+	["MAT_CEILING_TILE"] = {"plaster", "dust"}, -- HL:S (also appears in CS:S)
+	["MAT_DIRT"] = {"dirt", "dust"}, -- engine
+	["MAT_MUD"] = {"mud", "liquid"}, -- engine
+	["MAT_SLIME"] = {"mud", "liquid"}, -- hl2
+	["MAT_SLOSH"] = {"water", "liquid"}, -- CS:S
+	["MAT_WADE"] = {"water", "liquid"}, -- engine
+	["MAT_WATER"] = {"water", "liquid"}, -- engine
+	["MAT_FOLIAGE"] = {"wood", "dirt"}, -- engine
+	["MAT_HEDGEROW"] = {"wood", "dirt"}, -- CS:S
+	["MAT_WOOD"] = {"wood", "dirt"}, -- engine
+	["MAT_WOOD_FURNITURE"] = {"wood"}, -- hl2
+	["MAT_WOOD_SOLID"] = {"wood"}, -- hl2
+	["MAT_WOOD_CRATE"] = {"wood"}, -- hl2
+	["MAT_WOOD_BOX"] = {"wood"}, -- CS:S
+	["MAT_WOOD_PLANK"] = {"wood"}, -- hl2
+	["MAT_WOOD_PANEL"] = {"wood"}, -- hl2
+	["MAT_BOULDER"] = {"stone", "rubble", "dirt"}, -- hl2
+	["MAT_ROCK"] = {"stone", "rubble", "dirt"}, -- engine
+	["MAT_STONE"] = {"stone", "rubble", "dirt"}, -- engine
+	["MAT_GRAVEL"] = {"rubble", "dirt"}, -- engine
+	["MAT_GRASS"] = {"grass", "dirt", "dust"}, -- engine
+	["MAT_SAND"] = {"sand", "dust"}, -- engine 
+	["MAT_ANTLIONSAND"] = {"sand", "stone"}, -- hl2
+	["MAT_QUICKSAND"] = {"sand", "dust"}, -- ???
+	["MAT_SNOW"] = {"snow", "dust"}, -- engine
+	["MAT_ICE"] = {"stone", "shards"}, -- CS:S
+	["MAT_POTTERY"] = {"tile"}, -- hl2
+	["MAT_PORCELAIN"] = {"tile"}, -- hl2
+	["MAT_TILE"] = {"tile"}, -- engine
+	["MAT_GLASS"] = {"glass", "shards"}, -- engine
+	["MAT_GLASSBOTTLE"] = {"glass", "shards"}, -- hl2
+	["MAT_GLASS_BOTTLE"] = {"glass", "shards"}, -- hl2
+	["MAT_RUBBER"] = {"rubber", "plastic"}, -- engine
+	["MAT_RUBBERTIRE"] = {"rubber", "plastic"}, -- hl2
+	["MAT_CARDBOARD"] = {"cardboard", "dust"}, -- hl2
+	["MAT_CARPET"] = {"fabric"}, -- CS:S
+	["MAT_FABRIC"] = {"fabric"}, -- CS:S
+	["MAT_CLOTH"] = {"fabric"}, -- engine
 }
 
 function DRC:GetDRCMaterial(ent, optbone)
 	if !optbone then optbone = 0 end
 	return DRC.SurfacePropDefinitions[DRC:SurfacePropToEnum(ent:GetBoneSurfaceProp(optbone))]
 end
+
+if !DRC.MaterialSounds then DRC.MaterialSounds = {} end
+function DRC:GetMaterialSound(pack, mat)
+	if mat == -1 then mat = 0 end
+	local ptu
+	mat = DRC:SurfacePropToEnum(util.GetSurfacePropName(mat))
+--	if mat = "MAT_DEFAULT_SILENT" then return "", "" end
+	if DRC.MaterialSounds[pack] then ptu = DRC.MaterialSounds[pack] else ptu = DRC.MaterialSounds.default end
+	local snd, snd2 = DRC.SurfacePropDefinitions[mat][1] or "fallback", ptu.overlay or ""
+	if ptu[snd] then snd = ptu[snd] else snd = ptu.fallback end
+	return snd, snd2
+end
+
+function DRC:RegisterMaterialSounds(name, tbl)
+	DRC.MaterialSounds[name] = tbl
+end
+
+--cardboard, dirt, flesh, glass, metal, metalhollow/metaldrum, metalvent, mud, rubber, rubble, sand/dust, shards, snow, synth/bugshell, tile, wood, stone
+local hl2meleehard = {
+	["fallback"] = "Concrete.ImpactHard",
+	["dirt"] = "Sand.BulletImpact",
+	["grass"] = "Sand.BulletImpact",
+	["flesh"] = "Flesh.ImpactHard",
+	["cardboard"] = "Cardboard.ImpactHard",
+	["fabric"] = "Sand.BulletImpact",
+	["computer"] = "Computer.ImpactHard",
+	["glass"] = "Glass.ImpactHard",
+	["metal"] = "SolidMetal.ImpactHard",
+	["metalhollow"] = "Metal_Barrel.ImpactHard",
+	["metaldrum"] = "Metal_Barrel.ImpactHard",
+	["metalvent"] = "Metal_Barrel.ImpactHard",
+	["chainlink"] = "ChainLink.ImpactHard",
+	["mud"] = "Mud.BulletImpact",
+	["rubber"] = "Rubber.ImpactHard",
+	["rubble"] = "Gravel.ImpactHard",
+	["sand"] = "Sand.ImpactHard",
+	["plaster"] = "drywall.ImpactHard",
+	["snow"] = "Snow.ImpactHard",
+	["bugshell"] = "FX_AntlionImpact.ShellImpact",
+	["tile"] = "Tile.ImpactHard",
+	["wood"] = "Wood.ImpactHard",
+	["stone"] = "Concrete.ImpactHard",
+	["tile"] = "Concrete.ImpactHard",
+}
+DRC:RegisterMaterialSounds("meleehard", hl2meleehard)
+
+local hl2meleesoft = {
+	["fallback"] = "Concrete.ImpactSoft",
+	["dirt"] = "Sand.BulletImpact",
+	["grass"] = "Sand.BulletImpact",
+	["flesh"] = "Flesh.ImpactSoft",
+	["cardboard"] = "Cardboard.ImpactSoft",
+	["fabric"] = "Sand.BulletImpact",
+	["computer"] = "Computer.ImpactSoft",
+	["glass"] = "Glass.ImpactSoft",
+	["metal"] = "SolidMetal.ImpactSoft",
+	["metalhollow"] = "Metal_Barrel.ImpactSoft",
+	["metaldrum"] = "Metal_Barrel.ImpactSoft",
+	["metalvent"] = "Metal_Barrel.ImpactSoft",
+	["chainlink"] = "ChainLink.ImpactSoft",
+	["mud"] = "Mud.BulletImpact",
+	["rubber"] = "Rubber.ImpactSoft",
+	["rubble"] = "Gravel.ImpactSoft",
+	["sand"] = "Sand.ImpactSoft",
+	["plaster"] = "drywall.ImpactSoft",
+	["snow"] = "Snow.ImpactSoft",
+	["bugshell"] = "FX_AntlionImpact.ShellImpact",
+	["tile"] = "Tile.ImpactSoft",
+	["wood"] = "Wood.ImpactSoft",
+	["stone"] = "Concrete.ImpactSoft",
+	["tile"] = "Concrete.ImpactSoft",
+}
+DRC:RegisterMaterialSounds("meleesoft", hl2meleesoft)
+
+local hl2bulletsnd = {
+	["fallback"] = "Concrete.BulletImpact",
+	["dirt"] = "Sand.BulletImpact",
+	["grass"] = "Sand.BulletImpact",
+	["flesh"] = "Flesh.BulletImpact",
+	["cardboard"] = "Cardboard.BulletImpact",
+	["fabric"] = "Sand.BulletImpact",
+	["computer"] = "Computer.BulletImpact",
+	["glass"] = "Glass.BulletImpact",
+	["metal"] = "SolidMetal.BulletImpact",
+	["metalhollow"] = "Metal_Barrel.BulletImpact",
+	["metaldrum"] = "Metal_Barrel.BulletImpact",
+	["metalvent"] = "Metal_Barrel.BulletImpact",
+	["chainlink"] = "ChainLink.BulletImpact",
+	["mud"] = "Mud.BulletImpact",
+	["rubber"] = "Rubber.BulletImpact",
+	["rubble"] = "Gravel.BulletImpact",
+	["sand"] = "Sand.BulletImpact",
+	["plaster"] = "Dirt.BulletImpact",
+	["snow"] = "Snow.BulletImpact",
+	["bugshell"] = "FX_AntlionImpact.ShellImpact",
+	["tile"] = "Tile.BulletImpact",
+	["wood"] = "Wood.BulletImpact",
+	["stone"] = "Concrete.BulletImpact",
+	["tile"] = "Tile.BulletImpact",
+}
+DRC:RegisterMaterialSounds("default", hl2bulletsnd)
+
+local hl2gunhard = {
+	["overlay"] = "weapon.ImpactHard",
+	["fallback"] = "Concrete.ImpactHard",
+	["dirt"] = "Sand.BulletImpact",
+	["grass"] = "Sand.BulletImpact",
+	["flesh"] = "Flesh.ImpactHard",
+	["cardboard"] = "Cardboard.ImpactHard",
+	["fabric"] = "Sand.BulletImpact",
+	["computer"] = "Computer.ImpactHard",
+	["glass"] = "Glass.ImpactHard",
+	["metal"] = "SolidMetal.ImpactHard",
+	["metalhollow"] = "Metal_Barrel.ImpactHard",
+	["metaldrum"] = "Metal_Barrel.ImpactHard",
+	["metalvent"] = "Metal_Barrel.ImpactHard",
+	["chainlink"] = "ChainLink.ImpactHard",
+	["mud"] = "Mud.BulletImpact",
+	["rubber"] = "Rubber.ImpactHard",
+	["rubble"] = "Gravel.ImpactHard",
+	["sand"] = "Sand.ImpactHard",
+	["plaster"] = "drywall.ImpactHard",
+	["snow"] = "Snow.ImpactHard",
+	["bugshell"] = "FX_AntlionImpact.ShellImpact",
+	["tile"] = "Tile.ImpactHard",
+	["wood"] = "Wood.ImpactHard",
+	["stone"] = "Concrete.ImpactHard",
+	["tile"] = "Concrete.ImpactHard",
+}
+DRC:RegisterMaterialSounds("meleegunhard", hl2gunhard)
 
 DRC.HelperEnts = {
 	["ai_ally_manager"] = "ally_manager",
@@ -273,6 +410,8 @@ DRC.HelperEnts = {
 	["func_brush"] = "brush",
 	["info_ladder_dismount"] = "ladder_exit",
 	["func_ladder"] = "ladder",
+	["func_smokevolume"] = "smoke",
+	["func_precipitation"] = "rain",
 	["beam"] = "beam",
 	["move_rope"] = "ropephysics",
 	["scene_manager"] = "cinematic",
@@ -304,9 +443,11 @@ DRC.HoldTypes = {
 		["idle"] = ACT_RESET,
 		["cidle"] = ACT_RESET,
 		["jump"] = ACT_RESET,
+		["melee"] = ACT_RESET,
 		["npc"] = {
 			["attack"] = ACT_RESET,
 			["reload"] = ACT_RESET,
+			["melee"] = ACT_RESET,
 		}
 	},
 	["pistol"] = {
@@ -319,6 +460,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_PISTOL,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_PISTOL,
 		["jump"] = ACT_HL2MP_JUMP_PISTOL,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_PISTOL,
 			["reload"] = ACT_RELOAD_PISTOL,
@@ -334,6 +476,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_REVOLVER,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_REVOLVER,
 		["jump"] = ACT_HL2MP_JUMP_REVOLVER,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 		["npc"] = {
 			["attack"] = ACT_RESET,
 			["reload"] = ACT_RESET,
@@ -349,6 +492,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_SMG1,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_SMG1,
 		["jump"] = ACT_HL2MP_JUMP_SMG1,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SMG1,
 			["reload"] = ACT_RELOAD_SMG1,
@@ -364,6 +508,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_AR2,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_AR2,
 		["jump"] = ACT_HL2MP_JUMP_AR2,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_AR2,
 			["reload"] = ACT_GESTURE_RELOAD,
@@ -394,6 +539,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_SHOTGUN,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_SHOTGUN,
 		["jump"] = ACT_HL2MP_JUMP_SHOTGUN,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
 			["reload"] = ACT_RELOAD_SHOTGUN,
@@ -409,6 +555,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_CROSSBOW,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_CROSSBOW,
 		["jump"] = ACT_HL2MP_JUMP_CROSSBOW,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
 			["reload"] = ACT_GESTURE_RELOAD,
@@ -422,6 +569,7 @@ DRC.HoldTypes = {
 		["walk"] = ACT_HL2MP_WALK_DUEL,
 		["cwalk"] = ACT_HL2MP_WALK_CROUCH_DUEL,
 		["jump"] = ACT_HL2MP_JUMP_DUEL,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL,
 			["reload"] = ACT_HL2MP_GESTURE_RELOAD_DUEL,
@@ -437,6 +585,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_PHYSGUN,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_PHYSGUN,
 		["jump"] = ACT_HL2MP_JUMP_PHYSGUN,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
 			["reload"] = ACT_GESTURE_RELOAD,
@@ -452,6 +601,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_FIST,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_FIST,
 		["jump"] = ACT_HL2MP_JUMP_FIST,
+		["melee"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST,
 		["npc"] = {
 			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 			["reload"] = ACT_RESET,
@@ -467,6 +617,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH,
 		["jump"] = ACT_HL2MP_JUMP_SLAM,
+		["melee"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST,
 		["npc"] = {
 			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 			["reload"] = ACT_RESET,
@@ -482,6 +633,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_RPG,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_RPG,
 		["jump"] = ACT_HL2MP_JUMP_RPG,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_RPG,
 			["reload"] = ACT_RESET,
@@ -497,6 +649,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_MELEE,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_MELEE,
 		["jump"] = ACT_HL2MP_JUMP_MELEE,
+		["melee"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
 		["npc"] = {
 			["attack"] = ACT_MELEE_ATTACK_SWING,
 			["reload"] = ACT_RESET,
@@ -512,6 +665,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_KNIFE,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_KNIFE,
 		["jump"] = ACT_HL2MP_JUMP_CIDLE,
+		["melee"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE,
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE,
 			["reload"] = ACT_RESET,
@@ -527,6 +681,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_GRENADE,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_GRENADE,
 		["jump"] = ACT_HL2MP_JUMP_GRENADE,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 		["npc"] = {
 			["attack"] = ACT_COMBINE_THROW_GRENADE,
 			["reload"] = ACT_RESET,
@@ -542,6 +697,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_SLAM,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_SLAM,
 		["jump"] = ACT_HL2MP_JUMP_SLAM,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SLAM,
 			["reload"] = ACT_RESET,
@@ -557,6 +713,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_MAGIC,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_MAGIC,
 		["jump"] = ACT_HL2MP_JUMP_MAGIC,
+		["melee"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_FIST,
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC,
 			["reload"] = ACT_RESET,
@@ -572,6 +729,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_CAMERA,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_CAMERA,
 		["jump"] = ACT_HL2MP_JUMP_CAMERA,
+		["melee"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA,
 			["reload"] = ACT_RESET,
@@ -587,6 +745,7 @@ DRC.HoldTypes = {
 		["idle"] = ACT_HL2MP_IDLE_MELEE2,
 		["cidle"] = ACT_HL2MP_IDLE_CROUCH_MELEE2,
 		["jump"] = ACT_HL2MP_JUMP_MELEE2,
+		["melee"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2,
 		["npc"] = {
 			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 			["reload"] = ACT_RESET,
@@ -693,10 +852,7 @@ end
 function DRC:MismatchWarn(ply, ent)
 	if !ply or !ent then return end
 	
-	local diff, str, veriswhole = (DRC:GetVersion() - ent.DRCVersion) * 100, "version", false
-	if ent.DRCVersion == math.floor(ent.DRCVersion) then
-		veriswhole = ".00"
-	end
+	local diff, str = (DRC:GetVersion() - ent.DRCVersion) * 100, "version"
 	if math.floor(diff) != 1 then str = "versions" end
 	
 	local str2 = nil
@@ -704,11 +860,11 @@ function DRC:MismatchWarn(ply, ent)
 		str2 = "Contact ".. ent.Author .." and please ask them nicely to update it."
 	else str2 = "Contact the server operator and please ask them nicely to check for updates." end
 	
-	local msg = {Color(200, 200, 200), "".. ent.PrintName .." is ", Color(255, 0, 0), "outdated ", Color(200, 200, 200), "by ".. diff .." ".. str .."! (".. ent.DRCVersion .."".. veriswhole .." vs ".. DRC:GetVersion() ..") ".. str2 ..""}
+	local msg = {Color(200, 200, 200), "".. ent.PrintName .." is ", Color(255, 0, 0), "outdated ", Color(200, 200, 200), "by ".. diff .." ".. str .."! (".. ent.DRCVersion .." vs ".. DRC:GetVersion() ..") ".. str2 ..""}
 	
-	if game.SinglePlayer() && CLIENT then
-		chat.AddText(Color(200, 200, 200), "".. ent.PrintName .." is ", Color(255, 0, 0), "outdated ", Color(200, 200, 200), "by ".. diff .." ".. str .."! (".. ent.DRCVersion .."".. veriswhole .." vs ".. DRC:GetVersion() ..") ".. str2 .."")
-	else
+	if CLIENT then
+		chat.AddText(Color(200, 200, 200), "".. ent.PrintName .." is ", Color(255, 0, 0), "outdated ", Color(200, 200, 200), "by ".. diff .." ".. str .."! (".. ent.DRCVersion .." vs ".. DRC:GetVersion() ..") ".. str2 .."")
+	elseif SERVER then
 		DRC:AddText(ply, msg)
 	end
 end
@@ -738,7 +894,7 @@ function DRC:SightsDown(ent, irons)
 		elseif base == "tfa" then
 			return ent:GetIronSights()
 		elseif base == "astw2" then
-			if ent.TrueScope == true && ent:GetNWBool("insights") == true then return true else return false end
+			if ent.TrueScope && ent:GetNWBool("insights") == true then return ent:GetNWBool("insights"), ent.TrueScope else return false end
 		elseif base == "arccw" then
 			if ent.Sighted == true then return true else return false end
 		elseif base == "arc9" then
@@ -748,7 +904,7 @@ function DRC:SightsDown(ent, irons)
 		end
 	else
 		if ent.Draconic then
-			if ent.Secondary.Scoped == true then return ent.SightsDown else return false end
+			if ent.Secondary.Scoped == true then return ent.SightsDown, ent.Secondary.Scoped else return false end
 		end
 	end
 end
@@ -793,6 +949,10 @@ function DRC:GetVelocityAngle(ent, absolute, flipy, islocal)
 	end
 	if flipy == true then ang.y = -ang.y end
 	
+	if islocal == true then
+		ang = ent:WorldToLocalAngles(ang)
+	end
+	
 	return ang
 -- stupid code I wrote without testing or realizing the simple solution for
 --[[	if !IsValid(ent) then return end
@@ -831,6 +991,7 @@ function DRC:GetColours(ent, rgb)
 			["Eye"] 	= ent:GetNWVector("EyeTintVec") / 255,
 			["Energy"] 	= ent:GetNWVector("EnergyTintVec"),
 			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b)/255,
+			["Grunge"] = ent:GetNWInt("Grunge_DRC"),
 		}
 	else
 		coltab = {
@@ -841,6 +1002,7 @@ function DRC:GetColours(ent, rgb)
 			["Eye"] 	= ent:GetNWVector("EyeTintVec") / 255,
 			["Energy"] 	= ent:GetNWVector("EnergyTintVec"),
 			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b)/255,
+			["Grunge"] = ent:GetNWFloat("Grunge_DRC"),
 		}
 	end
 	
@@ -869,6 +1031,7 @@ function DRC:UpdatePlayerColours(ply)
 	local enc = Vector(127, 127, 127)
 	local plc = Vector(127, 127, 127)
 	local wpc = Vector(127, 127, 127)
+	local grunge = 0
 	
 	playcol = ply:GetInfo("cl_playercolor")
 	plc = Vector(playcol)
@@ -902,12 +1065,15 @@ function DRC:UpdatePlayerColours(ply)
 	wpc.y = math.Clamp(wpc.y, 0.032, 1)
 	wpc.z = math.Clamp(wpc.z, 0.032, 1)
 	
+	grunge = ply:GetInfoNum("cl_drc_playergrunge", 0, 0, 100)
+	
 	ply:SetNWVector( "PlayerColour_DRC", plc)
 	ply:SetNWVector( "WeaponColour_DRC", wpc)
 	ply:SetNWVector( "ColourTintVec1", t1c)
 	ply:SetNWVector( "ColourTintVec2", t2c)
 	ply:SetNWVector( "EyeTintVec", eyc)
 	ply:SetNWVector( "EnergyTintVec", enc / 255)
+	ply:SetNWInt("Grunge_DRC", grunge)
 	
 	ply:SetPlayerColor(plc)
 	ply:SetWeaponColor(wpc)
@@ -921,6 +1087,7 @@ function DRC:UpdatePlayerColours(ply)
 	hands:SetNWVector( "ColourTintVec2", t2c)
 	hands:SetNWVector( "EyeTintVec", eyc)
 	hands:SetNWVector( "EnergyTintVec", enc)
+	hands:SetNWInt("Grunge_DRC", grunge)
 	
 	local vm = ply:GetViewModel()
 	if !IsValid(vm) then return end
@@ -930,6 +1097,7 @@ function DRC:UpdatePlayerColours(ply)
 	vm:SetNWVector( "ColourTintVec2", t2c)
 	vm:SetNWVector( "EyeTintVec", eyc)
 	vm:SetNWVector( "EnergyTintVec", enc)
+	vm:SetNWInt("Grunge_DRC", grunge)
 	
 	plc = Vector()
 	wpc = Vector()
@@ -937,6 +1105,7 @@ function DRC:UpdatePlayerColours(ply)
 	t2c = Vector()
 	eyc = Vector()
 	enc = Vector()
+	grunge = 0
 	
 	return
 end
@@ -945,6 +1114,25 @@ concommand.Add("drc_refreshcolours", DRC:UpdatePlayerColours())
 function DRC:RefreshColours(ply)
 	DRC:UpdatePlayerColours(ply)
 end
+
+local entmeta = FindMetaTable( "Entity" )
+local varfuncs = {
+	["Angle"] = entmeta.SetNWAngle,
+	["Bool"] = entmeta.SetNWBool,
+	["Entity"] = entmeta.SetNWEnt,
+	["string"] = entmeta.SetNWString,
+	["Vector"] = entmeta.SetNWVector,
+	["number"] = "number",
+}
+
+function DRC:SetNWVar(ent, key, val)
+	local typ = type(val)
+	if ent["Set"..key..""] then
+		local func1, func2 = ent["Set"..key..""], ent["Get"..key..""]
+		func1(ent, val)
+	end
+end
+
 
 function DRC:AddText(ply, varargs)
 	net.Start("DRCNetworkedAddText")
@@ -1132,13 +1320,14 @@ function DRC:EyeCone(ply, dist, degree)
 end
 
 function DRC:GetRoomSizeDSP(size) -- an experiment
+	if !size then return end
 	local tab = DRC.RoomDefinitions
 	if size <= tab.Vent then return 106
 	elseif size > tab.Vent && size <= tab.Small then return 104
 	elseif size > tab.Small && size <= tab.Regular then return 105
 	elseif size > tab.Regular && size <= tab.Large then return 125
 	elseif size > tab.Large && size <= tab.Outdoors then return 113
-	elseif size > tab.Outdoors then return 129 end
+	elseif size > tab.Outdoors then return 131 end
 end
 
 function DRC:GetRoomSizeName(size)
@@ -1154,7 +1343,7 @@ function DRC:GetRoomSizeName(size)
 end
 
 function DRC:RoomSize(pos)
-	if !IsValid(pos) then return end
+	if !pos then return end
 	if IsEntity(pos) then
 		if DRC:IsCharacter(pos) then
 			pos = pos:EyePos()
@@ -1410,8 +1599,8 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	ply:SetNWInt("DRCVoiceSet_Enforced", "None")
 	ply:SetNWInt("DRCFootsteps_Enforced", "None")
 	
-	DRC:SetVoiceSet(ply, ply:GetInfo("cl_drc_voiceset"), false)
-	DRC:SetFootsteps(ply, ply:GetInfo("cl_drc_footstepset"), false)
+	DRC:SetVoiceSet(ply, ply:GetInfo("cl_drc_voiceset") or "None", false)
+	DRC:SetFootsteps(ply, ply:GetInfo("cl_drc_footstepset") or "None", false)
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
@@ -1547,10 +1736,11 @@ hook.Add("CreateClientsideRagdoll", "drc_playerragdollcolours", function(ply, ra
 	local colours = DRC:GetColours(ply, false)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
 	rag:SetNWVector("WeaponColour_DRC", colours.Weapon)
-	rag:SetNWVector("EyeTintVec", colours.Eye)
-	rag:SetNWVector("EnergyTintVec", colours.Energy)
-	rag:SetNWVector("ColourTintVec1", colours.Tint1)
-	rag:SetNWVector("ColourTintVec2", colours.Tint2)
+	rag:SetNWVector("EyeTintVec", colours.Eye * 255)
+	rag:SetNWVector("EnergyTintVec", colours.Energy * 255)
+	rag:SetNWVector("ColourTintVec1", colours.Tint1 * 255)
+	rag:SetNWVector("ColourTintVec2", colours.Tint2 * 255)
+	rag:SetNWInt("Grunge_DRC", colours.Grunge)
 end)
 
 hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
@@ -1559,14 +1749,86 @@ hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	local colours = DRC:GetColours(ply, false)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
 	rag:SetNWVector("WeaponColour_DRC", colours.Weapon)
-	rag:SetNWVector("EyeTintVec", colours.Eye)
-	rag:SetNWVector("EnergyTintVec", colours.Energy)
-	rag:SetNWVector("ColourTintVec1", colours.Tint1)
-	rag:SetNWVector("ColourTintVec2", colours.Tint2)
+	rag:SetNWVector("EyeTintVec", colours.Eye * 255)
+	rag:SetNWVector("EnergyTintVec", colours.Energy * 255)
+	rag:SetNWVector("ColourTintVec1", colours.Tint1 * 255)
+	rag:SetNWVector("ColourTintVec2", colours.Tint2 * 255)
+	rag:SetNWInt("Grunge_DRC", colours.Grunge)
 end)
 
-hook.Add("PlayerTick", "drc_movementhook", function(ply) -- holy fuck I need to rewrite this someday
+local dirtr = {
+	["nw"] = 1,
+	["n"] = 2,
+	["ne"] = 3,
+	["w"] = 4,
+	["c"] = 5,
+	["e"] = 6,
+	["sw"] = 7,
+	["s"] = 8,
+	["se"] = 9,
+}
+hook.Add("PlayerTick", "drc_movementhook", function(ply)
 	if DRC.SV.drc_movement == 0 then return end
+	local wpn = ply:GetActiveWeapon()
+	if !wpn.Draconic or wpn.Draconic == nil then return end
+	local cv = ply:Crouching()
+	local n, s, e, w = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT)
+	local nw, sw, ne, se = n && w, s && w, n && e, s && e
+	local ordinal = nw or sw or ne or se
+	local sprinting = (n or s or e or w or nw or sw or ne or se) && ply:KeyDown(IN_SPEED)
+	local walking = (n or s or e or w or nw or sw or ne or se) && ply:KeyDown(IN_WALK) && !ply:KeyDown(IN_SPEED)
+	local swimming = ply:WaterLevel() >= 3
+	local dry = ply:WaterLevel() <=2
+	
+	local speed, jump
+	
+	if dry then
+		local ogs = ply:GetNWFloat("PlayerOGSpeed")
+		local ogw = ply:GetNWFloat("PlayerOGWalk")
+		local ogj = ply:GetNWFloat("PlayerOGJump")
+		local ogc = ply:GetNWFloat("PlayerOGCrouch")
+		
+		if ogs == nil or ogs == 0 then return end
+		if ogw == nil or ogw == 0 then return end
+		if ogj == nil or ogj == 0 then return end
+		if ogc == nil or ogc == 0 then return end -- prevent any of this from running if the player hasn't initialized
+	
+		if !cv && !sprinting && !walking then speed = wpn.SpeedRunStand jump = wpn.JumpHeightsStand
+		elseif cv && !sprinting && !walking then speed = wpn.SpeedRunCrouch jump = wpn.JumpHeightsCrouch
+		elseif !cv && sprinting && !walking then speed = wpn.SpeedSprintStand jump = wpn.JumpHeightsStandSprint
+		elseif cv && sprinting && !walking then speed = wpn.SpeedSprintCrouch jump = wpn.JumpHeightsCrouchSprint
+		elseif !cv && walking then speed = wpn.SpeedWalkStand jump = wpn.JumpHeightsStand
+		elseif cv && walking then speed = wpn.SpeedWalkCrouch jump = wpn.JumpHeightsCrouch
+		end
+		
+		if ordinal then -- cardinal triggers even if ordinal is in use, so it has to take priority
+			if nw then speed = speed[1] jump = jump[1]
+			elseif sw then speed = speed[7] jump = jump[7]
+			elseif ne then speed = speed[3] jump = jump[3]
+			elseif se then speed = speed[9] jump = jump[9]
+			end
+		elseif !ordinal then -- cardinal
+			if n then speed = speed[2] jump = jump[2]
+			elseif s then speed = speed[8] jump = jump[8]
+			elseif e then speed = speed[4] jump = jump[4]
+			elseif w then speed = speed[6] jump = jump[6]
+			end
+		else -- not moving
+			speed = ogs
+		end
+		
+		if DRC.SV.drc_movesounds == 1 then
+		end
+		
+		if !speed or istable(speed) then return end
+		ply:SetRunSpeed(speed)
+		ply:SetWalkSpeed(speed)
+		ply:SetSlowWalkSpeed(speed)
+		if jump && !istable(jump) then ply:SetJumpPower(jump) end
+		if walking then ply:SetCrouchedWalkSpeed(0.33) else ply:SetCrouchedWalkSpeed(1) end
+	end
+
+	if 2+2 != 4 then
 	local wpn = ply:GetActiveWeapon()
 	local cv = ply:Crouching()
 	local forwkey = ply:KeyDown(IN_FORWARD)
@@ -1922,62 +2184,71 @@ hook.Add("PlayerTick", "drc_movementhook", function(ply) -- holy fuck I need to 
 			end
 			end
 		end
-		end
-		
-	if DRC.SV.drc_movesounds == 1 then
-	if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_SPEED) && wpn.DoSSCrouchFwd == true then
-	-- crouch sprint sound forward
-		ply:EmitSound( wpn.SprintSoundCrouch )
-	elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_BACK) && ply:KeyPressed(IN_SPEED) && wpn.DoSSCrouchBack == true then
-	-- crouch sprint sound back
-		ply:EmitSound( wpn.SprintSoundCrouch )
-	elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVELEFT) && ply:KeyPressed(IN_SPEED) && wpn.DoSSCrouchLeft == true then
-	-- crouch sprint sound left
-		ply:EmitSound( wpn.SprintSoundCrouch )
-	elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVERIGHT) && ply:KeyPressed(IN_SPEED) && wpn.DoSSCrouchRight == true then
-	-- crouch sprint sound right
-		ply:EmitSound( wpn.SprintSoundCrouch )
+	else end
 	end
-		
-	if ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_FORWARD) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && wpn.DoSJCrouchSFwd == true then
-	-- Crouch Sprint Jump Sound Front
-		ply:EmitSound( wpn.SJumpCrouchSound )
-	elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_BACK) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && wpn.DoSJCrouchSBack == true then
-	-- Crouch Sprint Jump Sound Front
-		ply:EmitSound( wpn.SJumpCrouchSound )
-	elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVELEFT) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && wpn.DoSJCrouchLeft == true then
-	-- Crouch Sprint Jump Sound Front
-		ply:EmitSound( wpn.SJumpCrouchSound )
-	elseif ply:GetMoveType() == MOVETYPE_WALK && cv == true && ply:OnGround() && ply:WaterLevel() < 1 && ply:KeyDown(IN_MOVERIGHT) && ply:KeyPressed(IN_JUMP) && ply:KeyDown(IN_SPEED) && wpn.DoSJCrouchRight == true then
-	-- Crouch Sprint Jump Sound Front
-		ply:EmitSound( wpn.SJumpCrouchSound )
-	end
-	else end	
-		if wpn.FallDamage == false && wpn.NoFallDamageCrouchOnly == true then
-		if cv == true then
-			wpn.Owner.ShouldReduceFallDamage = true
-		elseif  cv == false then
-			wpn.Owner.ShouldReduceFallDamage = false
-		end
-		elseif wpn.FallDamage == false && wpn.NoFallDamageCrouchOnly == false then
-		wpn.Owner.ShouldReduceFallDamage = true
-		elseif wpn.FallDamage == true then
-		wpn.Owner.ShouldReduceFallDamage = false
-		end
 end)
 
-function DRC:CallGesture(ply, slot, act, akill)
+function DRC:GetVelocityPose(ent, length, vel, mspd)
+	local velang = DRC:GetVelocityAngle(ent, true, false, false)
+	if vel == Vector() or length == 0 then velang = Angle() end
+	
+	local tr = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang, 25)
+	local tr2 = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang:Right():Angle(), 25)
+	local tr3 = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang:Up():Angle(), 25)
+	if tr then DRC:RenderTrace(tr, Color(255, 0, 0, 255), FrameTime()) end
+	if tr2 then DRC:RenderTrace(tr2, Color(0, 0, 255, 255), FrameTime()) end
+	if tr3 then DRC:RenderTrace(tr3, Color(0, 255, 0, 255), FrameTime()) end
+	
+	local speed
+	local walk, duck = false, false
+	if ent:IsPlayer() then
+		walk = ent:KeyDown(IN_WALK)
+		duck = ent:KeyDown(IN_DUCK)
+		mspd = ent:GetRunSpeed() - (ent:GetRunSpeed() * 0.25)
+		if walk then mspd = ent:GetSlowWalkSpeed() * 3.75 end
+		if duck then mspd = mspd * 1.5 end
+	end
+	
+	speed = Lerp(length * 0.0000064, 0, mspd) * 2.64 -- hammer unit funny moment
+	
+--	ent:ChatPrint(speed)
+	local mul = 1.5
+	if walk then mul = 3 end
+	
+	ent:SetPlaybackRate(speed*mul)
+	
+	ent.DRCVelocityPoseX = Lerp(0.1, ent.DRCVelocityPoseX or velang:Right(), velang:Right())
+	ent.DRCVelocityPoseY = Lerp(0.1, ent.DRCVelocityPoseY or velang:Forward(), velang:Forward())
+	
+	local percx = (velang:Right() * ent:GetVelocity()) * 0.033
+	local percy = (velang:Forward() * ent:GetVelocity()) * 0.033
+	
+	local lx, ly = ent.DRCVelocityPoseX * percx, ent.DRCVelocityPoseY * percy
+	
+	return ly, lx
+	
+end
+
+hook.Add("UpdateAnimation", "DRC_MoveBlendWithoutRootMotion", function(ply, vel, msgs)
+	if ply:LookupPoseParameter("drc_move_x") != -1 && ply:LookupPoseParameter("drc_move_y") != -1 then
+	local pose = DRC:GetVelocityPose(ply, vel:Length(), vel)
+	local x, y = pose.x, pose.y
+			
+	ply:SetPoseParameter("drc_move_x", y)
+	ply:SetPoseParameter("drc_move_y", x)
+	if CLIENT then ply:InvalidateBoneCache() end
+	return true
+	end
+end)
+
+function DRC:CallGesture(ply, slot, act, akill, fallback)
 	if !SERVER then return end
 	if !IsValid(ply) then return end
 	if !slot or slot == "" or slot == nil then slot = GESTURE_SLOT_CUSTOM end
-	if !act then return end
-	if !akill or akill == "" or akill == nil then akill = true end
 	
---	local nt = {}
---	nt.Player = ply
---	nt.Slot = slot
---	nt.Activity = act
---	nt.Autokill = akill
+	if !akill or akill == "" or akill == nil then akill = true end
+	if ply:SelectWeightedSequence(act) == -1 then act = fallback end
+	if !act then return end
 	
 	if !ply:IsPlayer() then
 		timer.Simple(engine.TickInterval(), function()
@@ -2191,14 +2462,8 @@ end
 function DRC:GetHGMul(ent, hg, dinfo)
 	local infl = dinfo:GetInflictor()
 	if infl.DraconicProjectile == true then infl = infl:GetCreator() end
-	local BaseProfile = scripted_ents.GetStored("drc_abp_generic")
-	local BT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable
-	local DT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable.HitboxDamageMuls
-	local BBT = BaseProfile.t.BulletTable
-	local BDT = BBT.HitboxDamageMuls
-	
+	if dinfo:GetDamageCustom() == 2221208 then return 1 end -- prevents running on melee weapons
 	local mul, enum = 1, HITGROUP_GENERIC
-	local TTP = DT
 	
 	if hg == HITGROUP_HEAD then enum = "HITGROUP_HEAD"
 	elseif hg == HITGROUP_CHEST then enum = "HITGROUP_CHEST"
@@ -2209,6 +2474,13 @@ function DRC:GetHGMul(ent, hg, dinfo)
 	elseif hg == HITGROUP_RIGHTLEG then enum = "HITGROUP_RIGHTLEG"
 	elseif hg == HITGROUP_GEAR then enum = "HITGROUP_GEAR" end
 	
+	local BaseProfile = scripted_ents.GetStored("drc_abp_generic")
+	local BT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable
+	local DT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable.HitboxDamageMuls
+	local BBT = BaseProfile.t.BulletTable
+	local BDT = BBT.HitboxDamageMuls
+	
+	local TTP = DT
 	if DT == nil or DT[enum] == nil then
 		TTP = BDT
 	end
@@ -2328,7 +2600,7 @@ function DRC:EnvelopTrace(ent1, ent2, expensive)
 	end
 end
 
-function DRC:TraceDir(origin, dir, dist, entitytolookfor)
+function DRC:TraceDir(origin, dir, dist, entitytolookfor, mas)
 	if origin == nil then print("TraceDir origin is null!") return end
 	local entity = nil
 	if !isvector(origin) && DRC:IsCharacter(origin) then
@@ -2351,7 +2623,8 @@ function DRC:TraceDir(origin, dir, dist, entitytolookfor)
 			if ent == entitytolookfor then return true end
 			if ent:IsPlayer() or ent == entity then return false end
 			if ( !ent:IsPlayer() && ent:GetPhysicsObject() != nil or ent:IsWorld() ) then return true end
-		end
+		end,
+		mask = mas or MASK_SOLID,
 	})
 	
 	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 && GetConVarNumber("cl_drc_debug_tracelines") >= 1 then
@@ -2372,6 +2645,18 @@ function DRC:TraceDir(origin, dir, dist, entitytolookfor)
 	end
 	
 	return tr
+end
+
+function DRC:SideTrace(ent, dist)
+	local tr1 = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), ent:GetAngles() + Angle(0,-90,0), dist)
+	local tr2 = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), ent:GetAngles() + Angle(0,90,0), dist)
+	
+	DRC:RenderTrace(tr1, Color(255, 255, 255, 255), 1)
+	DRC:RenderTrace(tr2, Color(255, 255, 255, 255), 1)
+	
+	if tr2.Hit then return tr2, true end
+	if tr1.Hit then return tr1, false end
+	if !tr2.Hit && !tr1.Hit then return nil end
 end
 
 function DRC:GetBones(ent)
@@ -2585,35 +2870,6 @@ function DRC:RegisterFootSteps(fs)
 	DRC.FootSteps[name] = fs
 end
 
---[[
-local testfootsteps = {
-	["ID"] = "testfootsteps",
-	["Name"] = "Test set",
-	["crouch"] = {
-		["overlay"] = "",
-	--	["default"] = "",
-	},
-	["walk"] = {
-		["overlay"] = "",
-	--	["default"] = "",
-	},
-	["run"] = {
-		["overlay"] = "",
-		["default"] = "player/footsteps/concrete1.wav",
-	--	["stone"] = "",
-	},
-	["sprint"] = {
-		["overlay"] = "",
-	--	["default"] = "",
-	},
-	["shuffle"] = {
-		["overlay"] = "",
-		["default"] = "player/footsteps/concrete4.wav",
-	},
-}
-DRC:RegisterFootSteps(testfootsteps)
-]]
-
 function DRC:GetFloorMat(ply)
 	local pos2 = ply:GetPos() + Vector(0, 0, 0.5)
 	local ftrace = util.TraceLine({ start = pos2, endpos = pos2 - Vector(0,0,15), filter = function(ent) if ent == ply then return false else return true end end })
@@ -2676,6 +2932,7 @@ local function SelectFootstep(ply, shuffle, fs, jump, wade, landing, overlay)
 	end
 	
 	if fmat then
+		if fmat == "MAT_" then fmat = "MAT_DEFAULT" end
 		om = set.OverrideMode
 		local ogsubset = subset
 		if set[subset] == nil then subset = "run" end
@@ -2741,7 +2998,7 @@ local function SelectFootstep(ply, shuffle, fs, jump, wade, landing, overlay)
 		if smat then finalvol = "".. smat .."_volume" else finalvol = 1 end
 		if set[subset][finalvol] then vol = vol * set[subset][finalvol] end
 	end
---	print(sel2)
+	if !vol then vol = 0.5 end
 	return sel, sel2, vol, om
 end
 
@@ -2932,6 +3189,7 @@ function DRC:VoiceSpot(ply)
 end
 
 function DRC:GetVoiceSet(ent)
+	if !IsValid(ent) then return end
 	local vs = ent:GetNWString("DRCVoiceSet")
 	local enforced = ent:GetNWString("DRCVoiceSet_Enforced", "None")
 	local tab = DRC.VoiceSets
@@ -3253,7 +3511,7 @@ function IsInWorld( pos ) -- yoinked from example on https://wiki.facepunch.com/
 	return not util.TraceLine( tr ).HitWorld
 end
 
-function DRC:FloorDist(e, sqr, edgecheck)
+function DRC:FloorDist(e, sqr, edgecheck, floorbound)
 	local tr = util.TraceLine({
 		start = e:GetPos(),
 		endpos = e:GetPos() - Vector(0, 0, 100000000),
@@ -3286,10 +3544,31 @@ function DRC:FloorDist(e, sqr, edgecheck)
 		if tr5 && tr5.Hit then edge = true end
 	end
 	
+	local floorhull = false
+	if floorbound == true then
+		local bmi, bma = e:GetCollisionBounds()
+		bmi.x = bmi.x/2
+		bmi.y = bmi.y/2
+		bma.x = bma.x/2
+		bma.y = bma.y/2
+		
+		floorhull = util.TraceHull({
+			start = e:GetPos(),
+			endpos = e:GetPos(),
+			filter = function(ent)
+				if ent:IsPlayer() or ent == e then return false end
+				if ent:IsWeapon() then return false end
+				if (DRC:IsCharacter(ent) or ent:GetPhysicsObject() != nil or ent:IsWorld()) then return true end
+			end,
+			mins = Vector( -bmi.x, -bmi.y, -25 ),
+			maxs = Vector( bma.x, bma.y, 25 ),
+		})
+	end
+	
 	if tr then DRC:RenderTrace(tr, Color(0, 0, 255, 255), FrameTime(), true) end
 	
 	local dist = floorgetdist(e, sqr, tr)
-	return dist, edge
+	return dist, edge, floorhull
 end
 
 function DRC:ChangeCHandModel(tbl)
@@ -3647,6 +3926,7 @@ hook.Add( "AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
 		timer.Simple(0.75, function()
 			if !IsValid(ent) then return end
 			local po = ent:GetPhysicsObject()
+			if !IsValid(po) then return end
 			if po:GetMass() > 249 then return end
 			local dist = ply:GetPos():DistToSqr(ent:GetPos()) / 10
 			if ply:KeyDown(IN_USE) && dist < 1000 then ply:PickupObject(ent) end
@@ -3708,7 +3988,7 @@ hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 		local meth = rang - pang
 		local w, a, s, d = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT)
 		
-		if (!w && !a && !s && !d) && (math.abs(meth) >= 45) then
+		if (!w && !a && !s && !d) && (math.abs(meth) > 45) then
 			local lt, rt = ACT_GESTURE_TURN_LEFT45, ACT_GESTURE_TURN_RIGHT45
 			if ply:Crouching() then lt, rt = ACT_GESTURE_TURN_LEFT45_FLAT, ACT_GESTURE_TURN_RIGHT45_FLAT end
 			
@@ -3718,9 +3998,22 @@ hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 			else
 				if meth < 0 then anim = rt else anim = lt end
 			end
+			if ply:SelectWeightedSequence(anim) == -1 then return end
 			
 			DRC:CallGesture(ply, GESTURE_SLOT_JUMP, anim, true)
-			ply.TurnCD = CurTime() + 0.5	
+			ply.TurnCD = CurTime() + 0.5
+			if ply:GetMoveType() == MOVETYPE_WALK && DRC:FloorDist(ply) < 15 then
+				local fs = DRC:GetFootsteps(ply)
+				local ss, so, vol, om = SelectFootstep(ply, true, fs, false, false, false, false)
+				if ss && vol then
+					vol = 100 * vol
+					ply:EmitSound(ss, vol)
+					timer.Simple(0.4, function() if IsValid(ply) then
+						ss = SelectFootstep(ply, true, fs, false, false, false, false)
+						ply:EmitSound(ss, vol)
+					end end)
+				end
+			end
 		end
 		
 	end
@@ -3952,7 +4245,6 @@ hook.Add("Tick", "DRC_I_Wrote_This_When_I_Ran_Out_Of_Options", function()
 		if !v.Muzzle then v.Muzzle = v:GetAttachment(v:LookupAttachment("muzzle")) end
 	end
 end)
-
 
 -- DETOURS
 if SERVER then

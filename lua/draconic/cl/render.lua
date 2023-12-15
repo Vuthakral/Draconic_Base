@@ -55,7 +55,7 @@ hook.Add("Think", "DRC_Lighting", function()
 	if wpn.IsMelee == true then return end
 	
 	if !IsValid(DRC.CalcView.MuzzleLamp) then
-		DRC.CalcView.MuzzleLamp = ents.CreateClientside("draconic_ptex_base")
+	--	DRC.CalcView.MuzzleLamp = ents.CreateClientside("draconic_ptex_base")
 		local lighttable = {
 			["Texture"] 	= "",
 			["NearZ"] 		= 1,

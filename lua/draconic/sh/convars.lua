@@ -84,7 +84,7 @@ if CLIENT then
 		DRC.SV[str] = flt
 	end)
 	
-	local hn = "CheeseGrater"--.. math.Rand(0, 999999999) ..""
+	local hn = "CheeseGrater".. tostring(math.Rand(0, 999999999)) ..""
 	hook.Add("Think", hn, function()
 		for k,v in pairs(CheeseGrater) do
 			if DRC.SV[k] != CheeseGrater[k] then DRC.SV[k] = CheeseGrater[k] end
@@ -111,6 +111,7 @@ if CLIENT then
 	if GetConVar("cl_drc_debug_cubemaps") == nil then DRC.Convars_CL.Debug_Cubemaps = CreateConVar("cl_drc_debug_cubemaps", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable rendering the locations of env_cubemap entities.", 0, 1) end
 	if GetConVar("cl_drc_debug_cubefallbacks") == nil then DRC.Convars_CL.Debug_Cubemaps = CreateConVar("cl_drc_debug_cubefallbacks", 0, {FCVAR_USERINFO}, "Enable/Disable forcing the Draconic Base to think that the current map does not have any envmaps.", 0, 1) end
 	if GetConVar("cl_drc_debug_alwaysshowshields") == nil then DRC.Convars_CL.Debug_Shields = CreateConVar("cl_drc_debug_alwaysshowshields", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "When set to 1 all DRC shields will constantly render.", 0, 1) end
+	if GetConVar("cl_drc_debug_hideshaderfixes") == nil then DRC.Convars_CL.Debug_ShaderFixes = CreateConVar("cl_drc_debug_hideshaderfixes", 0, {FCVAR_USERINFO}, "Hides ReflectionTint & ScalingRimLight proxy effects for the sake of showing with vs without.", 0, 1) end
 	if GetConVar("cl_drc_lowered_crosshair") == nil then CreateConVar("cl_drc_lowered_crosshair", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable Halo-styled lowered crosshair, providing more vertical viewing space.", 0, 1)	end
 	if GetConVar("cl_drc_experimental_fp") == nil then CreateConVar("cl_drc_experimental_fp", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable experimental first person. (Compatibility with other addons not guaranteed.)", 0, 1) end
 	if GetConVar("cl_drc_experimental_fp_chestscale") == nil then CreateConVar("cl_drc_experimental_fp_chestscale", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Scale inward your playermodel's chest region in first person if your playermodel is blocking your view.", 0, 1) end
@@ -155,7 +156,27 @@ if CLIENT then
 		CreateConVar("drc_colour_r_acc2", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE})
 		CreateConVar("drc_colour_g_acc2", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE})
 		CreateConVar("drc_colour_b_acc2", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE})
+		CreateConVar("drc_colour_grunge", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE})
 	end
+	
+	if GetConVar("cl_drc_sell_soul") == nil then CreateClientConVar("cl_drc_sell_soul", "1", true, false, "Give unto the dragon.", 0, 1) end
+	if GetConVar("cl_drc_disable_crosshairs") == nil then CreateClientConVar("cl_drc_disable_crosshairs", "0", true, true, "Hides all DRC related crosshairs (except for debug mode)", 0, 1) end
+	if GetConVar("cl_drc_eyecolour_r") == nil then CreateConVar("cl_drc_eyecolour_r", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_eyecolour_g") == nil then CreateConVar("cl_drc_eyecolour_g", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_eyecolour_b") == nil then CreateConVar("cl_drc_eyecolour_b", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_energycolour_r") == nil then CreateConVar("cl_drc_energycolour_r", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_energycolour_g") == nil then CreateConVar("cl_drc_energycolour_g", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_energycolour_b") == nil then CreateConVar("cl_drc_energycolour_b", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_tint1_r") == nil then CreateConVar("cl_drc_tint1_r", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_tint1_g") == nil then CreateConVar("cl_drc_tint1_g", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_tint1_b") == nil then CreateConVar("cl_drc_tint1_b", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_tint2_r") == nil then CreateConVar("cl_drc_tint2_r", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_tint2_g") == nil then CreateConVar("cl_drc_tint2_g", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_tint2_b") == nil then CreateConVar("cl_drc_tint2_b", "127", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_vmoffset_x") == nil then CreateConVar("cl_drc_vmoffset_x", "0", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_vmoffset_y") == nil then CreateConVar("cl_drc_vmoffset_y", "0", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_vmoffset_z") == nil then CreateConVar("cl_drc_vmoffset_z", "0", {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
+	if GetConVar("cl_drc_playergrunge") == nil then CreateConVar("cl_drc_playergrunge", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
 
 	if GetConVar("cl_drc_showspray") == nil then CreateConVar("cl_drc_showspray", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on content that supports it.", 0, 1) end
 	if GetConVar("cl_drc_showspray_weapons") == nil then CreateConVar("cl_drc_showspray_weapons", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable showing your spray on weapons that support it.", 0, 1) end

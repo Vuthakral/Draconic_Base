@@ -2,41 +2,12 @@ DRC = {}
 DRC.MapInfo = {}
 DRC.VoiceSets = {}
 DRC.FootSteps = {}
+DRC.Categories = {}
 if SERVER then 
 	resource.AddWorkshop("1847505933") -- Makes the base auto-download for clients joining your server.
 	AddCSLuaFile("draconic/load.lua")
 end
 include("draconic/load.lua")
-
-hook.Add("PreRegisterSWEP", "DRC_SWEPPreRegister", function(swep, cl)
-	if !string.find(cl, "drc_") then return end
-	local ignore = {"drc_camera", "drc_cubemap" }
-	if ignore[cl] then return end
-	
---	if KMA then
---		local data = {
---			["PrintName"] = swep.PrintName,
---			["Primary.Damage"] = swep.Primary.Damage,
---		}
---		KMA.WeaponSpawner:AddTemplate(data, cl)
---	end
-	
-	if swep.CanStore != false then
-		if RE2_INV && swep.WorldModel && swep.WorldModel != "" then -- Support for "Resident Evil 2 Inventory" addon.
-			RE2_INV.AddItem({
-				["name"] = swep.PrintName,
-				["classname"] = cl,
-				["model"] = swep.WorldModel,
-				["type"] = "weapon",
-			}) 
-		end
-	end
-	
-	if swep.NPCSpawnable == false then return end
-	
-	if !swep.PrintName then swep.PrintName = cl end
-	list.Add("NPCUsableWeapons", {class = cl, title = "[DRC] ".. swep.PrintName .."", category = Category})
-end)
 
 list.Set( "DesktopWindows", "Draconic Menu", {
 	title = "Draconic Menu",
@@ -45,6 +16,8 @@ list.Set( "DesktopWindows", "Draconic Menu", {
 		DRCMenu(LocalPlayer())
 	end
 } )
+
+SNDLVL_GUNFIRE = 140
 
 -- Any code beyond this point is considered legacy and should NOT be used as reference, or at all.
 -- Anything below is likely to be removed in a future update.

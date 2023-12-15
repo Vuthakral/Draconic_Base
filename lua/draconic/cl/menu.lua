@@ -38,6 +38,10 @@ function DRCMenu( player )
 	local SubtextCol = Color(170, 170, 170, 255)
 	local NotifyCol = Color(255, 255, 255, 255)
 	
+	local function UpdateDraconicColours()		
+		DRC:RefreshColours(LocalPlayer())
+	end
+	
 	local function MakeHint(element, posx, posy, hint)
 		local hintbox = vgui.Create("DButton", element)
 		hintbox:SetText("?")
@@ -666,8 +670,10 @@ function DRCMenu( player )
 	
 	local arms = {
 		["c_"] = "c_",
-		["v_"] = "v_",  -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
-		["viewhands"] = "viewhands" -- I HATE YOU.
+		["v_"] = "v_",
+		["vm_"] = "vm_",  -- IT SHOULD BE C_ YOU IDIOTS, V IS VIEW, C IS CLIENT. THESE ARE NOT VIEWMODELS, THEY ARE "CLIENT ARMS". AAAAAAAAAAAAAAAA-
+		["viewhands"] = "viewhands", -- I HATE YOU.
+		["hand_"] = "hand_" -- AAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 	}
 	
 	PanelSelect.Models = {}
@@ -699,6 +705,20 @@ function DRCMenu( player )
 			icon:SetSize( 64, 64 )
 			icon:SetTooltip( name )
 			icon.playermodel = name
+			icon.model_path = model
+				
+			PanelSelect:AddPanel( icon, { cl_playermodel = name } )
+		end
+	end
+	
+	if !table.IsEmpty(DRC.CurrentSpecialModelOptions) then
+		for k,v in SortedPairs(DRC.CurrentSpecialModelOptions) do
+			local model = v
+			local icon = vgui.Create( "SpawnIcon" )
+			icon:SetModel( model )
+			icon:SetSize( 64, 64 )
+			icon:SetTooltip( tostring(model) )
+			icon.playermodel = tostring(model)
 			icon.model_path = model
 				
 			PanelSelect:AddPanel( icon, { cl_playermodel = name } )
@@ -799,35 +819,37 @@ function DRCMenu( player )
 		end
 	end
 	
-    local ScrollPrim = vgui.Create("DScrollPanel", tab2)
+    local ScrollPrim = vgui.Create("DPanel", tab2)
 	ScrollPrim:SetPos(0, 0)
 	ScrollPrim:Dock(FILL)
-	ScrollPrim:DockMargin(0, 0, 16, 16)
+	ScrollPrim:DockMargin(0, 0, 4, 4)
 	ScrollPrim:SetBackgroundColor(Color(255, 255, 255, 0))
 	
 	local row1 = vgui.Create("DPanel", ScrollPrim)
 	row1:Dock(TOP)
-	row1:DockMargin(8, 8, 0, 0)
+	row1:DockMargin(4, 4, 0, 0)
 	row1:SetSize(windowwide/2, windowtall/3.75 )
 	row1:SetBackgroundColor(Color(255, 255, 255, 0))
 	
 	local row2 = vgui.Create("DPanel", ScrollPrim)
 	row2:Dock(TOP)
-	row2:DockMargin(8, 8, 0, 0)
+	row2:DockMargin(4, 4, 0, 0)
 	row2:SetSize(windowwide/2, windowtall/3.75 )
 	row2:SetBackgroundColor(Color(255, 255, 255, 0))
 	
 	local row3 = vgui.Create("DPanel", ScrollPrim)
 	row3:Dock(TOP)
-	row3:DockMargin(8, 8, 0, 0)
+	row3:DockMargin(4, 4, 0, 0)
 	row3:SetSize(windowwide/2, windowtall/3.75 )
 	row3:SetBackgroundColor(Color(255, 255, 255, 0))
 	
-	local clabel = vgui.Create("DLabel", tab2)
-	clabel:SetPos(8, 600)
-	clabel:SetSize(600, 32)
-	clabel:SetTextColor(Color(0, 0, 0, 255))
-	clabel:SetText("These colours update for everyone when you respawn or press the 'Apply Changes' button on the left.")
+
+	
+--	local clabel = vgui.Create("DLabel", tab2)
+--	clabel:SetPos(8, 600)
+--	clabel:SetSize(600, 32)
+--	clabel:SetTextColor(Color(0, 0, 0, 255))
+--	clabel:SetText("These colours update for everyone when you respawn or press the 'Apply Changes' button on the left.")
 	
 	local playercol = Vector(GetConVarString("cl_playercolor")) * 255
 	local weaponcol = Vector(GetConVarString("cl_weaponcolor")) * 255
@@ -932,6 +954,22 @@ function DRCMenu( player )
 	accentColour2preview:DockMargin(0, 20, 2, 0)
 	accentColour2preview:SetBackgroundColor(Color(accent2col.x, accent2col.y, accent2col.z, 255))
 	
+	ScrollPrim.slider = vgui.Create( "DNumSlider", ScrollPrim )
+	ScrollPrim.slider:Dock( TOP )
+	ScrollPrim.slider:SetText( "Wear & Tear" )
+	ScrollPrim.slider:SetDark( true )
+	ScrollPrim.slider:SetTall( 50 )
+	ScrollPrim.slider:SetDecimals( 0 )
+	ScrollPrim.slider:SetMax( 100 )
+	ScrollPrim.slider:DockMargin(32, -6, 0, 0)
+	ScrollPrim.slider:SetValue(GetConVarNumber("cl_drc_playergrunge"))
+	ScrollPrim.slider:SetConVar("cl_drc_playergrunge")
+	ScrollPrim.slider.ValueChanged = function()
+		UpdateDraconicColours()
+	end
+	
+	MakeHint(ScrollPrim, 14, 599, "Only works on playermodels with support for it.\n\nDraconic material proxy ''drc_PlayerGrunge'', which lets you choose how ''worn'' the material(s) will be.")
+	
 	function applybutton:DoClick()
 	--[[	local str = ""
 		for k,v in pairs(frame.preview:GetEntity():GetBodyGroups()) do
@@ -978,6 +1016,7 @@ function DRCMenu( player )
 					["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
 					["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
 					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
+					["Grunge"] = LocalPlayer():GetInfo("drc_playergrunge"),
 				},
 				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
@@ -1000,6 +1039,7 @@ function DRCMenu( player )
 					["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
 					["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
 					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
+					["Grunge"] = LocalPlayer():GetInfo("drc_playergrunge"),
 				},
 				["bodygroups"] = bgs,
 				["skin"] = frame.preview:GetEntity():GetSkin(),
@@ -1336,10 +1376,6 @@ function DRCMenu( player )
 		RunConsoleCommand( "cl_weaponcolor", tostring( weaponcolour:GetVector() ))
 	end
 	
-	local function UpdateDraconicColours()		
-		DRC:RefreshColours(LocalPlayer())
-	end
-	
 	playercolour.ValueChanged = function()
 		UpdateGmodColours()
 		UpdateDraconicColours()
@@ -1447,28 +1483,47 @@ function DRCMenu( player )
 		end
 		
 		local function UpdateFromConvars()
-			local model = LocalPlayer():GetInfo( "cl_playermodel" )
-			modelname = player_manager.TranslatePlayerModel( model )
+			local model = LocalPlayer():GetInfo("cl_playermodel")
+			modelname = player_manager.TranslatePlayerModel(model)
 			if Customization == true then
-				util.PrecacheModel( modelname )
-				frame.preview:SetModel( modelname )
+				util.PrecacheModel(modelname)
+				frame.preview:SetModel(modelname)
 			end
 			RebuildBodygroupTab()
-			if frame.preview.Entity then frame.preview.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end end
-			playercolour:SetVector( Vector( GetConVarString( "cl_playercolor" ) ) )
-			weaponcolour:SetVector( Vector( GetConVarString( "cl_weaponcolor" ) ) )
+			if frame.preview.Entity then frame.preview.Entity.GetPlayerColor = function() return Vector(GetConVarString("cl_playercolor")) end end
+			playercolour:SetVector(Vector(GetConVarString("cl_playercolor")))
+			weaponcolour:SetVector(Vector(GetConVarString("cl_weaponcolor")))
 		end
-	UpdateFromConvars(false)
+		
+		local function UpdateFromModel(model)
+			if Customization == true then
+				util.PrecacheModel(model)
+				frame.preview:SetModel(model)
+			end
+			RebuildBodygroupTab()
+			if frame.preview.Entity then frame.preview.Entity.GetPlayerColor = function() return Vector(GetConVarString("cl_playercolor")) end end
+			playercolour:SetVector(Vector(GetConVarString("cl_playercolor")))
+			weaponcolour:SetVector(Vector(GetConVarString("cl_weaponcolor")))
+		end
+	UpdateFromConvars()
 	
 	-- @@@@@@@@@@
 	function PanelSelect:OnActivePanelChanged( old, new )
-		if ( old != new ) then
+		local name = new:GetModelName()
+		if old != new then
 			bgloading:SetVisible(true)
-			SetupScene(new:GetModelName())
+			SetupScene(name)
 			RunConsoleCommand( "cl_playerbodygroups", "0" )
 			RunConsoleCommand( "cl_playerskin", "0" )
 		end
-		timer.Simple( 0.1, function() UpdateFromConvars(false) bgloading:SetVisible(false) end )
+		timer.Simple(0.1, function()
+			if !table.IsEmpty(DRC.CurrentSpecialModelOptions) && table.HasValue(DRC.CurrentSpecialModelOptions, name) then
+				UpdateFromModel(name)
+			else
+				UpdateFromConvars()
+			end
+			bgloading:SetVisible(false)
+		end)
 	end
 
 	frame.preview.Entity.preview = true
@@ -2281,6 +2336,13 @@ function DRCMenu( player )
 	DisclaimerExperimental:SetText("Anything in this tab is either an unstable personal project or a work-in-progress feature in need of testing.")
 	DisclaimerExperimental:SetColor(TextCol) ]]
 	
+--	local t2tab3 = vgui.Create( "DPanel" )
+--	t2tab3:Dock(FILL)
+--	t2tab3.Paint = function(self, w, h)
+--	draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+--	end
+--	t2tabs:AddSheet( "Draconic Thirdperson", t2tab3, "icon16/camera.png")
+	
 
 	local mt3 = vgui.Create( "DPanel", maintabs )
 	mt3:SetBackgroundColor(Color(255, 255, 255, 5))
@@ -2756,6 +2818,16 @@ function DRCMenu( player )
 	
 	MakeHint(t4tab2panel_left, 150, 215, "Forces Draconic Base ''ReflectionTint'' proxies to act as if the current map has no envmaps, using their fallback settings.")
 	
+	t4tab2panel_left.HideShaderFixes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
+	t4tab2panel_left.HideShaderFixes:SetPos(25, 235)
+	t4tab2panel_left.HideShaderFixes:SetSize(500, 20)
+	t4tab2panel_left.HideShaderFixes:SetText( "Hide ''fixers''" )
+	t4tab2panel_left.HideShaderFixes:SetConVar( "cl_drc_debug_hideshaderfixes" )
+	t4tab2panel_left.HideShaderFixes.Label:SetColor(TextCol)
+	t4tab2panel_left.HideShaderFixes:SetEnabled(true)
+	
+	MakeHint(t4tab2panel_left, 150, 235, "Hides the effects of all ReflectionTint and ScalingRimLight material proxies, showing what assets would look like without them.")
+	
 	t4tab2panel_left.SourceTitle = vgui.Create( "DLabel", t4tab2panel_left)
 	t4tab2panel_left.SourceTitle:SetText("Source Debug Tools")
 	t4tab2panel_left.SourceTitle:SetSize(300, 50)
@@ -2893,6 +2965,6 @@ function DRCMenu( player )
 	wiki:Dock(FILL)
 	wiki:SetAllowLua(false)
 	wiki:SetScrollbars(true)
-	wiki:OpenURL("https://github.com/Vuthakral/Draconic_Base/wiki")
+	wiki:OpenURL("http://vuthakral.com/draconic")
 	
 end

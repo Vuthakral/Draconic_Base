@@ -12,6 +12,7 @@
 -- ###Library
 DRC.Menu = {}
 DRC.CurrentRPModelOptions = {}
+DRC.CurrentSpecialModelOptions = {}
 
 if game.SinglePlayer() then
 	if GetConVar("cl_drc_debug_alwaysshowshields") == nil then
@@ -129,7 +130,10 @@ net.Receive("DRC_UpdatePlayermodel", function()
 	if !IsValid(ent) then return end
 	ent:SetModel(model)
 	ent:SetSkin(skin)
-	ent:SetBodyGroups(bgs)
+	for k,v in pairs(bgs) do
+		ent:SetBodygroup(k-1, v)
+	end
+--	ent:SetBodyGroups(bgs)
 	ent:SetPlayerColor(Vector(colours.Player.r/255, colours.Player.g/255, colours.Player.b/255))
 	ent:SetWeaponColor(Vector(colours.Weapon.r/255, colours.Weapon.g/255, colours.Weapon.b/255))
 	DRC:RefreshColours(ent)
@@ -249,24 +253,6 @@ surface.CreateFont("DripIcons_Menu", {
 	size	= 16,
 	weight	= 300,	
 })
-
-if GetConVar("cl_drc_sell_soul") == nil then CreateClientConVar("cl_drc_sell_soul", 1, {FCVAR_DEMO, FCVAR_USERINFO}, "Give unto the dragon.", 0, 1) end
-if GetConVar("cl_drc_disable_crosshairs") == nil then CreateClientConVar("cl_drc_disable_crosshairs", 0, true, true, "Hides all DRC related crosshairs (except for debug mode)", 0, 1) end
-if GetConVar("cl_drc_eyecolour_r") == nil then CreateConVar("cl_drc_eyecolour_r", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_eyecolour_g") == nil then CreateConVar("cl_drc_eyecolour_g", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_eyecolour_b") == nil then CreateConVar("cl_drc_eyecolour_b", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_energycolour_r") == nil then CreateConVar("cl_drc_energycolour_r", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_energycolour_g") == nil then CreateConVar("cl_drc_energycolour_g", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_energycolour_b") == nil then CreateConVar("cl_drc_energycolour_b", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_tint1_r") == nil then CreateConVar("cl_drc_tint1_r", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_tint1_g") == nil then CreateConVar("cl_drc_tint1_g", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_tint1_b") == nil then CreateConVar("cl_drc_tint1_b", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_tint2_r") == nil then CreateConVar("cl_drc_tint2_r", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_tint2_g") == nil then CreateConVar("cl_drc_tint2_g", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_tint2_b") == nil then CreateConVar("cl_drc_tint2_b", 127, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_vmoffset_x") == nil then CreateConVar("cl_drc_vmoffset_x", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_vmoffset_y") == nil then CreateConVar("cl_drc_vmoffset_y", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
-if GetConVar("cl_drc_vmoffset_z") == nil then CreateConVar("cl_drc_vmoffset_z", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}) end
 	
 net.Receive("DRCNetworkedAddText", function(length, ply)
 	local msg = net.ReadTable()
@@ -330,7 +316,11 @@ end)
 net.Receive("DRC_SetRPModels", function(length, ply)
 	local models = net.ReadTable()
 	DRC.CurrentRPModelOptions = models
---	PrintTable(DRC.CurrentRPModelOptions)
+end)
+
+net.Receive("DRC_SetSpecialModels", function(length, ply)
+	local models = net.ReadTable()
+	DRC.CurrentSpecialModelOptions = models
 end)
 
 net.Receive("DRC_ReflectionModifier", function(length, ply)
@@ -524,6 +514,7 @@ hook.Add("Think", "DRC_CalcViewShakeNegation", function()
 end)
 
 function DRC:GetCalcViewShake()
+	if !LocalPlayer().CalcViewTPShakePower then LocalPlayer().CalcViewTPShakePower = 0 end
 	local shake = TimedSin(LocalPlayer().CalcViewTPShakePower * 50, 0, LocalPlayer().CalcViewTPShakePower * 15, 0) * LocalPlayer().CalcViewTPShakePower
 	local shakevert = TimedSin(LocalPlayer().CalcViewTPShakePower * 25, 0, LocalPlayer().CalcViewTPShakePower * 40, 0) * LocalPlayer().CalcViewTPShakePower
 	return shake, shakevert/10, shake/7.5
@@ -569,7 +560,7 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 	if !IsValid(wpn) then return end
 	if wpn:GetClass() == "drc_camera" then return end
 	if wpn.Draconic == nil then return end
---	if wpn.IsMelee == true then return end
+	if wpn.IsMelee == true then return end
 	local vm = ply:GetViewModel()
 	local sights = wpn.SightsDown
 	
@@ -700,12 +691,24 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 					
 					rollmul = (rollmul * wpn.VelInterp) * wpn.RollingPower
 					
+					local rollval, xval, yval
 					if ply:KeyDown(IN_MOVELEFT) then
 						rollval = -3.35 * rollmul
+						xval = -1
 					elseif ply:KeyDown(IN_MOVERIGHT) then
 						rollval = 3.35 * rollmul
+						xval = 1
 					else
 						rollval = 0
+						xval = 0
+					end
+					
+					if ply:KeyDown(IN_FORWARD) then
+						yval = 1
+					elseif ply:KeyDown(IN_BACK) then
+						yval = -1
+					else
+						yval = 0
 					end
 					
 					if vm:SelectWeightedSequence(ACT_RUN) == -1 then
@@ -715,7 +718,23 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 					end
 					
 					rollval_lerp = Lerp(0.06, rollval_lerp or rollval, rollval)
+					drc_xval_lerp = Lerp(0.1, drc_xval_lerp or xval, xval)
+					drc_yval_lerp = Lerp(0.1, drc_yval_lerp or yval, yval)
 					rollval_lerp = rollval_lerp * sightkill
+					local vel = math.Clamp(ply:GetVelocity():LengthSqr()*0.00005, 0, 4)
+					drc_vel_lerp = Lerp(0.1, drc_vel_lerp or vel, vel)
+					
+					if wpn.ShouldWalkBlend == false then
+						drc_xval_lerp = Lerp(0.5, drc_xval_lerp or 0, 0)
+						drc_yval_lerp = Lerp(0.5, drc_yval_lerp or 0, 0)
+						drc_vel_lerp = Lerp(0.5, drc_vel_lerp or 0, 0)
+					end
+					local velmul
+					if ply:Crouching() then velmul = 3 else velmul = 0.5 end
+					
+					vm:SetPoseParameter("drc_movement", drc_vel_lerp*velmul)
+					vm:SetPoseParameter("drc_move_x", drc_xval_lerp)
+					vm:SetPoseParameter("drc_move_y", drc_yval_lerp)
 					
 					local holdang = LocalPlayer():EyeAngles()
 					wpn.dang = LerpAngle((wpn.SS/15), wpn.dang, holdang - wpn.oang)
@@ -895,6 +914,7 @@ local drc_framesavg = 0
 local function drc_DebugUI()
 	if !LocalPlayer():Alive() then return end
 	if DRC.SV.drc_allowdebug == 0 then return end
+	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
 	if CurTime() > drc_frame then
 		drc_frame = CurTime() + engine.TickInterval() * 30
@@ -923,10 +943,10 @@ local function drc_DebugUI()
 		local ammo, maxammo = curswep:Clip1(), curswep:GetMaxClip1()
 		
 		if curswep.Draconic == true then
-			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNWInt("LoadedAmmo"), 4) ..")/".. maxammo .."", "TargetID", ScrW() * 0.975, ScrH() * 0.855, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. math.Round(curswep:GetHeat(), 4) .."%", "TargetID", ScrW() * 0.975, ScrH() * 0.875, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. curswep.Category .." - ".. curswep:GetPrintName() .."", "TargetID", ScrW() * 0.975, ScrH() * 0.835, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. curswep.OwnerActivity .."", "TargetID", ScrW() * 0.5, ScrH() * 0.82, color_white, TEXT_ALIGN_CENTER )
+			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNWInt("LoadedAmmo"), 4) ..")/".. maxammo .." | Ammo", "TargetID", ScrW() * 0.975, ScrH() * 0.855, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. math.Round(curswep:GetHeat(), 4) .."% | Heat", "TargetID", ScrW() * 0.975, ScrH() * 0.855+24, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. curswep.Category .." - ".. curswep:GetPrintName() .."", "TargetID", ScrW() * 0.975, ScrH() * 0.855-24, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. curswep.OwnerActivity .."", "TargetID", ScrW() * 0.5, ScrH() * 0.8 + 24, color_white, TEXT_ALIGN_CENTER )
 			
 			local col1 = Color(255, 255, 255, 175)
 			local col2 = Color(255, 255, 255, 75)
@@ -942,6 +962,8 @@ local function drc_DebugUI()
 			surface.DrawLine(posx, posy, posx + (drc_vm_lerpang_final.y), posy - (drc_vm_lerpang_final.x))
 			surface.SetDrawColor( col1 )
 			surface.DrawRect(posx - 2 + (drc_vm_lerpang_final.y), posy - 2 - (drc_vm_lerpang_final.x), 5, 5)
+		--	draw.DrawText( "".. math.Round(curswep.IdleTimer, 4) .." |", "TargetID", ScrW() * 0.5 -50, ScrH() * 0.8 + 25, color_white, TEXT_ALIGN_CENTER )
+		--	draw.DrawText( "".. math.Round(CurTime(), 4) .."", "TargetID", ScrW() * 0.5 +20, ScrH() * 0.8 + 25, color_white, TEXT_ALIGN_LEFT )
 		else
 			draw.DrawText( "".. ammo .."/".. maxammo .."", "TargetID", ScrW() * 0.975, ScrH() * 0.875, color_white, TEXT_ALIGN_RIGHT )
 			draw.DrawText( curswep:GetPrintName(), "TargetID", ScrW() * 0.975, ScrH() * 0.855, color_white, TEXT_ALIGN_RIGHT )
@@ -951,7 +973,7 @@ local function drc_DebugUI()
 	local label = DRC:GetPower()
 	if label != "Desktop" then label = "Mobile: ".. DRC:GetPower() .."%" end
 	
-	draw.DrawText( "Draconic Base version ".. Draconic.Version .."", "TargetID", ScrW() * 0.5, ScrH() * 0.92, color_white, TEXT_ALIGN_CENTER )
+	draw.DrawText( "Draconic Base ".. Draconic.Version .."", "TargetID", ScrW() * 0.5, ScrH() * 0.92, color_white, TEXT_ALIGN_CENTER )
 	draw.DrawText( "".. LocalPlayer():Name() .." (".. LocalPlayer():SteamID64() ..")", "TargetID", ScrW() * 0.5, ScrH() * 0.94, color_white, TEXT_ALIGN_CENTER )
 	draw.DrawText( "".. DRC:GetOS() .." (".. DRC:GetPower() ..") - ".. os.date() .."", "TargetID", ScrW() * 0.5, ScrH() * 0.96, color_white, TEXT_ALIGN_CENTER )
 	if game.SinglePlayer() then
@@ -960,20 +982,28 @@ local function drc_DebugUI()
 		draw.DrawText( "".. DRC:GetServerMode() .." - ".. GetHostName() .." - ".. engine.ActiveGamemode() .."", "TargetID", ScrW() * 0.5, ScrH() * 0.98, color_white, TEXT_ALIGN_CENTER )
 	end
 	
+	local lifetime = CurTime()
+	local days = math.floor(lifetime/86400)
+	local hours = math.floor(math.fmod(lifetime, 86400)/3600)
+	local minutes = math.floor(math.fmod(lifetime,3600)/60)
+	local seconds = math.floor(math.fmod(lifetime,60))
+	local timestr = "".. days .." days, ".. hours .." hours, ".. minutes .." minutes, and ".. seconds .." seconds"
+	draw.DrawText( "Uptime: ".. timestr .."", "TargetID", 32, 32, color_white, TEXT_ALIGN_LEFT )
+	
 	local eyepos = LocalPlayer():EyePos()
 	local roomsize = DRC:RoomSize(LocalPlayer())
 	local roomname = DRC:GetRoomSizeName(roomsize)
 	local ll = render.GetLightColor(eyepos)
 	local llhp = render.GetLightColor(LocalPlayer():GetEyeTrace().HitPos)
 	
-	draw.DrawText( "Thirdperson detection: ".. tostring(DRC:ThirdPersonEnabled(LocalPlayer())) .."", "TargetID", ScrW() * 0.02, ScrH() * 0.022, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "Room size: ".. roomname .."", "TargetID", ScrW() * 0.02, ScrH() * 0.04, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "Weather mod: ", "TargetID", ScrW() * 0.02, ScrH() * 0.06, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.0575, 24, 24, Color(DRC.WeathermodScalar.x * 255, DRC.WeathermodScalar.y * 255, DRC.WeathermodScalar.z * 255))
-	draw.DrawText( "Light level: ", "TargetID", ScrW() * 0.02, ScrH() * 0.08, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.08, 24, 24, Color(ll.r * 255, ll.g * 255, ll.b * 255))
-	draw.DrawText( "( ^ Hitpos): ", "TargetID", ScrW() * 0.02, ScrH() * 0.1, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, ScrW() * 0.02 + 115, ScrH() * 0.1, 24, 24, Color(llhp.r * 255, llhp.g * 255, llhp.b * 255))
+	draw.DrawText( "Thirdperson detection: ".. tostring(DRC:ThirdPersonEnabled(LocalPlayer())) .."", "TargetID", 32, 56, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Room size: ".. roomname .."", "TargetID", 32, 78, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Weather mod: ", "TargetID", 32, 102, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(0, 180, 102, 24, 24, Color(DRC.WeathermodScalar.x * 255, DRC.WeathermodScalar.y * 255, DRC.WeathermodScalar.z * 255))
+	draw.DrawText( "Light level: ", "TargetID", 32, 126, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(0, 147, 126, 24, 24, Color(ll.r * 255, ll.g * 255, ll.b * 255))
+	draw.DrawText( "LL Hitpos: ", "TargetID", 32, 150, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(0, 147, 150, 24, 24, Color(llhp.r * 255, llhp.g * 255, llhp.b * 255))
 	
 	draw.DrawText( "".. game.GetMap() .." @ Vector(".. tostring(LocalPlayer():GetPos()) ..")", "TargetID", ScrW() * 0.02, ScrH() * 0.978, color_white, TEXT_ALIGN_LEFT )
 	
@@ -990,6 +1020,7 @@ hook.Add("HUDPaint", "drc_DebugUI", drc_DebugUI)
 
 local function drc_TraceInfo()
 	if DRC.SV.drc_allowdebug == 0 then return end
+	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
 	local pos = DRC.CalcView.ToScreen
 	local data = DRC.CalcView.Trace
@@ -1038,7 +1069,7 @@ local function drc_TraceInfo()
 	local e2
 	if enum && DRC.SurfacePropDefinitions[enum] then e2 = DRC.SurfacePropDefinitions[enum][1] or "UNDEFINED, PLEASE REPORT" else e2 = "UNDEFINED, PLEASE REPORT" end
 	if enum == "MAT_DEFAULT_SILENT" then e2 = "Invalid" end
-	if enum == "MAT_" then enum = "Unreadable" e2 = "Invalid" end
+	if enum == "MAT_" or enum == -1 then enum = "Unreadable" e2 = "Invalid" end
 	enum = "".. enum .." | DRC: ''".. e2 .."''" 
 	
 	if BaseDT[enum] && enum != "MAT_" == nil then
@@ -1231,6 +1262,7 @@ end)
 
 function DRC:RenderTrace(tr, colour, thyme)
 	if GetConVar("cl_drc_debug_tracelines"):GetFloat() != 1 then return end
+	if !tr then return end
 	local id = math.Round(math.Rand(1, 999999999))
 	local p1, p2 = tr.StartPos, tr.HitPos
 	

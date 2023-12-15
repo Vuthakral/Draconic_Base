@@ -629,3 +629,15 @@ sound.Add({
 	"physics/wood/wood_plank_impact_hard4.wav",
 	"physics/wood/wood_plank_impact_hard5.wav" }
 })
+
+sound.Add({
+	name = "Mud.BulletImpact",
+	channel = CHAN_ITEM,
+	volume = 1,
+	level = 80,
+	pitch = { 90, 100 },
+	sound = { "player/footsteps/mud1.wav",
+	"player/footsteps/mud2.wav",
+	"player/footsteps/mud3.wav",
+	"player/footsteps/mud4.wav" }
+})

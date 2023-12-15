@@ -824,6 +824,7 @@ end)
 -- ###Interaction
 local bool, alpha, alphalerp, SwapCD = true, 0, 0, 0
 local function drc_IText()
+	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	local ply = LocalPlayer()
 	local center = { ScrW()/2, ScrH()/2 }
 	local curswep = ply:GetActiveWeapon()
@@ -928,6 +929,9 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 	local AT, AA = wpn.AttachmentTable, wpn.ActiveAttachments
 	
 	if b == true then
+		if !DRC.Inspection then return end
+		if !DRC.Inspection.ThemeColours then return end
+		if !DRC.Inspection.ThemeColours_Attachments then return end
 		surface.PlaySound(DRC.Inspection.Theme.Sounds.Enter)
 		if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
 		DRC.AttachMenu.mpanel = vgui.Create("DScrollPanel")

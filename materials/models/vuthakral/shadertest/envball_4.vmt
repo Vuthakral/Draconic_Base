@@ -7,8 +7,6 @@
 	"$envmapsaturation" "[1 1 1]"
 
 	$cmpower	4
-	$envmapfallback	"engine\defaultcubemap"
-	$cmpower_fb	1
 
 	Proxies
 	{

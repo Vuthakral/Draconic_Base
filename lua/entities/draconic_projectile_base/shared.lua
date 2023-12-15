@@ -24,6 +24,8 @@ ENT.Buoyancy				= 0.15
 ENT.Drag					= 0
 ENT.Mass					= nil
 
+ENT.InheritDamageFromCreatorPrimary = false
+ENT.InheritDamageFromCreatorSecondary = false
 ENT.Damage 					= 25
 ENT.DamageType				= DMG_GENERIC
 ENT.Force					= 5
@@ -367,8 +369,10 @@ function ENT:Initialize()
 		end
 	end
 	
-	self:DoCustomInitialize()
+	if self.InheritDamageFromCreatorPrimary == true then self.Damage = self:GetCreator().Primary.Damage end
+	if self.InheritDamageFromCreatorSecondary == true then self.Damage = self:GetCreator().Secondary.Damage end
 	
+	self:DoCustomInitialize()
 	
 	if IsValid(self:GetCreator()) && self:GetCreator():IsWeapon() then
 		self.BProfile = true
@@ -826,6 +830,9 @@ function ENT:TriggerSC()
 	end
 end
 
+function ENT:LuaExplodeCustom()
+end
+
 function ENT:LuaExplode(mode)
 	local pos = self:GetPos()
 	local phys = self:GetPhysicsObject()
@@ -853,7 +860,8 @@ function ENT:LuaExplode(mode)
 	
 	DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast")
 	
-	for f, v in pairs(ents.FindInSphere(pos, self.MSRadius)) do
+	local entities = ents.FindInSphere(pos, self.MSRadius)
+	for f, v in pairs(entities) do
 	
 	local totaldamage = 0
 	local d1 = (self.MSDamage / (v:GetPos() + Vector(v:OBBCenter().x, v:OBBCenter().y, (v:OBBMaxs().z - (v:OBBMaxs().z/10)))):Distance(pos) * 20) / 2
@@ -896,6 +904,7 @@ function ENT:LuaExplode(mode)
 			if self.EMP == true then self:DoEMP(v) end
 		end
 	end
+	self:LuaExplodeCustom(entities)
 
 	util.ScreenShake( Vector( self:GetPos() ), (self.MSExplShakePower / 2), self.MSExplShakePower, self.MSExplShakeTime, self.MSExplShakeDist )
 		

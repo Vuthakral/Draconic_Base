@@ -348,7 +348,7 @@ function SWEP:Overheat(scripted, cooldown, animate)
 	
 	if ply:IsPlayer() then ply:SetFOV(0, 0.05) end	
 	if self:Clip1() <= 0 && self.InfAmmo == false then
-		self:SetNextPrimaryFire (( CurTime() + (60 / self.Primary.RPM) ) * (self:GetHeat() * 0.1))
+		self:SetNextPrimaryFire (( CurTime() + self.PrimaryStats.PreCalcRPM ) * (self:GetHeat() * 0.1))
 		return false
 	elseif self:Clip1() <= 0 && self.InfAmmo == true then
 		self:SetNWFloat("HeatDispersePower", self.OverheatStrength)

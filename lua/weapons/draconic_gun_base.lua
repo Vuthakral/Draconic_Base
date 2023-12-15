@@ -38,7 +38,7 @@ SWEP.FireModes_BurstShots = 3
 
 SWEP.Primary.IronRecoilMul	= 0.5
 SWEP.Primary.Spread			= 1
-SWEP.Primary.SpreadDiv		= 90
+SWEP.Primary.SpreadDiv		= 128 -- This is a remnant of an older era, and left at 128 to minimize the performance impact of using division on lower-spec CPUs. You can still change it in your weapons, but it's kinda pointless in hindsight.
 SWEP.Primary.SpreadXMul		= 1
 SWEP.Primary.SpreadYMul		= 1
 SWEP.Primary.Kick			= 0.76
@@ -78,23 +78,28 @@ SWEP.Primary.Projectile			 = nil
 SWEP.Primary.ProjSpeed			 = 750
 SWEP.Primary.ProjInheritVelocity = false
 
-SWEP.Primary.CanMelee		= false
-SWEP.Primary.MeleeSwingSound	= Sound( "" )
-SWEP.Primary.MeleeHitSoundWorld = Sound( "" )
-SWEP.Primary.MeleeHitSoundFlesh = Sound( "" )
-SWEP.Primary.MeleeHitSoundEnt 	= Sound( "" )
+SWEP.Primary.CanMelee			= false
+SWEP.Primary.MeleeIsLunge		= false
+SWEP.Primary.MeleeLungeMaxDist	= 250
+SWEP.Primary.MeleeLungeVelocity = 1250
+SWEP.Primary.MeleeSwingSound	= ""
+SWEP.Primary.MeleeHitSoundWorld = nil
+SWEP.Primary.MeleeHitSoundFlesh = nil
+SWEP.Primary.MeleeHitSoundEnt 	= nil
+SWEP.Primary.MeleeHitSound 		= "meleegunhard"
 SWEP.Primary.MeleeImpactDecal 	= ""
 SWEP.Primary.MeleeBurnDecal 	= ""
 SWEP.Primary.MeleeDamage		= 12
 SWEP.Primary.MeleeDamageType	= DMG_CLUB
 SWEP.Primary.MeleeRange			= 16.5
 SWEP.Primary.MeleeForce			= 5
-SWEP.Primary.MeleeDelayMiss		= 0.42
-SWEP.Primary.MeleeDelayHit 		= 0.54
+SWEP.Primary.MeleeDelayMiss		= 0.54
+SWEP.Primary.MeleeDelayHit 		= 0.42
+SWEP.Primary.MeleeHitDelay		= 0.1
 SWEP.Primary.CanAttackCrouched = false
 SWEP.Primary.MeleeHitActivity	= nil 
 SWEP.Primary.MeleeMissActivity	= ACT_VM_HITCENTER
-SWEP.Primary.MeleeHitDelay		= 0.1
+SWEP.Primary.MeleeActTP			= nil
 SWEP.Primary.MeleeStartX		= 25
 SWEP.Primary.MeleeEndX			= -25
 SWEP.Primary.MeleeStartY		= -5
@@ -220,16 +225,17 @@ function SWEP:CanPrimaryAttack()
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 	local issprinting = sk && mk
 	local wl = ply:WaterLevel()
+	local ct = CurTime()
 	
 	local curFOV = ply:GetFOV()
 	local IronFOV = self.Secondary.IronFOV
 	
-	if !game.SinglePlayer() && CurTime() < self:GetNextPrimaryFire() then return end
-	if game.SinglePlayer() && SERVER && CurTime() < self:GetNextPrimaryFire() then return end -- ugh
+--	if !game.SinglePlayer() && CurTime() < self:GetNextPrimaryFire() then return end
+--	if game.SinglePlayer() && SERVER && CurTime() < self:GetNextPrimaryFire() then return end -- ugh
 	
 	if self:GetLoadedAmmo() <= 0 then
-		if CLIENT then self:EmitSound(self.Primary.EmptySound) end
-		self:SetNextPrimaryFire(CurTime() + 0.3)
+		if CLIENT then self:StopSound(self.Primary.EmptySound) self:EmitSound(self.Primary.EmptySound) end
+		self:SetNextPrimaryFire(ct + 0.3)
 		return false
 	elseif ( self:Clip1() <= 0 ) && self.SecondaryAttacking == false then
 		return true
@@ -241,7 +247,7 @@ function SWEP:CanPrimaryAttack()
 	
 	if self:GetNWBool("Passive") == true then
 		self:TogglePassive()
-		self:SetNextPrimaryFire(CurTime() + 0.3)
+		self:SetNextPrimaryFire(ct + 0.3)
 		return false
 	end
 	
@@ -259,10 +265,8 @@ function SWEP:CanPrimaryAttackNPC()
 	if self.NPCLoading == true or self.ManuallyReloading == true then return end
 	
 	if self:Clip1() < 1 or self:GetNWInt("LoadedAmmo") < 1 then
-	--	npc:SetSchedule(SCHED_RELOAD)
 		self:LoadNextShot()	
 		self:SetLoadedAmmo((self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
---		self:SetClip1(self.DefaultPimaryClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 		if (!npc:IsNextBot() && !npc.Draconic) && SERVER && !CLIENT then 
 			npc:ClearSchedule()
 			npc:SetSchedule(SCHED_PATROL_WALK)
@@ -293,15 +297,17 @@ end
 
 function SWEP:DoBurstAttack()
 	if self.Bursting == false then
-		local rpm = 60/self.Primary.RPM
-		self.Bursting = true
-		timer.Simple((rpm * self.FireModes_BurstShots *2), function() self.Bursting = false end)
-		for i=1,self.FireModes_BurstShots do
-			timer.Simple(i*rpm + 0.02, function()
+		if !self.BurstQueue then self.BurstQueue = {} end
+		local rpm = self.PrimaryStats.PreCalcRPM
+--		timer.Simple((rpm * self.FireModes_BurstShots *2), function() self.Bursting = false end)
+		for i=0,self.FireModes_BurstShots+1 do
+			local thyme = CurTime() + (rpm*i)
+			self.BurstQueue[i] = thyme
+--[[			timer.Simple(i*rpm + 0.02, function()
 				if !IsValid(self) or !IsValid(self:GetOwner()) then return end
 				if self:GetLoadedAmmo() <= 0 then return end
 				if self.Loading == false then self:CallShoot("primary", true) end
-			end)
+			end) ]]
 		end
 	end
 end
@@ -318,7 +324,7 @@ function SWEP:PrimaryAttackNPC(fs, ft, fm, dc)
 		if self.FireDelay > CurTime() then return end
 			
 		if self.Owner:IsNPC() or self.Owner:IsNextBot() then
-			self.FireDelay = (CurTime() + (60 / self.Primary.RPM))
+			self.FireDelay = (CurTime() + self.PrimaryStarts.PreCalcRPM)
 			if !IsValid(self) or !IsValid(self:GetOwner()) then return end
 			if !self:GetOwner():GetEnemy() or !self:CanPrimaryAttackNPC() then return end
 			if !self.Loading then
@@ -346,6 +352,28 @@ function SWEP:PrimaryAttackNPC(fs, ft, fm, dc)
 	end
 end
 
+function SWEP:DoGunMelee()
+	local miss_tp = self.Primary.MeleeActTP
+	local swing = {
+		["lunge"] = {self.Primary.MeleeIsLunge, self.Primary.MeleeLungeMaxDist, self.Primary.MeleeLungeVelocity},
+		["range"] = self.Primary.MeleeRange,
+		["x"] = {self.Primary.MeleeStartX, self.Primary.MeleeEndX},
+		["y"] = {self.Primary.MeleeStartY, self.Primary.MeleeStartY},
+		["delay"] = { self.Primary.MeleeDelayHit, self.Primary.MeleeDelayMiss, self.Primary.MeleeHitDelay }, -- hit, miss, tick
+		["screenshake"] = { true, self.Primary.MeleeShakeMul }, -- do shake, shake power
+		["anim_tp_miss"] = miss_tp,
+		["anim_tp"] = miss_tp,
+		["anim_fp_miss"] = self.Primary.MeleeMissActivity,
+		["anim_fp"] = self.Primary.MeleeHitActivity,
+		["damage"] = { self.Primary.MeleeDamage, self.Primary.MeleeDamageType, self.Primary.MeleeForce },
+		["decals"] = { self.Primary.MeleeImpactDecal, self.Primary.MeleeBurnDecal },
+		["sound"] = self.Primary.MeleeSwingSound,
+		["hitsound"] = self.Primary.MeleeHitSound,
+		["trigger"] = 3,
+	}
+	self:DoMeleeSwing(swing)
+end
+
 function SWEP:PrimaryAttack()
 	if !IsValid(self) then return end
 	if game.SinglePlayer() then self:CallOnClient("PrimaryAttack") end
@@ -360,7 +388,7 @@ function SWEP:PrimaryAttack()
 	
 	if !ply:IsPlayer() then self:PrimaryAttackNPC(fireseq, firetime, fm, dc) return end
 	
-	if (self.Primary.UsesCharge == true && ply:IsPlayer()) && ply:KeyDown(IN_USE) then self:DoMeleeSwing("gunmelee") else end
+	if (self.Primary.UsesCharge == true && ply:IsPlayer()) && ply:KeyDown(IN_USE) then self:DoGunMelee() else end
 	if self.Loading == true or self.ManuallyReloading == true then return end
 	
 	local vm = self
@@ -371,7 +399,7 @@ function SWEP:PrimaryAttack()
 		timer.Simple(firetime, function() if IsValid(self) && IsValid(ply) && ply:Alive() then self:LoadNextShot() end end)
 	end
 		
-	if canmelee && self:CanGunMelee() && ply:KeyDown(IN_USE) then self:DoMeleeSwing("gunmelee") return end
+	if canmelee && self:CanGunMelee() && ply:KeyDown(IN_USE) then self:DoGunMelee() return end
 	if self.LoadAfterShot == true && self.LoadAfterReloadEmpty == true && self:GetLoadedAmmo() > 1 then
 		LNS()
 	elseif self.LoadAfterShot == true &&  self.LoadAfterReloadEmpty == false && self:GetLoadedAmmo() > 0 then
@@ -427,8 +455,8 @@ function SWEP:LoadNextShot()
 
 	if ply:IsPlayer() && ply:IsValid() && ply:Alive() then
 		if ply:IsPlayer() then
-			self:SendWeaponAnim( ACT_SHOTGUN_PUMP )
-			timer.Simple( loadtime + 0.025, function() if ply:IsValid() && ply:Alive() then self:FinishLoading() end end)
+			self:PlayAnim( ACT_SHOTGUN_PUMP, true )
+			timer.Simple( loadtime, function() if ply:IsValid() && ply:Alive() then self:FinishLoading() end end)
 		else end
 	end
 end
@@ -622,7 +650,7 @@ function SWEP:DumbassDetector(press)
 	if !self.DumbassWarning then self.DumbassWarning = 0 end
 	if press then 
 		self.DumbassWarning = self.DumbassWarning + 1
-		timer.Simple(5, function() self.DumbassWarning = math.Clamp(self.DumbassWarning - 1, 0, 999) end)
+		timer.Simple(5, function() if IsValid(self) then self.DumbassWarning = math.Clamp(self.DumbassWarning - 1, 0, 999) end end)
 	end
 	
 	if !self.DumbassCD then self.DumbassCD = 0 end
@@ -644,7 +672,7 @@ function SWEP:Reload()
 	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	local reloadkeypressed = ply:KeyPressed(IN_RELOAD)
-	local MR = self.ManualReload
+	local MR = self.ManualReload == true
 
 	if ply:IsPlayer() then
 		if usekey && reloadkeypressed then
@@ -732,7 +760,13 @@ function SWEP:EndSecondaryReload()
 	else end
 end
 
+function SWEP:CanReloadPrimary()
+	if self.IsDoingMelee == false && self:GetNextPrimaryFire() < CurTime() == true then return true end
+	if self.IsDoingMelee == true or self.Loading == true or self.Idle == 0 then return false else return true end
+end
+
 function SWEP:DoReload()
+	if !self:CanReloadPrimary() then return end
 	local ply = self:GetOwner()
 	local reloadseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
 	local reloadtime = self:SequenceDuration( reloadseq )
@@ -743,6 +777,8 @@ function SWEP:DoReload()
 	local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
 	local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 	local vm = nil
+--	self.IdleTimer = CurTime()
+	self:ClearBurstQueue()
 	
 	if ply:IsPlayer() then
 		vm = ply:GetViewModel()
@@ -751,8 +787,8 @@ function SWEP:DoReload()
 	
 	if self:IsValid() && ply:IsValid() && ply:Health() > 0.001 then
 		self.Loading = true
-		self:SetNextPrimaryFire( CurTime() + reloadtime)
-		self:SetNextSecondaryFire( CurTime() + reloadtime)
+	--	self:SetNextPrimaryFire( CurTime() + reloadtime)
+	--	self:SetNextSecondaryFire( CurTime() + reloadtime)
 		
 		self.BloomValue = 1
 		self:DoCustomReloadStartEvents()
@@ -770,12 +806,12 @@ function SWEP:DoReload()
 		
 		if self:Clip1() <= 0 then
 			if emptyreloadseq == -1 then
-				if IsFirstTimePredicted() then self:SendWeaponAnim(ACT_VM_RELOAD) end
+				self:PlayAnim(ACT_VM_RELOAD, true)
 			else
-				if IsFirstTimePredicted() then self:SendWeaponAnim(ACT_VM_RELOAD_EMPTY) end
+				self:PlayAnim(ACT_VM_RELOAD_EMPTY, true)
 			end
 		else
-			if IsFirstTimePredicted() then self:SendWeaponAnim(ACT_VM_RELOAD) end
+			self:PlayAnim(ACT_VM_RELOAD, true)
 		end
 		
 		if SERVER && self.MagazineEntity != nil then
@@ -809,6 +845,7 @@ function SWEP:DoReload()
 			if self.Primary.ReloadTime != nil then
 				timer.Simple( self.Primary.ReloadTime, function() if self:IsValid() then self.PistolSlide = 1 end end)
 			end
+			self.IdleTimer = CurTime() + reloadtime
 			timer.Simple( reloadtime, function() if ply:IsValid() && ply:Alive() && self:IsValid() then self:EndReload() end end)
 		end
 	else end
@@ -840,7 +877,7 @@ function SWEP:EndReload()
 	end
 		
 	if self:GetNWBool("reloadedEmpty") == true && self.LoadAfterReloadEmpty == true then
-		self:SendWeaponAnim(ACT_SHOTGUN_PUMP)
+		self:PlayAnim(ACT_SHOTGUN_PUMP, true)
 	else end
 
 	if ply:GetAmmoCount(self.Primary.Ammo) < CM then
@@ -869,9 +906,10 @@ function SWEP:StartManualReload()
 		self:SetNextPrimaryFire( CurTime() + 9001)
 		self:SetNextSecondaryFire( CurTime() + 9001)
 		ply:SetAnimation( PLAYER_RELOAD )
+		self.Loading = true
 		self.ManuallyReloading = true
-		self:SetIronsights(false, self.Owner)
-		wep:SendWeaponAnim(ACT_SHOTGUN_RELOAD_START)
+		self:SetIronsights(false, ply)
+		self:PlayAnim(ACT_SHOTGUN_RELOAD_START, true)
 		timer.Simple( entertime, function() if ply:IsValid() && ply:Alive() then self:DoManualReload() end end)
 	else end
 return true
@@ -882,9 +920,10 @@ function SWEP:PlayManualReloadAnimation()
 	local vm = ply:GetViewModel()
 	local loopseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
 	local looptime = self:SequenceDuration( loopseq )
+	self:PlayAnim(ACT_VM_RELOAD, true)
 	
-	if IsFirstTimePredicted() then
-		timer.Simple(0.01, function() vm:SendViewModelMatchingSequence(loopseq) end)
+	if IsFirstTimePredicted() then -- prediction sure is amazing
+		timer.Simple(0, function() self:PlayAnim(ACT_VM_RELOAD, true) end)
 	end
 end
 
@@ -925,7 +964,6 @@ function SWEP:ManualReloadLoop()
 				if ply:KeyDown(IN_RELOAD) && self:Clip1() < CM then
 					if ( ply:GetAmmoCount(self.Primary.Ammo) ) > 0 then
 						self:DoManualReload(true)
---						self:CallOnClient("PlayManualReloadAnimation")
 					else
 						self:FinishManualReload()
 					end
@@ -941,17 +979,21 @@ function SWEP:FinishManualReload()
 	local loopseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_FINISH )
 	local looptime = self:SequenceDuration( loopseq )
 	if self:IsValid() && ply:IsValid() && ply:Alive() then
-		self:SetHoldType( self.HoldType )
-		if IsFirstTimePredicted() && SERVER then self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH) end
+		self:SetHoldType(self.HoldType)
+	--	self.IdleTimer = CurTime() + looptime
+		self:PlayAnim(ACT_SHOTGUN_RELOAD_FINISH, true)
+	--	self:SendWeaponAnim(ACT_SHOTGUN_RELOAD_FINISH)
 		
-		self:SetNextPrimaryFire( CurTime() + looptime)
-		self:SetNextSecondaryFire( CurTime() + looptime)
+	--	self:SetNextPrimaryFire( CurTime() + looptime)
+	--	self:SetNextSecondaryFire( CurTime() + looptime)
+		self.EndingManualReload = true
 		
 		timer.Simple( looptime, function() 
 			if IsValid(self) then
 				self.ManuallyReloading = false
+				self.Loading = false
 				self.IronCD = false
-				self:ManuallyLoadAfterReload() 
+				self:ManuallyLoadAfterReload()
 			end
 		end)
 	else end
@@ -964,11 +1006,14 @@ function SWEP:ManuallyLoadAfterReload()
 			if IsFirstTimePredicted() then 
 				local loadseq = self:SelectWeightedSequence( ACT_SHOTGUN_PUMP )
 				local loadtime = self:SequenceDuration( loadseq )
+			--	self:SetNextPrimaryFire( CurTime() + loadtime)
+			--	self:SetNextSecondaryFire( CurTime() + loadtime)
+				
 				self.Loading = true
 				self:DoCustomManualLoadEvents()
 				self:SetCycle(0)
 				self:SetPlaybackRate(1)
-				if IsFirstTimePredicted() && SERVER then self:SendWeaponAnim(ACT_SHOTGUN_PUMP) end
+				self:PlayAnim(ACT_SHOTGUN_PUMP, true)
 				timer.Simple(loadtime, function()
 					self.Loading = false
 				end)
@@ -987,12 +1032,6 @@ function SWEP:Taunt()
 		ply:EmitSound( table.Random( self.TauntSounds ) )
 		timer.Simple( self.TauntCooldown, function() self:TauntReady() end)
 	end
-end
-
-function SWEP:DoImpactEffect(tr, dt)
-	if game.SinglePlayer() && CLIENT then return true end
-	if !game.SinglePlayer() && SERVER then return true end
-	if self.HideImpacts == true then return true else return false end
 end
 
 function SWEP:GetShootPos()

@@ -5,9 +5,6 @@
 
 	$cmpower	1
 
-	$envmapfallback	"engine/defaultcubemap"
-	$cmpower_fb	1
-
 	Proxies
 	{
 		drc_ReflectionTint{}

@@ -61,7 +61,7 @@ local Inert = {
 
 function DRC:EMP(src, tgt, thyme, sound, effect)
 	if !IsValid(tgt) then return end
-	if tgt.ResistsEMP == true then return end -- shut the fuck up already
+	if tgt.ResistsEMP == true then return end
 	local function Effects()
 		if sound != nil then DRC:EmitSound(src, Sound(sound)) end
 	end
@@ -116,7 +116,6 @@ function DRC:EMP(src, tgt, thyme, sound, effect)
 		rag:SetModel(tbl[3])
 		rag:SetPos(tgt:GetPos())
 		rag:SetAngles(tgt:GetAngles())
-	--	rag:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		rag:Spawn()
 		rag:SetVelocity(tgt:GetVelocity())
 		tgt:Remove()
@@ -159,6 +158,7 @@ function DRC:EMP(src, tgt, thyme, sound, effect)
 end
 
 function DRC:SetRoleplayPlayermodels(ply, tab)
+	if !tab or tab == nil then tab = {} end
 	net.Start("DRC_SetRPModels")
 	net.WriteTable(tab)
 	net.Send(ply)
@@ -167,6 +167,13 @@ end
 function DRC:ClearRoleplayPlayermodels(ply)
 	local tab = {}
 	net.Start("DRC_SetRPModels")
+	net.WriteTable(tab)
+	net.Send(ply)
+end
+
+function DRC:SetSpecialModels(ply, tab)
+	if !tab or tab == nil then tab = {} end
+	net.Start("DRC_SetSpecialModels")
 	net.WriteTable(tab)
 	net.Send(ply)
 end
@@ -230,6 +237,7 @@ util.AddNetworkString("DRC_UpdatePlayerHands")
 util.AddNetworkString("DRC_RequestLightColour")
 util.AddNetworkString("DRC_ReceiveLightColour")
 util.AddNetworkString("DRC_SetRPModels")
+util.AddNetworkString("DRC_SetSpecialModels")
 util.AddNetworkString("DRC_PlayerSquadHelp")
 util.AddNetworkString("DRC_PlayerSquadMove")
 util.AddNetworkString("DRC_NetworkScreenShake")
@@ -259,12 +267,13 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 	local vehicle = false
 	
 	local function IsMeleeDamage(d)
-		if d:GetBaseDamage() == 2221208 then return true else return false end
+		if d:GetDamageCustom() == 2221208 then return true else return false end
 	end
 	
 	if !IsMeleeDamage(dmg) && inflictor.Draconic && DRC:IsCharacter(attacker) then
 		dmg:ScaleDamage(attacker:GetNWInt("DRC_GunDamageMod", 1))
 	elseif IsMeleeDamage(dmg) && inflictor.Draconic && DRC:IsCharacter(attacker) then
+		dmg:SetDamage(inflictor.LastMeleeDamage)
 		dmg:ScaleDamage(attacker:GetNWInt("DRC_MeleeDamageMod", 1))
 	end
 	
@@ -346,7 +355,7 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 		hl2diff_inflict = GetConVarNumber("sk_dmg_inflict_scale3")
 	end
 	
-	if inflictor:IsWeapon() then
+	if inflictor:IsWeapon() && !IsMeleeDamage(dmg) then
 		BT = inflictor.ActiveAttachments.AmmunitionTypes.t.BulletTable
 		DT = inflictor.ActiveAttachments.AmmunitionTypes.t.BulletTable.MaterialDamageMuls
 		BaseBT = BaseProfile.t.BulletTable
@@ -406,7 +415,7 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 		end
 		
 		if vehicle == true then damagevalue = damagevalue * inflictor:GetAttachmentValue("Ammunition", "VehicleDamageMul") end
-	elseif inflictor.BProfile == true or inflictor.OverrideBProfile != nil then
+	elseif (inflictor.BProfile == true or inflictor.OverrideBProfile != nil) && !IsMeleeDamage(dmg) then
 		if !inflictor:GetCreator().ActiveAttachments then return end
 		BT = inflictor:GetCreator().ActiveAttachments.AmmunitionTypes.t.BulletTable
 		DT = inflictor:GetCreator().ActiveAttachments.AmmunitionTypes.t.BulletTable.MaterialDamageMuls
@@ -585,10 +594,12 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 		local str = "kill_".. class ..""
 		local hp = DRC:Health(tgt)
 		if hp <= 0 then
-			if !DRC:IsVSentenceValid(DRC:GetVoiceSet(dmg:GetAttacker()), "Reactions", str) then
-				timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", "kill_postgeneric") end)
+			local att = dmg:GetAttacker()
+			local vs = DRC:GetVoiceSet(dmg:GetAttacker())
+			if !DRC:IsVSentenceValid(vs, "Reactions", str) then
+				timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(att, "Reactions", "kill_postgeneric") end)
 			else
-				timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(dmg:GetAttacker(), "Reactions", str) end)
+				timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(att, "Reactions", str) end)
 			end
 			
 			if class == "npc_barnacle" then

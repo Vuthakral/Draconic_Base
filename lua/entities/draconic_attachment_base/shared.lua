@@ -130,6 +130,13 @@ function ENT:Initialize()
 		if self.Drag != nil then phys:SetDragCoefficient(self.Drag) end
 		if self.Gravity == false then phys:EnableGravity(false) end
 	end
+	
+	-- Metroid Prime HUD compatibility
+	if !self.LogBook && self.InfoDescription != nil then
+		self.LogBook = {
+			["Description"] = self.InfoDescription
+		}
+	end
 end
 
 function ENT:Use(ply, caller, typ)

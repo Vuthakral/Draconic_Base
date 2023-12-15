@@ -1,7 +1,5 @@
 AddCSLuaFile()
 
--- UNFINISHED
-
 --[[     I M P O R T A N T
 
 Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.

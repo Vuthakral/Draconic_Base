@@ -59,8 +59,14 @@ function SWEP:SubHeat(val)
 	end
 end
 
-
-
+function SWEP:SetThirdpersonFreelookForced(b)
+	if SERVER then 
+		self:CallOnClient("SetThirdpersonFreelookForced", "fuckyou ".. tostring(b) .."")
+		self:SetNW2Bool("ThirdpersonForceFreelook", b)
+	end
+	b = tobool(b)
+	timer.Simple(0.1, function() if IsValid(self) then self.ThirdpersonForceFreelook = self:GetNW2Bool("ThirdpersonForceFreelook") end end)
+end
 
 function SWEP:CanCustomize(bypassinspect)
 	if self.IsMelee == true then return false end
@@ -404,6 +410,7 @@ function SWEP:GetPBS()
 	return self.PrevBS
 end
 
+--[[
 function SWEP:DoMeleeSwing(mode, flipx, flipy, preventanim)
 	local ply = self:GetOwner()
 	local settings = {}
@@ -561,14 +568,69 @@ function SWEP:DoMeleeSwing(mode, flipx, flipy, preventanim)
 	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
 		if !IsValid(self) then return end
 		if !IsValid(ply) then return end
-		timer.Create( "".. tostring(self) .."_SwingImpact".. i .."", math.Round((settings[mode]["delayinitial"] * 100) / 60 * i / 60, 3), 1, function()
+		timer.Create( "".. tostring(self) .."_SwingImpact_".. i .."", math.Round((settings[mode]["delayinitial"] * 100) / 60 * i / 60, 3), 1, function()
 			if !IsValid(self) then return end
 			if !IsValid(self:GetOwner()) then return end
 			self:MeleeImpact(settings[mode]["range"], Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, mode)
 		end)
 	end
 end
+]]
 
+function SWEP:DoMeleeSwing(swinginfo, preventanim)
+	if !self:CanMelee() then return false end
+	if !swinginfo or !istable(swinginfo) then return end
+	local ply, dur = self:GetOwner(), nil
+	local ct = CurTime()
+
+	if !self.MeleeQueue then self.MeleeQueue = {} end
+	self.IsDoingMelee = true
+	if swinginfo.anim_fp_miss != nil then
+	--	self.Loading = true
+		--self:SendWeaponAnim(swinginfo.anim_fp_miss)
+		self:PlayAnim(swinginfo.anim_fp_miss, false, true)
+	--	local anim = self:SelectWeightedSequence(swinginfo.anim_fp_miss)
+	--	local dur = self:SequenceDuration(anim)
+	--	self.IdleTimer = CurTime() + dur
+	end
+	
+	if swinginfo.anim_tp != nil && preventanim != true then
+		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, swinginfo.anim_tp, true)
+	end
+	
+	local delay = swinginfo.delay
+	if CLIENT or (SERVER && !game.IsDedicated()) && swinginfo.screenshake[1] == true then
+		ply:ViewPunch(Angle(swinginfo.y[1], swinginfo.x[1], nil) * -0.1 * swinginfo.screenshake[2])
+		ply:SetViewPunchVelocity(Angle(-swinginfo.x[1] * (1 + delay[1]) * swinginfo.screenshake[2], -swinginfo.y[1] * (5 + delay[1]) * swinginfo.screenshake[2], 0))
+		timer.Simple(.1, function()
+			if !IsValid(self) then return end
+			if !IsValid(self:GetOwner()) then return end
+			ply:ViewPunch(Angle(swinginfo.y[1], swinginfo.x[1], nil) * 0.1 * swinginfo.screenshake[2])
+		end)
+	end
+	
+	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
+		if !IsValid(self) then return end
+		if !IsValid(ply) then return end
+		local thyme = ct + (swinginfo.delay[3] * 100) / 60 * i / 60
+		self.MeleeQueue[i] = {thyme, swinginfo}	
+	end
+
+	if IsFirstTimePredicted() then self:EmitSound(swinginfo.sound or "") end
+	self:SetNextPrimaryFire(ct + swinginfo.delay[2])
+	self:SetNextSecondaryFire(ct + swinginfo.delay[2])
+	
+	if swinginfo.lunge && swinginfo.lunge[1] == true then
+		local target = self:GetConeTarget()
+		if target then
+			if ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist then
+				ply:SetLocalVelocity(ply:GetForward() * 8 * ply:GetPos():Distance(target:GetPos()))
+			end
+		end
+	end
+end
+
+--[[
 function SWEP:MeleeImpact(range, x, y, i, att)
 	if !SERVER then return end
 	local ply = self:GetOwner()
@@ -719,6 +781,169 @@ function SWEP:MeleeImpact(range, x, y, i, att)
 	end
 	
 end
+]]
+
+function SWEP:ClearMeleeQueue()
+	self.MeleeQueue = {}
+	self.IsDoingMelee = false
+--	self.Loading = false
+end
+
+function SWEP:ClearBurstQueue()
+	self.BurstQueue = {}
+	self.Bursting = false
+end
+
+SWEP.LastMeleeImpactTime = 0
+function SWEP:MeleeImpactSound(drcsnd, sprop, pos)
+--	if self.LastMeleeImpactTime + 0.2 > CurTime() then return end
+	if CLIENT or game.SinglePlayer() then
+		local snd, oversnd = drcsnd, nil
+		if DRC.MaterialSounds[snd] then snd, oversnd = DRC:GetMaterialSound(snd, sprop) end
+		sound.Play(snd, pos)
+	--	EmitSound(snd, pos, self:EntIndex())
+		if oversnd then sound.Play(oversnd, pos) end
+	end
+end
+
+function SWEP:TriggerCustomImpact(att, tr)
+	if att.trigger == 1 then att = "primary"
+	elseif att.trigger == 2 then att = "secondary"
+	elseif att.trigger == 3 then att = "lungeprimary" end
+	self:DoCustomMeleeImpact(att, tr)
+end
+
+function SWEP:MeleeImpact(swinginfo, x, y, i)
+	if !IsValid(self) then return end
+	if table.IsEmpty(self.MeleeQueue) or #self.MeleeQueue == 0 then return end
+	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
+	local modinfo = table.Copy(swinginfo)
+	local vm = nil
+	local eyeang = ply:EyeAngles()
+	local eyepos = ply:EyePos()
+	local centerpos = ply:GetPos() + ply:OBBCenter()
+	local aimpos = ply:GetPos() + Vector(ply:OBBCenter().x, ply:OBBCenter().y, ply:OBBCenter().z * 1.4)
+	local velang, rangemul = DRC:GetVelocityAngle(ply, true, true), 1
+	local ct = CurTime()
+	
+	if ply:IsPlayer() then
+		vm = ply:GetViewModel()
+		rangemul = math.Clamp((ply:GetWalkSpeed()/100 * (ply:GetWalkSpeed()/100)*0.5) * velang.y / 180, 1, 2.5)
+	else
+		rangemul = 2
+	end
+	
+	local rhm = math.Round(1 / engine.TickInterval() - 1, 0)*0.5
+	if i < rhm then
+		modinfo.bulletrange = (swinginfo.range * ( i / 10)) * rangemul
+		modinfo.range = eyepos + ( ply:GetAimVector() * swinginfo.range * ( i / 10) ) * rangemul
+	elseif i == rhm then
+		modinfo.bulletrange = (swinginfo.range * 3.4) * rangemul
+		modinfo.range = eyepos + ( ply:GetAimVector() * swinginfo.range * 3.4 ) * rangemul
+	elseif i > rhm then
+		modinfo.bulletrange = (swinginfo.range / (i / 100)) * rangemul
+		modinfo.range = eyepos + ( ply:GetAimVector() * swinginfo.range / (i / 100) ) * rangemul
+	end
+	local rangedlvl = swinginfo.range * rangemul
+	
+	local WhyDoesVJAimUpwards = Vector()
+	if ply.IsVJBaseSNPC then WhyDoesVJAimUpwards = Vector(0 ,0, -40) end
+	
+	if ply:IsPlayer() then ply:LagCompensation(true) end
+	local swingtrace = util.TraceLine({
+		["start"] = aimpos,
+		["endpos"] = modinfo.range + ((eyeang:Up()*y) + (eyeang:Right()*x) + WhyDoesVJAimUpwards),
+		["filter"] = {self, ply},
+		["mask"] = MASK_PLAYERSOLID
+	})
+	self:SetNextPrimaryFire( ct + swinginfo.delay[1] )
+	self:SetNextSecondaryFire( ct + swinginfo.delay[1] )
+	
+	if swingtrace.Hit then 
+		self:ClearMeleeQueue()
+		if swinginfo.decals[1] then util.Decal(swinginfo.decals[1], swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal) end
+		if swinginfo.decals[2] then util.Decal(swinginfo.decals[2], swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal) end
+		
+		self:MeleeImpactSound(swinginfo.hitsound, swingtrace.SurfaceProps, swingtrace.HitPos)
+		
+		self:TriggerCustomImpact(swinginfo, swingtrace)
+	else
+		self:SetNextPrimaryFire( ct + swinginfo.delay[2] )
+		self:SetNextSecondaryFire( ct + swinginfo.delay[2] )
+	end
+	
+	local btrace = {}
+	btrace.Damage = swinginfo.damage[1]
+	btrace.Spread = Vector()
+	btrace.Force = 100
+	btrace.HullSize = 10
+	btrace.Num = 1
+	btrace.IgnoreEntity = ply
+	btrace.TracerName = nil
+	btrace.Tracer = 0
+	btrace.Dir = swingtrace.Normal
+	btrace.Distance = modinfo.bulletrange
+	btrace.Src = aimpos
+	btrace.Callback = function(ent, tr, damageinfo)
+		damageinfo:SetDamageCustom(2221208)
+		damageinfo:SetAttacker(ply)
+		damageinfo:SetDamageForce(Vector())
+		self.LastMeleeDamage = damageinfo:GetDamage()
+		if tr.Hit then
+			tr.HitGroup = 0
+			if !game.SinglePlayer() && SERVER then self:ClearMeleeQueue() end
+			self.LastMeleeImpactTime = ct
+			self:SetNextPrimaryFire( ct + swinginfo.delay[1] )
+			self:SetNextSecondaryFire( ct + swinginfo.delay[1] )
+			if swinginfo.anim_fp != nil then
+				self:PlayAnim(swinginfo.anim_fp, false, true)
+			end
+			--self:MeleeImpactSound(swinginfo.hitsound, swingtrace.SurfaceProps, swingtrace.HitPos)
+			
+			self:TriggerCustomImpact(swinginfo, tr)
+			
+			local forcetrace = util.TraceLine({
+				start = tr.HitPos,
+				endpos = modinfo.range + ((eyeang:Up()*swinginfo.y[2]) + (eyeang:Right()*swinginfo.x[2]) + WhyDoesVJAimUpwards),
+				filter = function(ent) return false end,
+			})
+			local forceangle = forcetrace.Normal
+			local forceval = forceangle * swinginfo.damage[3] * 15
+			if i < rhm then
+				forceval = forceval * i
+				--tr.Entity:GetPhysicsObject():ApplyForceOffset( forceangle * swinginfo.damage[3] * 15 * i, tr.HitPos )
+			--elseif i == rhm then	
+				--tr.Entity:GetPhysicsObject():ApplyForceOffset( forceangle * swinginfo.damage[3] * 15 * i, tr.HitPos )
+			elseif i > rhm then
+				forceval = forceval * (i*0.1)
+				--tr.Entity:GetPhysicsObject():ApplyForceOffset( forceangle * swinginfo.damage[3] * 15 * ( i / 10 ), tr.HitPos )
+			end
+			
+			if IsValid(tr.Entity) && DRC:IsCharacter(tr.Entity) then
+			elseif tr.Entity:IsValid() and ( !tr.Entity:IsNPC() or !tr.Entity:IsPlayer() ) && !tr.Entity:IsNextBot() && IsValid(tr.Entity:GetPhysicsObject()) then
+				tr.Entity:GetPhysicsObject():ApplyForceOffset( forceval, tr.HitPos )
+				
+				if SERVER && DRC:Health(tr.Entity) > 0 then tr.Entity:TakeDamage(swinginfo.damage[1], ply, ply:GetActiveWeapon()) end
+	--		elseif tr.Entity:IsWorld() then		
+			end
+	
+			DRC:RenderTrace(tr, Color(255, 0, 0, 255), 1)
+		end
+		return true
+	end
+	
+	if !game.IsDedicated() && SERVER then -- In singleplayer we don't have to rely on lag compensation, plus it breaks impact effects.
+		if swingtrace.Hit then self:FireBullets(btrace) end
+	else
+		self:FireBullets(btrace)
+	end
+	
+	if ply:IsPlayer() then ply:LagCompensation(false) end
+	if !swingtrace.Hit && ((game.SinglePlayer() && SERVER) or CLIENT) then
+		DRC:RenderTrace(swingtrace, Color(255, 255, 255, 255), 1)
+	end
+end
 
 function SWEP:TakePrimaryAmmo(num)
 	if !SERVER then return end
@@ -809,9 +1034,9 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 	bullet.Callback = function(ent, tr, takedamageinfo) -- https://imgur.com/a/FCDZOEx
 		if IsValid(self) then
 			if !tr.Entity:IsWorld() then
-				DRC:RenderTrace(tr, Color(255, 0, 0, 255), 1)
+				if SERVER then DRC:RenderTrace(tr, Color(255, 0, 0, 255), 1) end
 			else
-				DRC:RenderTrace(tr, Color(255, 255, 255, 255), 1)
+				if SERVER then DRC:RenderTrace(tr, Color(255, 255, 255, 255), 1) end
 			end
 		
 			takedamageinfo:SetAttacker(self:GetOwner())
@@ -890,7 +1115,7 @@ function SWEP:CalculateSpread(isprojectile)
 	local ply = self:GetOwner()
 	local SpreadMod = ply:GetNWInt("DRC_GunSpreadMod", 1)
 	local stats = self.StatsToPull
-	local calc = ((stats.Spread * self:GetAttachmentValue("Ammunition", "Spread")) / (stats.SpreadDiv * self:GetAttachmentValue("Ammunition", "SpreadDiv")))
+	local calc = stats.PreCalcSpread * self.AttachmentStats.PreCalcSpread
 	
 	local x, y = calc * stats.SpreadX, calc * stats.SpreadY
 	
@@ -1035,7 +1260,7 @@ function SWEP:DoShoot(mode)
 		end
 	end
 	
-	if stats.HealthPerShot != 0 then
+	if stats.HealthPerShot != 0 && ply.SetHealth then
 		local amount = stats.HealthPerShot
 		local hp = ply:Health()
 		local maxhp = ply:GetMaxHealth()
@@ -1047,7 +1272,7 @@ function SWEP:DoShoot(mode)
 		end
 	end
 	
-	if stats.ArmourPerShot != 0 then
+	if stats.ArmourPerShot != 0 && ply.SetArmor then
 		local amount = stats.ArmourPerShot
 		local armour = ply:Armor()
 		local maxarmour = ply:GetMaxArmor()
@@ -1059,37 +1284,24 @@ function SWEP:DoShoot(mode)
 		if self.SightsDown == true && self.Secondary.SightsSuppressAnim == true then else
 			local vm = ply:GetViewModel()
 			if mode == "primary" then
-				if SERVER then 
-					vm:SendViewModelMatchingSequence(fireseq)
-				end
-				self:ResetSequence(fireseq)
-				self:ResetSequenceInfo()
-				self:SetCycle(0)
+				if sd && ironseq != -1 then self:PlayAnim(ACT_VM_DEPLOYED_IRON_FIRE, true) else self:PlayAnim(ACT_VM_PRIMARYATTACK, true) end
 			elseif mode == "secondary" then
-				vm:SendViewModelMatchingSequence(fireseq2)
-				self:ResetSequence(fireseq2)
-				self:ResetSequenceInfo()
+				self:PlayAnim(ACT_VM_SECONDARYATTACK, true)
 			elseif mode == "overcharge" then
 				if fireseq3 == -1 then
-					vm:SendViewModelMatchingSequence(fireseq)
-					self:ResetSequence(fireseq)
-					self:ResetSequenceInfo()
+					self:PlayAnim(ACT_VM_PRIMARYATTACK, true)
 				else
-					vm:SendViewModelMatchingSequence(fireseq3)
-					self:ResetSequence(fireseq3)
-					self:ResetSequenceInfo()
+					self:PlayAnim(ACT_SPECIAL_ATTACK1, true)
 				end
 			end
 		end
 		ply:SetAnimation( PLAYER_ATTACK1 )
 	else end
 	
-	if ply.DraconicNPC then
-		if ply:DraconicNPC() == true then
-			local holdtype = string.lower(self:GetHoldType())
-			local act = DRC.HoldTypes[holdtype].attack
-			DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, act, true)
-		end
+	if ply.DraconicNPC && ply:DraconicNPC() == true then
+		local holdtype = string.lower(self:GetHoldType())
+		local act = DRC.HoldTypes[holdtype].attack
+		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, act, true)
 	end
 	
 	if self.Base == "draconic_battery_base" then
@@ -1113,7 +1325,7 @@ function SWEP:DoShoot(mode)
 			self:SetNextPrimaryFire ( CurTime() + (60 / stats.RPM) )
 		end
 	else
-		self:SetNextPrimaryFire( CurTime() + (60 / stats.RPM) )
+		self:SetNextPrimaryFire( CurTime() + stats.PreCalcRPM )
 	end
 	
 	if self.Primary.isvFire == true then
@@ -1131,7 +1343,7 @@ function SWEP:DoShoot(mode)
 			self:DoScriptedSecondaryAttack()
 			self:EmitSound(self.Secondary.Sound)
 			ply:SetAnimation( PLAYER_ATTACK1 )
-			self:SendWeaponAnim( ACT_VM_SECONDARYATTACK )
+			self:PlayAnim( ACT_VM_SECONDARYATTACK, true )
 		end)
 	else
 		if SERVER then
@@ -1259,13 +1471,13 @@ function SWEP:DoShoot(mode)
 		end)
 	end
 	
-	if ply:IsNextBot() then -- Iv04 Nextbot handling
+--[[	if ply:IsNextBot() then -- Iv04 Nextbot handling
 		if ply.IV04NextBot != true then return end
 		if self.NPCBursting == true then return end
 		
 		local rpm = self.Primary.RPM
 		local fm = self:GetNWString("FireMode")
-	end
+	end ]]
 end
 
 function SWEP:DoEffects(mode, nosound, multishot)
@@ -1359,10 +1571,11 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		if self.OCTracerEffect != nil then util.Effect( self.OCTracerEffect, effectdata ) end
 	end
 	
-	if not IsFirstTimePredicted() or nosound == true or self.BurstSound == true then return end
+	if !IsFirstTimePredicted() or nosound == true or self.BurstSound == true then return end
 	if mode == "primary" && fm == "Burst" && ttu.Single == false then
+		local thyme = self.PrimaryStats.PreCalcRPM*self.FireModes_BurstShots + 0.01
 		self.BurstSound = true
-		timer.Simple(CurTime() - self:GetNextPrimaryFire() + 0.2, function() self.BurstSound = false end)
+		timer.Simple(CurTime() - self:GetNextPrimaryFire() + thyme, function() self.BurstSound = false end)
 	end
 	
 	if self.Primary.SoundTable.Envs then
@@ -1503,10 +1716,12 @@ function SWEP:MuzzleFlash()
 	end
 end
 
-function SWEP:CallShoot(mode, ignoreimpossibility)
+function SWEP:CallShoot(mode, ignoreimpossibility, endburst)
 	local ply = self:GetOwner()
 	if ignoreimpossibility == nil then ignoreimpossibility = false end
 	local forcesprint = DRC.SV.drc_force_sprint >= 1
+	
+	if endburst == true then self:ClearBurstQueue() end
 	
 	if mode == "primary" then
 		if ply:IsPlayer() then
@@ -1520,7 +1735,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility)
 			if ply:IsPlayer() && (self.DoesPassiveSprint == true or forcesprint) && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
 			if self:GetLoadedAmmo() <= 0 then
 				if CurTime() > self:GetNextPrimaryFire() then self:EmitSound (self.Primary.EmptySound) end
-				self:SetNextPrimaryFire(CurTime() + (60/self.Primary.RPM * 2)) return
+				self:SetNextPrimaryFire(CurTime() + self.PrimaryStats.PreCalcRPM * 2) return
 			elseif self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true then
 			return end
 		end
@@ -1577,6 +1792,7 @@ local BaseABP = scripted_ents.GetStored("drc_abp_generic")
 function SWEP:GetAttachmentValue(att, val, subval)
 	if !BaseABP then BaseABP = scripted_ents.GetStored("drc_abp_generic") end
 	local AA = self.ActiveAttachments
+	if !AA then return nil end
 	local BT = BaseABP.t.BulletTable
 	local tab = nil
 	

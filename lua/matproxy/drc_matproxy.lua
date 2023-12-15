@@ -54,13 +54,25 @@ local function GetPlayerColour(src, channel)
 		["ColourTintVec1"] = "Tint1",
 		["ColourTintVec2"] = "Tint2",
 		["Entity"] = "$color2",
+		["Grunge"] = "Grunge",
 		["None"] = Vector(1, 1, 1)
 	}
-	
 	if channel == "Entity" then
 		local vals = DRC:GetColours(src, true)
 		local pull = translation[channel]
 		if vals then col = vals[pull] end
+	elseif channel == "Grunge" then
+		local vals, pull
+		if (src.Preview == true or src.preview == true) or (src:EntIndex() == lply:GetHands():EntIndex()) then
+			vals = DRC:GetColours(lply, true)
+			pull = translation[channel]
+			if vals then col = vals[pull] end
+		else
+			vals = DRC:GetColours(src, true)
+			pull = translation[channel]
+			if vals then col = vals[pull] end
+		end
+		return col
 	elseif channel && channel != "Entity" && channel != "None" then
 		if (src.Preview == true or src.preview == true) or (src:EntIndex() == lply:GetHands():EntIndex()) or (src:GetNWVector(channel, Vector(0,0,0)) == Vector(0,0,0)) then
 			local vals = DRC:GetColours(lply, true)
@@ -129,6 +141,7 @@ local function GetAdjustedCubeStrength()
 end ]]
 
 local function GetCubemapStrength(mat, ent, channel, imat, realtime)
+	if GetConVar("cl_drc_debugmode"):GetFloat() != 0 && GetConVar("cl_drc_debug_hideshaderfixes"):GetFloat() == 1 then return(Vector(1,1,1)) end
 	if CurTime() < ent:GetCreationTime() + 0.03 then return Vector() end
 	if !IsValid(ent) then return Vector() end
 	local envmaps = DRC:CubemapCheck()
@@ -218,7 +231,7 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 	if ent.Preview == true or ent.preview == true then
 		local mul = Vector(1, 1, 1)
 		if !HDR then mul = (10 * mat.LDRCorrectionLevel) end
-		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.WeathermodScalar
+		col = (mat.TintVector * mat.PowerFloat * GetColour(lply, channel) * mul) * DRC.WeathermodScalar * DRC.MapInfo.MapAmbient
 	return col end
 	
 	local function ReturnValue()
@@ -273,14 +286,14 @@ matproxy.Add( {
 		if !IsValid(ent) then return end
 		if !IsValid(lply) then return end
 		
-		if self.OGEnvmap == nil then self.OGEnvmap = mat:GetTexture("$envmap") end
-		if self.Envmap == nil then self.Envmap = "env_cubemap" end
+	--	if self.OGEnvmap == nil then self.OGEnvmap = mat:GetTexture("$envmap") end
+	--	if self.Envmap == nil then self.Envmap = "env_cubemap" end
 		
-		if DRC:CubemapCheck() == false then
-			mat:SetTexture( "$envmap", self.Envmap )
-		else
-			mat:SetTexture( "$envmap", self.OGEnvmap )
-		end
+	--	if DRC:CubemapCheck() == false then
+	--		mat:SetTexture( "$envmap", self.Envmap )
+	--	else
+	--		mat:SetTexture( "$envmap", self.OGEnvmap )
+	--	end
 	end
 } )
 
@@ -410,6 +423,7 @@ matproxy.Add( {
 		self.ResultTo2 = values.resultvar2
 		self.ResultTo3 = values.resultvar3
 		self.PowerFloat = mat:GetFloat("$energy_Mul")
+		self.MinFloat = mat:GetVector("$energy_Min")
 	end,
 
 	bind = function( self, mat, ent )
@@ -420,6 +434,8 @@ matproxy.Add( {
 	--		mat:SetVector(self.ResultTo, Vector(TimedSin(2.75, 0.5, 1, 0), TimedSin(1.83, 0.5, 1, 0), TimedSin(0.916, 0.5, 1, 0)))	
 	--	return end
 		if !self.PowerFloat then self.PowerFloat = 1 end
+		if !self.MinFloat then self.MinFloat = Vector(0,0,0) end
+		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		
 		if ent:GetClass() == "drc_shieldmodel" then
 			local col = ent:GetOwner():GetNWVector("EnergyTintVec")
@@ -436,6 +452,7 @@ matproxy.Add( {
 		end
 		
 		local col = GetPlayerColour(ent, "EnergyTintVec")
+		col = Vector(math.Clamp(col.x, self.MinFloat.x, 1), math.Clamp(col.y, self.MinFloat.y, 1), math.Clamp(col.z, self.MinFloat.z, 1))
 		mat:SetVector( self.ResultTo, col * deathflicker )	
 		if self.ResultTo2 then mat:SetVector( self.ResultTo2, col * deathflicker ) end
 		if self.ResultTo3 then mat:SetVector( self.ResultTo3, col * deathflicker ) end
@@ -452,6 +469,7 @@ matproxy.Add( {
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end		
 		local col = GetPlayerColour(ent, "ColourTintVec1")
+		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 		mat:SetVector(self.ResultTo, col * self.MulInt)
 	end
@@ -467,6 +485,7 @@ matproxy.Add( {
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
 		local col = GetPlayerColour(ent, "ColourTintVec2")
+		if self.ResultTo == nil then self.ResultTo = "$color2" end
 		if self.MulInt == nil then self.MulInt = 1 end
 		mat:SetVector(self.ResultTo, col * self.MulInt)
 	end
@@ -530,9 +549,9 @@ matproxy.Add( {
 		
 		if charge == nil then return end
 		
-		local blendvec = LerpVector(charge, self.MinVec, self.MaxVec) * self.MulInt / 500
+		ent.blendvec = LerpVector(charge, self.MinVec, self.MaxVec) * self.MulInt / 500
 		
-		mat:SetVector( self.ResultTo, blendvec )
+		mat:SetVector( self.ResultTo, ent.blendvec )
 	end
 } )
 
@@ -558,11 +577,11 @@ matproxy.Add( {
 		local charge = wepn.BloomValue
 		charge = math.Clamp(charge, 0, 1)
 		
-		self.chargelerp = Lerp(RealFrameTime() * 2.5, self.chargelerp or charge, charge)
+		ent.chargelerp = Lerp(RealFrameTime() * 2.5, ent.chargelerp or charge, charge)
 		
 		if charge == nil then return end
 		
-		local blendvec = LerpVector(self.chargelerp, self.MinVec, self.MaxVec) * self.MulInt / 100
+		local blendvec = LerpVector(ent.chargelerp, self.MinVec, self.MaxVec) * self.MulInt / 100
 		
 		mat:SetVector( self.ResultTo, blendvec )
 	end
@@ -621,18 +640,23 @@ matproxy.Add( {
 		if self.MulInt == nil then self.MulInt = 1 end
 		if self.LerpSpeed == nil then self.LerpSpeed = 10 end
 		if self.CountInspect == nil then self.CountInspect = 0 end
-		local val = true
+		local val = false
 		if wepn:GetNWBool("Readied") == true then val = false end
 		if wepn:GetNWBool("Passive") == true then val = true end
+		
 		if wepn.Loading == true then val = true end
-		if val == true then val = 1 else val = 0 end
+		if wepn.ManuallyReloading == true then val = false end
+		
+		local co = 0
+		if val == true then co = 1 else co = 0 end
+		
 		if self.CountInspect >= 1 then
-			if val == 0 then
-				if wepn:GetNWBool("PlayingInspectAnim") == true then val = 1 else val = 0 end
+			if co == 0 then
+				if wepn.Inspecting == true then co = 1 else co = 0 end
 			end
 		end
 		
-		self.loadinglerp = Lerp(RealFrameTime() * self.LerpSpeed, self.loadinglerp or val, val)
+		self.loadinglerp = Lerp(RealFrameTime() * self.LerpSpeed, self.loadinglerp or co, co)
 		
 		local blendvec = LerpVector(self.loadinglerp, self.MinVec, self.MaxVec) * self.MulInt / 100
 		
@@ -786,7 +810,8 @@ matproxy.Add( {
 			end
 
 			ent.DRCScalingRimLightParams[name]["Value"] = Lerp(RealFrameTime() * (self.LerpPower * 2.5), ent.DRCScalingRimLightParams[name]["Value"] or ent.DRCScalingRimLightParams.Stored[name]["Value"], ent.DRCScalingRimLightParams.Stored[name]["Value"])
-		--	PrintTable(ent.DRCScalingRimLightParams)
+			
+			if GetConVar("cl_drc_debugmode"):GetFloat() != 0 && GetConVar("cl_drc_debug_hideshaderfixes"):GetFloat() == 1 then ent.DRCScalingRimLightParams[name]["Value"] = 1 end
 			
 			if HDR then
 				mat:SetFloat( "$rimlightboost", ent.DRCScalingRimLightParams[name]["Value"] )
@@ -1890,7 +1915,9 @@ local function Read(mat, ent)
 	elseif input == "shield" then local sp, msp = DRC:GetShield(ent) val = calc(math.Clamp(sp/msp, 0, 1))
 	elseif input == "lightlevel" then val = LightPollEntity(ent)
 	elseif input == "velocity" then
-		if ent.GetVehicle && !IsValid(ent:GetVehicle()) or ent:IsVehicle() then -- regular entities or actual vehicles
+		if ent:IsNPC() or ent:IsNextBot() then -- bruh
+			val = calc(math.Clamp(math.Clamp(ent:GetVelocity():Length(),1, 999999)/funcmax, 0, 1))
+		elseif ent.GetVehicle && !IsValid(ent:GetVehicle()) or ent:IsVehicle() then -- regular entities or actual vehicles
 			val = calc(math.Clamp(math.Clamp(ent:GetVelocity():Length(),1, 999999)/funcmax, 0, 1))
 		elseif !ent.GetVehicle && (ent.LFS or ent.LVS) then -- contexts are weird don't ask me why
 			val = calc(math.Clamp(math.Clamp(ent:GetVelocity():Length(),1, 999999)/funcmax, 0, 1))
@@ -1949,6 +1976,7 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number
 	["$center"] = 0,
 	["$offset"] = 3,
 	-- Draconic parameters beyond this point
+	["$cmpower"] = 0,
 	["$cmtint"] = 0,
 	["$rimlightpower"] = 3,
 }
@@ -1988,7 +2016,7 @@ local function DRCFunctionInit(self, mat, values)
 	-- Vehicle-only inputs: rpm (LFS / SimfPhys*)
 	-- Weapon-only inputs: clip1, heat, charge
 	self.FuncMax = values.inputmax or 1 -- * number, used for defining the maximum value for certain inputs
-	self.Func = "read" -- read, pulse, random | Only read is currently implemented
+	self.Func = "read"
 	self.FuncEase = values.ease or "Linear" -- https://wiki.facepunch.com/gmod/math.ease
 	self.Mod = values.mod -- ^ number or string identifier
 	self.Min = values.min or Vector(0, 0, 0) -- number or vector
@@ -2072,3 +2100,38 @@ matproxy.Add({
 		end
 	end
 })
+
+matproxy.Add( {
+	name = "drc_PlayerGrunge",
+	init = function( self, mat, values )
+		self.ResultTo = values.resultvar
+		self.ResultTo2 = values.resultvar2
+		self.ResultTo3 = values.resultvar3
+		self.Mul1 = values.max1
+		self.Mul2 = values.max2
+		self.Mul3 = values.max3
+	end,
+
+	bind = function( self, mat, ent )
+		if ( !IsValid( ent )) then return end
+		if !IsValid(lply) then return end
+		
+		local val = GetPlayerColour(ent, "Grunge")
+		val = val * 0.01
+		
+		if self.ResultTo then -- "Grunge" layer, intended for detail textures to be tied to detailblendfactor. Increase power from 0-1.
+			if !self.Mul1 then self.Mul1 = 1 end
+			mat:SetInt(self.ResultTo, val * self.Mul1)
+		end
+		
+		if self.ResultTo2 then -- "Reflection" pass, intended to be tied to cmpower. Decreases power from 1-0.
+			if !self.Mul2 then self.Mul2 = 1 end
+			mat:SetInt(self.ResultTo2, self.Mul2 - (val * self.Mul2))
+		end
+		
+		if self.ResultTo3 then -- "Specular" pass, intended to be tied to either phongboost or phongalbedoboost. Decreases power from 1-0.
+			if !self.Mul3 then self.Mul3 = 1 end
+			mat:SetInt(self.ResultTo3, self.Mul3 - (val * self.Mul3))
+		end
+	end
+} )

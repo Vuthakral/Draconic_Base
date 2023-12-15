@@ -39,6 +39,8 @@ TOOL.ClientConVar[ "r_acc2" ] = 255
 TOOL.ClientConVar[ "g_acc2" ] = 255
 TOOL.ClientConVar[ "b_acc2" ] = 255
 
+TOOL.ClientConVar[ "grunge" ] = 0
+
 local function SetColour( ply, ent, data )
 	if data[2] == "player" then
 		ent:SetNWVector("PlayerColour_DRC", Vector(data[1].x, data[1].y, data[1].z))
@@ -64,6 +66,10 @@ local function SetColour( ply, ent, data )
 	if data[2] == "accent2" then
 		ent:SetNWVector("ColourTintVec2", Vector(data[1].x, data[1].y, data[1].z))
 	end
+	
+	if data[2] == "grunge" then
+		ent:SetNWInt("Grunge_DRC", data[1])
+	end
 end
 duplicator.RegisterEntityModifier( "drc_colour_player", SetColour )
 
@@ -81,35 +87,39 @@ function TOOL:LeftClick( trace )
 	local plycol = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {plycol, "player"})
 	
-	local r = math.Clamp(self:GetClientNumber( "r_weapon", 127 ) / 255, 0.032, 255)
-	local g = math.Clamp(self:GetClientNumber( "g_weapon", 127 ) / 255, 0.032, 255)
-	local b = math.Clamp(self:GetClientNumber( "b_weapon", 127 ) / 255, 0.032, 255)
+	r = math.Clamp(self:GetClientNumber( "r_weapon", 127 ) / 255, 0.032, 255)
+	g = math.Clamp(self:GetClientNumber( "g_weapon", 127 ) / 255, 0.032, 255)
+	b = math.Clamp(self:GetClientNumber( "b_weapon", 127 ) / 255, 0.032, 255)
 	local wpncol = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {wpncol, "weapon"})
 	
-	local r = math.Clamp(self:GetClientNumber( "r_eye", 127 ), 0.032, 255)
-	local g = math.Clamp(self:GetClientNumber( "g_eye", 127 ), 0.032, 255)
-	local b = math.Clamp(self:GetClientNumber( "b_eye", 127 ), 0.032, 255)
+	r = math.Clamp(self:GetClientNumber( "r_eye", 127 ), 0.032, 255)
+	g = math.Clamp(self:GetClientNumber( "g_eye", 127 ), 0.032, 255)
+	b = math.Clamp(self:GetClientNumber( "b_eye", 127 ), 0.032, 255)
 	local eyecol = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {eyecol, "eye"})
 	
-	local r = math.Clamp(self:GetClientNumber( "r_energy", 127 ), 0.032, 255)
-	local g = math.Clamp(self:GetClientNumber( "g_energy", 127 ), 0.032, 255)
-	local b = math.Clamp(self:GetClientNumber( "b_energy", 127 ), 0.032, 255)
+	r = math.Clamp(self:GetClientNumber( "r_energy", 127 ), 0.032, 255)
+	g = math.Clamp(self:GetClientNumber( "g_energy", 127 ), 0.032, 255)
+	b = math.Clamp(self:GetClientNumber( "b_energy", 127 ), 0.032, 255)
 	local engcol = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {engcol, "energy"})
 	
-	local r = math.Clamp(self:GetClientNumber( "r_acc1", 127 ), 0.032, 255)
-	local g = math.Clamp(self:GetClientNumber( "g_acc1", 127 ), 0.032, 255)
-	local b = math.Clamp(self:GetClientNumber( "b_acc1", 127 ), 0.032, 255)
+	r = math.Clamp(self:GetClientNumber( "r_acc1", 127 ), 0.032, 255)
+	g = math.Clamp(self:GetClientNumber( "g_acc1", 127 ), 0.032, 255)
+	b = math.Clamp(self:GetClientNumber( "b_acc1", 127 ), 0.032, 255)
 	local ac1col = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {ac1col, "accent1"})
 	
-	local r = math.Clamp(self:GetClientNumber( "r_acc2", 127 ), 0.032, 255)
-	local g = math.Clamp(self:GetClientNumber( "g_acc2", 127 ), 0.032, 255)
-	local b = math.Clamp(self:GetClientNumber( "b_acc2", 127 ), 0.032, 255)
+	r = math.Clamp(self:GetClientNumber( "r_acc2", 127 ), 0.032, 255)
+	g = math.Clamp(self:GetClientNumber( "g_acc2", 127 ), 0.032, 255)
+	b = math.Clamp(self:GetClientNumber( "b_acc2", 127 ), 0.032, 255)
 	local ac2col = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {ac2col, "accent2"})
+	
+	print(self:GetClientNumber("grunge"))
+	
+	SetColour( self:GetOwner(), ent, {math.Clamp(self:GetClientNumber( "grunge", 0 ), 0, 100), "grunge"})
 
 	return true
 end
@@ -127,12 +137,14 @@ function TOOL:RightClick( trace )
 	local engcol = Vector(127, 127, 127)
 	local ac1col = Vector(127, 127, 127)
 	local ac2col = Vector(127, 127, 127)
+	local grunge = 0
 	if ent:GetNWVector("PlayerColour_DRC") != Vector(0, 0, 0) then plycol = ent:GetNWVector("PlayerColour_DRC") end
 	if ent:GetNWVector("WeaponColour_DRC") != Vector(0, 0, 0) then wpncol = ent:GetNWVector("WeaponColour_DRC") end
 	if ent:GetNWVector("EyeTintVec") != Vector(0, 0, 0) then eyecol = ent:GetNWVector("EyeTintVec") end
 	if ent:GetNWVector("EnergyTintVec") != Vector(0, 0, 0) then engcol = ent:GetNWVector("EnergyTintVec") end
 	if ent:GetNWVector("ColourTintVec1") != Vector(0, 0, 0) then ac1col = ent:GetNWVector("ColourTintVec1") end
 	if ent:GetNWVector("ColourTintVec2") != Vector(0, 0, 0) then ac2col = ent:GetNWVector("ColourTintVec2") end
+	if ent:GetNWInt("Grunge_DRC") != 0 then grunge = ent:GetNWInt("Grunge_DRC") end
 
 	self:GetOwner():ConCommand( "drc_colour_r_player " .. plycol.x * 255 )
 	self:GetOwner():ConCommand( "drc_colour_g_player " .. plycol.y * 255 )
@@ -157,6 +169,8 @@ function TOOL:RightClick( trace )
 	self:GetOwner():ConCommand( "drc_colour_r_acc2 " .. ac2col.x )
 	self:GetOwner():ConCommand( "drc_colour_g_acc2 " .. ac2col.y )
 	self:GetOwner():ConCommand( "drc_colour_b_acc2 " .. ac2col.z )
+	
+	self:GetOwner():ConCommand( "drc_colour_grunge " .. grunge )
 
 	return true
 end
@@ -176,6 +190,7 @@ function TOOL:Reload( trace )
 	SetColour( self:GetOwner(), ent, {col, "energy"})
 	SetColour( self:GetOwner(), ent, {col, "accent1"})
 	SetColour( self:GetOwner(), ent, {col, "accent2"})
+	SetColour( self:GetOwner(), ent, {0, "grunge"})
 	return true
 end
 
@@ -190,4 +205,5 @@ function TOOL.BuildCPanel( CPanel )
 	CPanel:AddControl( "Color", { Label = "Channel: ENERGY / LIGHT COLOUR", Red = "drc_colour_r_energy", Green = "drc_colour_g_energy", Blue = "drc_colour_b_energy"} )
 	CPanel:AddControl( "Color", { Label = "Channel: ACCENT COLOUR 1", Red = "drc_colour_r_acc1", Green = "drc_colour_g_acc1", Blue = "drc_colour_b_acc1"} )
 	CPanel:AddControl( "Color", { Label = "Channel: ACCENT COLOUR 2", Red = "drc_colour_r_acc2", Green = "drc_colour_g_acc2", Blue = "drc_colour_b_acc2"} )
+	CPanel:AddControl( "Slider", { Label = "WEAR & TEAR", Command = "drc_colour_grunge", Type = "Int", Min = 0, Max = 100, Help = false} )
 end

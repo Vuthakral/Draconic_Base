@@ -3,6 +3,7 @@ DRC.CalcView.ThirdPerson.Ang_Stored = Angle()
 DRC.CalcView.ThirdPerson.DirectionalAng = Angle()
 DRC.CalcView.ThirdPerson.Live = false
 DRC.CalcView.ThirdPerson.PokeTime = CurTime()
+DRC.CalcView.ThirdPerson.FreelookForced = false
 
 function DRC:ThirdPerson_PokeLiveAngle(ply)
 	if !DRC.CalcView.Thirdperson then DRC.CalcView.Thirdperson = {} end
@@ -12,6 +13,15 @@ function DRC:ThirdPerson_PokeLiveAngle(ply)
 	if !DRC.CalcView.Live then DRC.CalcView.Live = false end
 	if !DRC.CalcView.PokeTime then DRC.CalcView.PokeTime = CurTime() end
 	if DRC.CalcView.ThirdPerson.PokeTime == nil then DRC.CalcView.ThirdPerson.PokeTime = CurTime() end
+	local wpn = ply:GetActiveWeapon()
+	if wpn.ThirdpersonForceFreelook == true then
+		DRC.CalcView.ThirdPerson.Live = false
+		DRC.CalcView.ThirdPerson.FreelookForced = true
+		DRC.CalcView.ThirdPerson.Poked = true
+		DRC.CalcView.ThirdPerson.PokeTime = CurTime()
+		return
+	else DRC.CalcView.ThirdPerson.FreelookForced = false
+	end
 	if CurTime() < DRC.CalcView.ThirdPerson.PokeTime then return end
 	DRC.CalcView.ThirdPerson.Live = true
 	DRC.CalcView.ThirdPerson.Poked = true
@@ -27,6 +37,37 @@ function DRC:ThirdPerson_PokeLiveAngle(ply)
 	end)
 end
 
+local fullranges = { -- This is going to probably give someone an aneurysm
+	["normal"] = "E",
+	["passive"] = "E",
+	["slam"] = "E"
+}
+local Directional = {
+	[""] = Angle(0, 0, 0),
+	["N"] = Angle(0, 0, 0),
+	["W"] = Angle(0, 90, 0),
+	["E"] = Angle(0, -90, 0),
+	["S"] = Angle(0, 180, 0),
+	["NW"] = Angle(0, 45, 0),
+	["NE"] = Angle(0, -45, 0),
+	["SW"] = Angle(0, 135, 0),
+	["SE"] = Angle(0, -135, 0),
+	["EW"] = Angle(0, 0, 0),
+	["NS"] = Angle(0, 0, 0),
+}
+local MovementCorrection = {
+	[""] = 0,
+	["N"] = 1,
+	["W"] = 1,
+	["E"] = 1,
+	["S"] = 1,
+	["NW"] = 1,
+	["NE"] = 1,
+	["SW"] = 1,
+	["SE"] = 1,
+	["EW"] = 0,
+	["NS"] = 0,
+}
 hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
@@ -44,9 +85,13 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	}
 	
 	local sens = ply:GetFOV() / 100
-
+	
 	DRC.MoveInfo.Mouse.X = (DRC.MoveInfo.Mouse[1] * 0.03) * sens
 	DRC.MoveInfo.Mouse.Y = (DRC.MoveInfo.Mouse[2] * 0.03) * sens
+	
+	if !DRC.CalcView then DRC.CalcView = {} end
+	if !DRC.CalcView.ThirdPerson then DRC.CalcView.ThirdPerson = {} end
+	if !DRC.CalcView.ThirdPerson.Ang then DRC.CalcView.ThirdPerson.Ang = Angle() end
 	
 	DRC.CalcView.ThirdPerson.Ang = DRC.CalcView.ThirdPerson.Ang + Angle(DRC.MoveInfo.Mouse.Y, -DRC.MoveInfo.Mouse.X, 0)
 	DRC.CalcView.ThirdPerson.Ang.X = math.Clamp(DRC.CalcView.ThirdPerson.Ang.X, -85, 90)
@@ -64,43 +109,12 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	if DRC.MoveInfo.Forward != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
 	if DRC.MoveInfo.Side != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
 	
-	local wpn = ply:GetActiveWeapon()
 	if IsValid(wpn) then
-		local fullranges = { -- This is going to probably give someone an aneurysm
-			["normal"] = "E",
-			["passive"] = "E",
-			["slam"] = "E"
-		}
-		local Directional = {
-			[""] = Angle(0, 0, 0),
-			["N"] = Angle(0, 0, 0),
-			["W"] = Angle(0, 90, 0),
-			["E"] = Angle(0, -90, 0),
-			["S"] = Angle(0, 180, 0),
-			["NW"] = Angle(0, 45, 0),
-			["NE"] = Angle(0, -45, 0),
-			["SW"] = Angle(0, 135, 0),
-			["SE"] = Angle(0, -135, 0),
-			["EW"] = Angle(0, 0, 0),
-			["NS"] = Angle(0, 0, 0),
-		}
-		local MovementCorrection = {
-			[""] = 0,
-			["N"] = 1,
-			["W"] = 1,
-			["E"] = 1,
-			["S"] = 1,
-			["NW"] = 1,
-			["NE"] = 1,
-			["SW"] = 1,
-			["SE"] = 1,
-			["EW"] = 0,
-			["NS"] = 0,
-		}
 		local ht = wpn:GetHoldType()
 		
 		if fullranges[ht] && wpn.ThirdpersonNoFreelook != true then
 			DRC.CalcView.ThirdPerson.Directional = true
+			
 			local Compass = {
 				["N"] = ply:KeyDown(IN_FORWARD),
 				["S"] = ply:KeyDown(IN_BACK),
@@ -123,7 +137,6 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 			cmd:SetForwardMove(val * MovementCorrection[input])
 			cmd:SetSideMove(0)
 		else
-			DRC.CalcView.ThirdPerson.Directional = false
 			DRC.CalcView.ThirdPerson.DirectionalAng = Angle()
 		end
 	
@@ -159,7 +172,12 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 	if !IsValid(ply) then return end
 	if !ply:Alive() then return end
 	if ply:InVehicle() then return end
-	if DRC:SightsDown(LocalPlayer():GetActiveWeapon()) then return end
+	local wpn = LocalPlayer():GetActiveWeapon()
+	local sd, scoped = DRC:SightsDown(wpn)
+	if !wpn.Draconic && sd then return
+	elseif wpn.Draconic then
+		if wpn.Secondary.Scoped == true && sd then return end
+	end
 	
 	if DRC:ThirdPersonEnabled(ply) == true then
 		if !DRC:ShouldDoDRCThirdPerson(ply) then return end
@@ -189,6 +207,12 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 				end
 			end
 		end
+		
+		if !DRC.ThirdPerson.CamLerp then DRC.ThirdPerson.CamLerp = Vector() end
+		DRC.ThirdPerson.CamLerp.z = Lerp(0.2, DRC.ThirdPerson.CamLerp.z or bpos.z, bpos.z)
+		bpos.z = DRC.ThirdPerson.CamLerp.z
+		bpos.x = pos.x
+		bpos.y = pos.y
 		
 	--	bpos = LocalPlayer():GetPos() + LocalPlayer():OBBCenter()
 		
@@ -224,7 +248,7 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		if !DRC.CalcView.ThirdPerson.StoredAng then DRC.CalcView.ThirdPerson.StoredAng = ply:EyeAngles() end
 		
 		if DRC.CalcView.ThirdPerson.Live == true then
-			if DRC.CalcView.ThirdPerson.Directional == true then
+			if DRC.CalcView.ThirdPerson.Directional == true && DRC.CalcView.ThirdPerson.FreelookForced == false then
 				ply:SetEyeAngles(ea + DRC.CalcView.ThirdPerson.DirectionalAng)
 				DRC.CalcView.ThirdPerson.Ang_Stored = ea
 			else
@@ -235,7 +259,7 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 				end
 			end
 			DRC.CalcView.ThirdPerson.StoredAng = DRC.CalcView.ThirdPerson.Ang
-		else
+		elseif DRC.CalcView.ThirdPerson.FreelookForced == false then
 			ply:SetEyeAngles(DRC.CalcView.ThirdPerson.StoredAng)
 		end
 		

@@ -8,7 +8,7 @@ For more specific development help, or to keep up to date with new information a
 
 > **Changelogs**: https://github.com/Vuthakral/Draconic_Base/wiki/Changelog-List
 
-> **Wiki**: https://github.com/Vuthakral/Draconic_SWEP_Base/wiki
+> **Wiki**: http://vuthakral.com/draconic/
 _____
 
 > Steam Workshop Page: [https://steamcommunity.com/sharedfiles/filedetails/?id=1847505933](https://steamcommunity.com/sharedfiles/filedetails/?id=1847505933)

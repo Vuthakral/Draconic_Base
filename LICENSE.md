@@ -1,27 +1,29 @@
-<b>Draconic Base (c) 2023 Vuthakral. All Rights Reserved.</b>
-
 https://twitter.com/Vuthakral/ <br>
 https://steamcommunity.com/id/Vuthakral/ <br>
 http://www.vuthakral.com/ <br>
 https://discord.gg/feThY5n8vH <br>
 
-<h2>USAGE AGREEMENT</h2>
-<h3>Summary</h3>
-You are free to download & use the Draconic Base as-is. Modifications are allowed, but in making them you agree to not reupload the modified version. You won't sell/trade anything from this base or derivatives of it.
+**Preamble**: The Draconic Base license is under the assumption of "All rights reserved". Unless it is explicitly stated here, it is not allowed.
+# 
+**Terminology**:
+- "the base": Anything that is part of the Draconic Base itself.
+- "user content": Anything that is made by developers which relies on the Draconic Base.
+- "developer(s)": Individuals that create content which relies on the Draconic Base.
+- "player(s)": People who are just playing the game with the Draconic Base & content that relies on it.
+- "content sharing platform": Websites or platforms such as the Steam Workshop, MediaFire, MEGA, Discord, Guilded, or etc.
 
-<h3>Distribution</h3>
-<b>(1)</b>: Files that are part of the Draconic Base, or modifications of it, may not be individually redistributed, rebranded, removed, sold, traded, "commissioned", or other such side-terminology used to hide these actions.<br>
-<b>(2)</b>: The Draconic Base may not be reuploaded to any content-sharing sites. Examples include: Steam Workshop, GameBanana, Nexusmods, MEGA, Mediafire, etc. This includes uploading the base for mass-distribution on platforms such as Discord or Guilded.
+### End User License Agreement
 
-<h3>Modification</h3>
-<b>(1)</b>: Anyone is free to modify the Draconic Base, but modifications may not be reuploaded to content-sharing platorms such as those described in "Distribution (2)".<br>
-<b>(2)</b>: Obviously, creating a fork using GitHub is fine. Though if you are doing this solely to add one or two features then I recommend getting in contact with me (Vuthakral) instead. I will be happy to look into them.
+The Summary
+As a PLAYER, you are obviously completely free to download & install the base. You do not own anything from the base nor user content made with it.
+As a DEVELOPER, any user content you create which relies on the Draconic Base is solely your own. You do not own anything from the base itself, and may not redistribute the base, nor anything from it.
 
-<h3>Making Content with the Draconic Base</h3>
-<b>(1)</b>: Content made utilizing the Draconic Base is solely the property of the individual(s) that created the content. The Draconic Base is merely a set of tools for developers.<br>
+Terms
+- (**1**) As an individual with access to the base you will not reupload it to any content sharing platforms, as this creates the potential for file and version conflicts which can break the base as a whole.
+- (**2**) You will not sell, trade, nor bargain the base.
+- (**3**) While modification of the base is allowed, as per point one you may not distribute the modified version of the base. This means you may create an edited version for use on a server, or group of servers that you own or develop on.
 
-<h3>Other</h3>
-<b>(1)</b>: Just because it's not explicitly stated here does not mean it is acceptable. <b>All Rights Reserved</b> is always implied unless otherwise stated for a reason.
+Takedowns
+Failure to comply with the EULA above will result in a takedown issued to the offending party in whatever form is applicable to the platform that is being used.
 
-<h3>Takedowns</h3>
-Failure to comply with any of the above mentioned parts will result in the offending party receiving a takedown request in whatever form is applicable to the platform the offending party is using.
+tl;dr: don't reupload my shit 

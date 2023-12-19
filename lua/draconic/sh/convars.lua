@@ -188,8 +188,6 @@ if CLIENT then
 	if GetConVar("cl_drc_accessibility_colourblind_strength") == nil then CreateConVar("cl_drc_accessibility_colourblind_strength", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Colour blindness strength amount.", 0, 100) end
 	if GetConVar("cl_drc_accessibility_amduser") == nil then CreateConVar("cl_drc_accessibility_amduser", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Changes how certain stuff in the Draconic Base renders to be AMD compatible.", 0, 1) end
 	
-	if GetConVar("cl_drc_menubg") == nil then CreateConVar("hlmv/background", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Background image to use on the Draconic Menu", 0, 100) end
-	
 	if GetConVar("drc_lightcolour") == nil then CreateConVar("drc_lightcolour", 50, {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar used to easily pull your light level for serverside use.", 0, 100) end
 	
 	if GetConVar("r_fogcolour") == nil then CreateConVar("r_fogcolour", "127 127 127", {FCVAR_USERINFO, FCVAR_ARCHIVE, FCVAR_DEMO}, "Convar added by the Draconic Base for serverside to be able to get fog information about the current map.") end

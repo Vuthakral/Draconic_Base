@@ -2243,6 +2243,7 @@ end)
 
 function DRC:CallGesture(ply, slot, act, akill, fallback)
 	if !SERVER then return end
+	if !act or act == nil then return end
 	if !IsValid(ply) then return end
 	if !slot or slot == "" or slot == nil then slot = GESTURE_SLOT_CUSTOM end
 	

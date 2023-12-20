@@ -674,12 +674,10 @@ local ironsounds = {
 
 function SWEP:Think()
 	local ply = self:GetOwner()
-	if !IsValid(ply) or !ply:Alive() then return end
+	if !IsValid(ply) or DRC:Health(ply) < 0.01 then return end
 	local health = DRC:Health(ply)
 	local charge, heat = self:GetCharge(), self:GetHeat()
-	local cv = ply:Crouching()
-	local vm = ply:GetViewModel(0)
-	local hands = ply:GetHands()
+	
 	local ct = CurTime()
 	
 	self:DoCustomThink()
@@ -687,28 +685,36 @@ function SWEP:Think()
 	
 	if ct > self.LockoutTime then self.Idle = 1 else self.Idle = 0 end
 	
-	if CLIENT && game.SinglePlayer() && RealTime() > self.RealTime then
-		self.RealTime = RealTime() + RealFrameTime() -- For some reason, calling :GetCycle() inside of Think() will be called three times per frame. The first one will always return 0. This prevents it from being called multiple times and creating glitchy-looking-behaviour.
-		local seq, cycle = ply:GetViewModel(0):GetSequence(), ply:GetViewModel(0):GetCycle()
-		self.VMSequence = seq
-		self.VMCycle = cycle
-	elseif !game.SinglePlayer() then
-		local seq, cycle = ply:GetViewModel(0):GetSequence(), ply:GetViewModel(0):GetCycle()
-		self.VMSequence = seq
-		self.VMCycle = cycle
+	local cv, vm, hands
+	if ply:IsPlayer() then
+		cv = ply:Crouching()
+		vm = ply:GetViewModel(0)
+		hands = ply:GetHands()
+		if CLIENT && game.SinglePlayer() && RealTime() > self.RealTime then
+			self.RealTime = RealTime() + RealFrameTime() -- For some reason, calling :GetCycle() inside of Think() will be called three times per frame. The first one will always return 0. This prevents it from being called multiple times and creating glitchy-looking-behaviour.
+			local seq, cycle = ply:GetViewModel(0):GetSequence(), ply:GetViewModel(0):GetCycle()
+			self.VMSequence = seq
+			self.VMCycle = cycle
+		elseif !game.SinglePlayer() then
+			local seq, cycle = ply:GetViewModel(0):GetSequence(), ply:GetViewModel(0):GetCycle()
+			self.VMSequence = seq
+			self.VMCycle = cycle
+		end
+		
+		if !self.IsMelee then -- For some other reason, this breaks animations on the melee base.
+			if self:HasViewModel() && string.lower(vm:GetModel()) != string.lower(self.ViewModel) then vm:SetModel(self.ViewModel) end
+			if self.ShowWorldModel == true && (self.WorldModel != nil or self.WorldModel != "") then self:SetModel(self.WorldModel) end
+		end
 	end
 	
-	if !self.IsMelee then -- For some other reason, this breaks animations on the melee base.
-		if self:HasViewModel() && string.lower(vm:GetModel()) != string.lower(self.ViewModel) then vm:SetModel(self.ViewModel) end
-		if self.ShowWorldModel == true && (self.WorldModel != nil or self.WorldModel != "") then self:SetModel(self.WorldModel) end
-	end
+
 	
 	if self.IdleTimer < CurTime() && self.IsDoingMelee == true then
 		self.IsDoingMelee = false
 		self.Loading = false
 	end
 	
-	if CLIENT then
+	if CLIENT && ply:IsPlayer() then
 		local wl = ply:WaterLevel()
 		local oa = self.OwnerActivity
 		local l, r, f, b = ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK)
@@ -731,7 +737,7 @@ function SWEP:Think()
 		end
 	end
 	
-	if !self:CanUseSights() then
+	if self:CanUseSights() == false then
 		self:SetIronsights(false, self.Owner)
 		ply:SetFOV(0, 0)
 	elseif self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
@@ -757,6 +763,8 @@ function SWEP:Think()
 			end
 		end
 	elseif self:CanUseSights() && self.Secondary.Ironsights == false or self.IronCD == true or self.Loading == true then
+		self:SetIronsights(false, self.Owner)
+	elseif self:CanUseSights() == nil then
 		self:SetIronsights(false, self.Owner)
 	end
 	
@@ -970,12 +978,14 @@ function SWEP:Think()
 		self.EmptyMagCL = Lerp(FrameTime() * 50, self.EmptyMagCL or self.PistolSlide, 1)
 	end
 	
-	if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_ammo") != nil then vm:SetPoseParameter("drc_ammo", self.AmmoCL / self.Primary.ClipSize) end
-	if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_emptymag") != nil then vm:SetPoseParameter("drc_emptymag", self.EmptyMagCL) end
-	if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_heat") != nil then vm:SetPoseParameter("drc_heat", self.HeatCL / 100) end
-	if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_battery") != nil then vm:SetPoseParameter("drc_battery", self.AmmoCL / 100) end
-	if vm:GetPoseParameter("drc_health") != nil then vm:SetPoseParameter("drc_health", (self.HealthCL / ply:GetMaxHealth()) / 100) end
-	if vm:GetPoseParameter("drc_charge") != nil then vm:SetPoseParameter("drc_charge", self.ChargeCL / 100) end
+	if ply:IsPlayer() then
+		if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_ammo") != nil then vm:SetPoseParameter("drc_ammo", self.AmmoCL / self.Primary.ClipSize) end
+		if self.Primary.Ammo != nil && vm:GetPoseParameter("drc_emptymag") != nil then vm:SetPoseParameter("drc_emptymag", self.EmptyMagCL) end
+		if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_heat") != nil then vm:SetPoseParameter("drc_heat", self.HeatCL / 100) end
+		if self.Primary.Ammo == "ammo_drc_battery" && vm:GetPoseParameter("drc_battery") != nil then vm:SetPoseParameter("drc_battery", self.AmmoCL / 100) end
+		if vm:GetPoseParameter("drc_health") != nil then vm:SetPoseParameter("drc_health", (self.HealthCL / ply:GetMaxHealth()) / 100) end
+		if vm:GetPoseParameter("drc_charge") != nil then vm:SetPoseParameter("drc_charge", self.ChargeCL / 100) end
+	end
 end
 
 function SWEP:CanMelee()
@@ -999,6 +1009,7 @@ function SWEP:ManageAnims()
 	if !self:IsIdle() then return end
 --	if !IsFirstTimePredicted() then return end
 	local ply = self:GetOwner()
+	if !ply:IsPlayer() then return end
 	
 	if !IsValid(ply) then return end
 	if !self:HasViewModel() then return end
@@ -1860,6 +1871,7 @@ end
 function SWEP:CanUseSights()
 	local ply = self:GetOwner()
 	if !ply:IsPlayer() then return end
+	if ply:InVehicle() then return nil end
 	local oh = self:GetNWBool("Overheated")
 	
 	if self.IsDoingMelee == true then self:SetIronsights(false) return false end

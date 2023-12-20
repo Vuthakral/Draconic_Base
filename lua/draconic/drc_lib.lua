@@ -2246,10 +2246,12 @@ function DRC:CallGesture(ply, slot, act, akill, fallback)
 	if !act or act == nil then return end
 	if !IsValid(ply) then return end
 	if !slot or slot == "" or slot == nil then slot = GESTURE_SLOT_CUSTOM end
-	
 	if !akill or akill == "" or akill == nil then akill = true end
+	
+	if act == -1 then return end
 	if ply:SelectWeightedSequence(act) == -1 then act = fallback end
-	if !act then return end
+	if fallback && ply:SelectWeightedSequence(act) == -1 then return end
+	if !act or act == nil or act == -1 then return end
 	
 	if !ply:IsPlayer() then
 		timer.Simple(engine.TickInterval(), function()
@@ -2396,6 +2398,14 @@ hook.Add("Tick", "drc_CubeMapAntiFail", function()
 	if !drc_cubesamples then
 		CubeCheckTime = CurTime() + 5
 		DRC_CollectCubemaps( game.GetMap() )
+	end
+end)
+
+hook.Add("Tick", "drc_WeaponThinkOnNPC", function()
+	for k,v in pairs(DRC.ActiveWeapons) do
+		if v:GetParent():IsNPC() or v:GetParent():IsNextBot() then
+			v:Think()
+		end
 	end
 end)
 
@@ -2762,13 +2772,13 @@ if SERVER then
 		ent:SetNWInt("DRC_ShieldVisibility", 1)
 		timer.Simple(1, function()
 			for i=0,9 do
-				timer.Simple(i*0.1, function() ent:SetNWInt("DRC_ShieldVisibility", ent:GetNWInt("DRC_ShieldVisibility") - 0.1) end)
+				timer.Simple(i*0.1, function() if !IsValid(ent) then return end ent:SetNWInt("DRC_ShieldVisibility", ent:GetNWInt("DRC_ShieldVisibility") - 0.1) end)
 			end
 		end)
 		
 		if scale == true then
 			ent:SetNWInt("DRC_Shield_PingScale", ent:GetNWInt("DRC_Shield_PingScale_Max"))
-			timer.Simple(0.5, function() ent:SetNWInt("DRC_Shield_PingScale", ent:GetNWInt("DRC_Shield_PingScale_Min")) end)
+			timer.Simple(0.5, function() if !IsValid(ent) then return end ent:SetNWInt("DRC_Shield_PingScale", ent:GetNWInt("DRC_Shield_PingScale_Min")) end)
 		end
 	end
 	
@@ -2789,6 +2799,7 @@ if SERVER then
 			ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
 			ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + ent:GetNWInt("DRC_ShieldRechargeDelay") - engine.TickInterval())
 			timer.Simple(ent:GetNWInt("DRC_ShieldRechargeDelay"), function()
+				if !IsValid(ent) then return end
 				if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") then
 					ent:SetNWBool("DRC_ShieldDown", false)
 					DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_RechargeSound"), nil, 1500)

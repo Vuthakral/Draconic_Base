@@ -24,10 +24,12 @@ SWEP.ViewModel 		= "models/weapons/c_pistol.mdl"
 SWEP.WorldModel 	= "models/weapons/w_pistol.mdl"
 SWEP.ViewModelFOV   = 54
 
+SWEP.Primary.ClipSize 		= 0
 SWEP.Primary.DefaultClip 	= 0
 SWEP.Primary.Ammotype 		= nil
 SWEP.Primary.Force			= 0
 
+SWEP.Primary.Disabled	= true
 SWEP.Secondary.Disabled	= true
 
 function SWEP:DoCustomPrimary()

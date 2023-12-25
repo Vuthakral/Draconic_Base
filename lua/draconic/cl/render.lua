@@ -86,8 +86,28 @@ hook.Add("Think", "DRC_Lighting", function()
 	end
 end)
 
-
-
+function DRC:LightVolume(ent, att, colour, length, width)
+	if !IsValid(ent) or att == nil then return end
+	local attnum = ent:LookupAttachment(att)
+	if attnum == -1 then return end
+	local attinfo = ent:GetAttachment(attnum)
+	local light = nil
+	light = ents.CreateClientside("draconic_spotlight_base")
+	light:Spawn()
+	light:SetParent(ent, attnum)
+	
+	light.Info = {
+		["entity"] = ent,
+		["attachment"] = att,
+		["colour"] = colour,
+		["length"] = length,
+		["width"] = width,
+		["angles"] = attinfo.Ang,
+		["position"] = attinfo.Pos,
+	}
+	
+	return light
+end
 
 
 --- ###MapInfos

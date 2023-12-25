@@ -1512,8 +1512,8 @@ function SWEP:Deploy()
 	self:DoCustomDeploy()
 	self:CallOnClient("DoCustomDeploy")
 	
-	local cv = ply:Crouching()
-	local vm = ply:GetViewModel()
+	local cv, vm = false, self
+	if ply:IsPlayer() then cv = ply:Crouching() vm = ply:GetViewModel() end
 	local drawanim = vm:SelectWeightedSequence( ACT_VM_DRAW )
 	local drawaniminitial = vm:SelectWeightedSequence( ACT_VM_DRAW_EMPTY )
 	local drawanimdur = vm:SequenceDuration(drawanim)
@@ -1571,7 +1571,7 @@ function SWEP:Deploy()
 	
 	self:SetCharge(0)
 	
-	if not IsValid(self) or not IsValid(ply) or not ply:Alive() then else
+	if IsValid(self) && IsValid(ply) && ply:IsPlayer() && ply:Alive() then
 		self:GetMovementValues()
 	end
 	

@@ -593,7 +593,7 @@ function SWEP:DoMeleeSwing(swinginfo, preventanim)
 	--	local dur = self:SequenceDuration(anim)
 	--	self.IdleTimer = CurTime() + dur
 	end
-	
+
 	if swinginfo.anim_tp != nil && preventanim != true then
 		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, swinginfo.anim_tp, true)
 	end

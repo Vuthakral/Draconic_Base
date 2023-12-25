@@ -1591,7 +1591,7 @@ matproxy.Add( {
 			ent.DRCBlinkStatus = true
 			ent.DRCBlinkTimed = true
 			ent.DRCBlinkFrame = 0
-			timer.Simple(math.Rand(5, 24), function()
+			timer.Simple(math.Rand(3, 16), function()
 				ent.DRCBlinkStatus = false
 				ent.DRCBlinkTimed = false
 				
@@ -1731,6 +1731,7 @@ matproxy.Add( {
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then ent = Entity(0) end
+		if !IsValid(ent) then return end
 		if !IsValid(lply) then return end
 		
 		if !self.Power then self.Power = 1 end

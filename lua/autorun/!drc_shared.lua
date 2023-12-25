@@ -3,6 +3,7 @@ DRC.MapInfo = {}
 DRC.VoiceSets = {}
 DRC.FootSteps = {}
 DRC.Categories = {}
+DRC.Spotlights = {}
 if SERVER then 
 	resource.AddWorkshop("1847505933") -- Makes the base auto-download for clients joining your server.
 	AddCSLuaFile("draconic/load.lua")

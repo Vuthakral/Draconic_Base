@@ -49,7 +49,7 @@ SWEP.Primary.CanAttackCrouched = false
 SWEP.Primary.HitActivity		= nil
 SWEP.Primary.CrouchHitActivity	= nil
 SWEP.Primary.MissActivity		= ACT_VM_PRIMARYATTACK 
-SWEP.Primary.CrouchMissActivity	= ACT_VM_PRIMARYATTACK 
+SWEP.Primary.CrouchMissActivity	= nil 
 SWEP.Primary.HitDelay			= 0.07
 SWEP.Primary.StartX				= 20
 SWEP.Primary.StartY				= 10
@@ -72,7 +72,7 @@ SWEP.Primary.LungeBurnDecal 	= ""
 SWEP.Primary.LungeHitAct		= nil
 SWEP.Primary.LungeHitActCrouch	= nil
 SWEP.Primary.LungeMissAct		= ACT_VM_PRIMARYATTACK
-SWEP.Primary.LungeMissActCrouch	= ACT_VM_PRIMARYATTACK
+SWEP.Primary.LungeMissActCrouch	= nil
 SWEP.Primary.LungeDelayMiss		= 1.3
 SWEP.Primary.LungeDelayHit		= 0.7
 SWEP.Primary.LungeHitDelay		= 0.26
@@ -106,7 +106,7 @@ SWEP.Secondary.CanAttackCrouched 	= true
 SWEP.Secondary.HitActivity			= nil
 SWEP.Secondary.CrouchHitActivity	= nil
 SWEP.Secondary.MissActivity			= ACT_VM_MISSCENTER
-SWEP.Secondary.CrouchMissActivity	= ACT_VM_MISSCENTER2
+SWEP.Secondary.CrouchMissActivity	= nil
 SWEP.Secondary.Velocity				= Vector(0, 0, 0)
 SWEP.Secondary.HitDelay				= 0.07
 SWEP.Secondary.StartX				= 20
@@ -119,7 +119,11 @@ SWEP.AIAttack = "Primary"
 
 -- DO NOT TOUCH
 SWEP.Primary.Ammo = ""
+SWEP.Primary.ClipSize = 1
+SWEP.Primary.DefaultClip = 1
 SWEP.Secondary.Ammo = ""
+SWEP.Secondary.ClipSize = 1
+SWEP.Secondary.DefaultClip = 1
 SWEP.IsMelee = true
 
 SWEP.NextMeleeAI = 0
@@ -340,7 +344,7 @@ function SWEP:DoPrimaryLunge()
 	local isply = ply:IsPlayer()
 	self:DoCustomLunge()
 	
-	local miss_tp, hit_tp, miss_fp, miss_tp
+	local miss_tp, hit_tp, miss_fp, miss_tpc
 	local ht, htc = self.Primary.LungeHoldType, self.Primary.LungeHoldTypeCrouch
 	local ma, mac, ha, hac = self.Primary.LungeMissAct, self.Primary.LungeMissActCrouch, self.Primary.LungeHitAct, self.Primary.LungeHitActCrouch
 	local matp, matpc = self.Primary.LungeMissAct_TP, self.Primary.LungeMissActCrouch_TP
@@ -349,7 +353,7 @@ function SWEP:DoPrimaryLunge()
 	if !hac then hac = ha end
 	
 	if matp then miss_tp = matp else miss_tp = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
-	if matpc then miss_tp = matpc else miss_tp = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
+	if matpc then miss_tpc = matpc else miss_tpc = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
 	
 	miss_fp = ma
 	hit_fp = ha or nil
@@ -369,7 +373,7 @@ function SWEP:DoPrimaryLunge()
 		["y"] = {self.Primary.LungeStartY, self.Primary.LungeEndY},
 		["delay"] = { self.Primary.LungeDelayHit, self.Primary.LungeDelayMiss, self.Primary.LungeHitDelay }, -- hit, miss, tick
 		["screenshake"] = { true, self.Primary.LungeShakeMul }, -- do shake, shake power
-		["anim_tp_miss"] = miss_tp, --ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
+		["anim_tp_crouch"] = miss_tpc, --ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
 		["anim_tp"] = miss_tp,
 		["anim_fp_miss"] = miss_fp,
 		["anim_fp"] = hit_fp,
@@ -389,7 +393,7 @@ function SWEP:DoPrimaryAttack()
 	local isply = ply:IsPlayer()
 	self:DoCustomPrimaryAttack()
 	
-	local miss_tp, hit_tp, miss_fp, miss_tp
+	local miss_tp, hit_tp, miss_fp, miss_tpc
 	local ht, htc = self.Primary.HoldType, self.Primary.HoldTypeCrouch
 	local ma, mac, ha, hac = self.Primary.MissActivity, self.Primary.CrouchMissActivity, self.Primary.HitActivity, self.Primary.CrouchHitActivity
 	local matp, matpc = self.Primary.MissActivity_TP, self.Primary.MissActivityCrouch_TP
@@ -398,7 +402,7 @@ function SWEP:DoPrimaryAttack()
 	if !hac then hac = ha end
 	
 	if matp then miss_tp = matp else miss_tp = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
-	if matpc then miss_tp = matpc else miss_tp = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
+	if matpc then miss_tpc = matpc else miss_tpc = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
 	
 	miss_fp = ma
 	hit_fp = ha or nil
@@ -418,7 +422,7 @@ function SWEP:DoPrimaryAttack()
 		["y"] = {self.Primary.StartY, self.Primary.EndY},
 		["delay"] = { self.Primary.DelayHit, self.Primary.DelayMiss, self.Primary.HitDelay }, -- hit, miss, tick
 		["screenshake"] = { true, self.Primary.ShakeMul }, -- do shake, shake power
-		["anim_tp_miss"] = miss_tp, --ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
+		["anim_tp_crouch"] = miss_tpc, --ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
 		["anim_tp"] = miss_tp,
 		["anim_fp_miss"] = miss_fp,
 		["anim_fp"] = hit_fp,
@@ -494,7 +498,7 @@ function SWEP:DoSecondaryAttack()
 	local isply = ply:IsPlayer()
 	self:DoCustomSecondaryAttack()
 	
-	local miss_tp, hit_tp, miss_fp, miss_tp
+	local miss_tp, hit_tp, miss_fp, miss_tpc
 	local ht, htc = self.Secondary.HoldType, self.Secondary.HoldTypeCrouch
 	local ma, mac, ha, hac = self.Secondary.MissActivity, self.Secondary.CrouchMissActivity, self.Secondary.HitActivity, self.Secondary.CrouchHitActivity
 	local matp, matpc = self.Secondary.MissActivity_TP, self.Secondary.MissActivityCrouch_TP
@@ -503,7 +507,7 @@ function SWEP:DoSecondaryAttack()
 	if !hac then hac = ha end
 	
 	if matp then miss_tp = matp else miss_tp = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
-	if matpc then miss_tp = matpc else miss_tp = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
+	if matpc then miss_tpc = matpc else miss_tpc = DRC:GetHoldTypeAnim(ht, "attack", !isply) end
 	
 	miss_fp = ma
 	hit_fp = ha or nil
@@ -523,7 +527,7 @@ function SWEP:DoSecondaryAttack()
 		["y"] = {self.Secondary.StartY, self.Secondary.EndY},
 		["delay"] = { self.Secondary.DelayHit, self.Secondary.DelayMiss, self.Secondary.HitDelay }, -- hit, miss, tick
 		["screenshake"] = { true, self.Secondary.ShakeMul }, -- do shake, shake power
-		["anim_tp_miss"] = miss_tp, --ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
+		["anim_tp_crouch"] = miss_tpc, --ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,
 		["anim_tp"] = miss_tp,
 		["anim_fp_miss"] = miss_fp,
 		["anim_fp"] = hit_fp,

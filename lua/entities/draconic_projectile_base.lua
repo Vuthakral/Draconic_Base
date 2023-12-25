@@ -1,3 +1,5 @@
+AddCSLuaFile()
+
 --[[     I M P O R T A N T
 
 Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.
@@ -160,8 +162,10 @@ function ENT:GetCreatorAttachmentValue(att, val)
 end
 
 ENT.EffectTick = 0
+ENT.ThinkTimer = 0
 function ENT:Think()
 	if !IsValid(self) then return end
+	local ct = CurTime()
 	
 	if CLIENT && self.Effect != nil && RealTime() > self.EffectTick then
 		local ed = EffectData()
@@ -200,46 +204,43 @@ function ENT:Think()
 	
 	self.LastPos = pos
 	
-	self.TimerName = "DPTimer_".. self:EntIndex() ..""
-	
-	if !timer.Exists(self.TimerName) && tipe != "sticky" && tipe != "playersticky" && tipe != "supercombine" && tipe != "magazine" then
-		timer.Create(self.TimerName, self.TimerFrequency, 0, function()
-			if not SERVER then return end
-			for f, v in pairs(ents.FindInSphere(self.LastPos, self.AffectRadius)) do
-				if IsValid(v) && v:EntIndex() == self:EntIndex() && !v:IsWorld() then
-
-					local dmg69 = DamageInfo()
-					dmg69:SetDamage(self.Damage / 5 / (v:GetPos()):Distance(self.LastPos) * 20)
-					if IsValid(owner) then
-						dmg69:SetAttacker(owner)
-					else
-						dmg69:SetAttacker(self)
+--	if !timer.Exists(self.TimerName) && tipe != "sticky" && tipe != "playersticky" && tipe != "supercombine" && tipe != "magazine" then
+--		timer.Create(self.TimerName, self.TimerFrequency, 0, function()
+	if ct > self.ThinkTimer then
+		self.ThinkTimer = ct + self.TimerFrequency
+		if !SERVER then return end
+		for k, v in pairs(ents.FindInSphere(self.LastPos, self.AffectRadius)) do
+			if IsValid(v) && v:EntIndex() != self:EntIndex() && !v:IsWorld() then
+				local dmg69 = DamageInfo()
+				dmg69:SetDamage((self.Damage*0.2) / (v:GetPos()):Distance(self.LastPos) * 20)
+				if IsValid(owner) then
+					dmg69:SetAttacker(owner)
+				else
+					dmg69:SetAttacker(self)
+				end
+				dmg69:SetInflictor(self)
+				dmg69:SetDamageForce(self:EyeAngles():Forward())
+				dmg69:SetDamagePosition(self.LastPos)
+				dmg69:SetDamageType(self.DamageType)
+				
+				local hp = DRC:Health(v)
+				
+				if IsValid(v:GetPhysicsObject()) && !DRC:IsCharacter(v) then
+					if self.GravitySpherePower != 0 then v:GetPhysicsObject():AddVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+					if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
+				elseif DRC:IsCharacter(v) then
+					if v == self:GetOwner() && self.RadialDamagesOwner == true then 
+						if self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
+					elseif v != self:GetOwner() then
+						if self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
 					end
-					dmg69:SetInflictor(self)
-					dmg69:SetDamageForce(self:EyeAngles():Forward())
-					dmg69:SetDamagePosition(self.LastPos)
-					dmg69:SetDamageType(self.DamageType)
-					
-					if IsValid(v:GetPhysicsObject()) && !DRC:IsCharacter(v) then
-						if self.GravitySpherePower != 0 then v:GetPhysicsObject():AddVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
-						if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
-					elseif DRC:IsCharacter(v) then
-						if v == self:GetOwner() && self.RadialDamagesOwner == true then 
-							if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
-						elseif v == self:GetOwner() && self.RadialDamagesOwner == false then
-						elseif v != self:GetOwner() then
-							if v:Health() != 0 && v:Health() != nil && self.DoesRadialDamage == true then v:TakeDamageInfo(dmg69) end
-						end
-						if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
-					else
-						if self.GravitySpherePower != 0 then v:AddVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
-					end
+					if self.GravitySpherePower != 0 then v:SetVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
+				else
+					if self.GravitySpherePower != 0 then v:AddVelocity((v:GetPos()-self.LastPos)*self.GravitySpherePower/(v:GetPos()):Distance(self.LastPos) + v:GetVelocity()) end
 				end
 			end
-		end)
+		end
 	end
-	
-	if vel == vector_origin then return end
 
 	self:DoCustomThink()
 
@@ -988,13 +989,6 @@ function ENT:Explode(mode)
 end
 
 function ENT:OnRemove()
-
-	if self.TimerName != nil then
-		if timer.Exists(self.TimerName) then
-			timer.Remove(self.TimerName)
-		end
-	end
-
 	if self.LoopingSound != nil then
 		if self:IsValid() then
 			self:StopSound(self.LoopingSound)

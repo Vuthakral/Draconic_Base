@@ -1435,10 +1435,9 @@ end
 
 function DRC:GetEnvmap(src)
 	if !DRC.MapInfo.Cubemaps[1] then DRC_CollectCubemaps(game.GetMap()) end
---	if #drc_cubeLookup == 0 or #drc_cubeLookup > 1000 then return nil end
 	local pos
 	if IsEntity(src) then pos = src:GetPos() + src:OBBCenter() else pos = src end
-	local d = function(st) return pos:DistToSqr(st) end --math.abs(st.x - pos.x) + math.abs(st.y - pos.y) end
+	local d = function(st) return pos:DistToSqr(st) end
 	table.sort(DRC.MapInfo.Cubemaps, function(a,b) return d(a.pos) < d(b.pos) end)
 	return DRC.MapInfo.Cubemaps[1].mat
 end
@@ -2401,12 +2400,16 @@ hook.Add("Tick", "drc_CubeMapAntiFail", function()
 	end
 end)
 
-hook.Add("Tick", "drc_WeaponThinkOnNPC", function()
+hook.Add("Tick", "drc_ForceThingsToFunction", function()
 	for k,v in pairs(DRC.ActiveWeapons) do
 		if v:GetParent():IsNPC() or v:GetParent():IsNextBot() then
-			v:Think()
+			if v.Think then v:Think() end
 		end
 	end
+end)
+
+hook.Add("UpdateTransmitState", "drc_SpotLightTransmit", function(ent)
+	print(ent)
 end)
 
 DraconicAmmoTypes = {}
@@ -4278,7 +4281,7 @@ if SERVER then
 end
 
 local OldScreenshake = util.ScreenShake -- Intercepting screenshake so that it can be emulated in custom CalcView hooks.
-function util.ScreenShake(pos, amp, freq, dur, radi)
+function util.ScreenShake(pos, amp, freq, dur, radi, inair)
 	if SERVER then
 		for k,v in pairs(ents.FindInSphere(pos, radi)) do
 			if v:IsPlayer() then
@@ -4289,5 +4292,5 @@ function util.ScreenShake(pos, amp, freq, dur, radi)
 		end
 	end
 	
-	return OldScreenshake(pos, amp, freq, dur, radi)
+	return OldScreenshake(pos, amp, freq, dur, radi, inair)
 end

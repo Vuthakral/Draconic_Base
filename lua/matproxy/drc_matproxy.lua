@@ -1743,13 +1743,12 @@ matproxy.Add( {
 		local localspeed = localvel:Length()
 		
 		local c1, c2 = ent:GetPos() + ent:OBBCenter(), lply:EyePos()
-		local m1, m2 = (self.Power or 1)/10, 1
+		local m1, m2 = (self.Power or 1)*0.1, 1
 		
-		ent.Distance = (math.Distance(c1.x, c1.y, c2.x, c2.y) / 50)
-		
+		ent.PSXDistance = (math.Distance(c1.x, c1.y, c2.x, c2.y) / 50)
+		if !ent.PSXDistance then ent.PSXDistance = 0 end
 		ent.DesiredPower = m1 * m2
-		
-		ent.DesiredPower = math.Clamp(ent.Distance * ent.DesiredPower, 0.1, 25)
+		ent.DesiredPower = math.Clamp(ent.PSXDistance * ent.DesiredPower, 0.1, 25)
 		
 		if !DRC:IsCharacter(ent) && !ent.preview then
 			if ent:GetVelocity() == Vector() && localvel == Vector() then ent.DesiredPower = 0 end

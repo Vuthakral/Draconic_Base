@@ -50,6 +50,7 @@ end
 ENT.TickerTime = 0
 function ENT:DoCustomThink()
 	if !IsValid(self) then return end
+	if !SERVER then return end
 	if CurTime() < self.TickerTime then return end
 	local chance = 100 - self.IgniteChance
 	self.TickerTime = CurTime() + 0.2

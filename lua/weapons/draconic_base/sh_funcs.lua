@@ -82,7 +82,10 @@ function SWEP:CanCustomize(bypassinspect)
 	return cando
 end
 
+SWEP.InspectionToggleCD = 0
 function SWEP:ToggleInspectMode()
+	if CurTime() < self.InspectionToggleCD then return end
+	self.InspectionToggleCD = CurTime() + 0.1
 	local ply = self:GetOwner()
 	
 	if DRC.SV.drc_inspections == 0 then return end

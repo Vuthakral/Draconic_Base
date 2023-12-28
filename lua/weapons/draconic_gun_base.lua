@@ -680,7 +680,7 @@ function SWEP:Reload()
 				self:ToggleInspectMode()
 			elseif self.Inspecting == false then
 				self:Inspect()
-			elseif self.Inspect == true then end
+			return end
 		elseif walkkey && reloadkey && self.IsTaunting == 0 then
 			self:Taunt()
 			elseif walkkey && reloadkey && self.IsTaunting == 1 then
@@ -768,6 +768,7 @@ end
 function SWEP:DoReload()
 	if !self:CanReloadPrimary() then return end
 	local ply = self:GetOwner()
+	if ply:KeyDown(IN_USE) then return end
 	local reloadseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
 	local reloadtime = self:SequenceDuration( reloadseq )
 	local emptyreloadseq = self:SelectWeightedSequence( ACT_VM_RELOAD_EMPTY )
@@ -896,8 +897,9 @@ function SWEP:EndReload()
 end
 
 function SWEP:StartManualReload()
+	if !IsValid(self) then return end
 	local ply = self:GetOwner()
-	local wep = self
+	if ply:KeyDown(IN_USE) then return end
 	local vm = ply:GetViewModel()
 	local enterseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_START )
 	local entertime = self:SequenceDuration( enterseq )
@@ -940,7 +942,10 @@ function SWEP:DoManualReload(looped)
 		
 		if IsFirstTimePredicted() then self:DoCustomReloadLoopEvents() end
 		
-		self:GetOwner():RemoveAmmo( 1, self.Primary.Ammo, false )
+		local atr = 1
+		if DRC.SV.drc_infiniteammo >= 1 then atr = 0 end
+		
+		self:GetOwner():RemoveAmmo( atr, self.Primary.Ammo, false )
 		self:SetNWBool("LoadedAmmo", self:GetNWBool("LoadedAmmo") + self.Primary.APS)
 		self:SetClip1(self:GetLoadedAmmo())
 		

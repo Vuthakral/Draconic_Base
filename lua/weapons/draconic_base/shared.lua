@@ -1764,14 +1764,20 @@ function SWEP:Inspect()
 	if !IsValid(ply) then return end
 	if !ply:IsPlayer() then return end
 	
+
+	
 	self.Inspecting = true
 	self:SetNWBool("InspectCamLerp", true)
 	if !IsFirstTimePredicted() then return end
+	self:DoCustomInspect()
 	local inspectanim = self:SelectWeightedSequence(ACT_VM_FIDGET)
 	local inspectdur = self:SequenceDuration(inspectanim)
 	self:PlayAnim(ACT_VM_FIDGET)
 	
 	timer.Simple( inspectdur, function() if IsValid(self) then self:EnableInspection() end end)
+end
+
+function SWEP:DoCustomInspect()
 end
 
 function SWEP:EnableInspection()

@@ -1,11 +1,14 @@
 local function EFPChecks()
-	if DRC:SightsDown(LocalPlayer():GetActiveWeapon()) then return true end
+--	if DRC:SightsDown(LocalPlayer():GetActiveWeapon()) then return true end
 	if !DRC:ThirdPersonEnabled(LocalPlayer()) == true then return false else return true end
 end
 
 local bobang = Angle()
 local offsetmul = 1
 
+local desiredpos = Vector()
+local efplerppow
+local offsetlerp
 hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf)
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
 	if EFPChecks() == true then return end
@@ -16,16 +19,26 @@ hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf
 		local pos = eyes.Pos
 		
 		local curswep = ply:GetActiveWeapon()
+		local wpn = curswep
 		local holdtype = "default"
 		if IsValid(curswep) then holdtype = curswep:GetHoldType() end
 		
+		local insightslerp
 		if DRC:SightsDown(curswep) == true then
 			pos = ply:EyePos()
 			offsetmul = 0
+			efplerppow = 1
+			insightslerp = 100
 		else
 			pos = eyes.Pos
 			offsetmul = 1
+			efplerppow = 0.33
+			insightslerp = 1
 		end
+		
+		offsetlerp = Lerp(0.1, offsetlerp or efplerppow, efplerppow)
+		desiredpos = Lerp(RealFrameTime()*20*insightslerp, desiredpos or pos, pos)
+		pos = desiredpos
 		
 		DRC.CalcView.EFP_ISPow = Lerp(RealFrameTime() * 10, DRC.CalcView.EFP_ISPow or offsetmul, offsetmul)
 		
@@ -57,7 +70,7 @@ hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf
 			if wpn.Loading == false && wpn.Inspecting == false then
 				drc_vm_lerpang = Angle(oang.x, oang.y, Lerp(RealFrameTime() * drc_vm_angmedian, drc_vm_lerpang.z or 0, 0))
 			else
-				drc_vm_lerpang = LerpAngle(FrameTime(), oang or Angle(0, 0, 0), oang)
+				drc_vm_lerpang = LerpAngle(RealFrameTime(), oang or Angle(0, 0, 0), oang)
 			end
 			
 			drc_vm_lerppos = Vector(Lerp(RealFrameTime() * 25, 0 or pos.x, 0), Lerp(RealFrameTime() * 25, 0 or pos.y, 0), Lerp(RealFrameTime() * 25, 0 or pos.z, 0))
@@ -71,7 +84,7 @@ hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf
 			end
 			
 			if sights == true or (wpn.Loading == false && wpn.Inspecting == false && wpn.Idle == 1) then
-				local fr = math.Round(1 / FrameTime())
+				local fr = math.Round(1 / RealFrameTime())
 				
 				if fr > 15 then
 					if ply:KeyDown(IN_SPEED) or sights == true then
@@ -158,6 +171,53 @@ hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf
 		angadd:RotateAroundAxis(angadd:Forward(), angdiff.z)
 		end
 		
+		if wpn.Draconic then
+		local swepmul = 50
+		local loading, inspecting, idle, melee, firing = wpn.PlayingLoadAnimation, wpn:GetNWBool("InspectCamLerp"), (wpn.OwnerActivity == "standidle" or wpn.OwnerActivity == "crouchidle"), wpn:GetNWBool("IsDoingMelee"), wpn.PlayingShootAnimation
+		local swepmuls = {
+			["idle"] = math.Clamp(wpn.CameraStabilityIdle, 0.1, 5),
+			["move"] = math.Clamp(wpn.CameraStabilityMove, 0.1, 5),
+			["reload"] = math.Clamp(wpn.CameraStabilityReload, 0.1, 5),
+			["inspect"] = math.Clamp(wpn.CameraStabilityInspect, 0.1, 5),
+			["melee"] = math.Clamp(wpn.CameraStabilityMelee, 0.1, 5),
+		}
+		local angmuls = {
+			["idle"] = wpn.CameraAngleMulIdle,
+			["move"] = wpn.CameraAngleMulMove,
+			["reload"] = wpn.CameraAngleMulReload,
+			["inspect"] = wpn.CameraAngleMulInspect,
+			["melee"] = wpn.CameraAngleMulMelee,
+			["firing"] = wpn.CameraAngleMulFiring or wpn.CameraAngleMulIdle
+		}
+		
+		drc_vm_lerppos = Vector(Lerp(FrameTime() * 25, 0 or pos.x, 0), Lerp(FrameTime() * 25, 0 or pos.y, 0), Lerp(FrameTime() * 25, 0 or pos.z, 0))
+		if loading == true && !firing then
+			local val = swepmul * swepmuls.reload
+			drc_vm_angmul = angmuls.reload
+			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+		elseif firing && !loading then
+			local val = swepmul * swepmuls.idle
+			drc_vm_angmul = angmuls.firing
+			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+		elseif melee == true then
+			local val = swepmul * swepmuls.melee
+				drc_vm_angmul = angmuls.melee
+			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+		elseif inspecting == true then
+			local val = swepmul * swepmuls.inspect
+			drc_vm_angmul = angmuls.inspect
+			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+		elseif !loading && !inspecting && idle then
+			local val = swepmul * swepmuls.idle
+			drc_vm_angmul = angmuls.idle
+			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+		elseif !loading && !inspecting && !idle then
+			local val = swepmul * swepmuls.move
+			drc_vm_angmul = angmuls.move
+			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+		end
+		end
+		
 		if !DRC.CalcView.Ang then DRC.CalcView.Ang = ply:EyeAngles() end
 		if !DRC.CrosshairAngMod then DRC.CrosshairAngMod = Angle() end
 		if DRC.CalcView.Ang && DRC.CrosshairAngMod then
@@ -174,9 +234,8 @@ hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf
 				zfar = zfar,
 			}
 			
-			if base == "mwb" then
-				wep:CalcView(ply, DRC.CalcView.WorldPos, DRC.CalcView.AimCorrectAngle, ply:GetFOV())
-			end
+			if base == "mwb" then wep:CalcView(ply, DRC.CalcView.WorldPos, DRC.CalcView.AimCorrectAngle, ply:GetFOV()) end
+			if base == "drc" then view.angles = DRC.CalcView.AimCorrectAngle - drc_vm_lerpang_final / drc_vm_lerpdiv end
 			
 			local shake, shakevert, shakeroll = DRC:GetCalcViewShake()
 			view.origin = view.origin + (view.angles:Right() * shake)
@@ -188,6 +247,11 @@ hook.Add( "CalcView", "DRC_EFP_CalcView", function(ply, origin, ang, fov, zn, zf
 	end
 end)
 
+local desiredviewpos
+local specialweapons = {
+	["mwb"] = "cawadoody",
+	["drc"] = "dragons"
+}
 hook.Add( "CalcViewModelView", "DRC_EFP_CalcViewModelView", function(wpn, vm, oldpos, oldang, eyepos, eyeang)
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 1 then
 	if EFPChecks() == true then return end
@@ -198,9 +262,12 @@ hook.Add( "CalcViewModelView", "DRC_EFP_CalcViewModelView", function(wpn, vm, ol
 		local pos = eyes.Pos
 		local diff = ply:EyePos() - pos
 		local newpos = eyes.Pos
-		local hands = ply:GetHands()
 		local et = DRC.CalcView.Trace
+		local sd = DRC:SightsDown(wpn)
 		if !DRC.CalcView.EFP_ISPow then return end
+		
+		desiredviewpos = Lerp(offsetlerp, desiredviewpos or pos, pos)
+		pos = desiredviewpos
 
 		newpos = pos + Vector(diff.x * .1, diff.y * .1, diff.z * .1)
 		local holdtype = wpn:GetHoldType()
@@ -215,15 +282,12 @@ hook.Add( "CalcViewModelView", "DRC_EFP_CalcViewModelView", function(wpn, vm, ol
 		ply.drcfp_walllerpval = Lerp(RealFrameTime() * 100, ply.drcfp_walllerpval or hiv, hiv)
 		
 		local fuck = diff * ply:GetModelScale()
-		diff = diff - fuck / 3
-		
-		if wpn.Draconic == true then newpos = newpos - (diff/6) + DRC.CalcView.wallpos else pos = pos + DRC.CalcView.wallpos end
-		if !wpn:IsScripted() or wpn.Draconic == nil then newpos = pos - diff * .1 end
+		diff = diff - fuck * 0.333
 		
 		if wpn.Draconic == true && GetConVar("cl_drc_lowered_crosshair"):GetFloat() == 1 then
 			DRC.CrosshairAngMod = Angle(-10, 0, 0)
-			if DRC:SightsDown(wpn) then 
-				DRC.CalcView.LoweredAng = Angle(5, 0, 0)
+			if sd then 
+				DRC.CalcView.LoweredAng = Angle(6.66, 0, 0)
 			else
 				DRC.CalcView.LoweredAng = Angle(5, 0, 0)
 			end
@@ -231,46 +295,51 @@ hook.Add( "CalcViewModelView", "DRC_EFP_CalcViewModelView", function(wpn, vm, ol
 			DRC.CrosshairAngMod = Angle(0, 0, 0)
 			DRC.CalcView.LoweredAng = Angle(0, 0, 0)
 		end
-
+		
 		local calcvpos, calcvang = Vector(), Angle()
+		local addpos = newpos - pos
 		
 		if IsValid(wpn) then
-			local special = {
-				["mwb"] = "cawadoody",
-				["drc"] = "dragons"
-			}
-			if base != nil && !special[base] then
+			if base != nil && !specialweapons[base] then
 				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
 				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
-				newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
+				newpos = (desiredpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow) + DRC.CalcView.wallpos
 			elseif base == "drc" then
 				DRCSwepSway(wpn, vm, oldpos, oldang, eyepos, eyeang)
+				DRCSwepOffset(wpn, vm)
 				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
 				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
-				newpos = (newpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow)
+				newpos = (desiredpos * DRC.CalcView.EFP_ISPow) + calcvpos - (ply:EyePos() * DRC.CalcView.EFP_ISPow) + DRC.CalcView.wallpos
+			elseif base == "mwb" then
+				calcvpos, calcvang = wpn:GetViewModelPosition(eyepos, eyeang)
+				eyeang = (DRC.CrosshairAngMod/1.5) + calcvang + DRC.CalcView.LoweredAng
+				newpos = (desiredpos * DRC.CalcView.EFP_ISPow) + DRC.CalcView.wallpos
+				if sd then newpos = desiredpos else newpos = desiredpos end -- This fixes ADS transitioning, do NOT ask me why I do NOT KNOW.
+			else
+				newpos = desiredpos * DRC.CalcView.EFP_ISPow + DRC.CalcView.wallpos
 			end
+			newpos = Lerp(0.4, newpos or newpos, newpos)
 		end
 		return newpos, eyeang
 	end
 end)
 
+local CSPos
+local lerppos
 hook.Add("Think", "DRC_ExpFP_Body", function()
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 0 then return end
 	if EFPChecks() == true then return end
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
 	if !ply:Alive() then return end
+	local pos = ply:GetPos()
+	
+	lerppos = Lerp(RealFrameTime()*20, lerppos or pos, pos)
 
-	local CSPos = ply:GetPos()
 	if !IsValid(ply:GetVehicle()) then
-		CSPos = Vector(ply:GetPos().x + DRC.CalcView.wallpos.x, ply:GetPos().y + DRC.CalcView.wallpos.y, ply:GetPos().z)
+		CSPos = Vector(lerppos.x + DRC.CalcView.wallpos.x, lerppos.y + DRC.CalcView.wallpos.y, lerppos.z)
 	else
 		CSPos = Vector(ply:GetPos())
-	end
-	
-	local curswep = ply:GetActiveWeapon()
-	if curswep.Draconic && curswep.SightsDown == true then
-		CSPos = Vector(0,0,0)
 	end
 	
 	if !IsValid(DRC.CSPlayerModel) then
@@ -312,7 +381,11 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	local spine0 = ply:LookupBone(DRC.Skel.Spine.Name)
 	local spine1 = ply:LookupBone(DRC.Skel.Spine1.Name)
 	local spine2 = ply:LookupBone(DRC.Skel.Spine2.Name)
-	local spine4 = ply:LookupBone(DRC.Skel.Spine4.Name)	
+	local spine4 = ply:LookupBone(DRC.Skel.Spine4.Name)
+	
+	local head = ply:GetAttachment(ply:LookupAttachment("eyes")).Bone
+	local headbones
+	if head != nil then headbones = ply:GetChildBones(head) end
 	
 	for k,ent in pairs(parents) do
 		ent:SetNoDraw(false)
@@ -381,6 +454,47 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 					ent:ManipulateBoneScale(v, s4scale)
 				end
 				ent:ManipulateBoneScale(spine4, s4scale)
+			end
+		else
+			local head = ent:GetAttachment(ply:LookupAttachment("eyes")).Bone
+			local head1 = ply:GetChildBones(head)
+			local head2 = {}
+			for k,v in pairs(head1) do
+				ent:ManipulateBoneScale(v, Vector())
+				head2[k] = ply:GetChildBones(v)
+			end
+			
+			local lh = ply:LookupAttachment("lefthand")
+			if lh == 0 then lh = ply:LookupAttachment("anim_attachment_LH") end
+			local rh = ply:LookupAttachment("righthand")
+			if rh == 0 then rh = ply:LookupAttachment("anim_attachment_RH") end
+			lh, rh = ent:GetAttachment(lh).Bone, ent:GetAttachment(rh).Bone
+			local lfore, rfore = ply:GetBoneParent(lh), ply:GetBoneParent(rh)
+			local lupper, rupper = ply:GetBoneParent(lfore), ply:GetBoneParent(rfore)
+			
+			local lp = ply:GetBonePosition(lupper)
+			local movebones = {lh, rh, lfore, rfore, lupper, rupper}
+			for k,v in pairs(movebones) do
+				ent:ManipulateBoneScale(v, Vector())
+				local pdiff = ent:GetBonePosition(v) - lp
+				ent:ManipulateBonePosition(v, pdiff)
+			end
+			
+			ent:ManipulateBoneScale(head, Vector(0, 0, 0))
+			for k,v in pairs(head1) do head2[k] = ply:GetChildBones(v) end
+			for k,v in pairs(head2) do
+				for k2,v2 in pairs(v) do
+					ent:ManipulateBoneScale(v2, Vector())
+					local pdiff = ent:GetBonePosition(v2) - ply:GetBonePosition(head)
+				ent:ManipulateBonePosition(v2, pdiff)
+				end
+				
+			end
+		end
+		
+		if headbones != nil then
+			for k,v in pairs(headbones) do
+				ent:ManipulateBoneScale(v, DRC.Skel.Neck.Scale)
 			end
 		end
 	end

@@ -15,9 +15,16 @@ list.Set( "DesktopWindows", "Draconic Menu", {
 	icon = "icon64/draconic_base.png",
 	init = function( icon, window )
 		DRCMenu(LocalPlayer())
+		RunConsoleCommand("-menu_context")
 	end
 } )
 
+-- Defining useful globals for content developers
+SNDLVL_TALKING = 80
+SNDLVL_VEHICLE = 105
+SNDLVL_ENERGYFIRESILENCED = 90
+SNDLVL_ENERGYFIRE = 100
+SNDLVL_GUNFIRESILENCED = 115
 SNDLVL_GUNFIRE = 140
 
 -- Any code beyond this point is considered legacy and should NOT be used as reference, or at all.
@@ -58,66 +65,3 @@ function GetSF2LightLevel(limiter)
 		end
 	else return 1 end
 end
-
---[[
-function GetDRCColours(ent)
-	local tbl = {}
-	tbl.Player = ent:GetNWVector("PlayerColour_DRC")
-	tbl.Weapon = ent:GetNWVector("WeaponColour_DRC")
-	tbl.Eye = ent:GetNWVector("EyeTintVec")
-	tbl.Energy = ent:GetNWVector("EnergyTintVec")
-	tbl.Tint1 = ent:GetNWVector("ColourTintVec1")
-	tbl.Tint2 = ent:GetNWVector("ColourTintVec2")
-	
-	return tbl
-end
-
-function DRCNotify(source, type, severity, msg, enum, time, sound)
-	DRC:Notify(source, type, severity, msg, enum, time, sound)
-end
-
-function DRCSound(source, near, far, distance, listener)
-	if CLIENT then return end
-	if !IsValid(source) then return end
-	
-	DRC:EmitSound(source, near, far, distance, listener)
-end
---]]
-
---[[
-hook.Add( "PopulateToolMenu", "DraconicSWEPSettings", function()
-	spawnmenu.AddToolMenuOption( "Options", "Draconic", "SWEP Base", "SWEP Base", "", "", function( panel )
-		panel:ClearControls()
-		local button = panel:Button("Open Menu")
-		function button:OnMousePressed()
-			drc_settings()
-		end
-	--	panel:ControlHelp( "" )
-	--	panel:ControlHelp( "Server / Admin-only Settings" )
-	--	panel:CheckBox( "Enable Draconic Movement", "sv_drc_movement")
-	--	panel:CheckBox( "Enable Draconic Movement Sounds", "sv_drc_movesounds")
-	--	panel:CheckBox( "Allow Call of Duty Spread", "sv_drc_callofdutyspread")
-	--	panel:NumSlider( "NPC Accuracy Handicap", "sv_drc_npc_accuracy", 0, 10, 1 )
-	--	panel:Help( "0 = Seal Team Six" )
-	--	panel:Help( "2 = HL2 Accuracy" )
-	--	panel:Help( "10 = Can't hit shit." )
-	--	panel:ControlHelp( "" )
-	--	panel:ControlHelp( "Client Settings" )
-	--	panel:NumSlider( "Viewmodel sway", "cl_drc_sway", 0, 2, 1 )
-	--	panel:CheckBox( "Enable Debug HUD", "cl_drc_debugmode")
-	--	panel:CheckBox( "Sell your soul to Vuthakral", "cl_drc_sell_soul")
-	end )
-	
-	spawnmenu.AddToolMenuOption( "Options", "Draconic", "Playermodel Extensions", "Playermodel Extensions", "", "", function( panel )
-	local button2 = panel:Button("Open Menu")
-		function button2:OnMousePressed()
-			PEXMenu( LocalPlayer() )
-		end
-	end )
-end )
-
-
-function drc_GetPlayerColours(ply)
-	DRC:GetColours(ply)
-end
---]]

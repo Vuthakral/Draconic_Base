@@ -22,7 +22,7 @@ function ENT:Draw()
 	self:SetMaterial("models/vuthakral/nodraw")
 	if !IsValid(ply) or !ply:Alive() then return end
 	if DRC:ThirdPersonEnabled(ply) == true then return end
-	if DRC:SightsDown(ply:GetActiveWeapon()) then return end
+--	if DRC:SightsDown(ply:GetActiveWeapon()) then return end
 	if GetConVar("cl_drc_experimental_fp"):GetFloat() == 0 then return end
 	if ply:FlashlightIsOn() then return end
 	

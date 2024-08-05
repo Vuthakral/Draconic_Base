@@ -33,7 +33,7 @@ SWEP.Primary.Disabled	= true
 SWEP.Secondary.Disabled	= true
 
 local shieldtable = {
-	["Regenerating"] = true,
+	["Regenerating"] = false,
 	["RegenDelay"] = 5, 
 	["RegenAmount"] = 33,
 	["Health"] = 100,

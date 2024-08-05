@@ -1,11 +1,11 @@
 Draconic = {
 	["Version"] = 1.02,
-	["Help"] = "https://github.com/Vuthakral/Draconic_Base/wiki",
+	["Help"] = "http://vuthakral.com/draconic/",
 	["Author"] = "Vuthakral",
 }
 
-if SERVER then AddCSLuaFile("sh/convars.lua") end
-include("sh/convars.lua")
+if SERVER then AddCSLuaFile("sh/globals.lua") end
+include("sh/globals.lua")
 
 DRC.MapInfo.Name = game.GetMap()
 DRC.MapInfo.Versions = {
@@ -36,6 +36,7 @@ DRC.MapInfo.Versions = {
 	"SDK 2013-CSGO", -- V25: CSGO, Portal 2 Community Edition
 	"Unknown", -- V26: Not documented
 	"SDK 2009? (Contagion)", -- V27: Contagion
+	"Unknown", -- V28: Not documented / Never used
 	"How the fuck did you load a Titanfall map?", -- V29: Titanfall 1
 }
 
@@ -131,15 +132,14 @@ DRC.RoomDefinitions = {
 	["Outdoors"] = 900,
 }
 
-DRC.MaterialCategories = {}
-
-DRC.MaterialCategories.Metal = {
-}
-DRC.MaterialCategories.Dust = {
+-- Surface properties to ignore because they're used internally
+DRC.SurfacePropsEngine = {
+	["MAT_DEFAULT_SILENT"] = true, -- Sky brushes
+	["MAT_$MATERIAL_INDEX_SHADOW"] = true, -- found on func_brush
 }
 
 -- First entry in table is used for sound references, anything else is for particle systems.
--- Sound references: cardboard, computer, dirt, flesh, glass, metal, metalhollow, metaldrum, metalvent, mud, plastic, rubber, rubble, sand, snow, bugshell, tile, wood, stone
+-- Sound references: cardboard, computer, dirt, flesh, glass, metal, metalhollow, metaldrum, metalvent, mud, plastic, rubber, rubble, sand, snow, tile, wood, stone
 -- All existing references: cardboard, computer, bugshell, dirt, dust, flesh, gas, glass, liquid, metal, metaldrum, metalhollow, paint, plastic, rubble, sand, shards, snow, synth, tile, wood, stone
 DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth, plastic, gas, liquid, computer, cardboard
 	["MAT_DEFAULT"] = {"stone", "dust"}, -- engine
@@ -171,6 +171,8 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_ITEM"] = {"metal"}, -- engine
 	["MAT_CROWBAR"] = {"metal"}, -- hl2
 	["MAT_METAL"] = {"metal"}, -- engine
+	["MAT_METAL_SMALL"] = {"metal"}, -- Vindictus
+	["MAT_METAL_MEDIUM"] = {"metal"}, -- Vindictus
 	["MAT_GRATE"] = {"metal"}, -- engine
 	["MAT_METALGRATE"] = {"metal"}, -- engine
 	["MAT_METALVEHICLE"] = {"metal", "metalhollow"}, -- hl2
@@ -198,20 +200,27 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_DIRT"] = {"dirt", "dust"}, -- engine
 	["MAT_MUD"] = {"mud", "liquid"}, -- engine
 	["MAT_SLIME"] = {"mud", "liquid"}, -- hl2
+	["MAT_SLIPPERYSLIME"] = {"mud", "liquid"}, -- hl2
 	["MAT_SLOSH"] = {"water", "liquid"}, -- CS:S
 	["MAT_WADE"] = {"water", "liquid"}, -- engine
 	["MAT_WATER"] = {"water", "liquid"}, -- engine
 	["MAT_FOLIAGE"] = {"wood", "dirt"}, -- engine
 	["MAT_HEDGEROW"] = {"wood", "dirt"}, -- CS:S
 	["MAT_WOOD"] = {"wood", "dirt"}, -- engine
+	["MAT_WOOD_SMALL"] = {"wood", "dirt"}, -- Vindictus
+	["MAT_WOOD_MEDIUM"] = {"wood", "dirt"}, -- Vindictus
 	["MAT_WOOD_FURNITURE"] = {"wood"}, -- hl2
 	["MAT_WOOD_SOLID"] = {"wood"}, -- hl2
 	["MAT_WOOD_CRATE"] = {"wood"}, -- hl2
 	["MAT_WOOD_BOX"] = {"wood"}, -- CS:S
 	["MAT_WOOD_PLANK"] = {"wood"}, -- hl2
 	["MAT_WOOD_PANEL"] = {"wood"}, -- hl2
+	["MAT_WOOD_LOWDENSITY"] = {"wood"}, -- CS:S (?)
 	["MAT_BOULDER"] = {"stone", "rubble", "dirt"}, -- hl2
 	["MAT_ROCK"] = {"stone", "rubble", "dirt"}, -- engine
+	["MAT_ROCK_LIGHT"] = {"stone", "rubble", "dirt"}, -- Vindictus
+	["MAT_ROCK_SMALL"] = {"stone", "rubble", "dirt"}, -- Vindictus
+	["MAT_ROCK_MEDIUM"] = {"stone", "rubble", "dirt"}, -- Vindictus
 	["MAT_STONE"] = {"stone", "rubble", "dirt"}, -- engine
 	["MAT_GRAVEL"] = {"rubble", "dirt"}, -- engine
 	["MAT_GRASS"] = {"grass", "dirt", "dust"}, -- engine
@@ -244,7 +253,7 @@ function DRC:GetMaterialSound(pack, mat)
 	if mat == -1 then mat = 0 end
 	local ptu
 	mat = DRC:SurfacePropToEnum(util.GetSurfacePropName(mat))
---	if mat = "MAT_DEFAULT_SILENT" then return "", "" end
+	if mat == "MAT_DEFAULT_SILENT" then return "", "" end
 	if DRC.MaterialSounds[pack] then ptu = DRC.MaterialSounds[pack] else ptu = DRC.MaterialSounds.default end
 	local snd, snd2 = DRC.SurfacePropDefinitions[mat][1] or "fallback", ptu.overlay or ""
 	if ptu[snd] then snd = ptu[snd] else snd = ptu.fallback end
@@ -430,6 +439,7 @@ DRC.HelperEnts = {
 	["drc_csweaponshadow"] = "drc_csweaponshadow",
 	["drc_csplayermodel"] = "drc_csplayermodel",
 	["drc_shieldmodel"] = "drc_shieldmodel",
+	["npc_enemyfinder"] = "npc_enemyfinder",
 }
 
 DRC.HoldTypes = {
@@ -448,7 +458,11 @@ DRC.HoldTypes = {
 			["attack"] = ACT_RESET,
 			["reload"] = ACT_RESET,
 			["melee"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = true,
 	},
 	["pistol"] = {
 		["deploy"] = ACT_VM_DEPLOY_1,
@@ -464,7 +478,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_PISTOL,
 			["reload"] = ACT_RELOAD_PISTOL,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.dryfire_pistol",
+		},
+		["shouldered"] = false,
 	},
 	["revolver"] = {
 		["deploy"] = ACT_VM_DEPLOY_1,
@@ -480,7 +498,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RESET,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.dryfire_pistol",
+		},
+		["shouldered"] = false,
 	},
 	["smg"] = {
 		["deploy"] = ACT_VM_DEPLOY_2,
@@ -496,7 +518,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SMG1,
 			["reload"] = ACT_RELOAD_SMG1,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.EmptyGeneric",
+		},
+		["shouldered"] = false,
 	},
 	["ar2"] = {
 		["deploy"] = ACT_VM_DEPLOY_2,
@@ -512,7 +538,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_AR2,
 			["reload"] = ACT_GESTURE_RELOAD,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.EmptyGeneric",
+		},
+		["shouldered"] = true,
 	},
 	["passive"] = {
 		["deploy"] = ACT_VM_DEPLOY_2,
@@ -527,7 +557,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RESET,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["shotgun"] = {
 		["deploy"] = ACT_VM_DEPLOY_2,
@@ -543,7 +577,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
 			["reload"] = ACT_RELOAD_SHOTGUN,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.dryfire_heavy",
+		},
+		["shouldered"] = true,
 	},
 	["crossbow"] = {
 		["deploy"] = ACT_VM_DEPLOY_2,
@@ -559,7 +597,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
 			["reload"] = ACT_GESTURE_RELOAD,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = true,
 	},
 	["duel"] = {
 		["deploy"] = ACT_VM_DEPLOY_7,
@@ -573,7 +615,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_DUEL,
 			["reload"] = ACT_HL2MP_GESTURE_RELOAD_DUEL,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.dryfire_pistol",
+		},
+		["shouldered"] = false,
 	},
 	["physgun"] = {
 		["deploy"] = ACT_VM_DEPLOY_4,
@@ -589,7 +635,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SHOTGUN,
 			["reload"] = ACT_GESTURE_RELOAD,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.dryfire_heavy",
+		},
+		["shouldered"] = true,
 	},
 	["fist"] = {
 		["deploy"] = ACT_VM_DEPLOY_7,
@@ -605,7 +655,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["normal"] = {
 		["deploy"] = ACT_RESET,
@@ -621,7 +675,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["rpg"] = {
 		["deploy"] = ACT_VM_DEPLOY_3,
@@ -637,7 +695,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_RPG,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "draconic.dryfire_heavy",
+		},
+		["shouldered"] = true,
 	},
 	["melee"] = {
 		["deploy"] = ACT_VM_DEPLOY_5,
@@ -653,7 +715,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_MELEE_ATTACK_SWING,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["knife"] = {
 		["deploy"] = ACT_VM_DEPLOY_5,
@@ -669,7 +735,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_KNIFE,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["grenade"] = {
 		["deploy"] = ACT_VM_DEPLOY_5,
@@ -685,7 +755,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_COMBINE_THROW_GRENADE,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["slam"] = {
 		["deploy"] = ACT_VM_DEPLOY_5,
@@ -701,7 +775,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_RANGE_ATTACK_SLAM,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["magic"] = {
 		["deploy"] = ACT_VM_DEPLOY_5,
@@ -717,7 +795,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_MAGIC,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["camera"] = {
 		["deploy"] = ACT_VM_DEPLOY_5,
@@ -733,7 +815,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_HL2MP_GESTURE_RANGE_ATTACK_CAMERA,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 	["melee2"] = {
 		["deploy"] = ACT_VM_DEPLOY_6,
@@ -749,7 +835,11 @@ DRC.HoldTypes = {
 		["npc"] = {
 			["attack"] = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND,
 			["reload"] = ACT_RESET,
-		}
+		},
+		["drcsounds"] = {
+			["dryfire"] = "",
+		},
+		["shouldered"] = false,
 	},
 }
 
@@ -791,6 +881,7 @@ DRC.HoldTypes.HardcodedWeapons = {
 function DRC:GetHoldTypeAnim(ht, anim, npc)
 	if !ht or !anim then return end
 	if !DRC.HoldTypes[ht] then ht = "fallback" end
+	if !npc then npc = false end
 	
 	if npc == false then 
 		return DRC.HoldTypes[ht][anim]
@@ -824,7 +915,7 @@ end
 
 function DRC:Notify(source, typ, severity, msg, enum, thyme, sound)
 	if source != nil && (severity == "warning" or severity == "error" or severity == "critical") then
-		MsgC( Color(255, 0, 0), "Error from ".. tostring(source) ..": " )
+		MsgC( Color(255, 0, 0), "Error from ".. tostring(source) ..":\n")
 	end
 
 	local var = GetConVar("cl_drc_disable_errorhints"):GetFloat()
@@ -900,7 +991,7 @@ function DRC:SightsDown(ent, irons)
 		elseif base == "arc9" then
 			if ent:IsScoping() == true then return true else return false end
 		elseif base == "mwb" then
-			if ent:GetIsAiming() == true then return true else return false end
+			if ent:HasFlag("Aiming") then return true else return false end
 		end
 	else
 		if ent.Draconic then
@@ -981,27 +1072,27 @@ end
 function DRC:GetColours(ent, rgb)
 	if !IsValid(ent) then return end
 	local coltab = {}
+	
 	if ent:IsPlayer() then
---		if !ent:Alive() then return end
 		coltab = {
 			["Player"] 	= ent:GetNWVector("PlayerColour_DRC"),
 			["Weapon"] 	= ent:GetNWVector("WeaponColour_DRC"),
-			["Tint1"] 	= ent:GetNWVector("ColourTintVec1") / 255,
-			["Tint2"] 	= ent:GetNWVector("ColourTintVec2") / 255,
-			["Eye"] 	= ent:GetNWVector("EyeTintVec") / 255,
+			["Tint1"] 	= ent:GetNWVector("ColourTintVec1") * 0.003921568627451,
+			["Tint2"] 	= ent:GetNWVector("ColourTintVec2") * 0.003921568627451,
+			["Eye"] 	= ent:GetNWVector("EyeTintVec") * 0.003921568627451,
 			["Energy"] 	= ent:GetNWVector("EnergyTintVec"),
-			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b)/255,
+			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b) * 0.003921568627451,
 			["Grunge"] = ent:GetNWInt("Grunge_DRC"),
 		}
 	else
 		coltab = {
 			["Player"] 	= ent:GetNWVector("PlayerColour_DRC"),
 			["Weapon"] 	= ent:GetNWVector("WeaponColour_DRC"),
-			["Tint1"] 	= ent:GetNWVector("ColourTintVec1") / 255,
-			["Tint2"] 	= ent:GetNWVector("ColourTintVec2") / 255,
-			["Eye"] 	= ent:GetNWVector("EyeTintVec") / 255,
-			["Energy"] 	= ent:GetNWVector("EnergyTintVec"),
-			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b)/255,
+			["Tint1"] 	= ent:GetNWVector("ColourTintVec1") * 0.003921568627451,
+			["Tint2"] 	= ent:GetNWVector("ColourTintVec2") * 0.003921568627451,
+			["Eye"] 	= ent:GetNWVector("EyeTintVec") * 0.003921568627451,
+			["Energy"] 	= ent:GetNWVector("EnergyTintVec") * 0.003921568627451, -- I don't know why but for some reason energy values are pulling as ints on non-players even though the code is the same between the two????
+			["$color2"] = Vector(ent:GetColor().r, ent:GetColor().g, ent:GetColor().b) * 0.003921568627451,
 			["Grunge"] = ent:GetNWFloat("Grunge_DRC"),
 		}
 	end
@@ -1115,15 +1206,51 @@ function DRC:RefreshColours(ply)
 	DRC:UpdatePlayerColours(ply)
 end
 
-local entmeta = FindMetaTable( "Entity" )
-local varfuncs = {
-	["Angle"] = entmeta.SetNWAngle,
-	["Bool"] = entmeta.SetNWBool,
-	["Entity"] = entmeta.SetNWEnt,
-	["string"] = entmeta.SetNWString,
-	["Vector"] = entmeta.SetNWVector,
-	["number"] = "number",
-}
+function DRC:CopyCustomization(ent1, ent2, coloursonly)
+	local cols = DRC:GetColours(ent1)
+	local skin = ent1:GetSkin()
+	local bgs = DRC:GetBodyGroups(ent1)
+	if !coloursonly then coloursonly = false end
+	
+	if coloursonly == true then
+		ent2:SetNWVector("PlayerColour_DRC", cols.Player)
+		ent2:SetNWVector("WeaponColour_DRC", cols.Weapon)
+		ent2:SetNWVector("ColourTintVec1", cols.Tint1)
+		ent2:SetNWVector("ColourTintVec2", cols.Tint2)
+		ent2:SetNWVector("EyeTintVec", cols.Eye)
+		ent2:SetNWVector("EnergyTintVec", cols.Energy)
+		ent2:SetNWInt("Grunge_DRC", cols.Grunge)
+		ent2:SetColor(ent1:GetColor())
+	return end
+	
+	ent2:SetSkin(skin)
+	for k,v in pairs(bgs) do
+		ent2:SetBodygroup(k-1, v)
+	end
+	ent2:SetNWVector("PlayerColour_DRC", cols.Player)
+	ent2:SetNWVector("WeaponColour_DRC", cols.Weapon)
+	ent2:SetNWVector("ColourTintVec1", cols.Tint1)
+	ent2:SetNWVector("ColourTintVec2", cols.Tint2)
+	ent2:SetNWVector("EyeTintVec", cols.Eye)
+	ent2:SetNWVector("EnergyTintVec", cols.Energy)
+	ent2:SetNWInt("Grunge_DRC", cols.Grunge)
+	ent2:SetColor(ent1:GetColor())
+end
+
+function DRC:CreateCorpse(ent, lifetime, mass, material)
+	local corpse = ents.Create("drc_corpse")
+	corpse:SetModel(ent:GetModel())
+	corpse:SetPos(ent:GetPos() + Vector(0, 0, 5))
+	corpse:SetAngles(ent:GetAngles())
+	corpse:SetNWEntity("Originator", ent)
+	if mass then corpse.Mass = mass end
+	if lifetime then corpse.Lifetime = lifetime end
+	if material then corpse.MaterialType = material end
+	corpse:Spawn()
+	DRC:CopyCustomization(ent, corpse)
+	
+	return corpse
+end
 
 function DRC:SetNWVar(ent, key, val)
 	local typ = type(val)
@@ -1171,7 +1298,7 @@ function DRC:Interact(ply, ent, movement, mouse)
 	if !IsValid(ply) then return end
 	if !ply:Alive() then return end
 	
-	if IsValid(ent) then ply:SetNWEnt("Interacted_Entity", ent) end
+	if IsValid(ent) then ply:SetNWEntity("Interacted_Entity", ent) end
 	if movement == nil then movement = false end
 	if mouse == nil then mouse = false end
 	ply:SetNWBool("Interacting", true)
@@ -1181,7 +1308,7 @@ function DRC:Interact(ply, ent, movement, mouse)
 end
 
 function DRC:BreakInteraction(ply, ent)
-	if IsValid(ent) then ply:SetNWEnt("Interacted_Entity", nil) end
+	if IsValid(ent) then ply:SetNWEntity("Interacted_Entity", nil) end
 	ply:SetNWBool("Interacting", false)
 	ply:SetNWBool("Interacting_StopMovement", false)
 	ply:SetNWBool("Interacting_StopMouse", false)
@@ -1310,13 +1437,32 @@ function DRC:GetSWLightMod()
 	return DRC.SWModVal
 end
 
-function DRC:EyeCone(ply, dist, degree)
-	if !ply then return end
-	if !dist then dist = 1000 end
+function DRC:EyeCone(ply, dist, degree, angleoverride)
 	degree = math.cos(math.rad(degree))
+	local ang = ply:EyeAngles():Forward()
 	
-	local cone = ents.FindInCone( ply:EyePos(), ply:GetAimVector(), dist, degree )
-	return cone
+	return ents.FindInCone(ply:EyePos(), angleoverride or ang, dist or 1000, degree)
+end
+
+function DRC:GetConeTarget(source, distance, degrees, angleoverride)
+	local coneents = DRC:EyeCone(source, distance, degrees, angleoverride)
+	local targets = {}
+	for k,v in pairs(coneents) do
+		if !DRC.HelperEnts[v] && (v:IsPlayer() && v != source) or v:IsNPC() or v:IsNextBot() or DRC:IsVehicle(v) then table.insert(targets, v) end
+	end
+	local closesttarget = nil
+	for k,v in pairs(targets) do
+		local dist = v:EyePos():DistToSqr(source:EyePos())
+		if k == 1 then
+			closesttarget = {v, dist}
+		else
+			if dist < closesttarget[2] then closesttarget = {v, dist} end
+		end
+	end
+	if !closesttarget then return nil end
+	
+	local target, dist = closesttarget[1], closesttarget[2]
+	return target, dist
 end
 
 function DRC:GetRoomSizeDSP(size) -- an experiment
@@ -1580,7 +1726,7 @@ hook.Add("PlayerInitialSpawn", "drc_InitialSpawnHook", function(ply)
 	end)
 end)
 
-hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
+hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply, transition)
 	DRC:RefreshColours(ply)
 	ply.DRCAttachmentInventory = {}
 	ply:SetNWBool("Interacting", false)
@@ -1600,6 +1746,8 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	
 	DRC:SetVoiceSet(ply, ply:GetInfo("cl_drc_voiceset") or "None", false)
 	DRC:SetFootsteps(ply, ply:GetInfo("cl_drc_footstepset") or "None", false)
+	
+	DRC:VoiceSetDelayIdle(ply, math.Rand(15, 200))
 	
 	net.Start("DRC_RequestSprayInfo")
 	net.Broadcast()
@@ -1622,6 +1770,19 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply)
 	
 	local convar = GetConVar("cl_playerbodygroups")
 	hands:SetBodyGroups(convar) --]]
+	
+	if transition == true then
+		timer.Simple(1, function()
+			local weps = ply:GetWeapons()
+			for k,v in pairs(weps) do
+				if v.Draconic == true then
+					v.BurstQueue = {}
+					v.MeleeQueue = {}
+					v.AmmoCheck = 0
+				end
+			end
+		end)
+	end
 end)
 
 hook.Add("StartCommand", "drc_InteractionBlocks", function(ply, cmd)
@@ -2188,15 +2349,9 @@ hook.Add("PlayerTick", "drc_movementhook", function(ply)
 end)
 
 function DRC:GetVelocityPose(ent, length, vel, mspd)
-	local velang = DRC:GetVelocityAngle(ent, true, false, false)
+	-- hours wasted here: 11
+	local velang = DRC:GetVelocityAngle(ent, false, false, false)
 	if vel == Vector() or length == 0 then velang = Angle() end
-	
-	local tr = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang, 25)
-	local tr2 = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang:Right():Angle(), 25)
-	local tr3 = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang:Up():Angle(), 25)
-	if tr then DRC:RenderTrace(tr, Color(255, 0, 0, 255), FrameTime()) end
-	if tr2 then DRC:RenderTrace(tr2, Color(0, 0, 255, 255), FrameTime()) end
-	if tr3 then DRC:RenderTrace(tr3, Color(0, 255, 0, 255), FrameTime()) end
 	
 	local speed
 	local walk, duck = false, false
@@ -2209,32 +2364,36 @@ function DRC:GetVelocityPose(ent, length, vel, mspd)
 	end
 	
 	speed = Lerp(length * 0.0000064, 0, mspd) * 2.64 -- hammer unit funny moment
+	local tick = 1/engine.TickInterval()
+	local tr = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang, 0.64 * tick * speed)
+	if tr then DRC:RenderTrace(tr, Color(255, 0, 0, 255), FrameTime()) end
+	local p1, p2 = ent:GetPos() + ent:OBBCenter(), tr.HitPos
+	local diff = Vector(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z) * 0.064
 	
---	ent:ChatPrint(speed)
+	local EntY = math.abs(ent:EyeAngles().y)/180
+	local diffrotator = Lerp(EntY, -1, 1)
 	local mul = 1.5
 	if walk then mul = 3 end
+	ent:ChatPrint(tostring(diffrotator))
 	
-	ent:SetPlaybackRate(speed*mul)
+	ent.DRCVelocityPoseX = Lerp(0.01, ent.DRCVelocityPoseX or diff.x, diff.x) * -diffrotator
+	ent.DRCVelocityPoseY = Lerp(0.01, ent.DRCVelocityPoseY or diff.y, diff.y) * -diffrotator
 	
-	ent.DRCVelocityPoseX = Lerp(0.1, ent.DRCVelocityPoseX or velang:Right(), velang:Right())
-	ent.DRCVelocityPoseY = Lerp(0.1, ent.DRCVelocityPoseY or velang:Forward(), velang:Forward())
-	
-	local percx = (velang:Right() * ent:GetVelocity()) * 0.033
-	local percy = (velang:Forward() * ent:GetVelocity()) * 0.033
+	local percx = (diff.x * vel.x) * 0.064
+	local percy = (diff.y * vel.y) * 0.064
 	
 	local lx, ly = ent.DRCVelocityPoseX * percx, ent.DRCVelocityPoseY * percy
 	
-	return ly, lx
+	return lx, -ly
 	
 end
 
 hook.Add("UpdateAnimation", "DRC_MoveBlendWithoutRootMotion", function(ply, vel, msgs)
 	if ply:LookupPoseParameter("drc_move_x") != -1 && ply:LookupPoseParameter("drc_move_y") != -1 then
-	local pose = DRC:GetVelocityPose(ply, vel:Length(), vel)
-	local x, y = pose.x, pose.y
+	local x, y = DRC:GetVelocityPose(ply, vel:Length(), vel)
 			
-	ply:SetPoseParameter("drc_move_x", y)
-	ply:SetPoseParameter("drc_move_y", x)
+	ply:SetPoseParameter("drc_move_x", x)
+	ply:SetPoseParameter("drc_move_y", y)
 	if CLIENT then ply:InvalidateBoneCache() end
 	return true
 	end
@@ -2316,6 +2475,7 @@ end
 
 hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 	if !SERVER then return end
+	if nw.ARC9 && GetConVar("arc9_tpik"):GetFloat() == 1 then return end
 	local neww = nw:GetClass()
 	
 	if ow.PickupOnly == true then
@@ -2336,7 +2496,7 @@ hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
 				ply:DropWeapon(ow)
 				ply:PickupWeapon(ow)
 			end
-		end -- holy shit why can there not just be a select weapon function that is predicted/shared?
+		end
 	end
 	
 	if nw.NoReadyAnimation != true then
@@ -2373,8 +2533,37 @@ net.Receive("DRC_Nuke", function(len, ply)
 	return end
 	if ply:IsAdmin() then 
 		for k,v in pairs(ents.GetAll()) do
-			if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then v:TakeDamage(999999999, ent) v:Remove()
-			elseif v:IsPlayer() then v:ScreenFade(SCREENFADE.IN, Color(255, 255, 255), 3, 0)
+			if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then
+				if v:IsNPC() && IsValid(v:GetActiveWeapon()) then
+					local wpn = v:GetActiveWeapon()
+					v:DropWeapon(wpn)
+					wpn:Remove()
+				end
+				v:TakeDamage(999999999, ent)
+				v:Remove()
+			elseif v:IsPlayer() then v:EmitSound("draconic/oof.ogg") v:ScreenFade(SCREENFADE.IN, Color(100, 100, 100), 2, 0)
+			end
+		end
+	end
+end)
+
+net.Receive("DRC_KYS", function(len, ply)
+	local ent = net.ReadEntity()
+	if !IsValid(ent) then return end
+	if !ent:IsAdmin() then
+		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_KYS' net message but they aren't an admin!") end
+	return end
+	if ply:IsAdmin() then 
+		for k,v in pairs(ents.GetAll()) do
+			if v:IsNPC() or v:IsNextBot() then
+				if v:IsNPC() && IsValid(v:GetActiveWeapon()) then
+					local wpn = v:GetActiveWeapon()
+					v:DropWeapon(wpn)
+					wpn:Remove()
+				end
+				v:TakeDamage(999999999, ent)
+				v:Remove()
+			elseif v:IsPlayer() then v:EmitSound("draconic/NOW.ogg") v:ScreenFade(SCREENFADE.IN, Color(130, 170, 255), 0.33, 0)
 			end
 		end
 	end
@@ -2408,10 +2597,6 @@ hook.Add("Tick", "drc_ForceThingsToFunction", function()
 	end
 end)
 
-hook.Add("UpdateTransmitState", "drc_SpotLightTransmit", function(ent)
-	print(ent)
-end)
-
 DraconicAmmoTypes = {}
 function DRC:AddAmmoType(tbl)
 	table.insert(DraconicAmmoTypes, tbl)
@@ -2430,6 +2615,21 @@ local batteryammo = {
 	MaxCarry = 100,
 }
 DRC:AddAmmoType(batteryammo)
+
+function DRC:AddAmmoTypeSimple(internalname, stringname)
+	local tbl = {
+		Name = internalname,
+		Text = stringname,
+		DMG = DMG_BULLET,
+		DamagePlayer = 0,
+		DamageNPC = 0,
+		Tracer = TRACER_LINE_AND_WHIZ,
+		Force = 500,
+		SplashMin = 5,
+		SplashMax = 10,
+		MaxCarry = 9999,
+	}
+end
 
 function DRC:RefreshAmmoTypes()
 	for k,v in pairs(DraconicAmmoTypes) do
@@ -2477,7 +2677,7 @@ function DRC:GetHGMul(ent, hg, dinfo)
 	local infl = dinfo:GetInflictor()
 	if infl.DraconicProjectile == true then infl = infl:GetCreator() end
 	if dinfo:GetDamageCustom() == 2221208 then return 1 end -- prevents running on melee weapons
-	local mul, enum = 1, HITGROUP_GENERIC
+	local mul, enum = 1, "HITGROUP_GENERIC"
 	
 	if hg == HITGROUP_HEAD then enum = "HITGROUP_HEAD"
 	elseif hg == HITGROUP_CHEST then enum = "HITGROUP_CHEST"
@@ -2486,7 +2686,7 @@ function DRC:GetHGMul(ent, hg, dinfo)
 	elseif hg == HITGROUP_RIGHTARM then enum = "HITGROUP_RIGHTARM"
 	elseif hg == HITGROUP_LEFTLEG then enum = "HITGROUP_LEFTLEG"
 	elseif hg == HITGROUP_RIGHTLEG then enum = "HITGROUP_RIGHTLEG"
-	elseif hg == HITGROUP_GEAR then enum = "HITGROUP_GEAR" end
+	elseif hg == HITGROUP_GEAR then enum = "HITGROUP_GEAR"end
 	
 	local BaseProfile = scripted_ents.GetStored("drc_abp_generic")
 	local BT = infl.ActiveAttachments.AmmunitionTypes.t.BulletTable
@@ -2499,7 +2699,14 @@ function DRC:GetHGMul(ent, hg, dinfo)
 		TTP = BDT
 	end
 	
-	mul = TTP[enum]
+	local headscale = 1
+	if hg == HITGROUP_HEAD && !dinfo:GetAttacker():IsPlayer() then
+		headscale = BT.EvPHeadshots
+		if !headscale then headscale = BBT.EvPHeadshots end
+		if headscale == false then headscale = 0.33 end
+	end
+	
+	mul = TTP[enum] * headscale
 	return mul
 end
 
@@ -2694,9 +2901,20 @@ function DRC:GetBodyGroups(ent)
 	return tbl
 end
 
+local vehicleclasses = {
+	["gmod_sent_vehicle_fphysics_base"] = "sphys",
+	["npc_helicopter"] = "npc",
+	["npc_combinegunship"] = "npc",
+	["haloveh_base"] = "halo",
+	["ma2_mech"] = "ma2",
+	["ma2_battlesuit"] = "ma2",
+}
+
 function DRC:IsVehicle(ent)
 	if !IsValid(ent) then return false end
-	if ent:IsVehicle() or ent:GetClass() == "gmod_sent_vehicle_fphysics_base" or ent:GetClass() == "npc_helicopter" or ent:GetClass() == "npc_combinegunship" or ent.LFS or ent.LVS or ent.Base == "haloveh_base" or ent.Base == "ma2_mech" or ent.Base == "ma2_battlesuit" then return true else return false end
+	if ent:IsVehicle() or vehicleclasses[ent:GetClass()] or vehicleclasses[ent.Base] then return true end
+	if ent.LFS or ent.LVS or ent.IsAVehicle then return true end
+	return false
 end
 
 function DRC:IsCharacter(ent)
@@ -2729,6 +2947,9 @@ if SERVER then
 			ent:SetNWString("DRC_Shield_DepleteEffect", tbl.Effects.Deplete)
 			ent:SetNWString("DRC_Shield_RechargeEffect", tbl.Effects.Recharge)
 			ent:SetNWString("DRC_Shield_Material", tbl.Material)
+			ent:SetNWString("DRC_Shield_Model", tbl.Model or ent:GetModel())
+			ent:SetNWVector("DRC_Shield_BaseScale", tbl.BaseScale or Vector(1,1,1))
+			ent:SetNWVector("DRC_Shield_BaseOffset", tbl.BaseOffset or Vector())
 			ent:SetNWInt("DRC_Shield_PingScale", tbl.ScaleMin)
 			ent:SetNWInt("DRC_Shield_PingScale_Min", tbl.ScaleMin)
 			ent:SetNWInt("DRC_Shield_PingScale_Max", tbl.ScaleMax)
@@ -2796,14 +3017,14 @@ if SERVER then
 		local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
 		local overshieldhp = ent:GetNWInt("DRC_ShieldHealth_Extra")
 		if shieldhp <= 0 then ent:SetNWBool("DRC_ShieldDown", true) end
-		if ent.DoCustomShieldHit then tgt:DoCustomShieldHit(dmg) end
+		if ent.DoCustomShieldHit then ent:DoCustomShieldHit(amount) end
 		
 		if overshieldhp <= 0 then
 			ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
 			ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + ent:GetNWInt("DRC_ShieldRechargeDelay") - engine.TickInterval())
 			timer.Simple(ent:GetNWInt("DRC_ShieldRechargeDelay"), function()
 				if !IsValid(ent) then return end
-				if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") then
+				if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") && ent:GetNWInt("DRC_Shield_Recharges") == true then
 					ent:SetNWBool("DRC_ShieldDown", false)
 					DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_RechargeSound"), nil, 1500)
 					local ed = EffectData()
@@ -2926,6 +3147,7 @@ local function ProcessInput(ply, shuffle, key)
 end
 
 local function SelectFootstep(ply, shuffle, fs, jump, wade, landing, overlay)
+	if IsValid(ply:GetVehicle()) then return "", "", 1, 1 end
 	if !fs or string.lower(fs) == "none" then return "" end
 	if landing then shuffle = true end
 	local input = ProcessInput(ply, shuffle)
@@ -3162,6 +3384,10 @@ function DRC:RegisterVoiceSetDSPCopy(vs, dsp, subtitle)
 	DRC.VoiceSets[name] = newtab
 end
 
+function DRC:VoiceSetDelayIdle(ply, thyme)
+	ply.NextVSIdleTime = CurTime() + thyme
+end
+
 function DRC:VoiceSpot(ply)
 	if !IsValid(ply) then return end
 	local voice = DRC.VoiceSets[DRC:GetVoiceSet(ply)]
@@ -3183,23 +3409,23 @@ function DRC:VoiceSpot(ply)
 	
 	local target = closesttarget[1]:GetClass()
 	if closesttarget[1]:IsRagdoll() then
-		DRC:SpeakSentence(ply, "Spotting", "DeadBody", true)
+		DRC:SpeakSentence(ply, "Spotting", "DeadBody", true, math.Rand(20, 80))
 	elseif closesttarget[1]:IsNPC() then
 		local disp  = closesttarget[1]:Disposition(ply)
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Spotting", target) then
 			if disp < 3 then
-				DRC:SpeakSentence(ply, "Spotting", "Generic_Enemy", true)
+				DRC:SpeakSentence(ply, "Spotting", "Generic_Enemy", true, math.Rand(120, 220))
 			else
-				DRC:SpeakSentence(ply, "Spotting", "Generic_Friendly", true)
+				DRC:SpeakSentence(ply, "Spotting", "Generic_Friendly", true, math.Rand(20, 80))
 			end
 		else
-			DRC:SpeakSentence(ply, "Spotting", target, true)
+			DRC:SpeakSentence(ply, "Spotting", target, true, math.Rand(20, 80))
 		end
 	elseif closesttarget[1]:IsNextBot() then
 		if !voice["Spotting"][target] then
-			DRC:SpeakSentence(ply, "Spotting", "Generic", true)
+			DRC:SpeakSentence(ply, "Spotting", "Generic", true, math.Rand(20, 80))
 		end
-	elseif closesttarget[1]:IsPlayer() then DRC:SpeakSentence(ply, "Spotting", "Generic", true)
+	elseif closesttarget[1]:IsPlayer() then DRC:SpeakSentence(ply, "Spotting", "Generic", true, math.Rand(20, 80))
 	end
 end
 
@@ -3249,7 +3475,7 @@ function DRC:IsVSentenceValid(vs, call, subcall, response)
 	end
 end
 
-function DRC:SpeakSentence(ent, call, subcall, important)
+function DRC:SpeakSentence(ent, call, subcall, important, idledelay)
 	if important == true or !important && !isstring(subcall) then ent.DRCSpeaking = false end
 	if ent.DRCSpeaking == true then return end
 	local num, rng, sel = nil, nil, nil
@@ -3279,7 +3505,12 @@ function DRC:SpeakSentence(ent, call, subcall, important)
 		--	ent:EmitSound(start)
 		end
 		ent.DRCSpeaking = true
-		timer.Simple(durstart, function() if ent:IsValid() then ent:EmitSound(sel, nil, 100, 1, nil, SND_NOFLAGS, dsp) end end)
+		timer.Simple(durstart, function()
+			if ent:IsValid() then 
+				ent:EmitSound(sel, nil, 100, 1, nil, SND_NOFLAGS, dsp)
+				if idledelay != nil then DRC:VoiceSetDelayIdle(ent, idledelay) end
+			end
+		end)
 		timer.Simple(dur, function() 
 			if ent:IsValid() then
 				if stop then
@@ -3311,16 +3542,16 @@ function DRC:ResponseSentence(ent, trigger, response, delay)
 	end
 end
 
-function DRC:IsDamageFriendly(dmg)
+function DRC:IsDamageFriendly(dmg, victim)
 	if !IsValid(dmg) then return end
-	local att, infl, vic = dmg:GetAttacker(), dmg:GetAttacker(), dmg:GetVictim()
+	local att, infl = dmg:GetAttacker(), dmg:GetAttacker()
 	
-	if att:IsPlayer() && vic:IsPlayer() then
-		if att:Team() == vic:Team() then return true else return false end
+	if att:IsPlayer() && victim:IsPlayer() then
+		if att:Team() == victim:Team() then return true else return false end
 	end
 	
-	if att:IsNPC() && vic:IsPlayer() then
-		if att:Disposition(vic) >= 3 then return true else return false end
+	if att:IsNPC() && victim:IsPlayer() then
+		if att:Disposition(victim) >= 3 then return true else return false end
 	end
 end
 
@@ -3329,6 +3560,8 @@ function DRC:DamageSentence(ent, damage, dmg)
 	local hp, mhp = ent:Health(), ent:GetMaxHealth()
 	local percentage, newhp = damage/mhp, hp - damage
 	local attacker = dmg:GetAttacker()
+	local infl = dmg:GetInflictor()
+	local victim = ent
 	
 	local function PostComplaint(dam, condition, attackerisnpc)
 		local str, thyme = "Minor_Post", math.Rand(1, 3)
@@ -3360,21 +3593,23 @@ function DRC:DamageSentence(ent, damage, dmg)
 			str = "Rad_".. str ..""
 		elseif condition == "plasma" then
 			str = "Plasma_".. str ..""
+		elseif condition == "poison" then
+			str = "Poison_".. str ..""
 		elseif attackerisnpc == true && DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", attacker:GetClass()) then
 			str = attacker:GetClass()
 		end
 		
-		if DRC:IsDamageFriendly(dmg) then
+		if DRC:IsDamageFriendly(dmg, victim) then
 			timer.Simple(thyme, function()
 				if IsValid(ent) && ent:Health() > 0.01 then
-					DRC:SpeakSentence(ent, "Reactions", "FriendlyFire", important)
+					DRC:SpeakSentence(ent, "Reactions", "FriendlyFire", important, math.Rand(20, 60))
 				end
 			end)
 		else
 			if DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", str) then 
 				timer.Simple(thyme, function()
 					if IsValid(ent) && ent:Health() > 0.01 then
-						DRC:SpeakSentence(ent, "Pain", str, important)
+						DRC:SpeakSentence(ent, "Pain", str, important, math.Rand(90, 120))
 					end
 				end)
 			else
@@ -3382,40 +3617,54 @@ function DRC:DamageSentence(ent, damage, dmg)
 				thyme = math.Rand(1, 3)
 				timer.Simple(thyme, function()
 					if IsValid(ent) && ent:Health() > 0.01 then
-						DRC:SpeakSentence(ent, "Pain", str)
+						DRC:SpeakSentence(ent, "Pain", str, important, math.Rand(90, 120))
 					end
 				end)
 			end
 		end
 	end
 	
-	local enum, conditionstring, npc = dmg:GetDamageType(), false, false
-	if enum == DMG_FALL then conditionstring = "fall" end
-	if enum == DMG_SHOCK then conditionstring = "shock" end
-	if enum == DMG_SLOWBURN then conditionstring = "fire" end
-	if enum == DMG_BURN then conditionstring = "fire" end
-	if enum == DMG_DIRECT then conditionstring = "fire" end
-	if enum == DMG_ACID then conditionstring = "acid" end
-	if enum == DMG_RADIATION then conditionstring = "radiation" end
-	if enum == DMG_PLASMA then conditionstring = "plasma" end
-	if attacker then npc = true end
-	
-	if conditionstring == "fall" && DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", "Fall") && newhp > 0.0001 then
-		if IsValid(ent) && ent:Health() > 0.01 then
-			DRC:SpeakSentence(ent, "Pain", "Fall", true)
-			PostComplaint(percentage, conditionstring)
+	if DRC:IsVehicle(infl) && (attacker.GetVehicle && attacker:GetVehicle() == infl) then
+		if percentage >= 0.2 then
+			DRC:SpeakSentence(ent, "Pain", "Vehicle_Collide_Hard", true, math.Rand(60, 120))
+			PostComplaint(percentage, "fall", false)
+		elseif percentage < 0.2 && percentage >= 0.1 then
+			DRC:SpeakSentence(ent, "Pain", "Vehicle_Collide", true, math.Rand(60, 120))
+			PostComplaint(percentage, "fall", false)
+		elseif percentage < 0.1 then
+			DRC:SpeakSentence(ent, "Pain", "Vehicle_Collide", true, math.Rand(60, 120))
+			PostComplaint(percentage, "fall", false)
 		end
-	return end
+	else
+		local enum, conditionstring, npc = dmg:GetDamageType(), false, false
+		if enum == DMG_FALL then conditionstring = "fall" end
+		if enum == DMG_SHOCK then conditionstring = "shock" end
+		if enum == DMG_SLOWBURN then conditionstring = "fire" end
+		if enum == DMG_BURN then conditionstring = "fire" end
+		if enum == DMG_DIRECT then conditionstring = "fire" end
+		if enum == DMG_ACID then conditionstring = "acid" end
+		if enum == DMG_RADIATION then conditionstring = "radiation" end
+		if enum == DMG_PLASMA then conditionstring = "plasma" end
+		if enum == DMG_POISON then conditionstring = "poison" end
+		if attacker then npc = true end
+		
+		if conditionstring == "fall" && DRC:IsVSentenceValid(DRC:GetVoiceSet(ent), "Pain", "Fall") && newhp > 0.0001 then
+			if IsValid(ent) && ent:Health() > 0.01 then
+				DRC:SpeakSentence(ent, "Pain", "Fall", true, math.Rand(60, 120))
+				PostComplaint(percentage, conditionstring)
+			end
+		return end
 
-	if percentage >= 0.2 then
-		DRC:SpeakSentence(ent, "Pain", "Major", true)
-		PostComplaint(percentage, conditionstring, npc)
-	elseif percentage < 0.2 && percentage >= 0.1 then
-		DRC:SpeakSentence(ent, "Pain", "Medium", true)
-		PostComplaint(percentage, conditionstring, npc)
-	elseif percentage < 0.1 then
-		DRC:SpeakSentence(ent, "Pain", "Minor", true)
-		PostComplaint(percentage, conditionstring, npc)
+		if percentage >= 0.2 then
+			DRC:SpeakSentence(ent, "Pain", "Major", true, math.Rand(60, 120))
+			PostComplaint(percentage, conditionstring, npc)
+		elseif percentage < 0.2 && percentage >= 0.1 then
+			DRC:SpeakSentence(ent, "Pain", "Medium", true, math.Rand(60, 120))
+			PostComplaint(percentage, conditionstring, npc)
+		elseif percentage < 0.1 then
+			DRC:SpeakSentence(ent, "Pain", "Minor", true, math.Rand(60, 120))
+			PostComplaint(percentage, conditionstring, npc)
+		end
 	end
 end
 
@@ -3434,49 +3683,49 @@ function DRC:DeathSentence(vic, att, dmg)
 	
 	if enum == DMG_FALL && newhp > 0.0001 then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_FallDamage") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
+			DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 		else
-			DRC:SpeakSentence(vic, "Pain", "Death_FallDamage")
+			DRC:SpeakSentence(vic, "Pain", "Death_FallDamage", true, 9999)
 		end
 	return end
 	
 	if DRC:IsVehicle(infl) then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
+			DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 		else
-			DRC:SpeakSentence(vic, "Pain", "Death_Splatter")
+			DRC:SpeakSentence(vic, "Pain", "Death_Splatter", true, 9999)
 		end
 	return end
 	
 	if velocity > 650 && (att:IsWorld() or att == vic) then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Falling") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
+			DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 		else
-			DRC:SpeakSentence(vic, "Pain", "Death_Falling")
+			DRC:SpeakSentence(vic, "Pain", "Death_Falling", true, 9999)
 		end
 	return end
 	
 	if damage < microlife then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Light") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
+			DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 		else
-			DRC:SpeakSentence(vic, "Pain", "Death_Light")
+			DRC:SpeakSentence(vic, "Pain", "Death_Light", true, 9999)
 		end
 	elseif damage > microlife && damage < quarterlife then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Medium") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
+			DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 		else
-			DRC:SpeakSentence(vic, "Pain", "Death_Medium")
+			DRC:SpeakSentence(vic, "Pain", "Death_Medium", true, 9999)
 		end
 	elseif damage >= quarterlife then
 		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Major") then
-			DRC:SpeakSentence(vic, "Pain", "Death")
+			DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 		else
-			DRC:SpeakSentence(vic, "Pain", "Death_Major")
+			DRC:SpeakSentence(vic, "Pain", "Death_Major", true, 9999)
 		end
 	return end
 	
-	DRC:SpeakSentence(vic, "Pain", "Death")
+	DRC:SpeakSentence(vic, "Pain", "Death", true, 9999)
 end
 
 function DRC:GetFootsteps(ent)
@@ -3490,7 +3739,7 @@ function DRC:GetFootsteps(ent)
 		if ent:GetInfoNum("cl_drc_footstepset_automatic", 0) == 1 then
 			local mdl = player_manager.TranslateToPlayerModelName(ent:GetModel())
 			local val = DRC:GetPlayerModelValue(mdl, "Footsteps")
-			if val then vs = val end
+			if val && val != "" then vs = val end
 		end
 	end
 	
@@ -3612,7 +3861,7 @@ function DRC:GetBaseName(ent)
 	if ent.ArcCW then return "arccw" end
 	if ent.ASTWTWO then return "astw2" end
 	if ent.ARC9 then return "arc9" end
-	if ent.mg_IsPlayerReverbOutside && ent.SprintBehaviourModule then return "mwb" end
+	if ent.mg_IsPlayerReverbOutside then return "mwb" end
 	if ent.IsSimfphyscar or IsValid(ent:GetOwner()) && ent:GetOwner():GetClass() == "gmod_sent_vehicle_fphysics_base" then return "sphys" end
 	if ent.States && ent.WeaponTypes then return "ma2" end
 	if ent:GetClass() == "decal" then return "decal" end
@@ -3807,6 +4056,7 @@ function DRC:CreateProjectile(class, pos, ang, force, owner, inherit)
 	if !SERVER then return end
 	local proj = ents.Create(class)
 	if owner then proj:SetOwner(owner) end
+	proj.InitialSpeed = force
 	proj:SetPos(pos)
 	proj:SetAngles(ang)
 	proj:Spawn()
@@ -3905,6 +4155,22 @@ function DRC:RegisterPlayerExtension(model, val1, val2, val3)
 	else
 		DRC.Playermodels[model][val1][val2] = val3
 	end
+end
+
+if !DRC.WeaponSkins then DRC.WeaponSkins = {} end
+function DRC:RegisterWeaponSkin(name, desc, mat, icon, isproxy)
+	if !isproxy then isproxy = false end
+	local str
+	if !isproxy then str = "materials/".. mat ..".vmt" end
+	if !isproxy && !file.Exists(str, "GAME") then return end
+	
+	local ntu
+	if isproxy == false then ntu = mat else ntu = mat.UniqueName end
+	
+	DRC.WeaponSkins[ntu] = {["name"] = name, ["desc"] = desc, ["icon"] = icon or nil, ["proxy"] = isproxy}
+	if isproxy then DRC.WeaponSkins[ntu]["ProxyMat"] = mat end
+	
+	table.SortByMember(DRC.WeaponSkins, "name")
 end
 
 hook.Add( "PlayerCanPickupWeapon", "drc_PreventBatteryAmmoPickup", function( ply, weapon )
@@ -4076,9 +4342,9 @@ end)
 hook.Add("WeaponEquip", "VoiceSets_WeaponEquip", function(wpn, ply)
 	local vs = DRC:GetVoiceSet(ply)
 	if DRC:IsVSentenceValid(vs, "Actions", "pickup_".. wpn:GetClass() .."") then
-		DRC:SpeakSentence(ply, "Actions", "pickup_".. wpn:GetClass() .."")
+		DRC:SpeakSentence(ply, "Actions", "pickup_".. wpn:GetClass() .."", false, math.Rand(20, 80))
 	elseif DRC:IsVSentenceValid(vs, "Actions", "pickup_generic") then
-		DRC:SpeakSentence(ply, "Actions", "pickup_generic")
+		DRC:SpeakSentence(ply, "Actions", "pickup_generic", false, math.Rand(20, 80))
 	end
 end)
 
@@ -4242,14 +4508,14 @@ hook.Add("CalcMainActivity", "DRC_BarnacleGrab", function(ply, vel)
 		local wpn = ply:GetActiveWeapon()
 		if !IsValid(wpn) then
 			local seq = ply:LookupSequence("barnacle_unarmed")
-			if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
+			if seq != -1 then return ACT_GMOD_NOCLIP_LAYER, seq end
 		else
 			if wpn:GetHoldType() != "normal" then
 				local seq = ply:LookupSequence("barnacle_armed")
-				if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
+				if seq != -1 then return ACT_GMOD_NOCLIP_LAYER, seq end
 			else
 				local seq = ply:LookupSequence("barnacle_unarmed")
-				if seq != 0 then return ACT_GMOD_NOCLIP_LAYER, seq end
+				if seq != -1 then return ACT_GMOD_NOCLIP_LAYER, seq end
 			end
 		end
 	end

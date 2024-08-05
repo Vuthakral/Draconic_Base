@@ -67,7 +67,7 @@ hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	if IsValid(ply) then
 		if IsValid(ply:GetActiveWeapon()) then
 			local wpn = string.lower(ply:GetActiveWeapon():GetClass())
-			if DRC.HoldTypes.HardcodedWeapons[wpn] && !IsValid(ply:GetVehicle()) && ShouldDrawHLCrosshair() then
+			if !IsValid(ply:GetVehicle()) && ShouldDrawHLCrosshair() then
 				if str == "CHudCrosshair" then return false end
 			end
 		end
@@ -75,19 +75,33 @@ hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	
 end)
 
-local function drc_Crosshair()
-	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
-	if GetConVar("cl_drc_disable_crosshairs"):GetFloat() == 1 then return end
-	if DRC.SV.drc_disable_crosshairs == 1 then return end
+local function CrosshairLerp(fraction, from, to)
+	return Lerp(math.ease.OutQuart(fraction), from, to)
+end
+
+local function ShouldDrawCrosshair(ply)
+	if GetConVar("cl_drawhud"):GetFloat() == 0 then return false end
+	if GetConVar("crosshair"):GetFloat() == 0 then return false end
+	if GetConVar("cl_drc_disable_crosshairs"):GetFloat() == 1 then return false end
+--	if ply:GetActiveWeapon().CrosshairStatic == nil && ply:GetActiveWeapon().CrosshairDynamic == nil then return false end
+	if DRC.SV.drc_disable_crosshairs == 1 then return false end
 	
+	local vehicle = ply:GetVehicle()
+	if IsValid(vehicle) then return false end
+	
+	return true
+end
+
+local function drc_Crosshair()
 	local ply = LocalPlayer()
 	if !IsValid(ply) or !ply:Alive() then return end
 	local curswep = ply:GetActiveWeapon()
 	if !IsValid(curswep) then return end
+	if !ShouldDrawCrosshair(ply) then return end
 	
 	-- Replace base game crosshair with a duplicate that uses the actual hitpos, for compatibility with mods that offset the view (thirdperson, first person offsets, etc).
 	local pos = DRC.CalcView.ToScreen
-	if DRC.HoldTypes.HardcodedWeapons[string.lower(curswep:GetClass())] && !IsValid(ply:GetVehicle()) && pos.x && pos.y then
+--[[	if DRC.HoldTypes.HardcodedWeapons[string.lower(curswep:GetClass())] && !IsValid(ply:GetVehicle()) && pos.x && pos.y then
 		local centered = (pos.x <= ScrW()/2 + 5 && pos.x >= ScrW()/2 - 5) && (pos.y <= ScrH()/2 + 5 && pos.y >= ScrH()/2 - 5)
 		if centered then pos.x = ScrW()/2 pos.y = ScrH()/2 end
 		if DRC.CalcView.ToScreen && GetConVar("crosshair"):GetInt() > 0 && ShouldDrawHLCrosshair() then
@@ -96,7 +110,7 @@ local function drc_Crosshair()
 			surface.SetTextColor( 255, 211, 64, 255 )
 			surface.DrawText("Q")
 		end
-	end
+	end ]]
 	
 	-- Actual crosshair code.
 	if !curswep.Draconic then return end
@@ -114,7 +128,7 @@ local function drc_Crosshair()
 			Xalpha = 0
 		end
 		
-		surface.SetFont( "DermaLarge" )
+		surface.SetFont("DermaLarge")
 		surface.SetTextColor(255, 0, 0, Xalpha)
 		surface.SetTextPos(math.Round(pos.x), math.Round(pos.y))
 		surface.DrawText("X", true)
@@ -180,6 +194,8 @@ local function drc_Crosshair()
 	if curswep.Base == "draconic_melee_base" then return end
 	if curswep.PrimaryStats == nil then return end
 	
+	
+	
 	local spread = (curswep.PrimaryStats.Spread * modspread)
 	local spreaddiv = (curswep.PrimaryStats.SpreadDiv * modspreaddiv)
 	local cx = curswep.CrosshairCorrectX
@@ -188,9 +204,11 @@ local function drc_Crosshair()
 	local smathoffset = smath * 150
 	
 	local b = math.Clamp(curswep.BloomValue * 100 or 0, 0, 100) * smath * 10
+	b = math.Clamp(b, 0, 100)
 	
-	LerpC = Lerp(FrameTime() * 20, DRCCrosshairLerp or b, b)
+	LerpC = CrosshairLerp(FrameTime() * 20, DRCCrosshairLerp or b, b)
 	DRCCrosshairLerp = Lerp(FrameTime() * 10, DRCCrosshairLerp or LerpC, LerpC)
+	DRCCrosshairLerp = math.Clamp(DRCCrosshairLerp, 0 , 512 * smath)
 	
 	if DRC:DebugModeEnabled() then
 		if chmode == 1 or chmode == 3 then
@@ -203,14 +221,14 @@ local function drc_Crosshair()
 					
 			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 10, 255, 255, 255, 255)
 			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 13.37, 255, 0, 0, 255)
-			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 1, 0, 255, 0, 255)
+			surface.DrawCircle((pos.x), (pos.y), 64 * smath, 0, 255, 0, 255)
 			surface.DrawCircle((pos.x), (pos.y), 64 * smath * 3, 120, 255, 120, 50)
 							
 			surface.DrawCircle((pos.x), (pos.y), 64 * DRCCrosshairLerp / 50.75, 0, 100, 255, 255)
 			surface.DrawCircle((pos.x), (pos.y), 64 * DRCCrosshairLerp / 52, 0, 175, 255, 255)
 			
 			if curswep.Primary.AimAssist == true then
-				surface.DrawCircle((pos.x), (pos.y), 13 * curswep.SpreadCone * curswep.Primary.AimAssist_Mul, 0, 255, 255, 255)
+				surface.DrawCircle((pos.x), (pos.y), 13 * curswep.SpreadCone * curswep.Primary.AimAssist_Mul * DRC:GetFOVScale(), 0, 255, 255, 255)
 			end
 		end
 	end
@@ -225,6 +243,7 @@ local function drc_Crosshair()
 				else
 					surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 				end
+				if !ShouldDrawCrosshair(ply) then surface.SetDrawColor(ccol.r, ccol.g, ccol.b, 0) end
 				surface.SetMaterial( Material("vgui/circle") )
 				surface.DrawTexturedRectRotated(pos.x, pos.y, 3, 3, 0)
 			end
@@ -453,41 +472,6 @@ local function drc_Scope()
 end
 hook.Add("HUDPaint", "drc_scope", drc_Scope)
 
-hook.Add( "GetMotionBlurValues", "drc_scopeblur", function( horizontal, vertical, forward, rotational )
-	local ply = LocalPlayer()
-	local wpn = ply:GetActiveWeapon()
-	if wpn.Draconic == nil then return end
-	
-	if wpn:CanUseSights() == false then forward = 0 return forward end
-	
-	local w = ScrW()
-	local h = ScrH()
-	
-	local ratio = w/h
-	
-	local ss = 4 * wpn.Secondary.ScopeScale
-	local sw = wpn.Secondary.ScopeWidth
-	local sh = wpn.Secondary.ScopeHeight
-	
-	local wi = w / 10 * ss
-	local hi = h / 10 * ss
-	
-	if wpn.Secondary.Scoped == true && wpn.Secondary.ScopeBlur == true && wpn.SightsDown == true then
-		if sw != 1 then
-			forward = forward + (ss * 0.015 / sw) * (wpn.Secondary.IronFOV * ratio * 0.05)
-		else
-			forward = forward + (ss * 0.0175) / (wpn.Secondary.IronFOV * ratio * 0.01)
-		end
-	  --  rotational = rotational + 0.05 * math.sin( CurTime() * 3 )
-	end
-	
-	if wpn.SightsDown == false or wpn.IsOverheated == true then
-		forward = 0
-		if forward > 0 then forward = 0 end
-	end
-    return horizontal, vertical, forward, rotational
-end )
-
 
 
 
@@ -558,8 +542,8 @@ DRC.Inspection.DefaultTheme = {
 		["Enter"] = "garrysmod/ui_return.wav",
 		["Exit"] = "garrysmod/ui_return.wav",
 		["Select"] = "weapons/smg1/switch_single.wav",
-		["Deny"] = "hl1/fvox/buzz.wav",
-		["Dropdown"] = "npc/headcrab_poison/ph_step4.wav"
+		["Deny"] = "draconic/ui/deny0.wav",
+		["Dropdown"] = "draconic/ui/click0.wav"
 	}
 }
 DRC.Inspection.Theme = DRC.Inspection.DefaultTheme
@@ -576,8 +560,8 @@ local function drc_Inspect()
 	local ply = LocalPlayer() 
 	local wpn = ply:GetActiveWeapon()
 	if wpn.Draconic == nil then return end
-	if wpn.MulIns == nil then return end
 	local bool = wpn:GetNWBool("Inspecting", false)
+	
 	local b2 = wpn.Customizing
 	local w = ScrW()
 	local h = ScrH()
@@ -599,20 +583,21 @@ local function drc_Inspect()
 	attalphalerp = Lerp(0.25, attalphalerp or attalpha, attalpha)
 	
 	if bool == true then
-		alpha = Lerp(wpn.MulIns, 0, 1)
-		YOffset = Lerp(wpn.MulIns, h/2, 0)
-		XOffset = Lerp(wpn.MulIns, w/2, 0)
+		alpha = Lerp(1, 0, 1)
+		YOffset = Lerp(1, h/2, 0)
+		XOffset = Lerp(1, w/2, 0)
 		
 		drc_ins_offsetlerp_x = Lerp(0.025 * 10, drc_ins_offsetlerp_x or XOffset, XOffset)
 		drc_ins_offsetlerp_y = Lerp(0.025 * 10, drc_ins_offsetlerp_y or YOffset, YOffset)
 	else
-		alpha = Lerp(wpn.MulIns, 1, 0)
-		YOffset = Lerp(wpn.MulIns, 0, h )
-		XOffset = Lerp(wpn.MulIns, 0, w )
+		alpha = Lerp(0, 1, 0)
+		YOffset = Lerp(1, 0, h )
+		XOffset = Lerp(1, 0, w )
 		
 		drc_ins_offsetlerp_x = Lerp(0.025 * 2.5, drc_ins_offsetlerp_x or w/w2/2, w/2)
 		drc_ins_offsetlerp_y = Lerp(0.025 * 2.5, drc_ins_offsetlerp_y or h/h2/2, h/2)
 	end
+	if bool == false then return end
 	
 	DRC.Inspection.ThemeColours = {}
 	for k,v in pairs(themecolours) do
@@ -951,6 +936,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 		
 		m.Sections = {}
 		local function MakeSection(relevancy)
+			if #wpn.AttachmentTable[relevancy] < 2 then return end
 			m[relevancy] = vgui.Create("DPanel", m)
 			m[relevancy]:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
 			m[relevancy]:Dock(TOP)
@@ -1074,6 +1060,132 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 		for k,v in pairs(wpn.DummyAttachmentTable) do
 			if k != "BaseClass" then MakeSection(k) end
 		end
+		
+		local function MakeSkinSelection()
+			local relevancy = "WeaponSkin"
+			m[relevancy] = vgui.Create("DPanel", m)
+			m[relevancy]:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
+			m[relevancy]:Dock(TOP)
+			
+			table.insert(m.Sections, m[relevancy])
+			
+			local label = " | None"
+			m[relevancy].Title = vgui.Create("DLabel", m[relevancy])
+			local title = m[relevancy].Title
+			title:SetSize(500, m[relevancy]:GetTall())
+			title:SetText("          Camo")
+			title:SetFont(DRC.Inspection.Theme.Fonts.Header)
+			title:Dock(TOP)
+			
+			m[relevancy].Selected = vgui.Create("DLabel", m[relevancy])
+			local selected = m[relevancy].Selected
+			selected:SetSize(400, m[relevancy]:GetTall())
+			selected:SetText(label)
+			selected:SetFont(DRC.Inspection.Theme.Fonts.Header)
+			selected:SetPos(125, 0)
+			
+			m[relevancy].Collapser = vgui.Create("DButton", m[relevancy])
+			local cbutton = m[relevancy].Collapser
+			cbutton:SetPos(0, 0)
+			cbutton:SetSize(m[relevancy]:GetTall(), m[relevancy]:GetTall())
+			cbutton:SetFont(DRC.Inspection.Theme.Fonts.Header)
+			cbutton:SetTextColor(DRC.Inspection.ThemeColours_Attachments.Text)
+			cbutton:SetText("+")
+			function cbutton:Paint(w,h)
+				draw.RoundedBox(0, 0, 0, w, h, DRC.Inspection.ThemeColours_Attachments.Background)
+			end
+			
+			m[relevancy].Section = vgui.Create("DPanelSelect", m)
+			local selection = m[relevancy].Section
+			selection.Panels = {}
+			selection:SetPos(0, m[relevancy].Title:GetTall())
+			selection:SetSize(500, 0)
+			selection:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
+			selection:Dock(TOP)
+			selection:SetVisible(false)
+			
+			cbutton.DoClick = function()
+				if selection:IsVisible() == true then 
+					m[relevancy].Section:SetVisible(false)
+					m[relevancy].Section:SetTall(0)
+					cbutton:SetText("+")
+				else
+					m[relevancy].Section:SetVisible(true)
+					m[relevancy].Section:SetTall(400)
+					cbutton:SetText("-")
+				end
+				for k,v in pairs(m.Sections) do
+					v:Dock(TOP)
+				end
+				surface.PlaySound(DRC.Inspection.Theme.Sounds.Dropdown)
+			end
+			
+			function selection:OnActivePanelChanged( old, new )
+				if ( old != new ) then
+					selected:SetText(" | ".. selection[new][1] .."")
+					if !new[3] then
+						net.Start("DRC_WeaponCamoSwitch")
+						net.WriteEntity(wpn)
+						net.WriteEntity(LocalPlayer())
+						net.WriteString(selection[new][3])
+						net.SendToServer()
+					end
+				--	surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
+				end
+			end
+			
+			local rbutton = vgui.Create("DImageButton", m[relevancy].Section)
+			rbutton:SetSize(64, 64)
+			rbutton:SetImage("gui/cross.png")
+			rbutton:SetTooltip("Remove applied weapon skin/camo.")
+			rbutton:SetColor(Color(255, 0, 0, 127))
+			selection[rbutton] = {"None", "Remove applied weapon skin/camo.", ""}
+			
+			selection:AddPanel(rbutton)
+			
+			if wpn.WeaponSkinSpecialMats != nil then
+				for k,v in pairs(wpn.WeaponSkinSpecialMats) do
+					local name, desc = v.name, v.desc
+					if name && desc then
+						m[relevancy].Section[k] = vgui.Create("DImageButton", m[relevancy].Section)
+						local icon = m[relevancy].Section[k]
+						local img = k
+						icon:SetMaterial(img)
+						icon:SetSize(64, 64)
+						icon:SetTooltip("".. name .."\n\n".. desc .."")
+						
+						selection.Panels[k] = {icon, name, desc}
+						selection[icon] = {name, desc, k}
+						selection:AddPanel( icon )
+					end
+				end
+			end
+			
+			for k,v in SortedPairs(DRC.WeaponSkins) do
+				local name, desc = v.name, v.desc
+				if name && desc && wpn.WeaponSkinDisallowUniversals != true then
+					m[relevancy].Section[k] = vgui.Create("DImageButton", m[relevancy].Section)
+					local icon = m[relevancy].Section[k]
+					local img = k
+					if v.icon then img = v.icon end
+					icon:SetMaterial(img)
+					icon:SetSize(64, 64)
+					icon:SetTooltip("".. name .."\n\n".. desc .."")
+					
+					selection.Panels[k] = {icon, name, desc}
+					selection[icon] = {name, desc, k}
+					selection:AddPanel( icon )
+				end
+			end
+			
+			if (!table.IsEmpty(DRC.WeaponSkins) or (wpn.WeaponSkinSpecialMats && !table.IsEmpty(wpn.WeaponSkinSpecialMats))) && wpn.WeaponSkinApplied != nil then
+				if !table.IsEmpty(selection.Panels) then
+				selection:SelectPanel(selection.Panels[wpn.WeaponSkinApplied][1])
+				end
+			end
+		end
+		
+		if wpn.WeaponSkinSubMaterials != nil && wpn.WeaponSkinDefaultMat != nil then MakeSkinSelection() end
 		
 		m.cb = vgui.Create("DButton", m)
 		m.cb:SetText("Commit Changes")
@@ -1536,7 +1648,6 @@ hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 	for k, v in pairs(vm:GetAttachments()) do
 		DrawVMAttachments(v.name, vm)
 	end
-
 	
 	local attachment = vm:LookupAttachment("muzzle")
 	local muz = vm:GetAttachment(attachment)
@@ -1547,13 +1658,15 @@ hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 	drc_vm_offangle = Angle(0, 0, 0) + ply:EyeAngles()
 	
 	local offs = pos - vm:GetPos()
-	drc_vmapos = Lerp(FrameTime() * 25, drc_vmapos or offs, offs)
+	drc_vmapos = Lerp(RealFrameTime() * 25, drc_vmapos or offs, offs)
 	
 	local offsb = ang - vm:GetAngles()
 	
-	drc_vmoffset_angle_x = math.ApproachAngle(offsb.x, drc_vm_offangle.x, FrameTime() * drc_vm_angdiff_median)
-	drc_vmoffset_angle_y = math.ApproachAngle(offsb.y, drc_vm_offangle.y, FrameTime() * drc_vm_angdiff_median)
-	drc_vmoffset_angle_z = math.ApproachAngle(offsb.z, drc_vm_offangle.z, FrameTime() * drc_vm_angdiff_median)
+--	ply:ChatPrint(tostring(offsb))
+	
+	drc_vmoffset_angle_x = math.ApproachAngle(offsb.x, drc_vm_offangle.x, 0.1 * drc_vm_angdiff_median)
+	drc_vmoffset_angle_y = math.ApproachAngle(offsb.y, drc_vm_offangle.y, 0.1 * drc_vm_angdiff_median)
+	drc_vmoffset_angle_z = math.ApproachAngle(offsb.z, drc_vm_offangle.z, 0.1 * drc_vm_angdiff_median)
 	
 	drc_vm_angdiff_x = math.AngleDifference(drc_vmoffset_angle_x, drc_vm_offangle.x)
 	drc_vm_angdiff_y = math.AngleDifference(drc_vmoffset_angle_y, drc_vm_offangle.y)
@@ -1563,9 +1676,14 @@ hook.Add("PreDrawViewModel", "DrcLerp_Debug", function( vm, ply, wpn )
 	
 	drc_vm_angdiff_median = math.Clamp(math.abs((drc_vm_angdiff_x + drc_vm_angdiff_y + drc_vm_angdiff_z) / 3), 16, 60)
 	
-	drc_vm_angmedian = Lerp(FrameTime() * 5, drc_vm_angdiff_median / (drc_vm_lerpdivval / 6) or 0, drc_vm_angdiff_median / (drc_vm_lerpdivval / 6))
+	drc_vm_angmedian = Lerp(RealFrameTime() * 5, drc_vm_angdiff_median / (drc_vm_lerpdivval / 6) or 0, drc_vm_angdiff_median / (drc_vm_lerpdivval / 6))
 	
-	drc_vmaangle = (drc_vm_offangle + drc_vm_angdiff)
+--	drc_vmaangle = (drc_vm_offangle + drc_vm_angdiff)
+--	drc_vmaangle = drc_vmaangle * drc_vm_angmul
+	offsb.x = offsb.x * drc_vm_angmul.x
+	offsb.y = offsb.y * drc_vm_angmul.y
+	offsb.z = offsb.z * drc_vm_angmul.z
+	drc_vmaangle = offsb
 end)
 
 hook.Add("Tick", "DRC_PreventBrokenHUD", function()

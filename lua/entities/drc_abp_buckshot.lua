@@ -32,6 +32,7 @@ ENT.BulletTable = {
 	EvPDamageMul = 1,
 	EvEDamageMul = 1,
 	DamageType = DMG_BUCKSHOT,
+	HullSize = 5,
 	AmmoType = "Buckshot",
 	FallbackBaseAmmoType = "Buckshot",
 	NumShots = 7,

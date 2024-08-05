@@ -51,15 +51,27 @@ function SWEP:FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
 end
 
 function SWEP:GetWeaponAttachment(att)
+	if !self.VMA then 
+		local attinfo = {}
+		attinfo.Pos = Vector()
+		attinfo.Ang = Angle()
+		attinfo.ID = 0
+		attinfo.ent = self
+	return attinfo end
 	local ply = self:GetOwner()
 	local ent = self
-	if ply == LocalPlayer() && !DRC:ThirdPersonEnabled(ply) then ent = ply:GetViewModel() end
+	
+	if ply:IsPlayer() then
+		local tp = DRC:ThirdPersonEnabled(ply)
+		if ply == LocalPlayer() && !tp then ent = ply:GetViewModel() end
+	end
 	local attinfo = ent:GetAttachment(ent:LookupAttachment(att))
 	local newpos, newang = attinfo.Pos, attinfo.Ang
 	if ply:IsPlayer() && ent == ply:GetViewModel() then
 		newpos = self.VMA[att].pos
 		newang = self.VMA[att].ang
 	end
+	
 	attinfo.Pos = newpos
 	attinfo.ID = ent:LookupAttachment(att)
 	attinfo.ent = ent

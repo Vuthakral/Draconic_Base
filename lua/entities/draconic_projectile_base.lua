@@ -40,9 +40,42 @@ ENT.ExplosionType			= "hl2"
 ENT.ExplosiveIgnoresCover	= false
 ENT.RemoveInWater			= false
 
+ENT.StickSound = nil
+
+ENT.MaxBounces 				= 0
+ENT.BounceChance 			= 100
+ENT.BounceMaxAngle 			= 30
+ENT.BouncePreservesSpeed 	= true
+ENT.BounceCharacters 		= false
+ENT.BounceVehicles 			= false
+ENT.BounceDestructibles 	= false
+ENT.BounceSound 			= nil
+ENT.BounceSurfaces = {
+	["cardboard"] = false,
+	["computer"] = true,
+	["bugshell"] = true,
+	["dirt"] = false,
+	["flesh"] = false,
+	["glass"] = true,
+	["metal"] = true,
+	["metalhollow"] = true,
+	["metaldrum"] = true,
+	["metalvent"] = true,
+	["mud"] = false,
+	["plastic"] = true,
+	["rubber"] = false,
+	["rubble"] = true,
+	["stone"] = true,
+	["sand"] = false,
+	["snow"] = false,
+	["tile"] = true,
+	["wood"] = true,
+}
+
 ENT.Tracking		= false
 ENT.TrackType		= "Tracking"
 ENT.TrackFraction 	= 0.5
+ENT.TrackingSpeed	= nil
 
 ENT.SuperCombineRequirement		= 0
 ENT.SuperDamage					= 100
@@ -79,6 +112,13 @@ ENT.Effect				= nil
 ENT.SpawnEffect			= nil
 ENT.LuaExplEffect		= nil
 ENT.SuperLuaExplEffect	= nil
+ENT.RemoveEffect		= nil
+
+ENT.PCFEffect				= nil
+ENT.PCFSpawnEffect 			= nil
+ENT.PCFLuaExplEffect 		= nil
+ENT.PCFSuperLuaExplEffect 	= nil
+ENT.PCFRemoveEffect			= nil
 
 ENT.ImpactEffect	= nil
 ENT.ImpactSound		= nil
@@ -143,6 +183,8 @@ ENT.ManualDetect = {
 		"npc_hunter",
 		"npc_combinedropship"
 }
+ENT.BounceCount = 0
+ENT.BounceDoolDown = 0
 
 function ENT:GetCreator()
 	return self.Creator
@@ -163,15 +205,19 @@ end
 
 ENT.EffectTick = 0
 ENT.ThinkTimer = 0
+ENT.UpdateLastInfo = 0
 function ENT:Think()
 	if !IsValid(self) then return end
 	local ct = CurTime()
 	
-	if CLIENT && self.Effect != nil && RealTime() > self.EffectTick then
-		local ed = EffectData()
-		ed:SetOrigin(self:GetPos())
-		ed:SetEntity(self)
-		util.Effect(self.Effect, ed)
+	if CLIENT && (self.Effect != nil or self.PCFEffect != nil) && RealTime() > self.EffectTick then
+		if self.Effect != nil then
+			local ed = EffectData()
+			ed:SetOrigin(self:GetPos())
+			ed:SetEntity(self)
+			util.Effect(self.Effect, ed)
+		end
+		if self.PCFEffect != nil then ParticleEffect(self.PCFEffect, self:GetPos(), self:GetAngles(), self) end
 		self.EffectTick = (RealTime() + 1/self.EffectTickRate)
 	end
 	
@@ -202,7 +248,11 @@ function ENT:Think()
 		end
 	end
 	
-	self.LastPos = pos
+	if self.UpdateLastInfo < ct then
+		self.UpdateLastInfo = ct + engine.TickInterval()
+		self.LastPos = pos
+		self.LastAng = phys:GetAngles()
+	end
 	
 --	if !timer.Exists(self.TimerName) && tipe != "sticky" && tipe != "playersticky" && tipe != "supercombine" && tipe != "magazine" then
 --		timer.Create(self.TimerName, self.TimerFrequency, 0, function()
@@ -246,12 +296,15 @@ function ENT:Think()
 
 	
 	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
-	local tr = util.TraceLine({
+	self.FrontTrace = util.TraceLine({
 		start = self:GetPos(), 
 		endpos = self:GetPos() + vel:GetNormal() * 100, 
 		filter = function(ent) if ent == self or ent == self:GetOwner() or ent == self:GetCreator() then return false else return true end end,
 		mask = MASK_SHOT_HULL
 	})
+	local tr = self.FrontTrace
+	self.LastHitNormal = tr.HitNormal
+	if tr then DRC:RenderTrace(tr, Color(255, 255, 255, 255), FrameTime(), true) end
 	
 	if tr.Entity == nil then return end
 	if self.Triggered == true then return end
@@ -305,7 +358,13 @@ function ENT:PhysicsUpdate()
 		local tgt = self.TrackTarget
 		if IsValid(tgt) && IsValid(Entity(tgt:EntIndex())) then
 			local endp = tgt:GetPos() + tgt:OBBCenter()
-			if DRC:IsVehicle(tgt) then endp = tgt:GetPos() + Vector(0, 0, 2) end
+			if DRC:IsVehicle(tgt) then
+				if tgt:LookupAttachment("tracking_goal") != 0 then
+					endp = tgt:GetAttachment(tgt:LookupAttachment("tracking_goal")).Pos
+				else
+					endp = tgt:GetPos() + Vector(0, 0, 2)
+				end
+			end
 			local tr = util.TraceLine({
 				start = phys:GetPos(),
 				endpos = endp,
@@ -321,7 +380,11 @@ function ENT:PhysicsUpdate()
 			ang = Angle(angx, angy, angz)
 			
 			phys:SetAngles(ang)
-			phys:SetVelocity(phys:GetAngles():Forward() * self:GetCreator().Primary.ProjSpeed)
+			if self.TrackingSpeed != nil then 
+				phys:SetVelocity(phys:GetAngles():Forward() * self.TrackingSpeed)
+			else
+				phys:SetVelocity(phys:GetAngles():Forward() * self:GetCreator().Primary.ProjSpeed)
+			end
 		elseif isvector(tgt) then
 			local tr = util.TraceLine({
 				start = phys:GetPos(),
@@ -370,18 +433,20 @@ function ENT:Initialize()
 		end
 	end
 	
-	if self.InheritDamageFromCreatorPrimary == true then self.Damage = self:GetCreator().Primary.Damage end
-	if self.InheritDamageFromCreatorSecondary == true then self.Damage = self:GetCreator().Secondary.Damage end
+	local creator = self:GetCreator()
+	
+	if self.InheritDamageFromCreatorPrimary == true then self.Damage = creator.Primary.Damage end
+	if self.InheritDamageFromCreatorSecondary == true then self.Damage = creator.Secondary.Damage end
 	
 	self:DoCustomInitialize()
 	
-	if IsValid(self:GetCreator()) && self:GetCreator():IsWeapon() then
+	if IsValid(creator) && creator:IsWeapon() then
 		self.BProfile = true
 		
-		if self.Tracking == true then
+		if self.Tracking == true && creator.Draconic then
 			if self.TrackType == "Tracking" then
-				self.TrackTarget = self:GetCreator():GetTraceTarget()
-				if IsValid(self:GetCreator():GetConeTarget()) then self.TrackTarget = self:GetCreator():GetConeTarget() end
+				self.TrackTarget = creator:GetTraceTarget()
+				if IsValid(creator:GetConeTarget()) then self.TrackTarget = creator:GetConeTarget() end
 			end
 		end
 	end
@@ -394,6 +459,7 @@ function ENT:Initialize()
 	timer.Simple(0.0000000001, function() if self:IsValid() then self.SpawnVelocity = self:GetVelocity() end end)
 
 	local phys = self:GetPhysicsObject()
+	self.LastAng = phys:GetAngles()
 	phys:SetBuoyancyRatio(self.Buoyancy)
 	if self.Mass == 0 then self.Mass = 1 phys:SetMass(self.Mass) end
 	if self.Mass != nil then phys:SetMass(self.Mass) end
@@ -451,11 +517,14 @@ function ENT:Initialize()
 		timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end)
 	else end
 	
-	if self.SpawnEffect != nil then
-		local ed2 = EffectData()
-		ed2:SetOrigin(self:GetPos())
-		ed2:SetEntity(self)
-		util.Effect(self.SpawnEffect, ed2)
+	if self.SpawnEffect != nil or self.PCFSpawnEffect != nil then
+		if self.SpawnEffect != nil then
+			local ed2 = EffectData()
+			ed2:SetOrigin(self:GetPos())
+			ed2:SetEntity(self)
+			util.Effect(self.SpawnEffect, ed2)
+		end
+		if self.PCFSpawnEffect != nil then ParticleEffect(self.PCFSpawnEffect, self:GetPos(), self:GetAngles(), self) end
 	end
 	
 	if self.LoopingSound != nil then
@@ -525,8 +594,6 @@ end
 function ENT:DoCustomDraw()
 end
 
-local cooldown = 0
-
 function ENT:Touch(ent)
 	local ty = self.ProjectileType
 
@@ -546,6 +613,9 @@ function ENT:Touch(ent)
 	end
 end
 
+function ENT:DoCustomStick(data, ent)
+end
+
 function ENT:Stick(data, tgt)
 	self:SetSolid(SOLID_NONE)
 	self:SetMoveType(MOVETYPE_NONE)
@@ -553,127 +623,184 @@ function ENT:Stick(data, tgt)
 	self:DoImpactEffect()
 	self:SetVelocity(Vector())
 	self:SetPos(data.HitPos)
+	if self.StickSound != nil then self:EmitSound(self.StickSound) end
 	self:SetNWBool("Stuck", true)
+	
+	self:DoCustomStick(data, tgt)
 end
 
+function ENT:CheckBounceValidity(data)
+	if self.BounceMaxAngle == 0 then return true end
+	local ang1 = DRC:GetVelocityAngle(data.OurOldVelocity)
+	local ang2 = DRC:GetVelocityAngle(data.OurNewVelocity)
+
+	local dx, dy = math.AngleDifference(ang1.x, ang2.x), math.AngleDifference(ang1.y, ang2.y)
+	dx, dy = math.abs(dx), math.abs(dy)
+	
+	local xg, yg = dx > self.BounceMaxAngle, dy > self.BounceMaxAngle
+	
+	if xg == true or yg == true then return false else return true end
+	return true
+end
+
+function ENT:CheckBounceIgnorance(ent)
+	if self.BounceCharacters == false && DRC:IsCharacter(ent) then return true end
+	if self.BounceVehicles == false && DRC:IsVehicle(ent) then return true end
+	if self.BounceDestructibles == false && ent.GetMaxHealth && ent:Health() > 0 then return true end
+	return false
+end
+
+function ENT:CheckBounceMaterial(sprop)
+	local matstring = DRC:SurfacePropToEnum(util.GetSurfacePropName(sprop))
+	if DRC.SurfacePropsEngine[matstring] then return false end
+	local str = DRC.SurfacePropDefinitions[matstring][1]
+	local retr = self.BounceSurfaces[str]
+	if retr == nil then retr = true end
+	return retr
+end
+
+ENT.burncooldown = 0
+ENT.bouncecooldown = 0
 function ENT:PhysicsCollide( data, phys )
 	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
 	local typ = self.ProjectileType
 	local tgt = data.HitEntity
 	local cl = self:GetClass()
 	local SCC = "sc_".. self:GetClass() ..""
+	local sprop = data.TheirSurfaceProps
+	local ct = CurTime()
+	
+	if ct > self.bouncecooldown && self.MaxBounces > 0 && self.BounceCount < self.MaxBounces && (math.Rand(0, 100) <= self.BounceChance) && self:CheckBounceValidity(data) && self:CheckBounceIgnorance(tgt) == false && self:CheckBounceMaterial(sprop) then
+		timer.Simple(0, function() if IsValid(self) then
+			self.BounceCount = self.BounceCount + 1
+		end end)
+		self.BounceDoolDown = ct + 0.05
+		if self.BouncePreservesSpeed == true then timer.Simple(0.1, function() if IsValid(self) then
+			phys:SetAngleVelocity(Vector())
+			phys:SetVelocity(DRC:GetVelocityAngle(self):Forward() * self.InitialSpeed)
+		end end) end
+		if self.BounceSound != nil then self:EmitSound(self.BounceSound) end
+	return end
+	
+	if ct < self.BounceDoolDown then return end
 	
 	if self.Triggered == true then return end
 	self.Triggered = true
 	
-	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && typ == "point" then
-		if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil && !tgt:IsNPC() then
-			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
-		end
-			
-		if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil && !tgt:IsNPC() then
-			util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
+	if ((self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true) or self.OverrideBProfile != nil) && typ == "point" then
+		if self.OverrideBProfile != nil then
+			local tbl = scripted_ents.GetStored(self.OverrideBProfile).t.BulletTable
+			local impact, burn = tbl.ImpactDecal, tbl.BurnDecal
+			if impact != nil then util.Decal( impact, self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self) end
+			if burn != nil then util.Decal( burn, self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self) end
+		else
+			if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil && !tgt:IsNPC() then
+				util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
+			end
+				
+			if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil && !tgt:IsNPC() then
+				util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), self:GetPos() + self:GetAngles():Forward() * 100, self)
+			end
 		end
 	end
 	
 	timer.Simple(0, function()
-	if tgt:IsWorld() == false then
-		if !IsValid(tgt) then SafeRemoveEntity(self) return end
-		local NI = tgt:GetNWInt(SCC)
-		if typ == "point" then
-			local tr = util.TraceLine({start=self:GetPos(), endpos=tgt:LocalToWorld(tgt:OBBCenter()), filter={self, self:GetOwner()}, mask=MASK_SHOT_HULL})
-			self:SetPos(data.HitPos)
-			self:DamageTarget(tgt, tr)
-			self:DoImpactEffect()
-			
-			SafeRemoveEntity(self)
-			if self.EMP == true then self:DoEMP(tgt) end
-		elseif typ == "explosive" then
-			self:TriggerExplosion()
-			self:DoImpactEffect()
-			if self.EMP == true then self:DoEMP(tgt) end
-		elseif typ == "lua_explosive" then
-			self.ExplosionType = "lua"
-			self:TriggerExplosion()
-			self:DoImpactEffect()
-			if self.EMP == true then self:DoEMP(tgt) end
-		elseif typ == "playersticky" then 
-			if tgt:IsNPC() or tgt:IsNextBot() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
+		if !IsValid(self) then return end
+		if tgt:IsWorld() == false then
+			if !IsValid(tgt) then SafeRemoveEntity(self) return end
+			local NI = tgt:GetNWInt(SCC)
+			if typ == "point" then
+				local tr = util.TraceLine({start=self:GetPos(), endpos=tgt:LocalToWorld(tgt:OBBCenter()), filter={self, self:GetOwner()}, mask=MASK_SHOT_HULL})
+				self:SetPos(data.HitPos)
+				self:DamageTarget(tgt, tr)
+				self:DoImpactEffect()
+				
+				SafeRemoveEntity(self)
+				if self.EMP == true then self:DoEMP(tgt) end
+			elseif typ == "explosive" then
+				self:TriggerExplosion()
+				self:DoImpactEffect()
+				if self.EMP == true then self:DoEMP(tgt) end
+			elseif typ == "lua_explosive" then
+				self.ExplosionType = "lua"
+				self:TriggerExplosion()
+				self:DoImpactEffect()
+				if self.EMP == true then self:DoEMP(tgt) end
+			elseif typ == "playersticky" then 
+				if tgt:IsNPC() or tgt:IsNextBot() or (tgt:IsPlayer() and tgt ~= self:GetOwner()) or (tgt == self:GetOwner() and tgt:IsVehicle()) then
+					self:Stick(data, tgt)
+					self:DoImpactEffect()
+					if self.Explosive == false then self:DamageTarget(tgt, tr) end
+					if self.EMP == true then self:DoEMP(tgt) end
+				end
+			elseif typ == "sticky" then
+				if tgt != self:GetOwner() then
+					self:Stick(data, tgt)
+					if self.Explosive == false then self:DamageTarget(tgt, tr) end
+					timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
+					if self.EMP == true then self:DoEMP(tgt) end
+				end
+			elseif typ == "FuseAfterFirstBounce" then
+				if self.FirstBounce == false then self.FirstBounce = true end
+				if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
+			elseif typ == "supercombine" then
 				self:Stick(data, tgt)
 				self:DoImpactEffect()
-				if self.Explosive == false then self:DamageTarget(tgt, tr) end
 				if self.EMP == true then self:DoEMP(tgt) end
-			end
-		elseif typ == "sticky" then
-			if tgt != self:GetOwner() then
-				self:Stick(data, tgt)
-				if self.Explosive == false then self:DamageTarget(tgt, tr) end
-				timer.Simple(15, function() if self.Explosive == false && self:IsValid() then self:Remove() end end)
-				if self.EMP == true then self:DoEMP(tgt) end
-			end
-		elseif typ == "FuseAfterFirstBounce" then
-			if self.FirstBounce == false then self.FirstBounce = true end
-			if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
-		elseif typ == "supercombine" then
-			self:Stick(data, tgt)
-			self:DoImpactEffect()
-			if self.EMP == true then self:DoEMP(tgt) end
-			if self:GetParent() != nil && self:GetParent():IsNPC() or self:GetParent():IsPlayer() or self:GetParent():IsNextBot() then
-				if NI >= self.SuperCombineRequirement - 1 then
-					for f, v in pairs(tgt:GetChildren()) do
-						if v:GetClass() == self:GetClass() then
-							v:Remove()
+				if self:GetParent() != nil && self:GetParent():IsNPC() or self:GetParent():IsPlayer() or self:GetParent():IsNextBot() then
+					if NI >= self.SuperCombineRequirement - 1 then
+						for f, v in pairs(tgt:GetChildren()) do
+							if v:GetClass() == self:GetClass() then
+								v:Remove()
+							end
 						end
+						self:TriggerSC()
+						tgt:SetNWInt(SCC, 0)
+					else
+						tgt:SetNWInt(SCC, NI + 1)
 					end
-					self:TriggerSC()
-					tgt:SetNWInt(SCC, 0)
-				else
-					tgt:SetNWInt(SCC, NI + 1)
+					timer.Simple(self.FuseTime, function()
+						if IsValid(tgt) then
+							local CNI = tgt:GetNWInt(SCC)
+							tgt:SetNWInt(SCC, math.Clamp(CNI - 1, 0, 99))
+							NI = math.Clamp(NI, 0, 99)
+						end
+					end)
 				end
-			--	print(NI)
-				timer.Simple(self.FuseTime, function()
+			end
+		elseif tgt:IsWorld() == true then
+			if typ == "point" then
+				timer.Simple(0.01, function() if IsValid(self) then self:Remove() end end)
+				self:SetPos(data.HitPos)
+				self:DoImpactEffect()
+			elseif typ == "explosive" then
+				self:TriggerExplosion()
+				self:DoImpactEffect()
+			elseif typ == "lua_explosive" then
+				self.ExplosionType = "lua"
+				self:TriggerExplosion()
+				self:DoImpactEffect()
+			elseif typ == "sticky" or typ == "supercombine" then
+				self:Stick(data, tgt)
+				self:DoImpactEffect()
+			elseif typ == "FuseAfterFirstBounce" then
+				if self.FirstBounce == false then self.FirstBounce = true end
+				if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
+			elseif typ == "fire" then
 				
-						local CNI = tgt:GetNWInt(SCC)
-						tgt:SetNWInt(SCC, math.Clamp(CNI - 1, 0, 99))
-						NI = math.Clamp(NI, 0, 99)
-					--	print("Supercombine entity removed. | SC Score: ".. NI .."")
-					
-				end)
+				if ct > self.burncooldown then
+					local startpos = self:GetPos()
+					local endpos = self:GetVelocity():Angle():Forward() * 25
+					util.Decal("Scorch", startpos, endpos, {self})
+					self.burncooldown = ct + 0.05
+				end
 			end
 		end
-	elseif tgt:IsWorld() == true then
-		if typ == "point" then
-			timer.Simple(0.01, function() if IsValid(self) then self:Remove() end end)
-			self:SetPos(data.HitPos)
-			self:DoImpactEffect()
-		elseif typ == "explosive" then
+		
+		if self.ProjectileType == "custom_explosive" then
+			self.ExplosionType = "custom"
 			self:TriggerExplosion()
-			self:DoImpactEffect()
-		elseif typ == "lua_explosive" then
-			self.ExplosionType = "lua"
-			self:TriggerExplosion()
-			self:DoImpactEffect()
-		elseif typ == "sticky" or typ == "supercombine" then
-			self:Stick(data, tgt)
-			self:DoImpactEffect()
-		elseif typ == "FuseAfterFirstBounce" then
-			if self.FirstBounce == false then self.FirstBounce = true end
-			if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
-		elseif typ == "fire" then
-			
-			if CurTime() > cooldown then
-				local startpos = self:GetPos()
-				local endpos = self:GetVelocity():Angle():Forward() * 25
-				util.Decal("Scorch", startpos, endpos, {self})
-				cooldown = CurTime() + 0.05
-			end
 		end
-	end
-	
-	if self.ProjectileType == "custom_explosive" then
-		self.ExplosionType = "custom"
-		self:TriggerExplosion()
-	end
 	end)
 	
 	self:DoCustomPhysicsCollide(data, phys)
@@ -776,18 +903,27 @@ function ENT:TriggerExplosion(nodecal)
 	local U = DRC:TraceDir(pos, Angle(-90, 0, 0), dist)
 	local D = DRC:TraceDir(pos, Angle(90, 0, 0), dist)
 	local TraceTable = {N, S, E, W, U, D}
+	
+	local impact, burn
+	if (self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true) or self.OverrideBProfile != nil && typ == "point" then
+		if self.OverrideBProfile != nil then
+			local tbl = scripted_ents.GetStored(self.OverrideBProfile).t.BulletTable
+			impact, burn = tbl.ImpactDecal, tbl.BurnDecal
+		else
+			impact = self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal")
+			burn = self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal")
+		end
+	end
 
-	if self:GetCreator():IsWeapon() && self:GetCreator().Draconic == true && nodecal == false then
-		for k,v in pairs(TraceTable) do
-			if v.Hit then
-				if v.HitSky then return end
-				if self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal") != nil && !v.Entity:IsNPC() then
-					util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "ImpactDecal"), self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
-				end
-					
-				if self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal") != nil && !v.Entity:IsNPC() then
-					util.Decal( self:GetCreator():GetAttachmentValue("Ammunition", "BurnDecal"), self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
-				end
+	for k,v in pairs(TraceTable) do
+		if v.Hit then
+			if v.HitSky then return end
+			if impact != nil && !v.Entity:IsNPC() then
+				util.Decal( impact, self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
+			end
+				
+			if burn != nil && !v.Entity:IsNPC() then
+				util.Decal( burn, self:GetPos(), v.HitPos + v.Normal:Angle():Forward() * 100, self)
 			end
 		end
 	end
@@ -848,6 +984,7 @@ function ENT:LuaExplode(mode)
 		self.MSExplShakeDist	= self.ExplodeShakeDistance
 		self.MSExplShakeTime	= self.ExplodeShakeTime
 		self.MSLuaEffect		= self.LuaExplEffect
+		self.MSPCFExplode		= self.PCFLuaExplEffect
 	elseif mode == "super" then
 		self.MSDamage			= self.SuperDamage
 		self.MSDamageType		= self.SuperDamageType
@@ -857,7 +994,10 @@ function ENT:LuaExplode(mode)
 		self.MSExplShakeDist	= self.SuperExplodeShakeDistance
 		self.MSExplShakeTime	= self.SuperExplodeShakeTime
 		self.MSLuaEffect		= self.SuperLuaExplEffect
+		self.MSPCFExplode		= self.PCFSuperLuaExplEffect
 	end
+	
+	DRC:RenderSphere(pos, self.MSRadius, Color(255, 0, 0, 100), 2)
 	
 	DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast")
 	
@@ -910,12 +1050,18 @@ function ENT:LuaExplode(mode)
 	util.ScreenShake( Vector( self:GetPos() ), (self.MSExplShakePower / 2), self.MSExplShakePower, self.MSExplShakeTime, self.MSExplShakeDist )
 		
 	if self:IsValid() then
-		if self.LuaExplEffect != nil then
-			local ed3 = EffectData()
-			ed3:SetOrigin(pos)
-			ed3:SetEntity(self)
-			util.Effect(self.MSLuaEffect, ed3)
-		--	print(self:GetPos())
+		if self.LuaExplEffect != nil or self.MSPCFExplode != nil then
+			if self.LuaExplEffect != nil then
+				local ed3 = EffectData()
+				ed3:SetOrigin(pos)
+				ed3:SetEntity(self)
+				util.Effect(self.MSLuaEffect, ed3)
+			end
+			if mode == "super" then
+				if self.MSPCFExplode != nil then ParticleEffect(self.MSPCFExplode, self:GetPos(), Angle(), nil) end
+			else
+				if self.MSPCFExplode != nil then ParticleEffect(self.MSPCFExplode, self:GetPos(), (self:GetAngles():Forward() * -50):Angle(), nil) end
+			end
 		end
 	end
 		
@@ -954,7 +1100,8 @@ function ENT:Explode(mode)
 		self.explosion = self
 	end
 	
-	local explo = ents.Create("env_explosion")
+	if SERVER then
+		local explo = ents.Create("env_explosion")
 		explo:SetOwner(self.explosion)
 		explo:SetPos(self:GetPos())
 		explo:SetKeyValue("iMagnitude", "25")
@@ -962,6 +1109,7 @@ function ENT:Explode(mode)
 		explo:Spawn()
 		explo:Activate()
 		explo:Fire("Explode", "", 0)
+	end
 	util.BlastDamage(self, self.explosion, self:GetPos(), self.MSRadius, self.MSDamage)
 	util.ScreenShake( Vector( self:GetPos() ), (self.MSExplShakePower / 2), self.MSExplShakePower, self.MSExplShakeTime, self.MSExplShakeDist )
 	
@@ -988,11 +1136,25 @@ function ENT:Explode(mode)
 	SafeRemoveEntity(self)
 end
 
+function ENT:DoCustomRemove()
+end
+
 function ENT:OnRemove()
+	self:DoCustomRemove()
 	if self.LoopingSound != nil then
 		if self:IsValid() then
 			self:StopSound(self.LoopingSound)
 		end
+	end
+	
+	if CLIENT && (self.RemoveEffect != nil or self.PCFRemoveEffect != nil) then
+		if self.Effect != nil then
+			local ed = EffectData()
+			ed:SetOrigin(self:GetPos())
+			ed:SetEntity(self)
+			util.Effect(self.RemoveEffect, ed)
+		end
+		if self.PCFRemoveEffect != nil then ParticleEffect(self.PCFRemoveEffect, self:GetPos(), self:GetAngles(), self) end
 	end
 	
 	if !SERVER then return end

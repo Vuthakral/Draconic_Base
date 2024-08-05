@@ -1,0 +1,18 @@
+VolumeClouds
+{ //models/vortigaunt/vortigaunt_blue
+	$basetexture	"models/vuthakral/holotest"
+	$basetexture2	"models/vuthakral/holotest"
+	$basetexture3	"models/vuthakral/holotest"
+
+	$BaseTextureSpeed	0
+	$BaseTexture2Speed	0
+	$BaseTexture3Speed	0
+
+	Proxies
+	{
+		CurrentTime
+		{
+			resultVar	$Time
+		}
+	}
+}

@@ -1,0 +1,18 @@
+VolumeClouds
+{
+	$basetexture	"shadertest\cloud"
+	$basetexture2	"shadertest\cloud"
+	$basetexture3	"shadertest\cloud"
+
+//	$basetexturespeed		1
+//	$basetexture2speed	1
+//	$basetexture3speed	1
+
+	Proxies
+	{
+		CurrentTime
+		{
+			resultVar	$Time
+		}
+	}
+}

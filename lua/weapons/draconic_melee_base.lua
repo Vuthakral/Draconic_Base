@@ -45,10 +45,11 @@ SWEP.Primary.Range				= 20
 SWEP.Primary.Force				= 5
 SWEP.Primary.DelayMiss			= 0.42
 SWEP.Primary.DelayHit 			= 0.54
-SWEP.Primary.CanAttackCrouched = false
+SWEP.Primary.CanAttackCrouched 	= true
 SWEP.Primary.HitActivity		= nil
 SWEP.Primary.CrouchHitActivity	= nil
 SWEP.Primary.MissActivity		= ACT_VM_PRIMARYATTACK 
+SWEP.Primary.MissActivity_TP	= nil
 SWEP.Primary.CrouchMissActivity	= nil 
 SWEP.Primary.HitDelay			= 0.07
 SWEP.Primary.StartX				= 20
@@ -57,34 +58,35 @@ SWEP.Primary.EndX				= -20
 SWEP.Primary.EndY				= -10
 SWEP.Primary.ShakeMul			= 1
 
-SWEP.Primary.CanLunge			= false
-SWEP.Primary.LungeAutomatic		= false
-SWEP.Primary.LungeRequiresTarget= true
-SWEP.Primary.LungeVelocity		= 1000
-SWEP.Primary.LungeMaxDist		= 250
-SWEP.Primary.LungeSwingSound	= nil
-SWEP.Primary.LungeHitSoundWorld = nil
-SWEP.Primary.LungeHitSoundFlesh = nil
-SWEP.Primary.LungeHitSoundEnt	= nil
-SWEP.Primary.LungeHitSound		= "hl2meleehard"
-SWEP.Primary.LungeImpactDecal 	= ""
-SWEP.Primary.LungeBurnDecal 	= ""
-SWEP.Primary.LungeHitAct		= nil
-SWEP.Primary.LungeHitActCrouch	= nil
-SWEP.Primary.LungeMissAct		= ACT_VM_PRIMARYATTACK
-SWEP.Primary.LungeMissActCrouch	= nil
-SWEP.Primary.LungeDelayMiss		= 1.3
-SWEP.Primary.LungeDelayHit		= 0.7
-SWEP.Primary.LungeHitDelay		= 0.26
-SWEP.Primary.LungeDamage		= 0
-SWEP.Primary.LungeDamageType	= DMG_SLASH
-SWEP.Primary.LungeRange			= 25
-SWEP.Primary.LungeForce			= 20
-SWEP.Primary.LungeStartX		= 7
-SWEP.Primary.LungeStartY		= -3
-SWEP.Primary.LungeEndX			= -7
-SWEP.Primary.LungeEndY			= 3
-SWEP.Primary.LungeShakeMul		= 1
+SWEP.Primary.CanLunge				= false
+SWEP.Primary.LungeAutomatic			= false
+SWEP.Primary.LungeRequiresTarget	= true
+SWEP.Primary.LungeVelocity			= 1000
+SWEP.Primary.LungeMaxDist			= 250
+SWEP.Primary.LungeSwingSound		= nil
+SWEP.Primary.LungeHitSoundWorld 	= nil
+SWEP.Primary.LungeHitSoundFlesh 	= nil
+SWEP.Primary.LungeHitSoundEnt		= nil
+SWEP.Primary.LungeHitSound			= "hl2meleehard"
+SWEP.Primary.LungeImpactDecal 		= ""
+SWEP.Primary.LungeBurnDecal 		= ""
+SWEP.Primary.LungeHitAct			= nil
+SWEP.Primary.LungeHitActCrouch		= nil
+SWEP.Primary.LungeMissAct			= ACT_VM_PRIMARYATTACK
+SWEP.Primary.LungeMissActivity_TP	= nil
+SWEP.Primary.LungeMissActCrouch		= nil
+SWEP.Primary.LungeDelayMiss			= 1.3
+SWEP.Primary.LungeDelayHit			= 0.7
+SWEP.Primary.LungeHitDelay			= 0.26
+SWEP.Primary.LungeDamage			= 0
+SWEP.Primary.LungeDamageType		= DMG_SLASH
+SWEP.Primary.LungeRange				= 25
+SWEP.Primary.LungeForce				= 20
+SWEP.Primary.LungeStartX			= 7
+SWEP.Primary.LungeStartY			= -3
+SWEP.Primary.LungeEndX				= -7
+SWEP.Primary.LungeEndY				= 3
+SWEP.Primary.LungeShakeMul			= 1
 
 SWEP.Secondary.SwingSound 	 		= Sound( "" )
 SWEP.Secondary.HitSoundWorld 		= nil
@@ -106,6 +108,7 @@ SWEP.Secondary.CanAttackCrouched 	= true
 SWEP.Secondary.HitActivity			= nil
 SWEP.Secondary.CrouchHitActivity	= nil
 SWEP.Secondary.MissActivity			= ACT_VM_MISSCENTER
+SWEP.Secondary.MissActivity_TP		= nil
 SWEP.Secondary.CrouchMissActivity	= nil
 SWEP.Secondary.Velocity				= Vector(0, 0, 0)
 SWEP.Secondary.HitDelay				= 0.07
@@ -579,7 +582,6 @@ end
 
 function SWEP:TogglePassive()
 	local ply = self:GetOwner()
-	self:EmitSound(self.FireModes_SwitchSound)
 	
 	if GetConVar("sv_drc_passives"):GetString() == "0" then return end
 	
@@ -598,7 +600,6 @@ function SWEP:TogglePassive()
 	else
 		self.Loading = true
 		self.Idle = 0
-	--	self:SendWeaponAnim( ACT_VM_DRAW )
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
 		self:SetNWBool("Passive", false)

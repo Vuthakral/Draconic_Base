@@ -23,13 +23,15 @@ ENT.AdminOnly = false
 ENT.Model = "models/items/ammocrate_smg1.mdl"
 
 ENT.UseDelay = 0
-ENT.ATR 	= 0
+ENT.ATR 	= nil
 ENT.HidePopup = false
 ENT.RemoveOnUse = false
 ENT.PickupType 	= "ammostation"
 ENT.UseType		= "simple"
 ENT.UseSound = ""
 ENT.DenySound = ""
+
+ENT.SpecificAmmoType = nil
 
 ENT.Whitelist = nil
 ENT.WhitelistIsBlack = false
@@ -56,11 +58,11 @@ ENT.DamageType		= DMG_GENERIC
 ENT.AffectRadius	= 150
 
 -- The "DO NOT TOUCH" zone.
-ENT.CD 			= false
 ENT.Draconic 	= true
 ENT.Dead		= false
 ENT.LastInflictor = nil
 ENT.Powered		= true
+ENT.NextUseTime	= 0
 
 function ENT:Initialize()
 	self:DoCustomInitialize()
@@ -91,23 +93,18 @@ function ENT:OnTakeDamage(dmginfo)
 	timer.Simple(self.DamageDelay, function(dg)
 		if not self:IsValid() then return end
 		self:SetHealth(self:Health() - self.DamageTaken)
-	--	self.LastInflictor:ChatPrint("".. dmginfo:GetDamage() .." - ".. self:Health() .." left")
 	end)
 end
 
 ENT.PhysDamageCD = 0
 function ENT:PhysicsCollide(data, col)
-	
 	if self.Destroyable == true then
 		if CurTime() > self.PhysDamageCD then
-		--	print("Speed: ", data.Speed)
 			self.PhysDamageCD = CurTime() + 0.5
 			
 			local damage = data.Speed / 20
 			damage = math.Round(math.pow(damage, data.Speed / 1000))
 			if damage < 3 then damage = 0 end
-		--	print("Damage:", damage)
-		--	print("Health Remain:", self:Health())
 			if damage > 25 or (self:Health() - damage <= 0) then
 				self:EmitSound("MetalGrate.ImpactHard")
 			elseif damage < 25 && damage > 2 then
@@ -129,7 +126,7 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 	local phys = self:GetPhysicsObject()
 	local owner = self:GetOwner()
 	
-	DRCSound(self, self.BreakSound, nil, 1500)
+	DRC:EmitSound(self, self.BreakSound, nil, 1500)
 	
 	if self.LastInflictor == nil then
 		self.Killer = self
@@ -168,13 +165,10 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 				})
 				local ang = tr.Normal:Angle()
 				v:SetVelocity(ang:Forward() * dist * 3)
-			--	v:SetVelocity((v:OBBCenter()-pos)*ep/(v:OBBCenter()):Distance(pos) * 50)
 			end
 			if SERVER then v:TakeDamageInfo(dmg2) end
 		end
 	end
-
---	util.ScreenShake( Vector( self:GetPos() ), (shake / 2), shake, shaketime, shakedist )
 		
 	if self:IsValid() then
 		if effe != nil then
@@ -192,6 +186,10 @@ function ENT:LuaExplode(effe, damage, dt, ep, radius, shake, shakedist, shaketim
 	end
 
 	self:DoCustomBreak()
+end
+
+function ENT:CanUse()
+	if CurTime() > self.NextUseTime then return true else return false end
 end
 
 function ENT:Think()
@@ -220,7 +218,8 @@ end
 
 function ENT:GetRequiredEnt()
 	local EntsInRange = ents.FindByClass( self.RequiredEnt )
-		if table.IsEmpty(EntsInRange) then return false end
+	if table.IsEmpty(EntsInRange) then return false end
+	
 	for k,v in ipairs(EntsInRange) do
 		local pos = self:GetPos()
 		local epos = v:GetPos()
@@ -238,73 +237,71 @@ function ENT:GetRequiredEnt()
 end
 
 function ENT:Use(_, ply)
+	if !self:CanUse() then self:EmitSound(self.DenySound) return end
 	local curswep = ply:GetActiveWeapon()
-	if not IsValid(curswep) then return end
+	if !IsValid(curswep) then return end
 	
 	self:DoCustomUse(ply, curswep)
 		
 	if self.RequiredEnt != nil && self.PickupType != "stationrequirement" then
-	self.Powered = false
-		if self:GetRequiredEnt() == true then
-			self.Powered = true
-		else
-			self.Powered = false
-		end
+		self.Powered = false
+		if self:GetRequiredEnt() == true then self.Powered = true else self.Powered = false end
 	end
 		
 	if self.Powered == false then
 	return end
-if self.CD == true then
-	self:EmitSound(self.DenySound)
-else
+
 	if self.Whitelist != nil then
 		if self.WhitelistIsBlack == false then
 			if table.HasValue(self.Whitelist, curswep:GetClass()) then
 				self:GiveAmmo(ply)
-			else self:EmitSound(self.DenySound) end
+			else 
+				if self.SpecificAmmoType != nil then self:GiveAmmo(ply, true) else self:EmitSound(self.DenySound) end
+			end
 		else
 			if table.HasValue(self.Whitelist, curswep:GetClass()) then
 				self:EmitSound(self.DenySound)
-			else self:GiveAmmo(ply) end
+			else
+				if self.SpecificAmmoType != nil then self:GiveAmmo(ply, true) else self:EmitSound(self.DenySound) end
+			end
 		end
 	else self:GiveAmmo(ply) end
 end
+
+
+function ENT:DoGiveAmmo(ply, atr, wpn, hide)
+	self:EmitSound(self.UseSound)
+	local ct = CurTime()
+	local retur = self.ATR or wpn:GetMaxClip1()
+	local typ = self.SpecificAmmoType or wpn:GetPrimaryAmmoType()
+
+	ply:GiveAmmo(retur, typ, hide)
+	if self.UseDelay > 0 then self.NextUseTime = ct + self.UseDelay end
+
+	if self.RemoveOnUse == true then self:Remove() end
 end
 
-function ENT:GiveAmmo(ply)
+function ENT:DoBatteryReset(ply, wpn, hide)
+	self:EmitSound(self.UseSound)
+	local ct = CurTime()
+	wpn:SetLoadedAmmo(100)
+	if self.UseDelay > 0 then self.NextUseTime = ct + self.UseDelay end
+	if self.RemoveOnUse == true then self:Remove() end
+end
+
+function ENT:GiveAmmo(ply, override)
 	local curswep = ply:GetActiveWeapon()
-	if not IsValid(curswep) then return end
+	if !IsValid(curswep) then return end
+	local ct = CurTime()
+	local atr = self.ATR
+	local pop = self.HidePopup
+	if override == true then pop = false end
 
 	if self.PickupType == "universalstation" then
 		if curswep.Base == "draconic_gun_base" then
-			self:EmitSound(self.UseSound)
-			if self.ATR == 0 then
-				ply:GiveAmmo(curswep:GetMaxClip1(), curswep:GetPrimaryAmmoType(), self.HidePopup)
-				if self.UseDelay > 0 then
-					self.CD = true
-					timer.Simple(self.UseDelay, function() self.CD = false end)
-				end
-			else 
-				ply:GiveAmmo(self.ATR, curswep:GetPrimaryAmmoType(), self.HidePopup)
-				if self.UseDelay > 0 then
-					self.CD = true
-					timer.Simple(self.UseDelay, function() self.CD = false end)
-				end
-			end
-			if self.RemoveOnUse == true then
-				self:Remove()
-			end
+			self:DoGiveAmmo(ply, atr, curswep, pop)
 		elseif curswep.Base == "draconic_battery_base" then
-			self:EmitSound(self.UseSound)
-			curswep.Weapon:SetNWInt("LoadedAmmo", 100)
-			curswep:SetClip1(100)
-			if self.UseDelay > 0 then
-				self.CD = true
-				timer.Simple(self.UseDelay, function() self.CD = false end)
-			end
-			if self.RemoveOnUse == true then
-				self:Remove()
-			end
+			self:DoBatteryReset(ply, curswep, pop)
 		elseif curswep.Base == "draconic_melee_base" then
 			if curswep.InfoName == nil then
 				ply:ChatPrint("I don't think my ".. curswep.PrintName .." uses bullets...")
@@ -312,27 +309,11 @@ function ENT:GiveAmmo(ply)
 				ply:ChatPrint("I don't think my ".. curswep.InfoName .." uses bullets...")
 			end
 		else
-			ply:ChatPrint("This ammo station only works with Draconic SWEPs!")
+			self:DoGiveAmmo(ply, atr, curswep, pop)
 		end
 	elseif self.PickupType == "ammostation" then
 		if curswep.Base == "draconic_gun_base" then
-			self:EmitSound(self.UseSound)
-			if self.ATR == 0 then
-				ply:GiveAmmo(curswep:GetMaxClip1(), curswep:GetPrimaryAmmoType(), self.HidePopup)
-				if self.UseDelay > 0 then
-					self.CD = true
-					timer.Simple(self.UseDelay, function() self.CD = false end)
-				end
-			else 
-				ply:GiveAmmo(self.ATR, curswep:GetPrimaryAmmoType(), self.HidePopup)
-				if self.UseDelay > 0 then
-					self.CD = true
-					timer.Simple(self.UseDelay, function() self.CD = false end)
-				end
-			end
-			if self.RemoveOnUse == true then
-				self:Remove()
-			end
+			self:DoGiveAmmo(ply, atr, curswep, pop)
 		elseif curswep.Base == "draconic_battery_base" then
 			self:EmitSound(self.DenySound)
 		elseif curswep.Base == "draconic_melee_base" then
@@ -342,23 +323,14 @@ function ENT:GiveAmmo(ply)
 				ply:ChatPrint("I don't think my ".. curswep.InfoName .." uses bullets...")
 			end
 		else
-			ply:ChatPrint("This ammo station only works with Draconic SWEPs!")
+			self:DoGiveAmmo(ply, atr, curswep, pop)
 		end
 	elseif self.PickupType == "batterystation" then
 		if curswep.Base == "draconic_gun_base" then
 			self:EmitSound(self.DenySound)
 		elseif curswep.Base == "draconic_battery_base" then
-			if curswep.Weapon:GetNWInt("LoadedAmmo") < 100 then
-				self:EmitSound(self.UseSound)
-				curswep.Weapon:SetNWInt("LoadedAmmo", 100)
-				curswep:SetClip1(100)
-				if self.UseDelay > 0 then
-					self.CD = true
-					timer.Simple(self.UseDelay, function() self.CD = false end)
-				end
-				if self.RemoveOnUse == true then
-					self:Remove()
-				end
+			if curswep:GetLoadedAmmo() < 100 then
+				self:DoBatteryReset(ply, curswep, pop)
 			else
 				self:EmitSound(self.DenySound)
 			end
@@ -369,9 +341,8 @@ function ENT:GiveAmmo(ply)
 				ply:ChatPrint("I don't think I should shove my ".. curswep.InfoName .." into this...")
 			end
 		else
-			ply:ChatPrint("This ammo station only works with Draconic SWEPs!")
+			ply:ChatPrint("This ammo station only works with Draconic SWEPs (for now)!")
 		end
-	elseif self.PickupType == "stationrequirement" then
 	end
 end
 

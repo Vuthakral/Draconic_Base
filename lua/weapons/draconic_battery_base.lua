@@ -2,11 +2,10 @@ SWEP.Base				= "draconic_gun_base"
 
 --[[     I M P O R T A N T
 
-Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.
-https://github.com/Vuthakral/Draconic_Base/wiki
+Please, go to the wiki for this, and not just rip settings from the base as reference.
+http://vuthakral.com/draconic/
 
 It contains all of the settings, explanations on how to use them, tutorials, helpful links, etc.
-
 --]]
 
 SWEP.Category			= "Draconic"
@@ -30,41 +29,7 @@ SWEP.IronSightAng = Vector(0, 0, 0)
 SWEP.SS = 0
 SWEP.BS = 0
 
-SWEP.InfAmmo				= false
-
-SWEP.HPS						= 6
-SWEP.OverHeatFinishPercent		= 0.17
-SWEP.DisperseHeatPassively 		= true
-SWEP.HeatLossInterval			= 0.1
-SWEP.HeatLossPerInterval		= 1
-SWEP.DoOverheatDamage			= false
-SWEP.OverheatDamagePerInt		= 0
-SWEP.OverheatHoldType			= "knife"
-SWEP.OverheatStrength			= 3
-SWEP.VentingHoldType			= "slam"
-SWEP.VentingStrength			= 4
-SWEP.CanOverheat				= true
-SWEP.CanVent					= false
-SWEP.LowerRPMWithHeat			= true
-SWEP.HeatRPMAlterThreshold		= 0
-SWEP.HeatRPMAlterThresholdMax	= 100
-SWEP.HeatRPMmin					= 120
-SWEP.DoOverheatAnimation		= true
-SWEP.DoVentingAnimation			= true
-SWEP.DoOverheatSound			= true
-SWEP.DoVentingSound				= true
-SWEP.OverheatSound				= Sound("draconic.OverheatGeneric")
-SWEP.VentingSound				= Sound("draconic.VentGeneric")
-SWEP.VentingStartSound			= Sound("draconic.VentOpenGeneric")
-SWEP.VentingStopSound			= Sound("draconic.VentCloseGeneric")
-SWEP.BatteryConsumePerShot		= 0.5
-
-SWEP.BatteryFromVec	= Vector(255, 255, 255)
-SWEP.BatteryToVec		= Vector(255, 10, 0)
-
-SWEP.LoadAfterShot 			= false
-SWEP.LoadAfterReloadEmpty	= false
-SWEP.ManualReload			= false
+SWEP.EnableHeat = true
 
 SWEP.Primary.IronRecoilMul	= 0.5
 SWEP.Primary.Spread			= 1
@@ -98,12 +63,9 @@ SWEP.Secondary.ClipSize			= 18
 SWEP.Secondary.DefaultClip		= 18
 SWEP.Secondary.APS				= 1
 SWEP.Secondary.Tracer			= "Tracer"
-SWEP.Primary.EmptySound		= Sound("draconic.BatteryDepleted")
-SWEP.Secondary.Sound = Sound("")
+SWEP.Primary.EmptySound			= "draconic.BatteryDepleted"
 
--- Settings for NPCs
-SWEP.NPCBurstShots = 0
-SWEP.JackalSniper = false
+SWEP.Secondary.Sound 			= ""
 
 -- the DO NOT TOUCH zone
 SWEP.Primary.Ammo 			= "ammo_drc_battery"
@@ -133,36 +95,37 @@ function SWEP:CanPrimaryAttack()
 	if self:GetNWBool("Overheated") == true then return false end
 
 	if DRC.SV.drc_infiniteammo < 1 then
-	if ply:IsPlayer() then
-		if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
-			self:Overheat(false, nil, true)
-			ply:SetFOV(0, 0.05)
-			return false
-		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == false then
-			ply:SetFOV(0, 0.05)
-			return true
-		elseif self:GetNWInt("LoadedAmmo") < 0.01 && self.InfAmmo == false then
-			if CLIENT then self:EmitSound(self.Primary.EmptySound) end
-			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
-			return false
-		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && eself:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == true then
-			self:Overheat(false, nil, true)
-			ply:SetFOV(0, 0.05)
-			return false
-		elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == true then
-			ply:SetFOV(0, 0.05)
-			return true
-		elseif self:GetNWInt("LoadedAmmo") <= 0.01 && self.InfAmmo == true && self.Loading == false && self.ManuallyReloading == false then
-			self:SetNextPrimaryFire (( CurTime() + 0.3 ))
-			return true
+		if ply:IsPlayer() then
+		--	if self:GetLoadedAmmo() <= 0 then return false end
+			if ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == false then
+				self:Overheat(false, nil, true)
+				ply:SetFOV(0, 0.05)
+				return false
+			elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == false then
+				ply:SetFOV(0, 0.05)
+				return true
+			elseif self:GetLoadedAmmo() <= 0.01 then
+				if CLIENT then self:EmitSound(self.Primary.EmptySound) end
+				self:SetNextPrimaryFire (( CurTime() + 0.3 ))
+				return false
+			elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == true && self.InfAmmo == true then
+				self:Overheat(false, nil, true)
+				ply:SetFOV(0, 0.05)
+				return false
+			elseif ply:GetAmmoCount(self.Primary.Ammo) >= 100 && self:GetNWInt("LoadedAmmo") >= 0.01 && self.CanOverheat == false && self.InfAmmo == true then
+				ply:SetFOV(0, 0.05)
+				return true
+			elseif self:GetLoadedAmmo() <= 0.01 && self.Loading == false && self.ManuallyReloading == false then
+				self:SetNextPrimaryFire (( CurTime() + 0.3 ))
+				return true
+			end
+		else
+			local heat = self:GetHeat()
+			if heat >= 100 then
+				self:Overheat(false, nil, true)
+				return false
+			end
 		end
-	else
-		local heat = self:GetHeat()
-		if heat >= 100 then
-			self:Overheat(false, nil, true)
-			return false
-		end
-	end
 	end
 	
 	if self:GetNWBool("Inspecting") == true then
@@ -226,8 +189,8 @@ function SWEP:Reload()
 		self:Taunt()
 		elseif walkkey && reloadkey && self.IsTaunting == 1 then
 		self:SetHoldType(self.VentingHoldType)
-	elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.CanVent == true && ( self:Clip1() < self.Primary.ClipSize ) then
-			if ( self:Clip1() < self.Primary.ClipSize ) && self:Ammo1() > 0 then
+	elseif reloadkey && !sprintkey && self.ManuallyReloading == false && self.CanVent == true && ( self:Clip1() <= self.Primary.ClipSize ) then
+			if self:Ammo1() > 0 then
 				if self.DoVentingSound == true then
 					local ventstart = self.VentingStartSound
 					self:EmitSound(ventstart)
@@ -241,7 +204,6 @@ function SWEP:Reload()
 					self:EmitSound(ventingsound)
 				else end
 				return true
-			elseif ( self:Clip1() < self.Primary.ClipSize ) && self:Ammo1() > 1 then
 			end
 	elseif reloadkey && sprintkey && self.ManuallyReloading == false && self.Loading == false && ( self:Clip2() < self.Secondary.ClipSize ) && ply:GetAmmoCount(self.Secondary.Ammo) > 0 then
 		if ( ply:GetAmmoCount(self.Secondary.Ammo) ) <= 0 then

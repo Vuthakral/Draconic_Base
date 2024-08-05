@@ -1,0 +1,31 @@
+VortWarp
+{
+	$basetexture	"models\vuthakral\grey127-100"
+	$bumpmap	"models\vuthakral/flatnormal-100"
+	$color2	"[ 0 0 0 ]"
+
+	$flowmap		"models\vuthakral\shield_flow"
+	$selfillummap	"models\vuthakral\shield_arcs"
+	$selfillumtint	" [0 10 10 ]"
+
+	$entityorigin	""
+	$warpparam	0
+
+	"Proxies"
+	{
+
+		"EntityOrigin"
+		{
+		}
+		"MaterialModify"
+		{
+		}
+		Sine
+		{
+			sinemin	0.05
+			sinemax	0.2
+			sineperiod	3
+			resultVar	$warpparam
+		}
+	}
+}

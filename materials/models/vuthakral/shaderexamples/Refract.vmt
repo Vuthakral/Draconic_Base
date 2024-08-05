@@ -1,0 +1,32 @@
+Refract
+{
+	$model	1
+	$nowritez	0
+	$forcealphawrite	1
+
+	$basetexture	"models/shadertest/shader5"
+	$normalmap	"models/shadertest/shader5_normal"
+	$normalmap2	"rubber_bump"
+	
+	$refracttint	"[ 2 2 2 ]"
+	$refracttinttexture	"models/shadertest/shader5"
+	$refractamount	0.2
+	$bluramount	1
+	$fadeoutonsilhouette	0
+
+	$envmap	env_cubemap
+	$envmapsaturation	1
+	$envmapcontrast	1
+
+	$localrefract	1
+	$localrefractdepth	10
+
+	$bumpframe		0
+	$bumpframe2		0
+	$refracttinttextureframe	0
+
+	Proxies
+	{
+		drc_ReflectionTint{}
+	}
+}

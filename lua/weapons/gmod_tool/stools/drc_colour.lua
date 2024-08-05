@@ -117,8 +117,6 @@ function TOOL:LeftClick( trace )
 	local ac2col = Vector(r,g,b)
 	SetColour( self:GetOwner(), ent, {ac2col, "accent2"})
 	
-	print(self:GetClientNumber("grunge"))
-	
 	SetColour( self:GetOwner(), ent, {math.Clamp(self:GetClientNumber( "grunge", 0 ), 0, 100), "grunge"})
 
 	return true

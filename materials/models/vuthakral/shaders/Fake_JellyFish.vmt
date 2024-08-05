@@ -1,0 +1,57 @@
+VertexLitGeneric
+{
+	$basetexture	"shadertest\cloud"
+	$bumpmap	"dev\water_normal"
+	$color2	"[ 1 1 1 ]"
+	$additive	1
+	$nocull	1
+	$selfillum	0
+
+	$emissiveBlendEnabled	1
+	$emissiveBlendTexture	"models\vuthakral\shield_arcs"
+	$emissiveBlendBaseTexture	"shadertest\cloud"
+	$emissiveBlendFlowTexture	"models\vuthakral\shield_flow"
+	$emissiveBlendTint		"[ 0 38 63 ]"
+	$emissiveBlendStrength 	1
+	$emissiveBlendScrollVector	"[ 0.005 0.005 ]"
+
+	$fleshinteriorenabled	1
+	$fleshdebugforcefleshon	1
+	$fleshinteriortexture		"shadertest\cloud"
+	$fleshinteriornoisetexture	"models\vuthakral\shield_arcs"
+	$fleshbordertexture1d	"models\alyx\alyx_flesh_border"
+	$fleshnormaltexture		"shadertest\gooinglass_normal"
+	$fleshsubsurfacetexture 	"shadertest\cloud"
+	$fleshglobalopacity		0.5
+	$fleshsubsurfacetint		"[ 0 100 500 ]"
+	$fleshscrollspeed		5
+	$fleshbordernoisescale	2
+	$fleshborderwidth		0.5
+	$fleshbordersoftness	0.5
+	$fleshbordertint		"[ 0.3 1 -1 ]"
+	$fleshcubetexture		"env_cubemap"
+	$fleshglossbrightness	15
+
+	$normalmapalphaenvmapmask	1
+	$phong	1
+	$phongboost	5
+	$phongexponent	18
+	$phongfresnelranges	"[ .03 3 1 ]"
+	$phongtint	"[ 0 8 .8 ]"
+
+	"Proxies"
+	{
+		TextureScroll
+		{
+			textureScrollVar	$basetexturetransform
+			textureScrollRate	0.01
+			textureScrollAngle	90
+		}
+		AnimatedTexture
+		{
+			"animatedtexturevar" "$bumpmap"
+			"animatedtextureframenumvar" "$bumpframe"
+			"animatedtextureframerate" 5.00
+		}
+	}
+}

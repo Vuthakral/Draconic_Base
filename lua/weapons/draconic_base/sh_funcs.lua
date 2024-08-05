@@ -79,6 +79,7 @@ function SWEP:CanCustomize(bypassinspect)
 			if #v <= 1 then cando = false end
 		end
 	end
+	if self.WeaponSkinDefaultMat != nil then cando = true end
 	return cando
 end
 
@@ -137,28 +138,6 @@ function SWEP:RegeneratingHealth(ply)
 	end)
 end
 
---[[
-function SWEP:RegeneratingAmmo(self)
-	local ply = self:GetOwner()
-	if not ply:IsPlayer() then return end
-	local ammo, maxammo
-	if self.RegenAmmo == false or self.RegenAmmo == nil then return end
-
-	self.AmmoRegen = "AmmoRegen_".. ply:Name()
-	
-		timer.Create(self.AmmoRegen, self.AmmoInterval, 0, function() 
-			if !SERVER or !self:IsValid()  or !timer.Exists( self.AmmoRegen ) then return end
-			
-			ammo = self:Clip1()
-			maxammo = (self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
-			if maxammo < ammo then return end
-			if self.Loading == false then
-				self:SetLoadedAmmo(math.Clamp( ammo + self.AmmoRegenAmount, 0, maxammo ))
-				self:SetClip1(self:GetLoadedAmmo())
-			end
-		end)
-end ]]
-
 function SWEP:RegeneratingAmmo(wpn, delay, amount)
 	if !wpn.AmmoCheck then wpn.AmmoCheck = 0 end
 	if CurTime() > wpn.AmmoCheck then
@@ -174,9 +153,10 @@ function SWEP:RegeneratingAmmo(wpn, delay, amount)
 	end
 end
 
+--[[
 function SWEP:DisperseHeat()
 	local ply = self:GetOwner()
-	if not ply:IsPlayer() then return end
+	if !ply:IsPlayer() then return end
 	local CurHeat = self:GetHeat()
 
 	self.HeatDisperseTimer = "HeatDisperseTimer_".. ply:Name()
@@ -199,10 +179,10 @@ function SWEP:DisperseHeat()
 		end
 		
 		if ply:GetAmmoCount( "ammo_drc_battery" ) >= 100 then
-			if self.CanOverheat == true then
+			if self.CanOverheat == true && self.IsBatteryBased == true then
 				self:Overheat()
-			else end
-		else end
+			end
+		end
 		
 		if ply:GetAmmoCount( "ammo_drc_battery" ) >= (100 - (100 * self.OverHeatFinishPercent)) then
 		else
@@ -216,6 +196,27 @@ function SWEP:DisperseHeat()
 	else
 	end
 end
+]]
+
+function SWEP:DisperseHeat()
+	local ply = self:GetOwner()
+	if !ply:IsPlayer() then return end
+	if !self.HeatCheck then self.HeatCheck = 0 end
+	local ct = CurTime()
+	if ct > self.HeatCheck then
+		self.HeatCheck = ct + self.HeatLossInterval
+		local heat = self:GetHeat()
+		if heat >= 100 then
+			if self.CanOverheat == true && self.IsBatteryBased == true && self.IsOverheated != true then
+				self:Overheat()
+			end
+		end
+	--	if ct > self:GetNextPrimaryFire() then
+			self:SetHeat(math.Clamp( (self:GetHeat() - (self.HeatLossPerInterval * self:GetNWFloat("HeatDispersePower"))), 0, 100), "ammo_drc_battery" )
+			ply:SetAmmo(self:GetHeat(), "ammo_drc_battery" )
+	--	end
+	end
+end
 
 function SWEP:BloomScore()
 	if self.Base != "draconic_melee_base" then
@@ -226,6 +227,7 @@ function SWEP:BloomScore()
 		local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 		local plidle = (!mk && !sk && !cv)
 		local issprinting = sk && mk
+		local sd = self.SightsDown
 
 		self.BloomScoreName = "BloomScore_".. ply:Name()
 		
@@ -233,36 +235,27 @@ function SWEP:BloomScore()
 			if !self:IsValid() then return end
 			if self.BloomValue == 0 then return end
 			
+			local div, maxi, mul, bonus = 1, 1.7, 1, 0	
+			if !sd then
+				if plidle then maxi = 1 mul = 1.5
+				elseif cv then maxi = 1 mul = 1.75
+				elseif mk then maxi = 1.3 mul = 2 bonus = 0.1
+				elseif issprinting then maxi = 1.7 mul = 2 bonus = 0.3 end
+			else
+				if plidle then maxi = 1 mul = 2 div = 1.5
+				elseif cv then maxi = 1 mul = 2 div = 3
+				elseif mk then maxi = 1 mul = 1 bonus = 0.1 div = 2
+				elseif issprinting then maxi = 1 mul = 1 bonus = 0.3 div = 2 end
+			end
+			
 			local bs = self.BloomValue
 			local pbs = self.PrevBS
 			if self.SightsDown == false then
-				if plidle then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - (self.Primary.Kick * 1.5), 0, 1)
-				elseif cv then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - (self.Primary.Kick * 1.75), 0, 1)
-				elseif mk then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick * 2 +0.1, 0, 1.3)
-				elseif issprinting then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - self.Primary.Kick * 2 +0.3, 0, 1.7)
-				end
+				self.PrevBS = math.Clamp( bs, 0, 1.7)
+				self.BloomValue = math.Clamp( bs - (self.Primary.Kick * mul + bonus), 0, maxi)
 			else
-				if plidle then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - ((self.Primary.Kick * 2) / 1.5), 0, 1)
-				elseif cv then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - ((self.Primary.Kick * 2) / 3), 0, 1)
-				elseif mk then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.1) /2, 0, 1)
-				elseif issprinting then
-					self.PrevBS = math.Clamp( bs, 0, 1.7)
-					self.BloomValue = math.Clamp( bs - (self.Primary.Kick +0.3) /2, 0, 1)
-				end
+				self.PrevBS = math.Clamp( bs, 0, 1.7)
+				self.BloomValue = math.Clamp( bs - (self.Primary.Kick * mul + bonus / div), 0, maxi)
 			end
 		end)
 		
@@ -313,96 +306,43 @@ function SWEP:CanOvercharge()
 	if self:GetCharge() > 99 then return true else return false end
 end
 
---[[
 function SWEP:UpdateBloom(mode)
 	local ply = self:GetOwner()
-	if !ply:IsPlayer() then return end
-	local cv = ply:Crouching()
-	local sk = ply:KeyDown(IN_SPEED)
-	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
-	local plidle = (!mk && !sk && !cv)
-	local issprinting = sk && mk
+	local oa, cv, bs, pbs, mul, sd = self.OwnerActivity, ply:Crouching(), self:GetBS(), self:GetPBS(), 1, self.SightsDown
 	
-	if mode == "primary" then
-		self.Kick = self.Primary.Kick
-	elseif mode == "secondary" then
-		self.Kick = self.Secondary.Kick
-	elseif mode == "overcharge" then
-		self.Kick = self.OCKick
-	end
-	
-	local bs = self.BloomValue
-	local pbs = self.PrevBS
-	if bs == nil then bs = 0 end
-	if pbs == nil then pbs = 0 end
-	if self.SightsDown == false then
-		if plidle or sk then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + self.Kick, 0, 1)
-		elseif cv then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + self.Kick / 1.25, 0, 1)
-		elseif mk then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + self.Kick +0.1, 0, 1.3)
-		elseif issprinting then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + self.Kick +0.3, 0, 1.7)
-		end
-	else
-		if plidle or sk then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + self.Primary.Kick /2, 0, 1)
-		elseif cv then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + (self.Primary.Kick /1.25) /2, 0, 1)
-		elseif mk then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + (self.Primary.Kick +0.1) /2, 0, 1)
-		elseif issprinting then
-			self.PrevBS = math.Clamp( bs, 0, 1.7)
-			self.BloomValue = math.Clamp( self.BloomValue + (self.Primary.Kick +0.3) /2, 0, 1)
-		end
-	end
-	
---	ply:SetNWInt("PrevBS", self.BloomValue * 10)
-end ]]
-
-local bloom_updates = {
-	["standidle"] = 0,
-	["crouchidle"] = 0,
-	["running"] = 0.1,
-	["crouchrunning"] = 0.1,
-	["sprinting"] = 0.3,
-	["crouchingsprinting"] = 0.3,
-	["swimidle"] = 0,
-	["swimming"] = 0.1,
-}
-local bloom_maximums = {
-	["standidle"] = 1,
-	["crouchidle"] = 1,
-	["running"] = 1.3,
-	["crouchrunning"] = 1.3,
-	["sprinting"] = 1.7,
-	["crouchingsprinting"] = 1.7,
-	["swimidle"] = 0.9,
-	["swimming"] = 1.1,
-}
-
-function SWEP:UpdateBloom(mode)
-	local ply = self:GetOwner()
-	local oa, cv, bs, pbs, mul = self.OwnerActivity, ply:Crouching(), self:GetBS(), self:GetPBS(), 1
-	if cv then mul = 0.5 end
-	
-	local kickmodes = { -- defined in here in case anyone codes custom kick modifiers; though don't rely on these as this'll need to be changed later for attachment base integration.
-		["primary"] = self.Primary.Kick,
-		["secondary"] = self.Secondary.Kick,
-		["overcharge"] = self.OCKick
+	local kickmodes = {
+		["primary"] = self.PrimaryStats.Kick,
+		["secondary"] = self.SecondaryStats.Kick,
+		["overcharge"] = self.OCStats.Kick
 	}
+	
+	local blooms = {
+		["primary"] = self.PrimaryStats.BloomMul,
+		["secondary"] = self.SecondaryStats.BloomMul,
+		["overcharge"] = self.OCStats.BloomMul
+	}
+	
+	local bloomscrouch = {
+		["primary"] = self.PrimaryStats.BloomMulCrouch,
+		["secondary"] = self.SecondaryStats.BloomMulCrouch,
+		["overcharge"] = self.OCStats.BloomMulCrouch
+	}
+	
+	local bloomsads = {
+		["primary"] = self.PrimaryStats.BloomMulADS,
+		["secondary"] = self.SecondaryStats.BloomMulADS,
+		["overcharge"] = self.OCStats.BloomMulADS
+	}
+	
 	self.Kick = kickmodes[mode]
 	
-	self.PrevBS = math.Clamp(bs, 0, bloom_maximums[oa])
-	self.BloomValue = math.Clamp((self.BloomValue + bloom_updates[oa] + self.Kick) * mul, 0, bloom_maximums[oa])
+	if !cv && !sd then mul = blooms[mode]
+	elseif !cv && sd then mul = blooms[mode] * bloomsads[mode]
+	elseif cv && !sd then mul = bloomscrouch[mode]
+	elseif cv && sd then mul = bloomscrouch[mode] * bloomsads[mode] end
+	
+	self.PrevBS = math.Clamp(bs, 0, DRCD.Weapons.bloom_maximums[oa])
+	self.BloomValue = math.Clamp((self.BloomValue + DRCD.Weapons.bloom_updates[oa] + self.Kick) * mul, 0, DRCD.Weapons.bloom_maximums[oa])
 end
 
 function SWEP:GetBS()
@@ -413,173 +353,6 @@ function SWEP:GetPBS()
 	return self.PrevBS
 end
 
---[[
-function SWEP:DoMeleeSwing(mode, flipx, flipy, preventanim)
-	local ply = self:GetOwner()
-	local settings = {}
-	if self.IsMelee then
-		settings = {
-			["primary"] = {
-				["range"] = self.Primary.Range,
-				["x1m"] = math.Rand(self.Primary.StartX * 0.9, self.Primary.StartX * 1.1),
-				["x2m"] = math.Rand(self.Primary.EndX * 0.9, self.Primary.EndX * 1.1),
-				["y1m"] = math.Rand(self.Primary.StartY * 0.9, self.Primary.StartY * 1.1),
-				["y2m"] = math.Rand(self.Primary.EndY * 0.9, self.Primary.EndY * 1.1),
-				["delayhit"] = self.Primary.DelayHit,
-				["delaymiss"] = self.Primary.DelayMiss,
-				["delayinitial"] = self.Primary.HitDelay,
-				["sound"] = self.Primary.SwingSound,
-				["shake"] = self.Primary.ShakeMul,
-				["anim"] = self.Primary.MeleeAct,
-				["anim_crouch"] = self.Primary.MeleeActCrouch,
-				["fp_hit"] = self.Primary.HitActivity,
-				["fp_hit_crouch"] = self.Primary.CrouchHitActivity,
-				["fp_miss"] = self.Primary.MissActivity,
-				["fp_miss_crouch"] = self.Primary.CrouchMissActivity,
-			},
-			["secondary"] = {
-				["range"] = self.Secondary.Range,
-				["x1m"] = math.Rand(self.Secondary.StartX * 0.9, self.Secondary.StartX * 1.1),
-				["x2m"] = math.Rand(self.Secondary.EndX * 0.9, self.Secondary.EndX * 1.1),
-				["y1m"] = math.Rand(self.Secondary.StartY * 0.9, self.Secondary.StartY * 1.1),
-				["y2m"] = math.Rand(self.Secondary.EndY * 0.9, self.Secondary.EndY * 1.1),
-				["delayhit"] = self.Secondary.DelayHit,
-				["delaymiss"] = self.Secondary.DelayMiss,
-				["delayinitial"] = self.Secondary.HitDelay,
-				["sound"] = self.Secondary.SwingSound,
-				["shake"] = self.Secondary.ShakeMul,
-				["anim"] = self.Secondary.MeleeAct,
-				["anim_crouch"] = self.Secondary.MeleeActCrouch,
-				["fp_hit"] = self.Secondary.HitActivity,
-				["fp_hit_crouch"] = self.Secondary.CrouchHitActivity,
-				["fp_miss"] = self.Secondary.MissActivity,
-				["fp_miss_crouch"] = self.Secondary.CrouchMissActivity,
-			},
-			["lungeprimary"] = {
-				["range"] = self.Primary.LungeRange,
-				["x1m"] = math.Rand(self.Primary.LungeStartX * 0.9, self.Primary.LungeStartX * 1.1),
-				["x2m"] = math.Rand(self.Primary.LungeEndX * 0.9, self.Primary.LungeEndX * 1.1),
-				["y1m"] = math.Rand(self.Primary.LungeStartY * 0.9, self.Primary.LungeStartY * 1.1),
-				["y2m"] = math.Rand(self.Primary.LungeEndY * 0.9, self.Primary.LungeEndY * 1.1),
-				["delayhit"] = self.Primary.LungeDelayHit,
-				["delaymiss"] = self.Primary.LungeDelayMiss,
-				["delayinitial"] = self.Primary.LungeHitDelay,
-				["sound"] = self.Primary.LungeSwingSound,
-				["shake"] = self.Primary.LungeShakeMul,
-				["anim"] = self.Primary.LungeMeleeAct,
-				["anim_crouch"] = self.Primary.LungeMeleeActCrouch,
-				["fp_hit"] = self.Primary.LungeHitAct,
-				["fp_hit_crouch"] = self.Primary.LungeHitActCrouch,
-				["fp_miss"] = self.Primary.LungeMissAct,
-				["fp_miss_crouch"] = self.Primary.LungeMissActCrouch,
-			},
-		}
-	else
-		settings = {
-			["gunmelee"] = {
-				["range"] = self.Primary.MeleeRange,
-				["x1m"] = math.Rand(self.Primary.MeleeStartX * 0.9, self.Primary.MeleeStartX * 1.1),
-				["x2m"] = math.Rand(self.Primary.MeleeEndX * 0.9, self.Primary.MeleeEndX * 1.1),
-				["y1m"] = math.Rand(self.Primary.MeleeStartY * 0.9, self.Primary.MeleeStartY * 1.1),
-				["y2m"] = math.Rand(self.Primary.MeleeEndY * 0.9, self.Primary.MeleeEndY * 1.1),
-				["delayhit"] = self.Primary.MeleeDelayHit,
-				["delaymiss"] = self.Primary.MeleeDelayMiss,
-				["delayinitial"] = self.Primary.MeleeHitDelay,
-				["sound"] = self.Primary.SwingSound,
-				["shake"] = self.Primary.MeleeShakeMul,
-				["anim"] = nil,
-				["anim_crouch"] = nil,
-				["fp_hit"] = self.Primary.MeleeHitActivity,
-				["fp_hit_crouch"] = self.Primary.MeleeHitActivity,
-				["fp_miss"] = self.Primary.MeleeMissActivity,
-				["fp_miss_crouch"] = self.Primary.MeleeMissActivity,
-			},
-		}
-	end
-	
-	local x1m, x2m, y1m, y2m = settings[mode]["x1m"], settings[mode]["x2m"], settings[mode]["y1m"], settings[mode]["y2m"]
-	if flipx == true then 
-		x1m = -x1m
-		x2m = -x2m
-	end
-	if flipy == true then
-		y1m = -y1m
-		y2m = -y2m
-	end
-	
-	if mode == "gunmelee" then
-		local ht = string.lower(self:GetHoldType())
-		if ht == "ar2" or ht == "smg" or ht == "crossbow" or ht == "shotgun" or ht == "rpg" or ht == "melee2" or ht == "physgun" then
-			settings.gunmelee.anim = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND
-			settings.gunmelee.anim_crouch = ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND
-		elseif ht == "crowbar" or ht == "pistol" or ht == "revolver" or ht == "grenade" or ht == "slam" or ht == "normal" or ht == "fist" or ht == "knife" or ht == "passive" or ht == "duel" or ht == "magic" or ht == "camera" then
-			settings.gunmelee.anim = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND
-			settings.gunmelee.anim_crouch = ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND
-		end
-	end
-	
-	if mode == "lungeprimary" then
-	local target = self:GetConeTarget()
-		if target then
-			if ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist then
-				ply:SetVelocity(ply:GetForward() * 8 * ply:GetPos():Distance(target:GetPos()))
-			end
-		end
-	end
-
-	DRC:SpeakSentence(ply, "Actions", "Melee")
-	if settings[mode]["sound"] != nil then self:EmitSound(Sound(settings[mode]["sound"])) end
-	
-	if ply:IsPlayer() && preventanim != true then
-		local cv = ply:Crouching()
-		if cv == false then
-			if SERVER then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, settings[mode]["anim"]) end
-		elseif cv == true then
-			if SERVER then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, settings[mode]["anim_crouch"]) end
-		end
-	end
-	
-	if ply:IsPlayer() then
-		local vm = ply:GetViewModel()
-		ply:ViewPunch(Angle(y1m, x1m, nil) * -0.1 * settings[mode]["shake"])
-		ply:SetViewPunchVelocity(Angle(-x1m * (1 + settings[mode]["delayhit"]) * settings[mode]["shake"], -y1m * (5 + settings[mode]["delayhit"]) * settings[mode]["shake"], 0))
-		timer.Simple(.1, function()
-			if !IsValid(self) then return end
-			if !IsValid(self:GetOwner()) then return end
-			ply:ViewPunch(Angle(y1m, x1m, nil) * 0.1 * settings[mode]["shake"])
-		end)
-
-		local anim = self:SelectWeightedSequence( settings[mode]["fp_miss"] )
-		if ply:IsPlayer() then	local cv = ply:Crouching() if cv == true then anim = self:SelectWeightedSequence( settings[mode]["fp_miss_crouch"] ) end end
-		local animdur = self:SequenceDuration( anim )
-		self.IsDoingMelee = true
-		timer.Simple(animdur, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
-		if anim != -1 && self:HasViewModel() && preventanim != true then 
-			self:SendWeaponAnim(settings[mode]["fp_miss"])
-			self:SendViewModelMatchingSequence(anim)
-		end
-		self:SetNextPrimaryFire(CurTime() + settings[mode]["delayhit"] )
-		self:SetNextSecondaryFire(CurTime() + settings[mode]["delayhit"] )
-		self.IdleTimer = CurTime() + vm:SequenceDuration()
-	else
-		self:SetNextPrimaryFire(CurTime() + settings[mode]["delayhit"] )
-		self:SetNextSecondaryFire(CurTime() + settings[mode]["delayhit"] )
-		self.IsDoingMelee = true
-		timer.Simple(1, function() if !IsValid(self) then return end self.IsDoingMelee = false end)
-	end
-	
-	for i=1,(math.Round(1/ engine.TickInterval() - 1 , 0)) do
-		if !IsValid(self) then return end
-		if !IsValid(ply) then return end
-		timer.Create( "".. tostring(self) .."_SwingImpact_".. i .."", math.Round((settings[mode]["delayinitial"] * 100) / 60 * i / 60, 3), 1, function()
-			if !IsValid(self) then return end
-			if !IsValid(self:GetOwner()) then return end
-			self:MeleeImpact(settings[mode]["range"], Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), x1m, x2m), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), y1m, y2m), i, mode)
-		end)
-	end
-end
-]]
-
 function SWEP:DoMeleeSwing(swinginfo, preventanim)
 	if !self:CanMelee() then return false end
 	if !swinginfo or !istable(swinginfo) then return end
@@ -588,21 +361,25 @@ function SWEP:DoMeleeSwing(swinginfo, preventanim)
 
 	if !self.MeleeQueue then self.MeleeQueue = {} end
 	self.IsDoingMelee = true
-	if swinginfo.anim_fp_miss != nil then
-	--	self.Loading = true
-		--self:SendWeaponAnim(swinginfo.anim_fp_miss)
-		self:PlayAnim(swinginfo.anim_fp_miss, false, true)
-	--	local anim = self:SelectWeightedSequence(swinginfo.anim_fp_miss)
-	--	local dur = self:SequenceDuration(anim)
-	--	self.IdleTimer = CurTime() + dur
+	self:SetNWBool("IsDoingMelee", true)
+	if swinginfo.anim_fp_miss != nil then self:PlayAnim(swinginfo.anim_fp_miss, false, true) end
+	
+	if CLIENT && self.DoRotationalBlur == true then
+		local rx, ry = swinginfo.x[1] + swinginfo.x[2], swinginfo.y[1] + swinginfo.y[2]
+		if rx == 0 then rx = 5 end
+		if ry == 0 then ry = 5 end
+		local ra = ((rx+ry)*0.5) * 0.0025
+		if swinginfo.x[1] < 0 then ra = -ra end
+		ply.RotationalBlurAdditive = ply.RotationalBlurAdditive + (ra * self.RotationalGainMul)
 	end
 
 	if swinginfo.anim_tp != nil && preventanim != true then
-		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, swinginfo.anim_tp, true)
+		local fallback = DRC:GetHoldTypeAnim(string.lower(self:GetHoldType()), "melee", false)
+		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, swinginfo.anim_tp, true, fallback)
 	end
 	
 	local delay = swinginfo.delay
-	if CLIENT or (SERVER && !game.IsDedicated()) && swinginfo.screenshake[1] == true then
+	if ply:IsPlayer() && swinginfo.screenshake[1] == true then
 		ply:ViewPunch(Angle(swinginfo.y[1], swinginfo.x[1], nil) * -0.1 * swinginfo.screenshake[2])
 		ply:SetViewPunchVelocity(Angle(-swinginfo.x[1] * (1 + delay[1]) * swinginfo.screenshake[2], -swinginfo.y[1] * (5 + delay[1]) * swinginfo.screenshake[2], 0))
 		timer.Simple(.1, function()
@@ -631,164 +408,14 @@ function SWEP:DoMeleeSwing(swinginfo, preventanim)
 			end
 		end
 	end
+	
+	self:DoCustomMeleeSwing(swinginfo)
 end
-
---[[
-function SWEP:MeleeImpact(range, x, y, i, att)
-	if !SERVER then return end
-	local ply = self:GetOwner()
-	local vm = nil
-	local eyeang = ply:EyeAngles()
-	local eyepos = ply:EyePos()
-	local centerpos = ply:GetPos() + ply:OBBCenter()
-	local aimpos = ply:GetPos() + Vector(ply:OBBCenter().x, ply:OBBCenter().y, ply:OBBCenter().z * 1.4)
-	local rangemul = 1
-	local velang = DRC:GetVelocityAngle(ply, true, true)
-	if ply:IsPlayer() then
-		vm = ply:GetViewModel()
-		rangemul = math.Clamp((ply:GetWalkSpeed()/100 * (ply:GetWalkSpeed()/100) / 2) * velang.y / 180, 1, 2.5)
-	else
-		rangemul = 2
-	end
-	
-	local rhm = math.Round(1 / engine.TickInterval() - 1, 0) / 2
-	
-	if !IsValid(self) or !IsValid(ply) then return end
-
-	if i < rhm then
-		self.dist = eyepos + ( ply:GetAimVector() * range * ( i / 10) ) * rangemul
-	elseif i == rhm then
-		self.dist = eyepos + ( ply:GetAimVector() * range * 3.4 ) * rangemul
-	elseif i > rhm then
-		self.dist = eyepos + ( ply:GetAimVector() * range / (i / 100) ) * rangemul
-	end
-	
-	local WhyDoesVJAimUpwards = Vector()
-	if ply.IsVJBaseSNPC then WhyDoesVJAimUpwards = Vector(0 ,0, -40) end
-	
-	local tl = {
-		["start"] = aimpos,
-		["endpos"] =  ( self.dist ) + ((eyeang:Up()*y) + (eyeang:Right()*x) + WhyDoesVJAimUpwards),
-		["filter"] = {self, ply},
-		["mask"] = MASK_SHOT
-	}
-	if ply:IsPlayer() then ply:LagCompensation(true) end
-	local swingtrace = util.TraceLine( tl )
-	if ply:IsPlayer() then ply:LagCompensation(false) end
-	
-	att = string.lower(att)
-	if att == "primary" then 
-		self.Force 	= self.Primary.Force
-		self.Damage = self.Primary.Damage
-		self.ID		= self.Primary.ImpactDecal
-		self.BD		= self.Primary.BurnDecal
-		self.DT		= self.Primary.DamageType
-		self.DH		= self.Primary.DelayHit
-		self.HA		= self.Primary.MeleeHitActivity
-		self.HSF	= self.Primary.HitSoundFlesh
-		self.HSE	= self.Primary.HitSoundEnt
-		self.HSW	= self.Primary.HitSoundWorld
-	elseif att == "secondary" then 
-		self.Force = self.Secondary.Force
-		self.Damage = self.Secondary.Damage
-		self.ID		= self.Secondary.ImpactDecal
-		self.BD		= self.Secondary.BurnDecal
-		self.DT		= self.Secondary.DamageType
-		self.DH		= self.Secondary.DelayHit
-		self.HA		= self.Secondary.MeleeHitActivity
-		self.HSF	= self.Secondary.HitSoundFlesh
-		self.HSE	= self.Secondary.HitSoundEnt
-		self.HSW	= self.Secondary.HitSoundWorld
-	elseif att == "lungeprimary" then 
-		self.Force = self.Primary.LungeForce
-		self.Damage = self.Primary.LungeDamage
-		self.ID		= self.Primary.LungeImpactDecal
-		self.BD		= self.Primary.LungeBurnDecal
-		self.DT		= self.Primary.LungeDamageType
-		self.DH		= self.Primary.LungeDelayHit
-		self.HA		= self.Primary.LungeHitAct
-		self.HSF	= self.Primary.LungeHitSoundFlesh
-		self.HSE	= self.Primary.LungeHitSoundEnt
-		self.HSW	= self.Primary.LungeHitSoundWorld
-	elseif att == "gunmelee" then
-		self.Force 	= self.Primary.MeleeForce
-		self.Damage = self.Primary.MeleeDamage
-		self.ID		= self.Primary.MeleeImpactDecal
-		self.BD		= self.Primary.MeleeBurnDecal
-		self.DT		= self.Primary.MeleeDamageType
-		self.DH		= self.Primary.MeleeDelayHit
-		self.HA		= self.Primary.MeleeHitActivity
-		self.HSF	= self.Primary.MeleeHitSoundFlesh
-		self.HSE	= self.Primary.MeleeHitSoundEnt
-		self.HSW	= self.Primary.MeleeHitSoundWorld
-	end
-	
-	local damageinfo = DamageInfo()
-	damageinfo:SetAttacker(ply)
-	damageinfo:SetInflictor(self)
-	damageinfo:SetDamageType(self.DT)
-	damageinfo:SetDamageForce((self.Owner:GetRight() * math.random(3568,4235)) + (self.Owner:GetForward() * math.random(6875,7523)))
-	damageinfo:SetDamage(self.Damage)
-	damageinfo:SetBaseDamage(2221208)
-	
-	if ( swingtrace.Hit ) then
-		self:SetNextPrimaryFire( CurTime() + self.DH )
-		self:SetNextSecondaryFire( CurTime() + self.DH )
-		
-		if self.HA != nil then self:SendWeaponAnim( self.HA ) end
-		
-		for i=-1, (math.Round(1/ engine.TickInterval() - 1 , 0)) do
-			if timer.Exists("".. tostring(self) .."_SwingImpact".. i .."") then timer.Destroy("".. tostring(self) .."_SwingImpact".. i .."") end
-		end
-		
-		
-		
-		if IsValid(swingtrace.Entity) && DRC:IsCharacter(swingtrace.Entity) then
-		elseif swingtrace.Entity:IsValid() and ( !swingtrace.Entity:IsNPC() or !swingtrace.Entity:IsPlayer() ) && !swingtrace.Entity:IsNextBot() && IsValid(swingtrace.Entity:GetPhysicsObject()) then
-			if i < rhm then
-				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
-			elseif i == rhm then	
-				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * i, swingtrace.HitPos )
-			elseif i > rhm then
-				swingtrace.Entity:GetPhysicsObject():ApplyForceOffset( self.Owner:GetForward() * self.Force * 15 * ( i / 10 ), swingtrace.HitPos )
-			end
-			damageinfo:SetDamageForce(Vector())
-			
-			if swingtrace.Entity:Health() > 0 then
-			swingtrace.Entity:TakeDamage( self.Damage, self.Owner, self.Owner:GetActiveWeapon() )
-			end
-		elseif swingtrace.Entity:IsWorld() then
-			util.Decal(self.ID, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
-			util.Decal(self.BD, swingtrace.HitPos + swingtrace.HitNormal, swingtrace.HitPos - swingtrace.HitNormal)  
-		end
-	end
-	if IsValid(swingtrace.Entity) then swingtrace.Entity:TakeDamageInfo( damageinfo ) end
-
-	if ( swingtrace.Hit ) then
-		self:DoCustomMeleeImpact(att, swingtrace)
-		if swingtrace.Entity:IsPlayer() or string.find(swingtrace.Entity:GetClass(),"npc") or string.find(swingtrace.Entity:GetClass(),"prop_ragdoll") or string.find(swingtrace.Entity:GetClass(),"prop_physics") then
-			if string.find(swingtrace.Entity:GetClass(),"prop_physics") then
-				self:EmitSound(Sound(self.HSE))
-			else
-				self:EmitSound(Sound(self.HSF))
-			end
-		else
-			self:EmitSound(Sound(self.HSW))
-		end
-	end
-	
-	if swingtrace.Hit && !swingtrace.Entity:IsWorld() then
-		DRC:RenderTrace(swingtrace, Color(255, 0, 0, 255), 1)
-	elseif !swingtrace.Hit then
-		DRC:RenderTrace(swingtrace, Color(255, 255, 255, 255), 1)
-	end
-	
-end
-]]
 
 function SWEP:ClearMeleeQueue()
 	self.MeleeQueue = {}
 	self.IsDoingMelee = false
+	self:SetNWBool("IsDoingMelee", false)
 --	self.Loading = false
 end
 
@@ -902,7 +529,6 @@ function SWEP:MeleeImpact(swinginfo, x, y, i)
 			if swinginfo.anim_fp != nil then
 				self:PlayAnim(swinginfo.anim_fp, false, true)
 			end
-			--self:MeleeImpactSound(swinginfo.hitsound, swingtrace.SurfaceProps, swingtrace.HitPos)
 			
 			self:TriggerCustomImpact(swinginfo, tr)
 			
@@ -915,12 +541,8 @@ function SWEP:MeleeImpact(swinginfo, x, y, i)
 			local forceval = forceangle * swinginfo.damage[3] * 15
 			if i < rhm then
 				forceval = forceval * i
-				--tr.Entity:GetPhysicsObject():ApplyForceOffset( forceangle * swinginfo.damage[3] * 15 * i, tr.HitPos )
-			--elseif i == rhm then	
-				--tr.Entity:GetPhysicsObject():ApplyForceOffset( forceangle * swinginfo.damage[3] * 15 * i, tr.HitPos )
 			elseif i > rhm then
 				forceval = forceval * (i*0.1)
-				--tr.Entity:GetPhysicsObject():ApplyForceOffset( forceangle * swinginfo.damage[3] * 15 * ( i / 10 ), tr.HitPos )
 			end
 			
 			if IsValid(tr.Entity) && DRC:IsCharacter(tr.Entity) then
@@ -928,7 +550,6 @@ function SWEP:MeleeImpact(swinginfo, x, y, i)
 				tr.Entity:GetPhysicsObject():ApplyForceOffset( forceval, tr.HitPos )
 				
 				if SERVER && DRC:Health(tr.Entity) > 0 then tr.Entity:TakeDamage(swinginfo.damage[1], ply, ply:GetActiveWeapon()) end
-	--		elseif tr.Entity:IsWorld() then		
 			end
 	
 			DRC:RenderTrace(tr, Color(255, 0, 0, 255), 1)
@@ -936,11 +557,7 @@ function SWEP:MeleeImpact(swinginfo, x, y, i)
 		return true
 	end
 	
-	if !game.IsDedicated() && SERVER then -- In singleplayer we don't have to rely on lag compensation, plus it breaks impact effects.
-		if swingtrace.Hit then self:FireBullets(btrace) end
-	else
-		self:FireBullets(btrace)
-	end
+	if swingtrace.Hit then self:FireBullets(btrace) end
 	
 	if ply:IsPlayer() then ply:LagCompensation(false) end
 	if !swingtrace.Hit && ((game.SinglePlayer() && SERVER) or CLIENT) then
@@ -977,23 +594,7 @@ end
 function SWEP:GetConeTarget()
 	local ply = self:GetOwner()
 	if !ply or !ply:IsPlayer() then return end
-	local coneents = DRC:EyeCone(ply, self.Primary.AimAssistDist, self.SpreadCone * self.Primary.AimAssist_Mul)
-	local targets = {}
-	for k,v in pairs(coneents) do
-		if (v:IsPlayer() && v != ply) or v:IsNPC() or v:IsNextBot() or DRC:IsVehicle(v) then table.insert(targets, v) end
-	end
-	local closesttarget = nil
-	for k,v in pairs(targets) do
-		local dist = v:EyePos():DistToSqr(ply:EyePos())
-		if k == 1 then
-			closesttarget = {v, dist}
-		else
-			if dist < closesttarget[2] then closesttarget = {v, dist} end
-		end
-	end
-	if !closesttarget then return nil end
-	
-	local target, dist = closesttarget[1], closesttarget[2]
+	target, dist = DRC:GetConeTarget(ply, self.Primary.AimAssistDist, self.SpreadCone * self.Primary.AimAssist_Mul)
 	return target, dist
 end
 
@@ -1090,7 +691,7 @@ function SWEP:ShootBullet(damage, num, cone, ammo, force, tracer)
 			end
 			
 			self:RunAttachmentFunction("Ammunition", "Callback", nil, {ent, tr, takedamageinfo})
-			self:DoCustomBulletImpact(tr.HitPos, tr.Normal, takedamageinfo)
+			self:DoCustomBulletImpact(tr.HitPos, tr.Normal, takedamageinfo, tr.Entity)
 			
 			if tr.Hit && !tr.Entity:IsPlayer() && self.Primary.Tracer == 0 then
 				local tr2 = util.TraceHull({
@@ -1157,21 +758,29 @@ function SWEP:DoShoot(mode)
 	local batstats = self.BatteryStats
 	local eyeang = ply:EyeAngles()
 	local sd = DRC:SightsDown(self)
+	local fm = self:GetFireMode()
 	
 	local tr
-	if ply:IsNPC() && ply.Draconic == true then
-		tr = ply:GetEyeTrace()
+	if !ply:IsPlayer() then
+		tr = util.QuickTrace(ply:EyePos(), ply:EyeAngles():Forward() * 1000000, {self, self:GetOwner()})
+	--	tr = ply:GetEyeTrace()
 	else
+		if CLIENT && self.DoForwardBlur == true then ply.ForwardBlurAdditive = ply.ForwardBlurAdditive + ((stats.Kick*0.0025) * self.ForwardGainMul) end
 		tr = util.GetPlayerTrace(ply)
 	end
 	local trace = util.TraceLine( tr )
 	local LeftHand = ply:LookupBone(DRC.Skel.LeftHand.Name)
-	local RightHand = ply:LookupBone(DRC.Skel.RightHand.Name)
+	local RightHand = ply:GetAttachment(ply:LookupAttachment("righthand"))
+	if RightHand == nil then 
+		RightHand = ply:GetAttachment(ply:LookupAttachment("anim_attach_RH"))
+		if RightHand != nil then RightHand = RightHand.Bone
+		else RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand") end
+	else RightHand = RightHand.Bone end
 	
 	local pmag = self:Clip1()
 	local nmag = self:Clip1() - stats.APS
 	
-	if nmag <= 0 then
+	if nmag <= -1 then
 		self.PistolSlide = 0
 	end
 	
@@ -1236,7 +845,11 @@ function SWEP:DoShoot(mode)
 		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "secondary") end
 		end
 		
-		self:TakeSecondaryAmmo( stats.APS )
+		if self.Secondary.UsesPrimaryMag == false then
+			self:TakeSecondaryAmmo( stats.APS )
+		else
+			self:TakePrimaryAmmo( stats.APS )
+		end
 	elseif mode == "overcharge" then
 		if ply:IsPlayer() then
 			self:UpdateBloom("overcharge")
@@ -1298,7 +911,10 @@ function SWEP:DoShoot(mode)
 				end
 			end
 		end
-		ply:SetAnimation( PLAYER_ATTACK1 )
+		if SERVER && mode == "primary" && self.Primary.ActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.ActOverride)
+		elseif SERVER && mode == "secondary" && self.Secondary.ActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.ActOverride)
+		elseif SERVER && mode == "overcharge" && self.Primary.OCActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.OCActOverride)
+		else ply:SetAnimation(PLAYER_ATTACK1) end
 	else end
 	
 	if ply.DraconicNPC && ply:DraconicNPC() == true then
@@ -1307,12 +923,12 @@ function SWEP:DoShoot(mode)
 		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, act, true)
 	end
 	
-	if self.Base == "draconic_battery_base" then
+	if self.EnableHeat == true then
 		local heat = self:GetHeat()
 		if stats != self.OCStats then
-			self:SetHeat((self:GetHeat() + batstats.HPS))
+			self:AddHeat(batstats.HPS)
 		else
-			self:SetHeat((self:GetHeat() + batstats.OCHPS))
+			self:AddHeat(batstats.OCHPS)
 		end
 		
 		if self.LowerRPMWithHeat == true then
@@ -1325,10 +941,14 @@ function SWEP:DoShoot(mode)
 				self:SetNextPrimaryFire( CurTime() + 60 / stats.RPM)
 			end
 		else
-			self:SetNextPrimaryFire ( CurTime() + (60 / stats.RPM) )
+			self:SetNextPrimaryFire (CurTime() + (60 / stats.RPM))
 		end
 	else
-		self:SetNextPrimaryFire( CurTime() + stats.PreCalcRPM )
+		if fm != 3 then
+			self:SetNextPrimaryFire(CurTime() + stats.PreCalcRPM)
+		else
+			self:SetNextPrimaryFire(CurTime() + (self.FireModes_BurstDelay or stats.PreCalcRPM * self.FireModes_BurstShots))
+		end
 	end
 	
 	if self.Primary.isvFire == true then
@@ -1339,7 +959,9 @@ function SWEP:DoShoot(mode)
 		local spr = self:CalculateSpread(false)
 		if self.PreventAllBullets == true then return end
 		if ply:IsPlayer() then ply:LagCompensation(true) end
-		if self.PreventAllBullets == false then self:ShootBullet(stats.Damage, shotnum, spr, stats.Ammo, stats.Force, stats.Tracer) end
+		local damnval = stats.Damage
+		if stats.DamageNPC && !ply:IsPlayer() then damnval = stats.DamageNPC end
+		if self.PreventAllBullets == false then self:ShootBullet(damnval, shotnum, spr, stats.Ammo, stats.Force, stats.Tracer) end
 		if ply:IsPlayer() then ply:LagCompensation(false) end
 	elseif mode == "secondary" && self.Projectile == "scripted" then
 		timer.Simple(self.Secondary.ProjectileSpawnDelay, function()
@@ -1380,7 +1002,7 @@ function SWEP:DoShoot(mode)
 					end
 					if ply.IsVJBaseSNPC then
 						projpos = ply:EyePos() - Vector(0, 0, 15) + ply:GetAimVector() * Vector(25, 25, 25)
-						projang = projang - Angle(-10, 0 ,0) -- wtf
+					--	projang = projang - Angle(-10, 0 ,0) -- wtf
 					end
 				end
 
@@ -1393,6 +1015,16 @@ function SWEP:DoShoot(mode)
 						filter = function(ent) if ent != tr2.Entity or tr2.Entity:GetClass() == class then return false else return true end end,
 					})
 					dir = tr3.Normal:Angle()
+				elseif ply.IsVJBaseSNPC then -- bruh
+					if IsValid( ply:GetEnemy()) then
+						local enemy = ply:GetEnemy()
+						local tr3 = util.TraceLine({
+							start = ptu,
+							endpos = enemy:GetPos() + enemy:OBBCenter(),
+							filter = function(ent) if ent != enemy then return false else return true end end,
+						})
+						dir = tr3.Normal:Angle()
+					end
 				end
 				
 				projang = projang + dir
@@ -1419,10 +1051,13 @@ function SWEP:DoShoot(mode)
 	end
 	
 	local mini, maxi, delay, length = self:GetNPCBurstSettings()
-	if ply:IsNPC() or ply:IsNextBot() then -- NPC Looping Firing sounds
+	if ply:IsNPC() or ply:IsNextBot() then
 		if mode != "primary" then return end
-		if self.NPCBursting == true then return end
+		if self.NPCBursting == true or #self.BurstQueue > 0 then return end
+		local ct = CurTime()
 		local burst = math.Round(math.Rand(mini, maxi))
+		length = burst * delay + math.Rand(0.3,3)
+		self.NPCBurstTime = ct + length
 		
 --		print("Min: ".. mini .." | Max: ".. maxi .." | Delay: ".. delay .." | Burst: ".. burst .."")
 		
@@ -1439,35 +1074,17 @@ function SWEP:DoShoot(mode)
 		end)
 		
 		self.NPCBursting = true
-		timer.Simple( burst * delay + math.Rand(0.3,3), function() if !IsValid(ply) or !IsValid(self) then return end self.NPCBursting = false end)
-		
-		for i=1,length do
-			if !IsValid(self) then return end
-			timer.Simple( delay*i, function()
-				if !IsValid(ply) or !IsValid(self) then return end
-				local fm = self:GetNWString("FireMode")
-					if fm != "Burst" && ply:IsNPC() then
-						local enemy = ply:GetEnemy()
-						
-						if enemy == nil then return end
-						if IsValid(enemy) && CTFK(self.ignorepcs, enemy:GetClass()) then ply:SetEnemy(nil, true) end
-						if IsValid(enemy) && ply:GetEnemyLastTimeSeen(enemy) > CurTime() then return end
-						
-						if IsValid(enemy) && !ply:IsLineOfSightClear(enemy:GetPos()) then return end
-						
-						if IsValid(enemy) then
-							self:PrimaryAttack()
-						end
-					end
-				self:CallShoot("primary")
-			end)
-		end
+		timer.Simple( length, function() if !IsValid(ply) or !IsValid(self) then return end self.NPCBursting = false end)
+		length = math.Round(length)
+		if SERVER then for i=0,burst do
+			self.BurstQueue[i] = ct + (delay*i)
+		end end
 	end
 	
 	if ply:IsNPC() or ply:IsNextBot() then
 		timer.Simple( 0.5, function() -- holy fUCK LET ME DETECT WHEN AN NPC RELOADS IN LUA NATIVELY PLEASE
-			if !IsValid(self) or !IsValid(ply) then return end
-			if ply:GetActivity() == ACT_RELOAD then
+			if !SERVER or !IsValid(self) or !IsValid(ply) then return end
+			if self:GetLoadedAmmo() <= 0 or ply:GetActivity() == ACT_RELOAD then
 				self:DoCustomReloadStartEvents()
 				self:SetLoadedAmmo((self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
 			end
@@ -1489,7 +1106,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	if !IsValid(ply) then return end
 	local muzzleattachment = self:LookupAttachment("muzzle")
 	local muzzle = self:GetAttachment(muzzleattachment)
-	local fm = self:GetNWString("FireMode")
+	local fm = self:GetFireMode()
 	
 	local ttu = nil
 	if mode == "primary" then
@@ -1499,7 +1116,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		
 		self:CallOnClient("MuzzleFlash")
 		
-		if fm == "Semi" or fm == "Auto" then
+		if fm != 3 then
 			self.Sound = self.Primary.SoundTable.Semiauto.Near
 			self.DistSound = self.Primary.SoundTable.Semiauto.Far
 			self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
@@ -1525,7 +1142,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 		self.DistSound = self.OCDistSound
 		self.Projectile = self.Primary.OCProjectile
 		self.TracerEffect = self.Primary.TracerEffect
-		if fm == "Semi" or fm == "Auto" then
+		if fm != 3 then
 			self.Sound = self.OCSound
 			self.DistSound = self.OCDistSound
 			self.SoundDistance = self.Primary.SoundTable.Semiauto.FarDistance
@@ -1575,8 +1192,8 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	end
 	
 	if !IsFirstTimePredicted() or nosound == true or self.BurstSound == true then return end
-	if mode == "primary" && fm == "Burst" && ttu.Single == false then
-		local thyme = self.PrimaryStats.PreCalcRPM*self.FireModes_BurstShots + 0.01
+	if mode == "primary" && fm == 3 && ttu.Single == false then
+		local thyme = self.PrimaryStats.PreCalcRPM*self.FireModes_BurstShots +0.25
 		self.BurstSound = true
 		timer.Simple(CurTime() - self:GetNextPrimaryFire() + thyme, function() self.BurstSound = false end)
 	end
@@ -1590,7 +1207,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	if RoomType == "Vent" && !self.Primary.SoundTable.Envs["Vent"] then RoomType = "Small" end
 	
 	if mode == "primary" && self.Primary.SoundTable.Envs[RoomType] then
-		if fm == "Semi" or fm == "Auto" then
+		if fm != 3 then
 			self.Sound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Near
 			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Far
 		else
@@ -1633,62 +1250,33 @@ function SWEP:DoRecoil(mode)
 	if !ply:IsPlayer() then return end
 	local eyeang = ply:EyeAngles()
 	local cv = ply:Crouching()
-	local sk = ply:KeyDown(IN_SPEED)
-	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
-	local plidle = (!mk && !sk && !cv)
-	local issprinting = sk && mk
-
-	if mode == "primary" then
-		self.RecoilDown = (self.Primary.RecoilDown * self:GetAttachmentValue("Ammunition", "RecoilDown"))
-		self.RecoilUp = (self.Primary.RecoilUp * self:GetAttachmentValue("Ammunition", "RecoilUp"))
-		self.RecoilHoriz = (self.Primary.RecoilHoriz * self:GetAttachmentValue("Ammunition", "RecoilHoriz"))
-		self.Kick = (self.Primary.Kick * self:GetAttachmentValue("Ammunition", "Kick"))
-		self.KickHoriz = (self.Primary.KickHoriz * self:GetAttachmentValue("Ammunition", "KickHoriz"))
-		self.IronRecoilMul = (self.Primary.IronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
-	elseif mode == "secondary" then
-		self.RecoilDown = (self.Secondary.RecoilDown * self:GetAttachmentValue("Ammunition", "RecoilDown"))
-		self.RecoilUp = (self.Secondary.RecoilUp * self:GetAttachmentValue("Ammunition", "RecoilUp"))
-		self.RecoilHoriz = (self.Secondary.RecoilHoriz * self:GetAttachmentValue("Ammunition", "RecoilHoriz"))
-		self.Kick = (self.Secondary.Kick * self:GetAttachmentValue("Ammunition", "Kick"))
-		self.KickHoriz = (self.Secondary.KickHoriz * self:GetAttachmentValue("Ammunition", "KickHoriz"))
-		self.IronRecoilMul = (self.Secondary.IronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
-	elseif mode == "overcharge" then
-		self.RecoilDown = (self.OCRecoilDown * self:GetAttachmentValue("Ammunition", "RecoilDown"))
-		self.RecoilUp = (self.OCRecoilUp * self:GetAttachmentValue("Ammunition", "RecoilUp"))
-		self.RecoilHoriz = (self.OCRecoilHoriz * self:GetAttachmentValue("Ammunition", "RecoilHoriz"))
-		self.Kick = (self.OCKick * self:GetAttachmentValue("Ammunition", "Kick"))
-		self.KickHoriz = (self.OCKickHoriz * self:GetAttachmentValue("Ammunition", "KickHoriz"))
-		self.IronRecoilMul = (self.OCIronRecoilMul * self:GetAttachmentValue("Ammunition", "IronRecoilMul"))
-	end
-		
-	--if self:GetNWBool("ironsights") == false && cv == false then
-	if self.SightsDown == false && cv == false then
+	local stats = self.RecoilStats[mode]
+	local sd, ru, rd, rh, k, kh = self.SightsDown, stats.RecoilUp, stats.RecoilDown, stats.RecoilHoriz, stats.Kick, stats.KickHoriz
+	
+	if sd == false && cv == false then
 		if CLIENT then
-			eyeang.pitch = eyeang.pitch - ((math.Rand(self.RecoilUp / 1.85, self.RecoilUp * 1.62)) - (math.Rand(self.RecoilDown / 1.85, self.RecoilDown * 1.85) * 0.01))
-			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -0.81) ) * 0.01)
+			eyeang.pitch = eyeang.pitch - ((math.Rand(ru / 1.85, ru * 1.62)) - (math.Rand(rd / 1.85, rd * 1.85) * 0.01))
+			eyeang.yaw = eyeang.yaw - (math.Rand( rh, (rh * -0.81) ) * 0.01)
 		end
-		self.Owner:ViewPunch(Angle( -self.Kick, math.Rand(-self.KickHoriz, self.KickHoriz), math.Rand(-self.KickHoriz, self.KickHoriz) / 200 ))
-		--elseif self:GetNWBool("ironsights") == true && cv == false then
-		elseif self.SightsDown == true && cv == false then
+		self.Owner:ViewPunch(Angle( -k, math.Rand(-kh, kh), math.Rand(-kh, kh) / 200 ))
+	elseif sd == true && cv == false then
 		if CLIENT then
-			eyeang.pitch = eyeang.pitch - (((math.Rand(self.RecoilUp / 1.5, self.RecoilUp * 1.5)) - (math.Rand(self.RecoilDown / 1.5, self.RecoilDown * 1.5) * 0.01)) * self.IronRecoilMul)
-			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -1) ) * 0.01)
+			eyeang.pitch = eyeang.pitch - (((math.Rand(ru / 1.5, ru * 1.5)) - (math.Rand(rd / 1.5, rd * 1.5) * 0.01)) * stats.IronRecoilMul)
+			eyeang.yaw = eyeang.yaw - (math.Rand( rh, (rh * -1) ) * 0.01)
 		end
-		self.Owner:ViewPunch(Angle( (-self.Kick * 0.69) * self.IronRecoilMul, math.Rand(-self.KickHoriz, self.KickHoriz) / 100, math.Rand(-self.KickHoriz, self.KickHoriz) / 250 ) * self.Secondary.SightsKickMul)
-	--elseif self:GetNWBool("ironsights") == false && cv == true then
-	elseif self.SightsDown == false && cv == true then
+		self.Owner:ViewPunch(Angle( (-k * 0.69) * stats.IronRecoilMul, math.Rand(-kh, kh) / 100, math.Rand(-kh, kh) / 250 ) * self.Secondary.SightsKickMul)
+	elseif sd == false && cv == true then
 		if CLIENT then
-			eyeang.pitch = eyeang.pitch - ((math.Rand(self.RecoilUp / 1.5, self.RecoilUp * 1.5)) - (math.Rand(self.RecoilDown / 1.5, self.RecoilDown * 1.5) * 0.01))
-			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -1) ) * 0.01)
+			eyeang.pitch = eyeang.pitch - ((math.Rand(ru / 1.5, ru * 1.5)) - (math.Rand(rd / 1.5, rd * 1.5) * 0.01))
+			eyeang.yaw = eyeang.yaw - (math.Rand( rh, (rh * -1) ) * 0.01)
 		end
-		self.Owner:ViewPunch(Angle( -self.Kick * 0.75, math.Rand(-self.KickHoriz, self.KickHoriz) / 100, math.Rand(-self.KickHoriz, self.KickHoriz) / 250 ))
-		--elseif self:GetNWBool("ironsights") == true && cv == true then
-		elseif self.SightsDown == true && cv == true then
+		self.Owner:ViewPunch(Angle( -k * 0.75, math.Rand(-kh, kh) / 100, math.Rand(-kh, kh) / 250 ))
+	elseif sd == true && cv == true then
 		if CLIENT then
-			eyeang.pitch = eyeang.pitch - (((math.Rand(self.RecoilUp / 1.5, self.RecoilUp * 0.9)) - (math.Rand(self.RecoilDown / 1.9, self.RecoilDown * 0.9) * 0.01)) * self.IronRecoilMul)
-			eyeang.yaw = eyeang.yaw - (math.Rand( self.RecoilHoriz, (self.RecoilHoriz * -1) ) * 0.01)
+			eyeang.pitch = eyeang.pitch - (((math.Rand(ru / 1.5, ru * 0.9)) - (math.Rand(rd / 1.9, rd * 0.9) * 0.01)) * stats.IronRecoilMul)
+			eyeang.yaw = eyeang.yaw - (math.Rand( rh, (rh * -1) ) * 0.01)
 		end
-		self.Owner:ViewPunch(Angle( (-self.Kick * 0.42) * self.IronRecoilMul, math.Rand(-self.KickHoriz, self.KickHoriz) / 200, math.Rand(-self.KickHoriz, self.KickHoriz) / 500 ))
+		self.Owner:ViewPunch(Angle( (-k * 0.42) * stats.IronRecoilMul, math.Rand(-kh, kh) / 200, math.Rand(-kh, kh) / 500 ))
 	end
 	
 	if CLIENT then ply:SetEyeAngles(Angle(0, 0, 0) + Angle(eyeang.pitch, eyeang.yaw, nil)) end
@@ -1705,7 +1293,8 @@ function SWEP:MuzzleFlash()
 		DRC.CalcView.MuzzleLamp_Time = CurTime() + math.Rand(0.005, 0.01)
 		local bright = (col.a/30) * (1 - math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1)) * mul
 		local ent = DRC.CalcView.MuzzleLamp
-		ent.Texture = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Mask")
+		local mask = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "Mask")
+		if mask != "" then ent.Texture = mask end
 		ent.Light:SetColor(Color(col.r, col.g, col.b))
 		ent.Light:SetBrightness(bright)
 		ent.FOV = self:GetAttachmentValue("Ammunition", "MuzzleFlash", "FOV")
@@ -1738,7 +1327,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility, endburst)
 			if ply:IsPlayer() && (self.DoesPassiveSprint == true or forcesprint) && (ply:KeyDown(IN_SPEED) && (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_LEFT) or ply:KeyDown(IN_RIGHT))) then return end
 			if self:GetLoadedAmmo() <= 0 then
 				if CurTime() > self:GetNextPrimaryFire() then self:EmitSound (self.Primary.EmptySound) end
-				self:SetNextPrimaryFire(CurTime() + self.PrimaryStats.PreCalcRPM * 2) return
+				return
 			elseif self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true then
 			return end
 		end
@@ -1832,6 +1421,9 @@ function SWEP:RunAttachmentFunction(att, val, subval, args)
 		end
 		foundval(args)
 	end
+end
+
+function SWEP:DoCustomMeleeSwing(swinginfo)
 end
 
 function SWEP:DoCustomMeleeImpact(att, tr)

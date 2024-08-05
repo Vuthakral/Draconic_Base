@@ -1,0 +1,15 @@
+Aftershock
+{
+	$normalmap                "models/shadertest/shader1_normal"
+
+	$colortint              "[ 1 1 1 ]"
+
+	$SilhouetteColor        "[ 1 1 1 ]" 
+	$SilhouetteThickness    1
+
+	$GroundMin	-3
+	$GroundMax	3
+
+	$refractamount             2
+	$bluramount             0
+}

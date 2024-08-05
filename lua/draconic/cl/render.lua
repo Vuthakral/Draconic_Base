@@ -64,8 +64,10 @@ hook.Add("Think", "DRC_Lighting", function()
 			["DrawShadows"] = true
 		}
 		DRC.CalcView.MuzzleLamp = DRC:ProjectedTexture(vm, "muzzle", lighttable)
+		DRC.CalcView.MuzzleLamp_Angle = Angle()
 	else
-		if DRC:ThirdPersonEnabled(ply) then
+		local thirdperson = DRC:ThirdPersonEnabled(ply)
+		if thirdperson then
 			if DRC.CalcView.MuzzleLamp:GetParent() != wpn then DRC.CalcView.MuzzleLamp:SetParent(wpn) end
 		else
 			if DRC.CalcView.MuzzleLamp:GetParent() != vm then DRC.CalcView.MuzzleLamp:SetParent(vm) end
@@ -82,19 +84,73 @@ hook.Add("Think", "DRC_Lighting", function()
 		ent:SetPos(attinfo.Pos)
 		ent:SetAngles(attinfo.Ang)
 	--	ent.Light:SetColor( Color(255, 150, 25) )
-		if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() then ent.Enabled = false end end
+		if wpn.Draconic && wpn.IntegratedLight_Enabled == true && wpn:GetNWBool("IntegratedLightState") == true then
+			local colmain = wpn.IntegratedLight_Colour
+			local col = Color(colmain.r, colmain.g, colmain.b, 25 * colmain.a)
+			local bright = (col.a/30) * (1 - math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1))
+			ent.Texture = wpn.IntegratedLight_Texture
+			ent.Light:SetColor(Color(col.r, col.g, col.b))
+			ent.Light:SetBrightness(bright)
+			local p1, p2 = attinfo.Pos, DRC:TraceDir(attinfo.Pos, attinfo.Ang, wpn.IntegratedLight_MaxDist)
+			if wpn.IntegratedLight_UseHitPos == true then
+				local parent = DRC.CalcView.MuzzleLamp:GetParent() == ply
+				local vm = ply:GetViewModel(0)
+				local idle = wpn:GetSequenceActivity(wpn:GetSequence(ACT_VM_IDLE)) == ACT_VM_IDLE or wpn:GetSequenceActivity(wpn:GetSequence(ACT_WALK)) == ACT_WALK
+				local ea = ply:EyeAngles()
+				local ang1 = ea + (wpn.dang*2)
+				local ang2 = attinfo.Ang
+				local atu
+				
+				if !parent && !thirdperson then
+					DRC.CalcView.MuzzleLamp:SetParent(ply)
+				end
+				if idle or thirdperson then atu = ang1 else atu = ang2 end
+				
+				DRC.CalcView.MuzzleLamp_Angle = LerpAngle(RealFrameTime() * 25, DRC.CalcView.MuzzleLamp_Angle or atu, atu)
+				
+				ent:SetPos(ply:EyePos() + ea:Forward() * 15)
+				ent:SetAngles(DRC.CalcView.MuzzleLamp_Angle)
+			end
+			local frac = Lerp(1-p2.Fraction * wpn.IntegratedLight_DistScale, 0, wpn.IntegratedLight_FOV)
+			ent.FOV = frac
+			ent.FarZ = wpn.IntegratedLight_MaxDist
+			ent.Enabled = true
+			
+			if wpn.IntegratedLight_DoVolume == true then
+				local volcol = Color(wpn.IntegratedLight_Colour.r, wpn.IntegratedLight_Colour.g, wpn.IntegratedLight_Colour.b, wpn.IntegratedLight_VolPower)
+				if !IsValid(wpn.FlashlightVolume) then wpn.FlashlightVolume = DRC:LightVolume(wpn, "muzzle", volcol, wpn.IntegratedLight_VolLength, frac*0.005, 50, nil, wpn.IntegratedLight_VolMaterial) end
+			end
+		end
+		if wpn:GetNWBool("IntegratedLightState") == true then
+			if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() && wpn:GetNWBool("IntegratedLightState") == false then ent.Enabled = false end end
+		else
+			if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() then ent.Enabled = false end end
+			if wpn.IntegratedLight_DoVolume == true then
+				if IsValid(wpn.FlashlightVolume) then wpn.FlashlightVolume:Remove() end
+			end
+		end
 	end
 end)
 
-function DRC:LightVolume(ent, att, colour, length, width)
-	if !IsValid(ent) or att == nil then return end
-	local attnum = ent:LookupAttachment(att)
-	if attnum == -1 then return end
-	local attinfo = ent:GetAttachment(attnum)
+function DRC:LightVolume(ent, att, colour, length, width, quality, addang, mat)
+	if !IsValid(ent) then return end
+	if IsValid(ent.DRCVolumeLight) then return end
+	if !quality then quality = 25 end
+	if !mat then mat = "sprites/glow04_noz" end
+	local attnum, attinfo
+	if att then
+		attnum = ent:LookupAttachment(att)
+		attinfo = ent:GetAttachment(attnum)
+	end
 	local light = nil
 	light = ents.CreateClientside("draconic_spotlight_base")
 	light:Spawn()
 	light:SetParent(ent, attnum)
+	light.AddAng = addang or Angle()
+	light.LightMaterial = mat
+	
+	local pos, ang = ent:GetPos(), ent:GetAngles()
+	if att && attinfo then pos, ang = attinfo.Pos, attinfo.Ang end
 	
 	light.Info = {
 		["entity"] = ent,
@@ -102,60 +158,19 @@ function DRC:LightVolume(ent, att, colour, length, width)
 		["colour"] = colour,
 		["length"] = length,
 		["width"] = width,
-		["angles"] = attinfo.Ang,
-		["position"] = attinfo.Pos,
+		["quality"] = quality,
+		["angles"] = ang,
+		["position"] = pos,
 	}
+	ent.DRCVolumeLight = light
 	
 	return light
 end
 
-
---- ###MapInfos
-drc_badlightmaps = { 
-	["gm_blackmesa_sigma"] = 0.1,
-	["gm_bigcity_improved"] = 0.25,
-	["gm_bigcity_improved_lite"] = 0.25,
-	["gm_emp_chain"] = 0.15,
-}
--- The only maps that get added to this list are old maps which will not see an update/fix from their authors.
--- This is not meant as a mark of shame, it is used in the Draconic menu to inform developers that the map they
--- are on has incorrectly compiled lighting, and as a result their content might look a bit scuffed. Values at the
--- end are "post fixes" which scales the Draconic Base's Reflection Tint proxies.
-
-drc_singlecubemaps = {
-	["mu_volcano"] = 0.25,
-	["gm_cultist_outpost"] = 0.25,
-	["gm_reactionsew"] = 0.1,
-}
--- Maps with no either cubemaps baked into them falling back on the engine default, or only one single cubemap, preventing proper lighting checks from working.
-
-drc_fullbrightcubemaps = {
-}
--- Alright, THIS is a mark of shame. Whoever told you to turn on fullbright when compiling cubemaps is an idiot.
-
-drc_verifiedlightmaps = {
-	["gm_construct"] = true,
-	["gm_flatgrass"] = true,
-	["gm_bigcity"] = true,
-	["gm_emp_streetsoffire"] = true,
-	["gm_vault"] = true,
-}
--- Impressive. Very nice.
-
-drc_authorpassedlightmaps = {}
-
-DRC.BadLightmapList = {}
-table.Merge(DRC.BadLightmapList, drc_badlightmaps)
-table.Merge(DRC.BadLightmapList, drc_singlecubemaps)
-
-DRC.MapInfo.LMCorrection = DRC.BadLightmapList[DRC.MapInfo.Name]
-if DRC.MapInfo.LMCorrection == nil then DRC.MapInfo.LMCorrection = 1 end
 DRC.MapInfo.MapAmbient = render.GetAmbientLightColor()
 DRC.MapInfo.MapAmbientAvg = (DRC.MapInfo.MapAmbient.x + DRC.MapInfo.MapAmbient.y + DRC.MapInfo.MapAmbient.z) / 3
 
 hook.Add("InitPostEntity", "DRC_LightmapCheck", function()
-	DRC.MapInfo.LMCorrection = DRC.BadLightmapList[DRC.MapInfo.Name]
-	if DRC.MapInfo.LMCorrection == nil then DRC.MapInfo.LMCorrection = 1 end
 	DRC.MapInfo.MapAmbient = render.GetAmbientLightColor()
 	DRC.MapInfo.MapAmbientAvg = (DRC.MapInfo.MapAmbient.x + DRC.MapInfo.MapAmbient.y + DRC.MapInfo.MapAmbient.z) / 3
 end)
@@ -179,7 +194,7 @@ DRC.Accessibility.ColorBlindness = {
 } -- https://web.archive.org/web/20081014161121/http://www.colorjack.com/labs/colormatrix/
 DRC.Accessibility.ColorBlindness_Mul = 0
 
-hook.Add("DrawOverlay", "DRC_ColourBlindness", function()
+hook.Add("HUDPaint", "DRC_ColourBlindness", function()
 	local con = GetConVar("cl_drc_accessibility_colourblind"):GetString()
 	if con == "None" then return end
 	local con2 = GetConVar("cl_drc_accessibility_colourblind_strength"):GetFloat()
@@ -229,5 +244,53 @@ hook.Add("RenderScreenspaceEffects", "DRC_Camera_Overlays", function()
 	local wpn = ply:GetActiveWeapon()
 	if IsValid(wpn) && wpn:GetClass() == "drc_camera" then
 		DrawMaterialOverlay(DRC.CameraOverlay or "", DRC.CameraPower)
+	end
+end)
+
+hook.Add("GetMotionBlurValues", "drc_modifiedmotionblur", function(horizontal, vertical, forward, rotational)
+	local ply = LocalPlayer()
+	local wpn = ply:GetActiveWeapon()
+	
+	if wpn.Draconic then
+		if !ply.ForwardBlurAdditive then ply.ForwardBlurAdditive = 0 end
+		if !ply.RotationalBlurAdditive then ply.RotationalBlurAdditive = 0 end
+		
+		local kick
+		local melee = wpn.IsMelee
+		if melee then kick = 1 else kick = wpn.Primary.Kick end
+		
+		kick = kick*0.001
+		ply.ForwardBlurAdditive = Lerp(0.01 * wpn.ForwardDecayMul or 1, ply.ForwardBlurAdditive or ply.ForwardBlurAdditive-kick, 0)
+		ply.RotationalBlurAdditive = Lerp(0.025 * wpn.RotationalDecayMul or 1, ply.RotationalBlurAdditive or ply.RotationalBlurAdditive-kick, 0)
+	--	ply:ChatPrint(ply.RotationalBlurAdditive)
+		
+--		if wpn:CanUseSights() == false then forward = 0 return forward end
+		
+		local w = ScrW()
+		local h = ScrH()
+		
+		local ratio = w/h
+		
+		local ss = 4 * wpn.Secondary.ScopeScale
+		local sw = wpn.Secondary.ScopeWidth
+		local sh = wpn.Secondary.ScopeHeight
+		
+		local wi = w / 10 * ss
+		local hi = h / 10 * ss
+		
+		if wpn.Secondary.Scoped == true && wpn.Secondary.ScopeBlur == true && wpn.SightsDown == true then
+			if sw != 1 then
+				forward = forward + (ss * 0.015 / sw) * (wpn.Secondary.IronFOV * ratio * 0.05)
+			else
+				forward = forward + (ss * 0.0175) / (wpn.Secondary.IronFOV * ratio * 0.01)
+			end
+		  --  rotational = rotational + 0.05 * math.sin( CurTime() * 3 )
+		end
+		
+		if wpn.SightsDown == false or wpn.IsOverheated == true then
+			forward = 0
+			if forward > 0 then forward = 0 end
+		end
+		return horizontal, vertical, forward + ply.ForwardBlurAdditive, rotational + ply.RotationalBlurAdditive
 	end
 end)

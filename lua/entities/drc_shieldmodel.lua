@@ -64,25 +64,48 @@ function ENT:Draw()
 	if hp < 0.01 then scale = scale * 2 end
 	self.ShieldScale = Lerp(RealFrameTime() * 10, self.ShieldScale or scale, scale)
 	
-	if self:GetModel() != parent:GetModel() then
-		self:SetModel(parent:GetModel())
+	local model = parent:GetNWString("DRC_Shield_Model")
+	if self:GetModel() != model then
+		self:SetModel(model)
 		self.Bones = DRC:GetBones(self)
 	end
 	self:DrawShadow(false)
 	self:DestroyShadow()
 	self:SetLOD(0)
 	
-	for k,v in pairs(self.Bones) do
-		local id = self:LookupBone(k)
-		if id != nil then
-			local matr = parent:GetBoneMatrix(id)
-			if matr then
-			local newmatr = Matrix()
-				newmatr:SetTranslation(matr:GetTranslation())
-				newmatr:SetAngles(matr:GetAngles())
-				newmatr:SetScale(Vector(self.ShieldScale, self.ShieldScale, self.ShieldScale))
-				self:SetBoneMatrix(id, newmatr)
+	local customscale = parent:GetNWVector("DRC_Shield_BaseScale")
+	customscale = Vector(self.ShieldScale * customscale.x, self.ShieldScale * customscale.y, self.ShieldScale * customscale.z)
+	if model == parent:GetModel() then
+		for k,v in pairs(self.Bones) do
+			local id = self:LookupBone(k)
+			if id != nil then
+				local matr = parent:GetBoneMatrix(id)
+				if matr then
+				local newmatr = Matrix()
+					newmatr:SetTranslation(matr:GetTranslation())
+					newmatr:SetAngles(matr:GetAngles())
+					newmatr:SetScale(customscale)
+					self:SetBoneMatrix(id, newmatr)
+				end
 			end
+		end
+	else
+		local matr = self:GetBoneMatrix(0)
+		if matr then
+			local newmatr = Matrix()
+			local ang = parent:GetRenderAngles() or parent:GetAngles()
+			local offset = parent:GetNWVector("DRC_Shield_BaseOffset")
+			local off = Vector()
+			
+			
+			off = ang:Right() * offset.x
+			off = ang:Forward() * offset.y
+			off = ang:Up() * offset.z
+			
+			newmatr:SetTranslation(parent:WorldSpaceCenter() + off)
+			newmatr:SetAngles(ang)
+			newmatr:SetScale(customscale)
+			self:SetBoneMatrix(0, newmatr)
 		end
 	end
 	

@@ -1,0 +1,17 @@
+Cloud // This does not work when used traditionally. Probably requires a special context.
+{
+	$basetexture	"shadertest/cloud"
+	$cloudalphatexture	"shadertest/cloudalpha"
+	$cloudscale	"[ 2.00 2.00 2.00 ]"
+	$maskscale	"[ 1.00 1.00 1.00 ]"
+	%tooltexture	"shadertest/cloudalpha"
+	Proxies
+	{
+		TextureScroll
+		{
+			texturescrollvar	$baseTextureTransform
+			texturescrollrate	0.01
+			texturescrollangle	0.00
+		}
+	}
+}

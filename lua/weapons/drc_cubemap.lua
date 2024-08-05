@@ -1,4 +1,4 @@
-SWEP.Base				= "draconic_melee_base"
+SWEP.Base				= "draconic_gun_base"
 
 SWEP.HoldType			= "normal"
 SWEP.CrouchHoldType		= "normal"
@@ -27,6 +27,7 @@ SWEP.VMPos 			= Vector(0, 0, 0)
 SWEP.VMAng 			= Vector(0, 0, 0)
 SWEP.VMPosCrouch 	= Vector(0, 0, 0)
 SWEP.VMAngCrouch 	= Vector(0, 0, 0)
+SWEP.IronSightsPos 	= Vector(10, -25, -7)
 SWEP.SS 			= 0
 SWEP.BS 			= 0
 SWEP.NearWallPower		= 0
@@ -34,7 +35,10 @@ SWEP.RollingPower		= 0
 SWEP.PerspectivePower	= 0
 
 SWEP.Primary.Disabled = true
-SWEP.Secondary.Disabled = true
+SWEP.Secondary.Disabled = false
+
+SWEP.Secondary.Ironsights 	= true
+SWEP.Secondary.IronFOV		= 90
 
 function SWEP:DoCustomDeploy()
 	local ply = self:GetOwner()
@@ -73,11 +77,13 @@ function SWEP:DoCustomRemove()
 end
 
 function SWEP:DrawCustomCrosshairElements()
-	draw.DrawText( "Standard Cubemap", "TargetID", ScrW() * 0.25, ScrH() * 0.37, color_white, TEXT_ALIGN_CENTER )
-	draw.DrawText( "Basic Proxy Cubemap", "TargetID", ScrW() * 0.5, ScrH() * 0.37, color_white, TEXT_ALIGN_CENTER )
-	draw.DrawText( "Proxy Cubemap w/ Animated Normal", "TargetID", ScrW() * 0.75, ScrH() * 0.37, color_white, TEXT_ALIGN_CENTER )
-	
-	draw.DrawText( "Basic Proxy Cubemap on Complex Model", "TargetID", ScrW() * 0.25, ScrH() * 0.6, color_white, TEXT_ALIGN_CENTER )
-	draw.DrawText( "Colour-tinted Proxy Cubemap", "TargetID", ScrW() * 0.5, ScrH() * 0.6, color_white, TEXT_ALIGN_CENTER )
-	draw.DrawText( "Normal mapped & Alpha Masked Proxy Cubemap", "TargetID", ScrW() * 0.75, ScrH() * 0.6, color_white, TEXT_ALIGN_CENTER )
+	if self.SightsDown == false then
+		draw.DrawText( "Standard Cubemap", "TargetID", ScrW() * 0.25, ScrH() * 0.37, color_white, TEXT_ALIGN_CENTER )
+		draw.DrawText( "Basic Proxy Cubemap", "TargetID", ScrW() * 0.5, ScrH() * 0.37, color_white, TEXT_ALIGN_CENTER )
+		draw.DrawText( "Proxy Cubemap w/ Animated Normal", "TargetID", ScrW() * 0.75, ScrH() * 0.37, color_white, TEXT_ALIGN_CENTER )
+		
+		draw.DrawText( "Basic Proxy Cubemap on Complex Model", "TargetID", ScrW() * 0.25, ScrH() * 0.6, color_white, TEXT_ALIGN_CENTER )
+		draw.DrawText( "Colour-tinted Proxy Cubemap", "TargetID", ScrW() * 0.5, ScrH() * 0.6, color_white, TEXT_ALIGN_CENTER )
+		draw.DrawText( "Normal mapped & Alpha Masked Proxy Cubemap", "TargetID", ScrW() * 0.75, ScrH() * 0.6, color_white, TEXT_ALIGN_CENTER )
+	end
 end

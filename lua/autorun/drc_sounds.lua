@@ -65,13 +65,13 @@ sound.Add( {
 	volume = 0.32,
 	level = 80,
 	pitch = { 95, 105 },
-	sound = { "weapons/bat_draw.wav",
-	"player/taunt_surgeons_squeezebox_draw_clothes.wav",
-	"weapons/melee_inspect_movement3.wav",
-	"weapons/melee_inspect_movement4.wav",
-	"weapons/movement1.wav",
-	"weapons/movement2.wav",
-	"weapons/movement3.wav" }
+	sound = { "draconic/foley/generic7.wav ",
+	"draconic/foley/generic6.wav",
+	"draconic/foley/generic4.wav",
+	"draconic/foley/generic5.wav",
+	"draconic/foley/generic0.wav",
+	"draconic/foley/generic1.wav",
+	"draconic/foley/generic2.wav" }
 } )
 
 sound.Add( {
@@ -80,83 +80,13 @@ sound.Add( {
 	volume = 0.32,
 	level = 80,
 	pitch = { 95, 105 },
-	sound = { "weapons/bat_draw_swoosh1.wav",
-	"weapons/melee_inspect_movement2.wav",
-	"weapons/melee_inspect_movement2.wav",
-	"weapons/movement1.wav",
-	"weapons/movement2.wav",
-	"weapons/movement3.wav" }
-} )
-
-sound.Add( {
-	name = "draconic.BladeSwingSmall",
-	channel = CHAN_WEAPON,
-	volume = 0.96,
-	level = 60,
-	pitch = { 95, 105 },
-	sound = { "physics/flesh/fist_swing_01.wav",
-	"physics/flesh/fist_swing_02.wav",
-	"physics/flesh/fist_swing_03.wav",
-	"physics/flesh/fist_swing_04.wav",
-	"physics/flesh/fist_swing_05.wav",
-	"physics/flesh/fist_swing_06.wav" }
-} )
-
-sound.Add( {
-	name = "draconic.BladeStabSmall",
-	channel = CHAN_WEAPON,
-	volume = 0.92,
-	level = 80,
-	pitch = { 95, 105 },
-	sound = { "weapons/boxing_gloves_swing1.wav",
-	"weapons/melee_inspect_movement2.wav",
-	"weapons/movement1.wav",
-	"weapons/movement2.wav",
-	"weapons/movement3.wav" }
-} )
-
-sound.Add( {
-	name = "draconic.BladeSmallHitWorld",
-	channel = CHAN_AUTO,
-	volume = 0.62,
-	level = 80,
-	pitch = { 95, 105 },
-	sound = { "weapons/knife/knife_hitwall1.wav",
-	"weapons/knife/knife_hitwall4.wav",
-	"weapons/knife/knife_hit_05.wav",
-	"weapons/knife/knife_hit_02.wav",
-	"weapons/knife/knife_hit_01.wav",
-	"weapons/knife/knife_hit_03.wav",
-	"weapons/knife/knife_hitwall2.wav",
-	"weapons/knife/knife_hitwall3.wav",
-	"weapons/knife/knife_hit_04.wav" }
-} )
-
-sound.Add( {
-	name = "draconic.BladeSmallHitFlesh",
-	channel = CHAN_AUTO,
-	volume = 0.62,
-	level = 80,
-	pitch = { 95, 105 },
-	sound = { "weapons/knife/knife_hit1.wav",
-	"weapons/knife/knife_hit2.wav",
-	"weapons/knife/knife_hit3.wav",
-	"weapons/knife/knife_hit4.wav",
-	"weapons/spy_assassin_knife_impact_02.wav",
-	"weapons/spy_assassin_knife_impact_01.wav" }
-} )
-
-sound.Add( {
-	name = "draconic.BladeSmallStabFlesh",
-	channel = CHAN_AUTO,
-	volume = 0.62,
-	level = 80,
-	pitch = { 95, 105 },
-	sound = { "weapons/knife/knife_hit1.wav",
-	"weapons/knife/knife_hit2.wav",
-	"weapons/knife/knife_hit3.wav",
-	"weapons/knife/knife_hit4.wav",
-	"weapons/axe_hit_flesh1.wav" }
+	sound = { "draconic/foley/generic9.wav",
+	"draconic/foley/generic3.wav",
+	"draconic/foley/generic3.wav",
+	"draconic/foley/generic0.wav",
+	"draconic/foley/generic1.wav",
+	"draconic/foley/generic2.wav",
+	"draconic/foley/generic8.wav" }
 } )
 
 sound.Add( {
@@ -165,17 +95,44 @@ sound.Add( {
 	volume = 0.47,
 	level = 80,
 	pitch = { 95, 105 },
-	sound = { "weapons/sniper_railgun_dry_fire.wav",
-	"weapons/widow_maker_dry_fire.wav" }
+	sound = { "draconic/weapons/dry_battery.wav" }
 } )
 
 sound.Add( {
-	name = "draconic.PewPew",
-	channel = CHAN_WEAPON,
+	name = "draconic.EmptyGeneric",
+	channel = CHAN_AUTO,
+	volume = 0.69,
+	level = 90,
+	pitch = { 99, 102 },
+	sound = { "weapons/clipempty_pistol.wav",
+		"weapons/clipempty_rifle.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.dryfire_pistol",
+	channel = CHAN_AUTO,
 	volume = 0.47,
 	level = 80,
 	pitch = { 95, 105 },
-	sound = { "weapons/capper_shoot.wav" }
+	sound = { "draconic/weapons/dry_pistol.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.dryfire_rifle",
+	channel = CHAN_AUTO,
+	volume = 0.47,
+	level = 80,
+	pitch = { 100, 105 },
+	sound = { "draconic/weapons/dry_rifle.wav" }
+} )
+
+sound.Add( {
+	name = "draconic.dryfire_heavy",
+	channel = CHAN_AUTO,
+	volume = 0.47,
+	level = 80,
+	pitch = { 95, 105 },
+	sound = { "draconic/weapons/dry_heavy.wav" }
 } )
 
 sound.Add( {
@@ -236,16 +193,6 @@ sound.Add( {
 	level = 90,
 	pitch = { 100, 105 },
 	sound = { "weapons/barret_arm_zap.wav" }
-} )
-
-sound.Add( {
-	name = "draconic.EmptyGeneric",
-	channel = CHAN_AUTO,
-	volume = 0.69,
-	level = 90,
-	pitch = { 99, 102 },
-	sound = { "weapons/clipempty_pistol.wav",
-		"weapons/clipempty_rifle.wav" }
 } )
 
 sound.Add( {

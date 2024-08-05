@@ -1,0 +1,16 @@
+SSAO // Not supported by Garry's Mod, throwing it in here in hopes that one day it may.
+{
+	$depth_texture	"_rt_SSAO_depth"
+	$fog_factor	1.5
+	$fow	0
+	$intensity	1
+	$normal_texture	"_rt_deferred_normal"
+	$radius	105
+	$random_texture	"dev\ssao_random"
+	$specular_texture	"_rt_deferred_specular"
+	
+	$final	0
+	$bias	0.3
+	$strength	0.45
+	$tint	"[ 0 0 0 1 ]"
+}

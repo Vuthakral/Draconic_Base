@@ -2,15 +2,16 @@ SWEP.Base				= "draconic_gun_base"
 
 SWEP.HoldType			= "pistol" -- https://wiki.garrysmod.com/page/Hold_Types
 SWEP.CrouchHoldType		= "pistol"
-SWEP.Category			= "Draconic"
+SWEP.Category			= "Draconic Base Tools"
 SWEP.PrintName			= "Shield Tester"
 SWEP.InfoName			= "Shield Tester"
 
 SWEP.Purpose			= "Testing EMP effects."
 SWEP.Instructions		= "Left click to give an entity shields, right click to remove."
  
-SWEP.Spawnable      = false
-SWEP.AdminSpawnable = false
+SWEP.Spawnable      = true
+SWEP.AdminSpawnable = true
+SWEP.AdminOnly		= true
 SWEP.NPCSpawnable	= false
 SWEP.DrawCrosshair  = false
 SWEP.CanStore		= false

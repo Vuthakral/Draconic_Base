@@ -35,6 +35,29 @@ function DRC:CheaterWarning(ply, str)
 	MsgC(Color(255, 0, 0), "\n[DRACONIC BASE - CHEATER WARNING]\n", Color(255,255,255), "> ", Color(255, 255, 0), "Player: ", Color(255, 255, 255), "".. ply:Name() .."\n> ", Color(255, 255, 0), "ID64: ", Color(255, 255, 255), "".. ID64 .."\n\n> ".. str .."\n\n")
 end
 
+function DRC:CreateComBall(ball)
+	local spawner = ents.Create("point_combine_ball_launcher")
+	spawner:SetPos(ball.pos)
+	spawner:SetAngles(ball.ang)
+	
+	spawner:SetKeyValue("minspeed", ball.minspeed or 1250)
+	spawner:SetKeyValue("maxspeed", ball.maxspeed or 1250)
+	spawner:SetKeyValue("ballradius", ball.ballradius or 30)
+	spawner:SetKeyValue("ballcount", ball.ballcount or 1)
+	spawner:SetKeyValue("balltype", ball.balltype or 1)
+	spawner:SetKeyValue("maxballbounces", ball.maxballbounces or 15)
+	spawner:SetKeyValue("launchconenoise", ball.maxballbounces or 0)
+
+	spawner:Spawn()
+	spawner:Activate()
+	
+	local count = ball.ballcount or 1
+	for i=1,count do
+		spawner:Fire("LaunchBall")
+	end
+	spawner:Fire("kill","",0)
+end
+
 local DisableEnts = {
 	["npc_turret_floor"] = {"ambient/energy/power_off1.wav", "draconic.Spark_Medium"},
 	["npc_turret_ceiling"] = {"ambient/energy/powerdown2.wav", "draconic.Spark_Medium"},
@@ -742,54 +765,6 @@ hook.Add("PlayerTick", "DRC_VoiceSetsIdling", function(ply)
 	end
 end)
 
--- haha I wrote this whole thing before being told there's an engine flag for this, kms
--- keeping it here in case I need it for reference for anything similar in the future.
---[[
-local barnaclechecktime = 0
-hook.Add("PlayerTick", "DRC_BarnacleGrabDetection", function(ply, cmd)
-	if CurTime() < barnaclechecktime then return end
-	barnaclechecktime = CurTime() + 1
-	
-	local tr = DRC:TraceDir(ply:EyePos(), Angle(-90, 0, 0), 2000)
-	local checker = ents.FindInSphere(tr.HitPos, 50)
-	if table.IsEmpty(checker) or DRC:FloorDist(ply) < 10 then 
-		ply:SetNWBool("BarnacleHeld", false)
---	else
---		for k,v in pairs(checker) do
---			if IsValid(v) && (v:GetClass() == "npc_barnacle") then
---				local ent = v
---				if v:GetNWEntity("BarnacleHolding") == ply then
-				--	ply:SetNWBool("BarnacleHeld", true)
---				end
---			end
---		end 
-	end
-end)
-
-hook.Add("Tick", "DRC_BarnacleGrabDetection_Barnacles", function()
-	if CurTime() < barnaclechecktime then return end
-	for k,v in pairs(ents.FindByClass("npc_barnacle")) do
-		local tr = DRC:TraceDir(v, Angle(90, 0, 0), 2000)
-
-		local tab = {}
-		local v1, v2 = Vector(tr.HitPos.x-64, tr.HitPos.y-64,tr.HitPos.z), Vector(tr.HitPos.x+64, tr.HitPos.y+64, tr.StartPos.z)
-		for k,ent in pairs(ents.FindInBox(v1, v2)) do
-			if ent:IsPlayer() then
-				local dist = {ent, ent:GetPos():Distance(v:GetPos())}
-				table.insert(tab, dist)
-			end
-		end
-		
-		if #tab > 1 then table.sort(tab, function(a, b) return a[2] > b[2] end) end
-		
-		if !table.IsEmpty(tab) then
-			v:SetNWEntity("BarnacleHolding", tab[1][1])
-			tab[1][1]:SetNWBool("BarnacleHeld", true)
-		--	tab[1][1]:SetPos(Vector(v:GetPos().x, v:GetPos().y, tab[1][1]:GetPos().z))
-		end
-	end
-end) ]]
-
 hook.Add("PlayerSwitchFlashlight", "drc_IntegratedLights", function(ply, b)
 	if !IsValid(ply) then return end
 	if IsValid(ply:GetActiveWeapon()) && ply:KeyDown(IN_USE) then
@@ -918,6 +893,7 @@ net.Receive("DRC_WeaponCamoSwitch", function(l,ply)
 	local wpn = net:ReadEntity()
 	local lply = net:ReadEntity()
 	local mat = net:ReadString()
+	local name = net:ReadString()
 	
 	if ply != lply then
 		DRC:CheaterWarning(ply, "This player's client attempted to change the weapon camo of another player.")
@@ -926,6 +902,7 @@ net.Receive("DRC_WeaponCamoSwitch", function(l,ply)
 		net.Start("DRC_WeaponCamoSwitch_Sync")
 		net.WriteEntity(wpn)
 		net.WriteString(mat)
+		net.WriteString(name)
 		net.Broadcast()
 	return end
 end)

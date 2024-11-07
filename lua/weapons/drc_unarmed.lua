@@ -1,6 +1,6 @@
 SWEP.Base = "draconic_melee_base"
 
-SWEP.Category			= "Other"
+SWEP.Category			= "Draconic Base Tools"
 SWEP.PrintName			= "Unarmed"
 SWEP.Author				= "Vuthakral"
 

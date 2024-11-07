@@ -2795,7 +2795,7 @@ function DRCMenu( player )
 	t4tab1.copy:SetSize(200, 20)
 	t4tab1.copy:SetText("Copy optimal configs to clipboard")
 	t4tab1.copy.DoClick = function()
-		SetClipboardText("r_radiosity 3\nr_ambientmin 0\nr_shadows 1\nr_flashlightdepthres 8192\nr_flashlightdepthtexture 1\nr_projectedtexture_filter 0.1\nr_shadow_allowdynamic 1\nr_shadow_allowbelow 1\nmat_specular 1\nmat_motion_blur_enabled 1\nmat_motion_blur_strength 0\ndsp_enhance_stereo\nsnd_mix_async 0\ngmod_mcore_test 1\ncl_threaded_bone_setup 1\ncl_threaded_client_leaf_system 1\nmat_queue_mode 2\nmat_queue_mode 2\nr_threaded_particles 1\nr_threaded_client_shadow_manager 1\nr_threaded_renderables 1\nr_queued_ropes 1\nr_occludermincount")
+		SetClipboardText("r_radiosity 3\nr_ambientmin 0\nr_shadows 1\nr_flashlightdepthres 8192\nr_flashlightdepthtexture 1\nr_projectedtexture_filter 0.1\nr_shadow_allowdynamic 1\nr_shadow_allowbelow 1\nmat_specular 1\nmat_motion_blur_enabled 1\nmat_motion_blur_strength 0\ndsp_enhance_stereo 1\nsnd_mix_async 0\ngmod_mcore_test 1\ncl_threaded_bone_setup 1\ncl_threaded_client_leaf_system 1\nmat_queue_mode 2\nr_threaded_particles 1\nr_threaded_client_shadow_manager 1\nr_threaded_renderables 1\nr_queued_ropes 1\nr_occludermincount 1")
 	end
 
 --[[	

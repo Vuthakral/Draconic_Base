@@ -66,7 +66,6 @@ hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	local ply = LocalPlayer()
 	if IsValid(ply) then
 		if IsValid(ply:GetActiveWeapon()) then
-			local wpn = string.lower(ply:GetActiveWeapon():GetClass())
 			if !IsValid(ply:GetVehicle()) && ShouldDrawHLCrosshair() then
 				if str == "CHudCrosshair" then return false end
 			end
@@ -525,6 +524,7 @@ DRC.Inspection.DefaultTheme = {
 		["Title"] = Color(255, 255, 255, 255),
 		["Text"] = Color(225, 225, 225, 255),
 		["Text_Hover"] = Color(255, 255, 255, 255),
+		["Text_Inactive"] = Color(255, 255, 255, 100),
 		["Outline"] = Color(0, 0, 0, 127),
 		["Background"] = Color(0, 0, 0, 127),
 	},
@@ -533,6 +533,7 @@ DRC.Inspection.DefaultTheme = {
 		["HeaderBG"] = Material("vgui/draconic/header.png"),
 		["TabThin"] = Material("vgui/draconic/label.png"),
 		["TabWide"] = Material("vgui/draconic/label_wide.png"),
+		["TabWideLight"] = Material("vgui/draconic/label_wide_bright.png"),
 		["Border_Top"] = Material(""),
 		["Border_Side"] = Material(""),
 		["Border_Bottom"] = Material(""),
@@ -551,6 +552,30 @@ DRC.Inspection.Theme = DRC.Inspection.DefaultTheme
 local attachmenttranslations = {
 	["AmmunitionTypes"] = "Ammunition",
 }
+
+local function DrawBox(posx, posy, width, height, col, bgimg)
+	if bgimg then surface.SetDrawColor(Color(255, 255, 255, 255)) surface.SetMaterial(bgimg) else surface.SetDrawColor(col) draw.NoTexture() end
+	surface.DrawTexturedRect( posx, posy, width, height )
+end
+	
+local function DrawText(posx, posy, font, col, align, str)
+	draw.DrawText(str, font, posx+1, posy-1, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx-1, posy+1, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx+1, posy+1, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx-1, posy-1, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx, posy+1, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx, posy-1, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx+1, posy, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx-1, posy, DRC.Inspection.ThemeColours.Outline, align)
+	draw.DrawText(str, font, posx, posy, col, align)
+	--draw.SimpleTextOutlined(str, font, posx, posy, col, align, TEXT_ALIGN_TOP, 1, DRC.Inspection.ThemeColours.Outline)
+	-- POV: draw.DrawText is the only thing with newline support, but doesn't support outlines
+end
+	
+local function DrawRule(posx, posy, width, height, col)
+	surface.SetDrawColor(col)
+	surface.DrawRect(posx, posy, width, height)
+end
 
 local attalpha, attalphalerp = 0
 local function drc_Inspect()
@@ -611,30 +636,6 @@ local function drc_Inspect()
 	
 	inspecttextpos_x = drc_ins_offsetlerp_x + w - w2/2 - (w2/2)
 	inspecttextpos_y = drc_ins_offsetlerp_y + h - h2/2 - (h2/2)
-
-	local function DrawBox(posx, posy, width, height, col, bgimg)
-		if bgimg then surface.SetDrawColor(Color(255, 255, 255, 255)) surface.SetMaterial(bgimg) else surface.SetDrawColor(col) draw.NoTexture() end
-		surface.DrawTexturedRect( posx, posy, width, height )
-	end
-	
-	local function DrawText(posx, posy, font, col, align, str)
-		draw.DrawText(str, font, posx+1, posy-1, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx-1, posy+1, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx+1, posy+1, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx-1, posy-1, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx, posy+1, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx, posy-1, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx+1, posy, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx-1, posy, DRC.Inspection.ThemeColours.Outline, align)
-		draw.DrawText(str, font, posx, posy, col, align)
-		--draw.SimpleTextOutlined(str, font, posx, posy, col, align, TEXT_ALIGN_TOP, 1, DRC.Inspection.ThemeColours.Outline)
-		-- POV: draw.DrawText is the only thing with newline support, but doesn't support outlines
-	end
-	
-	local function DrawRule(posx, posy, width, height, col)
-		surface.SetDrawColor(col)
-		surface.DrawRect(posx, posy, width, height)
-	end
 	
 	surface.SetDrawColor( DRC.Inspection.ThemeColours.Background )
 --	DrawRule(w-500+drc_ins_offsetlerp_x, h*0.02 - 3, 500, 1, DRC.Inspection.ThemeColours.Div)
@@ -908,6 +909,8 @@ local attachpos = {
 function DRC:ToggleAttachmentMenu(wpn, b)
 	if !IsValid(wpn) then return end
 	local ply = LocalPlayer()
+	local theme = DRC.Inspection.Theme
+	local themecolours = DRC.Inspection.Theme.Colours
 	
 	wpn.Customizing = b
 	if !DRC.AttachMenu then DRC.AttachMenu = {} end
@@ -919,22 +922,70 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 		if !DRC.Inspection.ThemeColours_Attachments then return end
 		surface.PlaySound(DRC.Inspection.Theme.Sounds.Enter)
 		if DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
-		DRC.AttachMenu.mpanel = vgui.Create("DScrollPanel")
+		DRC.AttachMenu.mpanel = vgui.Create("DPanel")
 		local m = DRC.AttachMenu.mpanel
 		m:SetPos(20, 128)
-		m:SetSize(500, ScrH()-(ScrH()*.175))
+		m:SetSize(500, 80)
 		m:SetMouseInputEnabled(true)
 		m:SetPaintBackground(true)
 		m:MakePopup()
-		m:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
 		function m:Paint(w,h)
-			draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+			draw.RoundedBox(0, 0, 0, w, h, Color(0,0,0,0))
 		end
 		m.Think = function()
 			m:SetPos(20-drc_ins_offsetlerp_x_att, 128)
 		end
 		
+		if DRC.AttachMenu.spanel then DRC.AttachMenu.spanel:Remove() end
+		DRC.AttachMenu.spanel = vgui.Create("DScrollPanel")
+		local s = DRC.AttachMenu.spanel
+		s:SetPos(20, 128)
+		s:SetSize(500, ScrH()*.75)
+		s:SetMouseInputEnabled(true)
+		s:SetPaintBackground(true)
+		s:MakePopup()
+		function s:Paint(w,h)
+			draw.RoundedBox(0, 0, 0, w, h, Color(0,0,0,0))
+		end
+		s.Think = function()
+			s:SetPos(20-drc_ins_offsetlerp_x_att, 128 + m:GetTall() + 20)
+		end
+		
 		m.Sections = {}
+		s.Items = {}
+		
+		local function MakeSelectionMenu(relevancy)
+			m[relevancy].Section = vgui.Create("DScrollPanel", s)
+			local section = m[relevancy].Section
+			section.Panels = {}
+			section:SetPos(0, 0)
+			section:SetSize(s:GetWide(), ScrH()*.5)
+			section:SetBackgroundColor(Color(0,0,0,0))
+			section:Dock(TOP)
+			section:SetVisible(false)
+			section:SetContentAlignment(4)
+			
+			local scroll = section:GetVBar()
+			function scroll:Paint(w, h)
+				DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+			end
+			function scroll.btnUp:Paint(w, h)
+				DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+				DrawText(0, 0, theme.Fonts.Text, DRC.Inspection.ThemeColours.Title, TEXT_ALIGN_LEFT, "  ^")
+			end
+			function scroll.btnDown:Paint(w, h)
+				DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.TabWide)
+				DrawText(0, 0, theme.Fonts.Text, DRC.Inspection.ThemeColours.Title, TEXT_ALIGN_LEFT, "  v")
+			end
+			function scroll.btnGrip:Paint(w, h)
+				DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Div, theme.Images.TabWideLight)
+			end
+			
+			return section
+		end
+		
+		local cbuttons = {}
+		
 		local function MakeSection(relevancy)
 			if #wpn.AttachmentTable[relevancy] < 2 then return end
 			m[relevancy] = vgui.Create("DPanel", m)
@@ -971,48 +1022,27 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 				draw.RoundedBox(0, 0, 0, w, h, DRC.Inspection.ThemeColours_Attachments.Background)
 			end
 			
-			m[relevancy].Section = vgui.Create("DPanelSelect", m)
-			local selection = m[relevancy].Section
-			selection.Panels = {}
-			selection:SetPos(0, m[relevancy].Title:GetTall())
-			selection:SetSize(500, 0)
-			selection:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
-			selection:Dock(TOP)
-			selection:SetVisible(false)
+			local selection = MakeSelectionMenu(relevancy)
+			local bounds = selection:GetBounds()
 			
 			cbutton.DoClick = function()
-				if selection:IsVisible() == true then 
-					m[relevancy].Section:SetVisible(false)
-					m[relevancy].Section:SetTall(0)
+				if selection:IsVisible() == true then
+					selection:SetVisible(false)
 					cbutton:SetText("+")
 				else
-					m[relevancy].Section:SetVisible(true)
-					m[relevancy].Section:SetTall(200)
-					cbutton:SetText("-")
-				end
-				for k,v in pairs(m.Sections) do
-					v:Dock(TOP)
-				end
+					for k,v in pairs(cbuttons) do
+						if v[1] != cbutton then
+							v[1]:SetText("+")
+							v[2]:SetVisible(false)
+						end
+					end
+					selection:SetVisible(true)
+					cbutton:SetText(">") end
+				for k,v in pairs(m.Sections) do v:Dock(TOP) end
 				surface.PlaySound(DRC.Inspection.Theme.Sounds.Dropdown)
 			end
 			
-			function selection:OnActivePanelChanged( old, new )
-				if ( old != new ) then
-					local infoname = ""
-					if new[3] then infoname = new[3] else infoname = selection[new][2] end
-					selected:SetText(" | ".. infoname .."")
-					
-					if !new[3] then
-						net.Start("DRC_WeaponAttachSwitch")
-						net.WriteEntity(wpn)
-						net.WriteEntity(LocalPlayer())
-						net.WriteString(selection[new][1])
-						net.WriteString(selection[new][3])
-						net.SendToServer()
-					--	surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
-					end
-				end
-			end
+			cbuttons[relevancy] = {cbutton, selection}
 			
 			local function GetCanUseAttachment(class, rel)
 				if class == wpn.AttachmentTable[rel][1] then return true end
@@ -1026,16 +1056,62 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 			for k,v in pairs(tab) do
 				if !istable(v) then
 					if scripted_ents.GetStored(v) then
-						m[relevancy].Section[k] = vgui.Create("SpawnIcon", m[relevancy].Section)
-						local icon = m[relevancy].Section[k]
+						local selection = m[relevancy].Section
+						local pnl = vgui.Create("DButton", selection)
 						local info = scripted_ents.GetStored(v).t
+						
+						pnl:SetSize(s:GetWide(), 100)
+						pnl:SetPos(0, 0)
+						pnl:Dock(TOP)
+						pnl:SetPaintBackground(true)
+						pnl:SetText("")
+						pnl.class = info.ClassName
+						pnl.Paint = function(self, w,h)
+							DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.HeaderBG)
+							DrawText(self:GetWide()-20, 10, theme.Fonts.Header, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, info.InfoName)
+							if self:IsHovered() then 
+								DrawText(self:GetWide()-20, 35, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, info.InfoDescription)
+							else
+								if info.InfoDescription != nil && info.InfoDescription != "" then
+								DrawText(self:GetWide()-20, 35, "DripIcons_Menu", DRC.Inspection.ThemeColours.Text_Inactive, TEXT_ALIGN_RIGHT, "b")
+								end
+							end
+						end
+						
+						pnl.DoClick = function()
+							if GetCanUseAttachment(info.ClassName, relevancy) then
+								local infoname, att, slot = info.InfoName, info.ClassName, relevancy
+								selected:SetText(" | ".. infoname .."")
+								
+								net.Start("DRC_WeaponAttachSwitch")
+								net.WriteEntity(wpn)
+								net.WriteEntity(LocalPlayer())
+								net.WriteString(att)
+								net.WriteString(slot)
+								net.SendToServer()
+							else
+								surface.PlaySound(DRC.Inspection.Theme.Sounds.Deny)
+							end
+						end
+						
+						m[relevancy].Section[k] = vgui.Create("DModelPanel", pnl)
+						local icon = m[relevancy].Section[k]
 						icon:SetModel(info.Model or "models/Items/item_item_crate.mdl")
-						icon:SetSize(64, 64)
-						icon:SetTooltip("".. info.InfoName .."\n\n".. info.InfoDescription .."")
+						icon:SetSize(pnl:GetTall(), pnl:GetTall())
+						icon:SetAnimated(true)
+						icon:RunAnimation()
+						icon:SetFOV(info.PreviewFOV or 20)
+						icon:SetLookAt(Vector())
+						icon:GetEntity().Preview = true
+						if !info.PreviewDistance then info.PreviewDistance = 145 end
+						icon:SetCamPos(Vector(-info.PreviewDistance, 0, 45))
+						function icon:LayoutEntity(ent)
+							ent:SetPos(Vector(0,0, -15) + (info.PreviewOffset or Vector(0,0,0)))
+							ent:SetAngles(Angle(0, RealTime()*30,  0))
+						end
 						
 						if !GetCanUseAttachment(info.ClassName, relevancy) then
 							icon:SetEnabled(false)
-							icon:SetTooltip("Not in inventory - ".. info.InfoName .."\n\n".. info.InfoDescription .."")
 							
 							local blocker = vgui.Create("DImageButton", icon)
 							blocker:SetSize(icon:GetWide(), icon:GetTall())
@@ -1047,14 +1123,11 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 							end
 						end
 						
-						selection:AddPanel( icon )
 						selection.Panels[v] = {icon, info.ClassName, info.InfoName}
 						selection[icon] = {info.ClassName, info.InfoName, relevancy}
 					end
 				end
 			end
-			
-			if !table.IsEmpty(tab) then selection:SelectPanel(selection.Panels[wpn.ActiveAttachments[relevancy].t.ClassName]) end
 		end
 		
 		for k,v in pairs(wpn.DummyAttachmentTable) do
@@ -1070,6 +1143,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 			table.insert(m.Sections, m[relevancy])
 			
 			local label = " | None"
+			if wpn.WeaponSkinAppliedName != nil then label = " | ".. wpn.WeaponSkinAppliedName end
 			m[relevancy].Title = vgui.Create("DLabel", m[relevancy])
 			local title = m[relevancy].Title
 			title:SetSize(500, m[relevancy]:GetTall())
@@ -1095,93 +1169,137 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 				draw.RoundedBox(0, 0, 0, w, h, DRC.Inspection.ThemeColours_Attachments.Background)
 			end
 			
-			m[relevancy].Section = vgui.Create("DPanelSelect", m)
-			local selection = m[relevancy].Section
-			selection.Panels = {}
-			selection:SetPos(0, m[relevancy].Title:GetTall())
-			selection:SetSize(500, 0)
-			selection:SetBackgroundColor(DRC.Inspection.ThemeColours_Attachments.Background)
-			selection:Dock(TOP)
-			selection:SetVisible(false)
+			local selection = MakeSelectionMenu(relevancy)
+			local bounds = selection:GetBounds()
 			
 			cbutton.DoClick = function()
-				if selection:IsVisible() == true then 
-					m[relevancy].Section:SetVisible(false)
-					m[relevancy].Section:SetTall(0)
+				if selection:IsVisible() == true then
+					selection:SetVisible(false)
 					cbutton:SetText("+")
 				else
-					m[relevancy].Section:SetVisible(true)
-					m[relevancy].Section:SetTall(400)
-					cbutton:SetText("-")
-				end
-				for k,v in pairs(m.Sections) do
-					v:Dock(TOP)
-				end
+					for k,v in pairs(cbuttons) do
+						if v[1] != cbutton then
+							v[1]:SetText("+")
+							v[2]:SetVisible(false)
+						end
+					end
+					selection:SetVisible(true)
+					cbutton:SetText(">") end
+				for k,v in pairs(m.Sections) do v:Dock(TOP) end
 				surface.PlaySound(DRC.Inspection.Theme.Sounds.Dropdown)
 			end
 			
-			function selection:OnActivePanelChanged( old, new )
-				if ( old != new ) then
-					selected:SetText(" | ".. selection[new][1] .."")
-					if !new[3] then
-						net.Start("DRC_WeaponCamoSwitch")
-						net.WriteEntity(wpn)
-						net.WriteEntity(LocalPlayer())
-						net.WriteString(selection[new][3])
-						net.SendToServer()
-					end
-				--	surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
-				end
+			cbuttons[relevancy] = {cbutton, selection}
+			
+			local function GetCanUseAttachment(class, rel)
+				if class == wpn.AttachmentTable[rel][1] then return true end
+				if DRC.SV.drc_attachments_autounlock != 0 then return true end
+				if table.HasValue(ply.DRCAttachmentInventory, class) then return true end
+				return false
 			end
 			
-			local rbutton = vgui.Create("DImageButton", m[relevancy].Section)
-			rbutton:SetSize(64, 64)
+			local function ApplySkin(wpn, id, name)
+				selected:SetText(" | ".. name .."")
+				net.Start("DRC_WeaponCamoSwitch")
+				net.WriteEntity(wpn)
+				net.WriteEntity(LocalPlayer())
+				net.WriteString(id)
+				net.WriteString(name)
+				net.SendToServer()
+			end
+			
+			local rpnl = vgui.Create("DButton", selection)
+			rpnl:SetSize(s:GetWide(), 48)
+			rpnl:SetPos(0, 0)
+			rpnl:Dock(TOP)
+			rpnl:SetPaintBackground(true)
+			rpnl:SetText("")
+			rpnl.DoClick = function() ApplySkin(wpn, "", "None") end
+			
+			rpnl.Paint = function(self, w,h)
+				DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.HeaderBG)
+				DrawText(self:GetWide()-20, 8, theme.Fonts.Header, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, "None")
+				DrawText(self:GetWide()-20, 30, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text_Inactive, TEXT_ALIGN_RIGHT, "No weapon camo.")
+			end
+			
+			
+			local rbutton = vgui.Create("DImageButton", rpnl)
+			rbutton:SetSize(rpnl:GetTall()-2, rpnl:GetTall()-2)
+			rbutton:SetPos(2,2)
 			rbutton:SetImage("gui/cross.png")
-			rbutton:SetTooltip("Remove applied weapon skin/camo.")
 			rbutton:SetColor(Color(255, 0, 0, 127))
 			selection[rbutton] = {"None", "Remove applied weapon skin/camo.", ""}
 			
-			selection:AddPanel(rbutton)
-			
-			if wpn.WeaponSkinSpecialMats != nil then
-				for k,v in pairs(wpn.WeaponSkinSpecialMats) do
-					local name, desc = v.name, v.desc
-					if name && desc then
-						m[relevancy].Section[k] = vgui.Create("DImageButton", m[relevancy].Section)
-						local icon = m[relevancy].Section[k]
-						local img = k
-						icon:SetMaterial(img)
-						icon:SetSize(64, 64)
-						icon:SetTooltip("".. name .."\n\n".. desc .."")
-						
-						selection.Panels[k] = {icon, name, desc}
-						selection[icon] = {name, desc, k}
-						selection:AddPanel( icon )
+			local tab = {}
+			if !table.IsEmpty(wpn.WeaponSkinSpecialMats) then tab = wpn.WeaponSkinSpecialMats end
+			for k,v in SortedPairs(tab) do
+				if k != "BaseClass" then
+				local name, desc, id = v.name or "", v.desc or "", k
+				local selection = m[relevancy].Section
+				local pnl = vgui.Create("DButton", selection)
+				
+				pnl:SetSize(s:GetWide(), 64)
+				pnl:SetPos(0, 0)
+				pnl:Dock(TOP)
+				pnl:SetPaintBackground(true)
+				pnl:SetText("")
+				pnl.class = name
+				pnl.Paint = function(self, w,h)
+					DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.HeaderBG)
+					DrawText(self:GetWide()-20, 8, theme.Fonts.Header, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, name)
+					if self:IsHovered() then 
+						DrawText(self:GetWide()-20, 30, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, desc)
+					else
+						if desc != nil && desc != "" then
+						DrawText(self:GetWide()-20, 35, "DripIcons_Menu", DRC.Inspection.ThemeColours.Text_Inactive, TEXT_ALIGN_RIGHT, "b!")
+						end
 					end
+				end
+				
+				pnl.DoClick = function() ApplySkin(wpn, k, name) end
+					
+				m[relevancy].Section[k] = vgui.Create("DImageButton", pnl)
+				local icon = m[relevancy].Section[k]
+				icon:SetImage(k)
+				icon:SetSize(pnl:GetTall()-2, pnl:GetTall()-2)
+				icon:SetPos(2,2)
+				selection.Panels[k] = {icon, name, desc}
+				selection[icon] = {name, desc, k}
 				end
 			end
 			
 			for k,v in SortedPairs(DRC.WeaponSkins) do
-				local name, desc = v.name, v.desc
-				if name && desc && wpn.WeaponSkinDisallowUniversals != true then
-					m[relevancy].Section[k] = vgui.Create("DImageButton", m[relevancy].Section)
-					local icon = m[relevancy].Section[k]
-					local img = k
-					if v.icon then img = v.icon end
-					icon:SetMaterial(img)
-					icon:SetSize(64, 64)
-					icon:SetTooltip("".. name .."\n\n".. desc .."")
+				local name, desc, id = v.name or "", v.desc or "", k
+				local selection = m[relevancy].Section
+				local pnl = vgui.Create("DButton", selection)
+				
+				pnl:SetSize(s:GetWide(), 64)
+				pnl:SetPos(0, 0)
+				pnl:Dock(TOP)
+				pnl:SetPaintBackground(true)
+				pnl:SetText("")
+				pnl.class = name
+				pnl.Paint = function(self, w,h)
+					DrawBox(0, 0, w, h, DRC.Inspection.ThemeColours.Background, theme.Images.HeaderBG)
+					DrawText(self:GetWide()-20, 8, theme.Fonts.Header, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, name)
+					if self:IsHovered() then 
+						DrawText(self:GetWide()-20, 30, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_RIGHT, desc)
+					else
+						if desc != nil && desc != "" then
+						DrawText(self:GetWide()-20, 35, "DripIcons_Menu", DRC.Inspection.ThemeColours.Text_Inactive, TEXT_ALIGN_RIGHT, "b")
+						end
+					end
+				end
+				
+				pnl.DoClick = function() ApplySkin(wpn, k, name) end
 					
-					selection.Panels[k] = {icon, name, desc}
-					selection[icon] = {name, desc, k}
-					selection:AddPanel( icon )
-				end
-			end
-			
-			if (!table.IsEmpty(DRC.WeaponSkins) or (wpn.WeaponSkinSpecialMats && !table.IsEmpty(wpn.WeaponSkinSpecialMats))) && wpn.WeaponSkinApplied != nil then
-				if !table.IsEmpty(selection.Panels) then
-				selection:SelectPanel(selection.Panels[wpn.WeaponSkinApplied][1])
-				end
+				m[relevancy].Section[k] = vgui.Create("DImageButton", pnl)
+				local icon = m[relevancy].Section[k]
+				icon:SetSize(pnl:GetTall()-2, pnl:GetTall()-2)
+				icon:SetPos(2,2)
+				icon:SetImage(v.icon or k)
+				selection.Panels[k] = {icon, name, desc}
+				selection[icon] = {name, desc, k}
 			end
 		end
 		
@@ -1209,6 +1327,8 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 		if DRC.AttachMenu.mpanel then
 			surface.PlaySound(DRC.Inspection.Theme.Sounds.Exit)
 			DRC.AttachMenu.mpanel:Remove()
+		end
+		if DRC.AttachMenu.spanel then DRC.AttachMenu.spanel:Remove()
 		end
 	end
 end

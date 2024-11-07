@@ -1,7 +1,13 @@
 function EFFECT:Init( data )
 	local Pos = data:GetOrigin()
 	
-	sound.Play("draconic.particles_rubble", Pos)
+	local dt = data:GetDamageType()
+	local flags = data:GetFlags()
+	local dosound = dt > 0
+	local hideparticle = flags == 1
+	local alphamul = 1
+	if hideparticle == true then alphamul = 0 end 
+	if dosound == true then sound.Play("draconic.particles_rubble", Pos) end
 	
 	self.Position = data:GetStart()
 	self.Magnitude = data:GetMagnitude()
@@ -32,8 +38,8 @@ function EFFECT:Init( data )
 			particle:SetVelocity((self.Normal * 1.5) + VectorRand() * 5 * self.Magnitude )
 			particle:SetLifeTime(math.Rand(0.65, 3)) 
 			particle:SetDieTime(math.Rand(2,5) * (self.Magnitude / 50)) 
-			particle:SetStartAlpha(255)
-			particle:SetEndAlpha(255)
+			particle:SetStartAlpha(255 * alphamul)
+			particle:SetEndAlpha(255 * alphamul)
 			particle:SetStartSize(7) 
 			particle:SetEndSize(0)
 			particle:SetStartLength(0)
@@ -48,7 +54,7 @@ function EFFECT:Init( data )
 			
 			particle:SetCollideCallback(function(part, hitpos, normal)
 				local chance = math.Rand(1,100)
-				if chance > 90 && DRC:DistFromLocalPlayer(hitpos) < 1250 then sound.Play("draconic.particles_rubble", hitpos) end
+				if dosound == true && chance > 90 && DRC:DistFromLocalPlayer(hitpos) < 1250 then sound.Play("draconic.particles_rubble", hitpos) end
 			end)
 		end
 	end

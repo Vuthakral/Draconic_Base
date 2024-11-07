@@ -57,6 +57,7 @@ local function GetPlayerColour(src, channel)
 	if !lply then lply = LocalPlayer() end
 	if !lply or !IsValid(lply) then return Vector() end
 	local col = Vector(0.5, 0.5, 0.5)
+	if src == lply:GetViewModel() then src = lply:GetActiveWeapon() end
 	
 	if channel == "Entity" then
 		local vals = DRC:GetColours(src, true)
@@ -214,7 +215,7 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 			[name] = {
 				["UpdateTime"] = 0,
 				["EnvmapUpdateTime"] = 0,
-				["Envmap"] = "",
+				["Envmap"] = imat:GetString("$envmap"),
 				[channel] = Vector(),
 			},
 		}
@@ -223,7 +224,7 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 		ent.DRCReflectionTints[name] = {
 			["UpdateTime"] = 0,
 			["EnvmapUpdateTime"] = 0,
-			["Envmap"] = "",
+			["Envmap"] = imat:GetString("$envmap"),
 			[channel] = Vector(),
 		}
 	end
@@ -244,14 +245,7 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 		col = (mat.TintVector * mat.PowerFloat * (GetColour(lply, channel, mat)*mat.ShiftFloat) * mul) * DRC.WeathermodScalar * DRC.MapInfo.MapAmbient
 	return col end
 	
-
-	local function ReturnEnvmap()
-		if envmaps == false then
-			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
-		else
-			ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapstatic") or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
-		end
-	end
+	local ienv = imat:GetString("$envmap")
 	
 	if (RealTime() > ent.DRCReflectionTints[name]["EnvmapUpdateTime"]) then
 		local fps = 1/RealFrameTime()
@@ -259,10 +253,16 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 		if fps < 40 && fps > 21 then nexttick = RealTime() + (1 + (math.Rand(-0.3, 0.5))) end
 		if fps < 20 then nexttick = RealTime() + (2 + (math.Rand(0, 3))) end
 		ent.DRCReflectionTints[name]["EnvmapUpdateTime"] = nexttick
-		if envmaps == false then ReturnEnvmap() end
+		if envmaps == false then
+			if ienv != "env_cubemap" then 
+				ent.DRCReflectionTints[name]["Envmap"] = ienv or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
+			else
+				ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
+			end
+		end
 	end
 	
-	if envmaps == false && imat:GetTexture("$envmap") != ent.DRCReflectionTints[name]["Envmap"] then imat:SetTexture("$envmap", ent.DRCReflectionTints[name]["Envmap"]) end
+	if envmaps == false && (ienv == "env_cubemap" && ienv != ent.DRCReflectionTints[name]["Envmap"]) then imat:SetTexture("$envmap", ent.DRCReflectionTints[name]["Envmap"]) end
 	if ent.DRCReflectionTints[name]["Envmap"] == "models/vuthakral/defaultcubemap" then m2 = 0.05 end
 	
 	if (RealTime() > ent.DRCReflectionTints[name]["UpdateTime"]) then
@@ -477,9 +477,7 @@ matproxy.Add( {
 		ent.deathflicker = TimedSin(4, 0.7, ent.flickerflicker, 0)
 		if DRC:Health(ent) > 0.01 then ent.deathflicker = 1 end
 		
-		if ent:EntIndex() == lply:GetHands():EntIndex() or ent.preview == true then
-			ent.deathflicker = 1
-		end
+		if IsValid(lply) && ent:EntIndex() == lply:GetHands():EntIndex() or ent.preview == true then ent.deathflicker = 1 end
 		
 		local col = GetPlayerColour(ent, "EnergyTintVec")
 		col = Vector(math.Clamp(col.x, self.MinFloat.x, 1), math.Clamp(col.y, self.MinFloat.y, 1), math.Clamp(col.z, self.MinFloat.z, 1))
@@ -1714,7 +1712,6 @@ matproxy.Add( {
 		if !self.Speed then self.Speed = 1 end
 		if !self.World then self.World = 0 end
 		
-		
 		local localvel = lply:GetVelocity()
 		local localspeed = localvel:Length()
 		local hands = ent == lply:GetHands()
@@ -1723,18 +1720,19 @@ matproxy.Add( {
 		if !self.Framerate then self.Framerate = 24 end
 		ent.PSXFramerate = self.Framerate
 		
-		local c1, c2 = ent:GetPos() + ent:OBBCenter(), lply:EyePos()
+		local c1, c2 = ent:GetPos() + ent:OBBCenter(), EyePos()
 		local m1, m2 = (self.Power or 1)*0.1, 1
-		
-		if ent == lply then c2 = lply:EyePos() + (lply:EyeAngles():Forward() * -DRC.ThirdPerson.LoadedSettings.Length*0.666) end
 		
 		ent.PSXDistance = (math.Distance(c1.x, c1.y, c2.x, c2.y) / 50)
 		if !ent.PSXDistance then ent.PSXDistance = 0 end
 		ent.DesiredPower = m1 * m2
 		ent.DesiredPower = math.Clamp(ent.PSXDistance * ent.DesiredPower, 0.1, 25)
 		
-		if !DRC:IsCharacter(ent) && !ent.preview then
-			if ent:GetVelocity() == Vector() && localvel == Vector() then ent.DesiredPower = 0 end
+		local x,y = math.abs(DRC.MoveInfo.Mouse[1]) > 0, math.abs(DRC.MoveInfo.Mouse[2]) > 0
+		
+		if !DRC:IsCharacter(ent) && !ent.preview && ent.ForcePSX != true then
+			if ent:GetVelocity() == Vector() && localvel == Vector() && !x && !y then ent.DesiredPower = 0 end
+			if x or y then ent.DesiredPower = ent.DesiredPower * 1.25 end
 		elseif ent.preview then ent.DesiredPower = 0.1
 		end
 		
@@ -1743,14 +1741,37 @@ matproxy.Add( {
 		if !ent.psxcd then ent.psxcd = 0 end
 		if !ent.psxbool then ent.psxbool = 1 end
 		if !ent.PSXCycle then ent.PSXCycle = 0 end
-		if !ent.PSXTick then ent.PSXTick = 0 end
+		if !ent.PSXMulRefresh then ent.PSXMulRefresh = 0 end
+		local ms, mr, mw, mc, mm, si, sm, ss = mat:GetFloat("$psx_cyclemul_sprint"), mat:GetFloat("$psx_cyclemul_run"), mat:GetFloat("$psx_cyclemul_walk"), mat:GetFloat("$psx_cyclemul_crouch"), mat:GetFloat("$psx_cyclemul"), mat:GetFloat("$psx_cyclemul_swimidle"), mat:GetFloat("$psx_cyclemul_swimming"), mat:GetFloat("$psx_cyclemul_swimsprint")
+		if ms then ent.psx_ms = ms end
+		if mr then ent.psx_mr = mr end
+		if mw then ent.psx_mw = mw end
+		if mc then ent.psx_mc = mc end
+		if mm then ent.psx_mm = mm end
+		if si then ent.psx_si = si end
+		if sm then ent.psx_sm = sm end
+		if ss then ent.psx_ss = ss end
+		local rt = RealTime()
 		
-		if RealTime() > ent.psxcd then
+		if rt > ent.PSXMulRefresh then -- no clean way to really refresh this since having multiple materials using the proxy will override it, so I just reset it for one frame every second. Unnoticeable.
+			ent.psx_ms = 1
+			ent.psx_mr = 1
+			ent.psx_mw = 1
+			ent.psx_mc = 1
+			ent.psx_mm = 1
+			ent.psx_si = 1
+			ent.psx_sm = 1
+			ent.psx_ss = 1
+			ent.PSXMulRefresh = rt + 1
+		end
+		
+		if rt > ent.psxcd then
 			local fps = 1/ent.PSXFramerate
-			ent.psxcd = RealTime() + fps
+			ent.psxcd = rt + fps
 			if ent.psxbool == 0 then ent.psxbool = 1 else ent.psxbool = 0 end
 			
-			local mspd, mul, amount
+			
+			local mspd, cmspd, diff, mul = 0, 0, 0, 1
 			if !ent.psxspeedmul then ent.psxspeedmul = 0 end
 			if !ent.psxamount then ent.psxamount = 0 end
 			if ent.preview == true or ent.Preview == true then
@@ -1760,23 +1781,46 @@ matproxy.Add( {
 			elseif ent:IsPlayer() or cspm then
 				local etu = ent
 				if cspm then etu = lply end
-				if etu:KeyDown(IN_JUMP) then etu.PSXCycle = 0 end
-				mspd = etu:GetRunSpeed() - (etu:GetRunSpeed() * 0.25)
-				if etu:KeyDown(IN_WALK) then mspd = etu:GetSlowWalkSpeed() * 3.75 end
-				if etu:KeyDown(IN_DUCK) then mspd = mspd * 1.5 end
+				local wl = etu:WaterLevel()
+				local n, s, e, w = etu:KeyDown(IN_MOVERIGHT) or etu:KeyDown(IN_MOVELEFT) or etu:KeyDown(IN_FORWARD) or etu:KeyDown(IN_BACK)
+				local jump, crouch, walk = etu:KeyDown(IN_JUMP), etu:KeyDown(IN_DUCK), (n or s or e or w) && etu:KeyDown(IN_WALK)
+				local run = !crouch && !walk && (n or s or e or w)
+				local sprint = run && etu:KeyDown(IN_SPEED)
+				
+				if wl != 3 then
+					if crouch then mul = ent.psx_mc end
+					if walk then mul = ent.psx_mw end
+					if crouch then mul = ent.psx_mc end
+					if run then mul = ent.psx_mr end
+					if sprint then mul = ent.psx_ms end
+				else
+					if !run && !sprint then mul = ent.psx_si end
+					if walk then mul = ent.psx_sm end
+					if run then mul = ent.psx_sm end
+					if sprint then mul = ent.psx_ss end
+				end
+				
+				if jump then etu.PSXCycle = 0 end
+				
+				local rs, ws, cs = etu:GetRunSpeed(), etu:GetSlowWalkSpeed(), etu:GetCrouchedWalkSpeed()
+				mspd = rs - (rs * 0.25)
+				cmspd = mspd + ws * cs
+				diff = mspd + ws
+				if walk && wl != 3 then mspd = diff end
+				if crouch then mspd = cmspd end
 				if cspm then mspsd = mspd * 0.01 end
 				if ent:GetVelocity() == Vector() then ent.psxspeedmul = Lerp(1, 0, 0.0416) * 3.333
 				else ent.psxspeedmul = Lerp(localspeed/64000, 0, mspd) * 2.5 end
+				
 				ent.psxamount = (fps * ent.psxspeedmul)
 			else
 				ent.psxamount = fps
 			end
 			
-			ent.PSXCycle = ent.PSXCycle + ent.psxamount or 0 + ent.psxamount
-			ent.PSXTick = ent.PSXTick + ent.psxamount or 0 + ent.psxamount
+			ent.PSXCycle = ent.PSXCycle + ((ent.psxamount or 0 + ent.psxamount) * mul) * GetConVar("host_timescale"):GetFloat()
 		end
 		
-		if DRC:FloorDist(ent) < 10 or (ent.preview == true or ent.Preview == true) then ent:SetCycle(ent.PSXCycle) end
+		if ent:WaterLevel() == 3 or DRC:FloorDist(ent) < 10 or (ent.preview == true or ent.Preview == true) then ent:SetCycle(ent.PSXCycle) end
 		
 		if self.World < 1 then
 			local str = ent.DesiredPower * self.Power
@@ -1951,6 +1995,7 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
 	["$detailblendfactor"] = 3,
 	["$color"] = 0,
 	["$color2"] = 0,
+	["$blendtintcoloroverbase"] = 3,
 	["$phong"] = 2,
 	["$phongexponent"] = 3,
 	["$phongboost"] = 3,
@@ -1958,6 +2003,7 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
 	["$phongfresnelranges"] = 0,
 	["$phongexponenttexture"] = 4,
 	["$phongexponentfactor"] = 3,
+	["$phongwarptexture"] = 4,
 	["$phongdisablehalflambert"] = 2,
 	["$phongalbedotint"] = 2,
 	["$phongalbedoboost"] = 3,
@@ -1968,7 +2014,13 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
 	["$envmaptint"] = 0,
 	["$selfillum"] = 2,
 	["$selfillumtint"] = 0,
+	["$emissiveblendenabled"] = 2,
+	["$emissiveblendtexture"] = 4,
+	["$emissiveblendbasetexture"] = 4,
+	["$emissiveblendflowtexture"] = 4,
 	["$emissiveblendtint"] = 0,
+	["$emissiveblendstrength"] = 3,
+	["$emissiveblendscrollvector"] = 0,
 	["$rimlight"] = 2,
 	["$rimlightexponent"] = 3,
 	["$rimlightboost"] = 3,
@@ -1977,14 +2029,18 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
 	["$cloakcolortint"] = 0,
 	["$refractamount"] = 3,
 	["$basetexturetransform"] = 1,
+	["$frame"] = 3,
 	-- These few below technically don't exist, but are the most common used for translations
 	["$angle"] = 3,
 	["$translate"] = 0,
 	["$center"] = 0,
 	["$offset"] = 3,
 	-- Draconic parameters beyond this point
+	["$envmapfallback"] = 1,
 	["$cmpower"] = 3,
+	["$cmpower_fb"] = 3,
 	["$cmtint"] = 0,
+	["$cmtint_fb"] = 0,
 	["$cmshiftpower"] = 3,
 	["$cmshift"] = 0,
 	["$rimlightpower"] = 3,
@@ -2028,16 +2084,29 @@ local function SetVal(key, val, mat)
 end
 
 local function CopyBaseVals(mat, ent)
-	if ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")] != nil then
-		mat:SetTexture("$basetexture", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetTexture("$basetexture") or "")
-		mat:SetTexture("$bumpmap", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetTexture("$bumpmap") or "")
-		mat:SetTexture("$phongexponenttexture", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetTexture("$phongexponenttexture") or "")
-		mat:SetVector("$color2", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetVector("$color2") or Vector(1,1,1))
-		mat:SetVector("$phongtint", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetVector("$phongtint") or Vector(1,1,1))
-		mat:SetVector("$phongfresnelranges", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetVector("$phongfresnelranges") or Vector(1,1,1))
-		mat:SetVector("$cmtint", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetVector("$cmtint") or Vector(1,1,1))
-		mat:SetFloat("$cmpower", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetFloat("$cmpower") or 1)
-		mat:SetFloat("$rimlightpower", ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]:GetFloat("$rimlightpower") or 1)
+	local original = ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]
+	if original != nil then
+		mat:SetTexture("$basetexture", original:GetTexture("$basetexture") or "")
+		mat:SetTexture("$bumpmap", original:GetTexture("$bumpmap") or "")
+		mat:SetTexture("$phongexponenttexture", original:GetTexture("$phongexponenttexture") or "")
+		mat:SetVector("$color2", original:GetVector("$color2") or Vector(1,1,1))
+		mat:SetVector("$phongtint", original:GetVector("$phongtint") or Vector(1,1,1))
+		mat:SetVector("$phongfresnelranges", original:GetVector("$phongfresnelranges") or Vector(1,1,1))
+		mat:SetVector("$cmtint", original:GetVector("$cmtint") or Vector(1,1,1))
+		mat:SetFloat("$cmpower", original:GetFloat("$cmpower") or 1)
+		mat:SetFloat("$rimlightpower", original:GetFloat("$rimlightpower") or 1)
+		if original:GetString("$envmapfallback") != nil then
+			local str = original:GetString("$envmapfallback")
+			mat:SetTexture("$envmapfallback", str)
+			local vec = original:GetVector("$cmtint_fb")
+			if !vec then vec = original:GetVector("$cmtint") end
+			if !vec then vec = Vector(1,1,1) end
+			local power = original:GetFloat("$cmpower_fb")
+			if !power then power = original:GetFloat("$cmpower") end
+			if !power then power = 1 end
+			mat:SetVector("$cmtint_fb", vec)
+			mat:SetFloat("$cmpower_fb", power)
+		end
 	end
 end
 
@@ -2051,7 +2120,7 @@ matproxy.Add({
 		if !IsValid(lply) then return end
 		if ent == lply:GetViewModel() then ent = lply:GetActiveWeapon() end
 		local skin = ent.WeaponSkinApplied
-		if skin != nil && DRC.WeaponSkins[skin].ProxyMat then
+		if skin != nil && DRC.WeaponSkins[skin] && DRC.WeaponSkins[skin].ProxyMat then
 			CopyBaseVals(mat, ent)
 			for k,v in pairs(DRC.WeaponSkins[skin].ProxyMat) do
 				if matreturns[k] then SetVal(k, v, mat) end

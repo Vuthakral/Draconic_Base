@@ -39,6 +39,7 @@ ENT.Explosive				= false
 ENT.ExplosionType			= "hl2"
 ENT.ExplosiveIgnoresCover	= false
 ENT.RemoveInWater			= false
+ENT.AffectedByWater			= true
 
 ENT.StickSound = nil
 
@@ -123,6 +124,9 @@ ENT.PCFRemoveEffect			= nil
 ENT.ImpactEffect	= nil
 ENT.ImpactSound		= nil
 
+ENT.DynamicParticles = true
+ENT.DynamicSounds = true
+
 ENT.TrailMat		= nil
 ENT.TrailColor		= Color(255, 255, 255)
 ENT.TrailAdditive	= false
@@ -161,6 +165,8 @@ ENT.EMP			= false
 ENT.EMPTime		= 5
 ENT.EMPSound	= nil
 ENT.EMPEffect	= nil
+
+ENT.PreventFireDecals = false
 
 ENT.TimerFrequency	= 1
 
@@ -234,7 +240,7 @@ function ENT:Think()
 	if self.RemoveInWater == true && SERVER then
 		if self:WaterLevel() == 3 then self:Remove() end
 	end
-	if self:WaterLevel() == 3 then
+	if self:WaterLevel() == 3 && self.AffectedByWater == true then
 		phys:EnableGravity(true)
 		if IsValid(self) && self.LoopingSound != nil then self:StopSound(self.LoopingSound) end
 	end
@@ -787,11 +793,10 @@ function ENT:PhysicsCollide( data, phys )
 				if self.FirstBounce == false then self.FirstBounce = true end
 				if self.FirstBounce == true then timer.Simple(self.FuseTime, function() if self:IsValid() then self:TriggerExplosion() end end) end
 			elseif typ == "fire" then
-				
 				if ct > self.burncooldown then
 					local startpos = self:GetPos()
 					local endpos = self:GetVelocity():Angle():Forward() * 25
-					util.Decal("Scorch", startpos, endpos, {self})
+					if self.PreventFireDecals != true then util.Decal("Scorch", startpos, endpos, {self}) end
 					self.burncooldown = ct + 0.05
 				end
 			end
@@ -873,12 +878,6 @@ function ENT:TriggerExplosion(nodecal)
 	self.Light = false
 	if self.Explosive == false then return end
 	if self.ManualDetonation == true && self.Detonated != true then return end
-	
-	if game.SinglePlayer() then
-		if !self:IsValid() then return end
-		if self.ENear != nil then self:EmitSound(self.ENear) end
-		if self.EFar != nil then self:EmitSound(self.EFar) end
-	end
 	
 	if self.TriggeredSound == false then
 		self.TriggeredSound = true
@@ -999,7 +998,7 @@ function ENT:LuaExplode(mode)
 	
 	DRC:RenderSphere(pos, self.MSRadius, Color(255, 0, 0, 100), 2)
 	
-	DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast")
+	DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast", self.DynamicSounds, !self.DynamicParticles)
 	
 	local entities = ents.FindInSphere(pos, self.MSRadius)
 	for f, v in pairs(entities) do

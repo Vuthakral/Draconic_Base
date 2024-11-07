@@ -2,15 +2,16 @@ SWEP.Base				= "draconic_gun_base"
 
 SWEP.HoldType			= "normal"
 SWEP.CrouchHoldType		= "normal"
-SWEP.Category			= "Draconic"
+SWEP.Category			= "Draconic Base Tools"
 SWEP.PrintName			= "Cubemap Tester w/ Material Proxies"
 SWEP.InfoName			= "Cubemap"
 
 SWEP.Purpose			= "Checking cubemaps with Draconic material proxies."
 SWEP.Instructions		= "Cry when you realize how many people don't know how to set up envmaps."
  
-SWEP.Spawnable      = false
-SWEP.AdminSpawnable = false
+SWEP.Spawnable      = true
+SWEP.AdminSpawnable = true
+SWEP.AdminOnly		= true
 SWEP.NPCSpawnable	= false
 SWEP.CanStore		= false
 

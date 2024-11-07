@@ -1,7 +1,13 @@
 function EFFECT:Init( data )
 	local Pos = data:GetOrigin()
 	
-	sound.Play("draconic.particles_glassbounce", Pos)
+	local dt = data:GetDamageType()
+	local flags = data:GetFlags()
+	local dosound = dt > 0
+	local hideparticle = flags == 1
+	local alphamul = 1
+	if hideparticle == true then alphamul = 0 end 
+	if dosound == true then sound.Play("draconic.particles_glassbounce", Pos) end
 	
 	self.Position = data:GetStart()
 	self.Magnitude = data:GetMagnitude()
@@ -50,7 +56,7 @@ function EFFECT:Init( data )
 			
 			particle:SetCollideCallback(function(part, hitpos, normal)
 				local chance = math.Rand(1,100)
-				if chance > 90 && DRC:DistFromLocalPlayer(hitpos) < 1250 then sound.Play("draconic.particles_glassbounce", hitpos) end
+				if dosound == true && chance > 90 && DRC:DistFromLocalPlayer(hitpos) < 1250 then sound.Play("draconic.particles_glassbounce", hitpos) end
 			end)
 		end
 	end

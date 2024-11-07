@@ -2,6 +2,7 @@ DRC.CalcView.ThirdPerson.Ang = Angle()
 DRC.CalcView.ThirdPerson.Ang_Stored = Angle()
 DRC.CalcView.ThirdPerson.DirectionalAng = Angle()
 DRC.CalcView.ThirdPerson.Live = false
+DRC.CalcView.ThirdPerson.Directional = false
 DRC.CalcView.ThirdPerson.PokeTime = CurTime()
 DRC.CalcView.ThirdPerson.FreelookForced = false
 if !DRC.CalcView.ThirdPerson.EditorOpen then DRC.CalcView.ThirdPerson.EditorOpen = false end
@@ -18,6 +19,7 @@ DRC.ThirdPerson.EditorSettings = {
 	["Offset"] = Vector(0, 0, 0),
 	["LerpAngle"] = 0,
 	["LerpPos"] = 0.1,
+	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
 	["BasePoint"] = 0, -- 0 pelvis, 1 eyes, 2 origin
@@ -34,6 +36,7 @@ DRC.ThirdPerson.LoadedSettings = {
 	["Offset"] = Vector(25, 0, 0),
 	["LerpAngle"] = 0,
 	["LerpPos"] = 0.1,
+	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
 	["BasePoint"] = 0, -- 0 pelvis, 1 eyes, 2 origin
@@ -49,6 +52,7 @@ DRC.ThirdPerson.LerpedSettings = {
 	["Offset"] = Vector(25, 0, 0),
 	["LerpAngle"] = 0,
 	["LerpPos"] = 0.1,
+	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
 	["BasePoint"] = 0, -- 0 pelvis, 1 eyes, 2 origin
@@ -65,6 +69,7 @@ DRC.ThirdPerson.DefaultSettings = {
 	["Offset"] = Vector(25, 0, 0),
 	["LerpAngle"] = 0,
 	["LerpPos"] = 0.1,
+	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
 	["BasePoint"] = 0, -- 0 pelvis, 1 eyes, 2 origin
@@ -147,15 +152,25 @@ local MovementCorrection = {
 	["EW"] = 0,
 	["NS"] = 0,
 }
+
+hook.Add("CreateMove", "!drc_cacheusercmd", function(cmd)
+	DRC.MoveInfo = {
+		["Mouse"] = { cmd:GetMouseX(), cmd:GetMouseY() },
+		["Forward"] = cmd:GetForwardMove(),
+		["Side"] = cmd:GetSideMove(),
+	}
+end)
+
 hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
 	local wpn = ply:GetActiveWeapon()
 	if DRC:IsDraconicThirdPersonEnabled(ply) != true then return end
 	local settings = wpn.ThirdPersonProfileOverride or DRC.ThirdPerson.LoadedSettings
+	if !settings.LerpTransition then settings.LerpTransition = 1 end
 	for k,v in pairs(settings) do -- used to interpolate profile changes for scripted systems that utilize profile overrides.
 		if !isbool(v) && !isstring(v) then
-			DRC.ThirdPerson.LerpedSettings[k] = Lerp(RealFrameTime()*5, DRC.ThirdPerson.LerpedSettings[k] or v, v)
+			DRC.ThirdPerson.LerpedSettings[k] = Lerp(RealFrameTime()*(5*settings.LerpTransition), DRC.ThirdPerson.LerpedSettings[k] or v, v)
 		else
 			DRC.ThirdPerson.LerpedSettings[k] = v
 		end
@@ -168,11 +183,6 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	elseif IsValid(wpn) && (wpn.ThirdpersonNoFreelook == true) then
 		DRC:ThirdPerson_PokeLiveAngle(ply)
 	end
-	DRC.MoveInfo = {
-		["Mouse"] = { cmd:GetMouseX(), cmd:GetMouseY() },
-		["Forward"] = cmd:GetForwardMove(),
-		["Side"] = cmd:GetSideMove(),
-	}
 	
 	local sens = ply:GetFOV() / 100
 	
@@ -270,9 +280,7 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 	local wpn = LocalPlayer():GetActiveWeapon()
 	local sd, scoped = DRC:SightsDown(wpn)
 	if !wpn.Draconic && sd then return
-	elseif wpn.Draconic then
-		if wpn.Secondary.Scoped == true && sd then return end
-	end
+	elseif wpn.Draconic && scoped && sd then return end
 	
 	if DRC:ThirdPersonEnabled(ply) == true then
 		if !DRC:ShouldDoDRCThirdPerson(ply) then return end
@@ -381,7 +389,6 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		end
 		
 		local hitposaim = util.TraceLine({start = DRC.CalcView.ThirdPerson.LerpedFinalPos, endpos = ply:GetEyeTraceNoCursor().HitPos})
-	--	DRC:RenderTrace(hitposaim, Color(255, 255, 0, 255), RealFrameTime())
 		hitposaim = hitposaim.Normal:Angle()
 		
 		local AAAA = math.Clamp(0.5/RealFrameTime(), 1, 100)

@@ -31,6 +31,10 @@ function ENT:PhysicsCollide(col, phys)
 	self:DoCustomPhysicsCollide(col, phys)
 end
 
+function ENT:OnRemove()
+	self:DoCustomRemove()
+end
+
 function ENT:DoCustomInitialize()
 end
 
@@ -38,4 +42,7 @@ function ENT:DoCustomThink()
 end
 
 function ENT:DoCustomPhysicsCollide(col, phys)
+end
+
+function ENT:DoCustomRemove()
 end

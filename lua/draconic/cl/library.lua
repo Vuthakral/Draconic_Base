@@ -272,6 +272,7 @@ end)
 net.Receive("DRCSound", function(len, ply)
 --	local nt = net.ReadTable()
 	local source = net.ReadEntity()
+	local pos = net.ReadVector()
 	local distance = net.ReadFloat()
 	local sounds = {net.ReadString(), net.ReadString()}
 	local ply = LocalPlayer()
@@ -288,11 +289,10 @@ net.Receive("DRCSound", function(len, ply)
 		near = sounds[1] or ""
 		far = sounds[2] or ""
 	end
-		
-	if !IsValid(source) then return end
-	local dist = math.Round((ply:GetPos() - source:GetPos()):Length(), 0)
+	
+	local dist = math.Round((EyePos() - pos):Length(), 0)
 	if dist > distance then
-		source:EmitSound(far, nil, nil, nil, nil, nil, 1)
+		sound.Play(far, pos)
 	end
 end)
 
@@ -491,6 +491,8 @@ function DRC:CreateThirdPersonPresetMenu(parent, iseditor)
 	loadbutton:SetText("Load selected preset")
 	loadbutton:SetEnabled(false)
 	loadbutton.DoClick = function()
+		DRC.ThirdPerson.LoadedSettings.LerpPos = 1
+		DRC.ThirdPerson.LoadedSettings.LerpAngle = 1
 		table.CopyFromTo(SelectedPreset, DRC.ThirdPerson.LoadedSettings)
 		if iseditor == true then table.CopyFromTo(SelectedPreset, DRC.ThirdPerson.EditorSettings) DRC:UpdateThirdPersonEditorMenu() end
 		RunConsoleCommand("cl_drc_thirdperson_preset", SelectedPresetName)
@@ -798,8 +800,9 @@ end)
 net.Receive("DRC_WeaponCamoSwitch_Sync", function()
 	local wpn = net.ReadEntity()
 	local mat = net:ReadString()
+	local name = net:ReadString()
 	
-	wpn:SetCamo(mat)
+	wpn:SetCamo(mat, name)
 	
 --	surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
 end)
@@ -1231,7 +1234,7 @@ function DRCSwepOffset(wpn, vm)
 		local mul = wpn.Sway_OffsetPowerPos
 		local x = -wpn.dynmove.Ang.y*0.15 * mul.x
 		local y = math.abs(wpn.dynmove.Ang.x*0.25) * mul.y
-		local z = wpn.dynmove.Ang.x*0.25 * mul.z
+		local z = -wpn.dynmove.Ang.x*0.05 * mul.z
 		angpos = Vector(x, y, z)
 	else
 		local mul = wpn.Sway_OffsetPowerPos
@@ -1403,6 +1406,7 @@ concommand.Add("drc_refreshcsents", function()
 	if IsValid(DRC.CSPlayerHandShield) then DRC.CSPlayerHandShield:Remove() end
 	if IsValid(DRC.CalcView.MuzzleLamp) then DRC.CalcView.MuzzleLamp:Remove() end
 	if DRC.AttachMenu && DRC.AttachMenu.mpanel then DRC.AttachMenu.mpanel:Remove() end
+	if DRC.AttachMenu && DRC.AttachMenu.spanel then DRC.AttachMenu.spanel:Remove() end
 	
 	for k,v in pairs(ents.GetAll()) do
 		if v.DRCReflectionTints then v.DRCReflectionTints = nil end
@@ -1429,6 +1433,10 @@ local function drc_DebugUI()
 		drc_frame = CurTime() + engine.TickInterval() * 30
 		drc_framesavg = math.Round(1/RealFrameTime())
 	end
+	
+	local width, height = ScrW(), ScrH()
+	local w2, h2 = width*0.5, height*0.5
+	local anchor = DRC.HUDAnchors
 
 	local hp, maxhp, ent = DRC:GetShield(LocalPlayer())
 	local over = math.Round(DRC:GetOverShield(LocalPlayer()) or 0, 2)
@@ -1443,71 +1451,121 @@ local function drc_DebugUI()
 	tps = math.floor(tps)
 	
 	drcshieldinterp = Lerp(RealFrameTime() * 25, drcshieldinterp or hp, hp)
-	draw.DrawText( "Shield: ".. tostring(math.Round(drcshieldinterp)) .."/".. maxhp .." +".. over .."", "TargetID", ScrW() * 0.02, ScrH() * 0.875, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "FPS: ".. drc_framesavg .." | ".. math.Round(1/RealFrameTime()) .."", "TargetID", ScrW() * 0.02, ScrH() * 0.855, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "TPS: ".. tps .." | ".. math.floor(1/engine.TickInterval()) .."", "TargetID", ScrW() * 0.02, ScrH() * 0.835, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Shield: ".. tostring(math.Round(drcshieldinterp)) .."/".. maxhp .." +".. over .."", "TargetID", width * 0.02, height * 0.875, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "FPS: ".. drc_framesavg .." | ".. math.Round(1/RealFrameTime()) .."", "TargetID", width * 0.02, height * 0.855, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "TPS: ".. tps .." | ".. math.floor(1/engine.TickInterval()) .."", "TargetID", width * 0.02, height * 0.835, color_white, TEXT_ALIGN_LEFT )
+	
+	if DRC:IsDraconicThirdPersonEnabled(ply) then
+		draw.DrawText( "Thirdperson Variables:", "DermaDefault", width * 0.013, height * 0.15, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Live: ".. tostring(DRC.CalcView.ThirdPerson.Live) .."", "DermaDefault", width * 0.013, height * 0.165, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Directional: ".. tostring(DRC.CalcView.ThirdPerson.Directional) .."", "DermaDefault", width * 0.013, height * 0.175, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Freelook Forced: ".. tostring(DRC.CalcView.ThirdPerson.FreelookForced) .."", "DermaDefault", width * 0.013, height * 0.185, color_white, TEXT_ALIGN_LEFT )
+		
+		draw.DrawText( "Settings:", "DermaDefault", width * 0.013, height * 0.21, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Pole Length: ".. math.Round(DRC.ThirdPerson.LerpedSettings.Length, 2) .."", "DermaDefault", width * 0.013, height * 0.225, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Pole Height: ".. math.Round(DRC.ThirdPerson.LerpedSettings.Height, 2) .."", "DermaDefault", width * 0.013, height * 0.235, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Offset: ".. tostring(DRC.ThirdPerson.LerpedSettings.Offset) .."", "DermaDefault", width * 0.013, height * 0.245, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "FOV: ".. tostring(DRC.ThirdPerson.LerpedSettings.BaseFOV) .."", "DermaDefault", width * 0.013, height * 0.255, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Angle Lerp Power: ".. math.Round(DRC.ThirdPerson.LerpedSettings.LerpAngle, 2) .."", "DermaDefault", width * 0.013, height * 0.265, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Position Lerp Power: ".. math.Round(DRC.ThirdPerson.LerpedSettings.LerpPos, 2) .."", "DermaDefault", width * 0.013, height * 0.275, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Freelook Delay: ".. math.Round(DRC.ThirdPerson.LerpedSettings.FreecamDelay, 2) .."", "DermaDefault", width * 0.013, height * 0.285, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Directional Forced: ".. tostring(DRC.ThirdPerson.LerpedSettings.ForceDirectional) .."", "DermaDefault", width * 0.013, height * 0.295, color_white, TEXT_ALIGN_LEFT )
+		
+		draw.DrawText( "Info:", "DermaDefault", width * 0.013, height * 0.32, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Angle: ".. tostring(DRC.CalcView.ThirdPerson.Ang) .."", "DermaDefault", width * 0.013, height * 0.335, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Stored Angle: ".. tostring(DRC.CalcView.ThirdPerson.Ang_Stored) .."", "DermaDefault", width * 0.013, height * 0.345, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Mouse X: ".. math.Round(DRC.MoveInfo.Mouse.X, 2) .."", "DermaDefault", width * 0.013, height * 0.355, color_white, TEXT_ALIGN_LEFT )
+		draw.DrawText( "Mouse Y: ".. math.Round(DRC.MoveInfo.Mouse.Y, 2) .."", "DermaDefault", width * 0.013, height * 0.365, color_white, TEXT_ALIGN_LEFT )
+	end
 
+--[[	
+	DRC.ThirdPerson.LerpedSettings = {
+		["Length"] = 100,
+		["Height"] = 25,
+		["UseBaseOffsets"] = true,
+		["AllowFreeLook"] = true,
+		["Offset"] = Vector(25, 0, 0),
+		["LerpAngle"] = 0,
+		["LerpPos"] = 0.1,
+		["BaseFOV"] = 75,
+		["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
+		["BasePoint"] = 0, -- 0 pelvis, 1 eyes, 2 origin
+		["ForceFreelook"] = false,
+		["FreecamDelay"] = 3,
+		["ForceDirectional"] = false,
+	}
+]]
+	
 	if IsValid(LocalPlayer():GetActiveWeapon()) then
 		local curswep = LocalPlayer():GetActiveWeapon()
 		
 		local ammo, maxammo = curswep:Clip1(), curswep:GetMaxClip1()
 		
 		if curswep.Draconic == true then
-			local vm = 
-			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNWInt("LoadedAmmo"), 4) ..")/".. maxammo .." | Ammo", "TargetID", ScrW() * 0.975, ScrH() * 0.855, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. math.Round(curswep:GetHeat(), 4) .."% | Heat", "TargetID", ScrW() * 0.975, ScrH() * 0.855+24, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. curswep.Category .." - ".. curswep:GetPrintName() .."", "TargetID", ScrW() * 0.975, ScrH() * 0.855-24, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( "".. curswep.OwnerActivity .."", "TargetID", ScrW() * 0.5, ScrH() * 0.8 + 24, color_white, TEXT_ALIGN_CENTER )
+			local vm
+			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNWInt("LoadedAmmo"), 4) ..")/".. maxammo .." | Ammo", "DermaDefault", width * 0.975, height * 0.855, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. math.Round(curswep:GetHeat(), 4) .."% | Heat", "DermaDefault", width * 0.975, height * 0.855+12, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. curswep.Category .." - ".. curswep:GetPrintName() .."", "DermaDefault", width * 0.975, height * 0.855-12, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. curswep.OwnerActivity .."", "TargetID", width * 0.5, height * 0.8 + 24, color_white, TEXT_ALIGN_CENTER )
 			
-			draw.DrawText( "drc_movement: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_movement"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 48, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_move_x: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_move_x"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 60, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_move_y: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_move_y"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 72, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_movement: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_movement"), 2) .."", "DermaDefault", 32, height * 0.5 + 48, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_move_x: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_move_x"), 2) .."", "DermaDefault", 32, height * 0.5 + 60, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_move_y: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_move_y"), 2) .."", "DermaDefault", 32, height * 0.5 + 72, color_white, TEXT_ALIGN_LEFT )
 			
-			draw.DrawText( "drc_ammo: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_ammo"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 94, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_emptymag: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_emptymag"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 106, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_heat: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_heat"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 118, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_battery: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_battery"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 130, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_charge: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_charge"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 142, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "drc_health: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_health"), 2) .."", "DermaDefault", 32, ScrH() * 0.5 + 166, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_ammo: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_ammo"), 2) .."", "DermaDefault", 32, height * 0.5 + 94, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_emptymag: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_emptymag"), 2) .."", "DermaDefault", 32, height * 0.5 + 106, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_heat: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_heat"), 2) .."", "DermaDefault", 32, height * 0.5 + 118, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_battery: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_battery"), 2) .."", "DermaDefault", 32, height * 0.5 + 130, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_charge: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_charge"), 2) .."", "DermaDefault", 32, height * 0.5 + 142, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "drc_health: ".. math.Round(ply:GetViewModel():GetPoseParameter("drc_health"), 2) .."", "DermaDefault", 32, height * 0.5 + 166, color_white, TEXT_ALIGN_LEFT )
 			
-			draw.DrawText( "Loading: ".. tostring(curswep.Loading) .."", "DermaDefault", 32, ScrH() * 0.5 + 190, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "Loading: ".. tostring(curswep.Loading) .."", "DermaDefault", 32, height * 0.5 + 190, color_white, TEXT_ALIGN_LEFT )
 			
-			draw.DrawText( "Firing Anim: ".. tostring(curswep.PlayingShootAnimation) .."", "DermaDefault", 32, ScrH() * 0.5 + 214, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "Loading Anim: ".. tostring(curswep.PlayingLoadAnimation) .."", "DermaDefault", 32, ScrH() * 0.5 + 226, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "Inspect Anim: ".. tostring(curswep:GetNWBool("InspectCamLerp")) .."", "DermaDefault", 32, ScrH() * 0.5 + 238, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "Firing Anim: ".. tostring(curswep.PlayingShootAnimation) .."", "DermaDefault", 32, height * 0.5 + 214, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "Loading Anim: ".. tostring(curswep.PlayingLoadAnimation) .."", "DermaDefault", 32, height * 0.5 + 226, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "Inspect Anim: ".. tostring(curswep:GetNWBool("InspectCamLerp")) .."", "DermaDefault", 32, height * 0.5 + 238, color_white, TEXT_ALIGN_LEFT )
 			
 			local col1 = Color(255, 255, 255, 175)
 			local col2 = Color(255, 255, 255, 75)
-			local posx, posy = ScrW() * 0.94, ScrH() * 0.73
+			local posx, posy = width * 0.94, height * 0.77
 			surface.SetDrawColor( col1 )
 			
 			surface.DrawCircle(posx, posy, 100, col1.r, col1.g, col1.b, col1.a)
 			surface.DrawRect(posx, posy, 2, 2)
-			draw.DrawText("Camera Drag Interpreter", "HudSelectionText", ScrW() * 0.975, ScrH() * 0.6, Color(236, 236, 236, 175), TEXT_ALIGN_RIGHT)
-			draw.DrawText(drc_vm_lerpang_final, "HudSelectionText", ScrW() * 0.975, ScrH() * 0.615, Color(236, 236, 236, 175), TEXT_ALIGN_RIGHT)
+			draw.DrawText("Camera Drag Interpreter", "DermaDefault", width * 0.975, height * 0.67, Color(236, 236, 236, 175), TEXT_ALIGN_RIGHT)
+			draw.DrawText(drc_vm_lerpang_final, "DermaDefault", width * 0.975, height * 0.67+14, Color(236, 236, 236, 175), TEXT_ALIGN_RIGHT)
 			
 			surface.SetDrawColor( col2 )
 			surface.DrawLine(posx, posy, posx + (drc_vm_lerpang_final.y), posy - (drc_vm_lerpang_final.x))
 			surface.SetDrawColor( col1 )
 			surface.DrawRect(posx - 2 + (drc_vm_lerpang_final.y), posy - 2 - (drc_vm_lerpang_final.x), 5, 5)
-		--	draw.DrawText( "".. math.Round(curswep.IdleTimer, 4) .." |", "TargetID", ScrW() * 0.5 -50, ScrH() * 0.8 + 25, color_white, TEXT_ALIGN_CENTER )
-		--	draw.DrawText( "".. math.Round(CurTime(), 4) .."", "TargetID", ScrW() * 0.5 +20, ScrH() * 0.8 + 25, color_white, TEXT_ALIGN_LEFT )
+			
+			
+			if curswep.FireModes_CanBurst == true then
+				draw.DrawText("Burst Queue: ".. #curswep.BurstQueue .."", "DermaDefault", anchor.TR.x - 32, anchor.TR.y+32, Color(236, 236, 236, 175), TEXT_ALIGN_RIGHT)
+				for i=1,curswep.FireModes_BurstShots do
+					draw.DrawText(i, "DermaDefault", anchor.TR.x - 32, anchor.TR.y+32+(12*i), Color(236, 0, 0, 175), TEXT_ALIGN_RIGHT)
+				end
+				for i=1,#curswep.BurstQueue do
+					if curswep.BurstQueue[i] then draw.DrawText(i, "DermaDefault", anchor.TR.x - 32, anchor.TR.y+32+(12*i), Color(0, 236, 0, 175), TEXT_ALIGN_RIGHT) end
+				end
+			end
 		else
-			draw.DrawText( "".. ammo .."/".. maxammo .."", "TargetID", ScrW() * 0.975, ScrH() * 0.875, color_white, TEXT_ALIGN_RIGHT )
-			draw.DrawText( curswep:GetPrintName(), "TargetID", ScrW() * 0.975, ScrH() * 0.855, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. ammo .."/".. maxammo .."", "TargetID", width * 0.975, height * 0.875, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( curswep:GetPrintName(), "TargetID", width * 0.975, height * 0.855, color_white, TEXT_ALIGN_RIGHT )
 		end
 	end
 	
 	local label = DRC:GetPower()
 	if label != "Desktop" then label = "Mobile: ".. DRC:GetPower() .."%" end
 	
-	draw.DrawText( "Draconic Base ".. Draconic.Version .."", "TargetID", ScrW() * 0.5, ScrH() * 0.92, color_white, TEXT_ALIGN_CENTER )
-	draw.DrawText( "".. LocalPlayer():Name() .." (".. LocalPlayer():SteamID64() ..")", "TargetID", ScrW() * 0.5, ScrH() * 0.94, color_white, TEXT_ALIGN_CENTER )
-	draw.DrawText( "".. DRC:GetOS() .." (".. DRC:GetPower() ..") - ".. os.date() .."", "TargetID", ScrW() * 0.5, ScrH() * 0.96, color_white, TEXT_ALIGN_CENTER )
+	draw.DrawText( "Draconic Base ".. Draconic.Version .."", "HudHintTextLarge", anchor.B.x, anchor.B.y - 100, color_white, TEXT_ALIGN_CENTER )
+	draw.DrawText( "".. LocalPlayer():Name() .." (".. LocalPlayer():SteamID64() ..")", "HudHintTextLarge", anchor.B.x, anchor.B.y - 80, color_white, TEXT_ALIGN_CENTER )
+	draw.DrawText( "".. DRC:GetOS() .." (".. DRC:GetPower() ..") - ".. os.date() .."", "HudHintTextLarge", anchor.B.x, anchor.B.y - 60, color_white, TEXT_ALIGN_CENTER )
 	if game.SinglePlayer() then
-		draw.DrawText( "".. DRC:GetServerMode() .." - ".. engine.ActiveGamemode() .."", "TargetID", ScrW() * 0.5, ScrH() * 0.98, color_white, TEXT_ALIGN_CENTER )
+		draw.DrawText( "".. DRC:GetServerMode() .." - ".. engine.ActiveGamemode() .."", "HudHintTextLarge", anchor.B.x, anchor.B.y - 40, color_white, TEXT_ALIGN_CENTER )
 	else
-		draw.DrawText( "".. DRC:GetServerMode() .." - ".. GetHostName() .." - ".. engine.ActiveGamemode() .."", "TargetID", ScrW() * 0.5, ScrH() * 0.98, color_white, TEXT_ALIGN_CENTER )
+		draw.DrawText( "".. DRC:GetServerMode() .." - ".. GetHostName() .." - ".. engine.ActiveGamemode() .."", "HudHintTextLarge", anchor.B.x, anchor.B.y - 40, color_white, TEXT_ALIGN_CENTER )
 	end
 	
 	local lifetime = CurTime()
@@ -1516,7 +1574,7 @@ local function drc_DebugUI()
 	local minutes = math.floor(math.fmod(lifetime,3600)/60)
 	local seconds = math.floor(math.fmod(lifetime,60))
 	local timestr = "".. days .." days, ".. hours .." hours, ".. minutes .." minutes, and ".. seconds .." seconds"
-	draw.DrawText( "Uptime: ".. timestr .."", "TargetID", 32, 32, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Uptime: ".. timestr .."", "DermaDefault", anchor.TL.x + 32, anchor.TL.y+32, color_white, TEXT_ALIGN_LEFT )
 	
 	local eyepos = LocalPlayer():EyePos()
 	local roomsize = DRC:RoomSize(LocalPlayer())
@@ -1524,16 +1582,16 @@ local function drc_DebugUI()
 	local ll = render.GetLightColor(eyepos)
 	local llhp = render.GetLightColor(LocalPlayer():GetEyeTrace().HitPos)
 	
-	draw.DrawText( "Thirdperson detection: ".. tostring(DRC:ThirdPersonEnabled(LocalPlayer())) .."", "TargetID", 32, 56, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "Room size: ".. roomname .."", "TargetID", 32, 78, color_white, TEXT_ALIGN_LEFT )
-	draw.DrawText( "Weather mod: ", "TargetID", 32, 102, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, 180, 102, 24, 24, Color(DRC.WeathermodScalar.x * 255, DRC.WeathermodScalar.y * 255, DRC.WeathermodScalar.z * 255))
-	draw.DrawText( "Light level: ", "TargetID", 32, 126, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, 147, 126, 24, 24, Color(ll.r * 255, ll.g * 255, ll.b * 255))
-	draw.DrawText( "LL Hitpos: ", "TargetID", 32, 150, color_white, TEXT_ALIGN_LEFT )
-	draw.RoundedBox(0, 147, 150, 24, 24, Color(llhp.r * 255, llhp.g * 255, llhp.b * 255))
+	draw.DrawText( "Thirdperson detection: ".. tostring(DRC:ThirdPersonEnabled(LocalPlayer())) .."", "DermaDefault", anchor.TL.x + 32, anchor.TL.y+48, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Room size: ".. roomname .."", "DermaDefault", anchor.TL.x + 32, anchor.TL.y+64, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "Weather mod: ", "DermaDefault", anchor.TL.x + 32, anchor.TL.y+80, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(3, anchor.TL.x + 108, anchor.TL.y+80, 14, 14, Color(DRC.WeathermodScalar.x * 255, DRC.WeathermodScalar.y * 255, DRC.WeathermodScalar.z * 255))
+	draw.DrawText( "Light level: ", "DermaDefault", anchor.TL.x + 32, anchor.TL.y+96, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(3, anchor.TL.x + 108, anchor.TL.y+96, 14, 14, Color(ll.r * 255, ll.g * 255, ll.b * 255))
+	draw.DrawText( "LL Hitpos: ", "DermaDefault", anchor.TL.x + 32, anchor.TL.y+112, color_white, TEXT_ALIGN_LEFT )
+	draw.RoundedBox(3, anchor.TL.x + 108, anchor.TL.y+112, 14, 14, Color(llhp.r * 255, llhp.g * 255, llhp.b * 255))
 	
-	draw.DrawText( "".. game.GetMap() .." @ Vector(".. tostring(LocalPlayer():GetPos()) ..")", "TargetID", ScrW() * 0.02, ScrH() * 0.978, color_white, TEXT_ALIGN_LEFT )
+	draw.DrawText( "".. game.GetMap() .." @ Vector(".. tostring(LocalPlayer():GetPos()) ..")", "DermaDefault", width * 0.01, height * 0.988, color_white, TEXT_ALIGN_LEFT )
 	
 	local vm = LocalPlayer():GetViewModel()
 	if !IsValid(vm) then return end
@@ -1542,7 +1600,7 @@ local function drc_DebugUI()
 	local act = vm:GetSequenceActivityName(seq)
 	local cycle = vm:GetCycle()
 	
-	draw.DrawText( "".. act .." | ".. math.Round(cycle * 100) .."%", "TargetID", ScrW() * 0.5, ScrH() * 0.8, color_white, TEXT_ALIGN_CENTER )
+	draw.DrawText( "".. act .." | ".. math.Round(cycle * 100) .."%", "TargetID", width * 0.5, height * 0.8, color_white, TEXT_ALIGN_CENTER )
 end
 hook.Add("HUDPaint", "drc_DebugUI", drc_DebugUI)
 

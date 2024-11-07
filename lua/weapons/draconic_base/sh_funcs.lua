@@ -59,6 +59,28 @@ function SWEP:SubHeat(val)
 	end
 end
 
+function SWEP:GetCurrentMuzzle()
+	return self:GetNWInt("CurrentMuzzle", 1)
+end
+
+function SWEP:SetCurrentMuzzle(num)
+	self:SetNWInt("CurrentMuzzle", num)
+end
+
+function SWEP:IncrementCurrentMuzzle()
+	local muzzles = #self.Muzzles
+	
+	if muzzles > 1 then
+		local cur = self:GetCurrentMuzzle()
+		if self.MuzzleCycle == 0 then
+			self:SetCurrentMuzzle(cur + 1)
+			if cur > muzzles then self:SetCurrentMuzzle(1) end
+		else
+			self:SetCurrentMuzzle(math.Round(math.Rand(1,muzzles)))
+		end
+	end
+end
+
 function SWEP:SetThirdpersonFreelookForced(b)
 	if SERVER then 
 		self:CallOnClient("SetThirdpersonFreelookForced", "fuckyou ".. tostring(b) .."")
@@ -760,6 +782,8 @@ function SWEP:DoShoot(mode)
 	local sd = DRC:SightsDown(self)
 	local fm = self:GetFireMode()
 	
+	self:IncrementCurrentMuzzle()
+	
 	local tr
 	if !ply:IsPlayer() then
 		tr = util.QuickTrace(ply:EyePos(), ply:EyeAngles():Forward() * 1000000, {self, self:GetOwner()})
@@ -790,14 +814,14 @@ function SWEP:DoShoot(mode)
 	local fireseq3 = self:SelectWeightedSequence(ACT_SPECIAL_ATTACK1)
 	local ironseq = self:SelectWeightedSequence(ACT_VM_DEPLOYED_IRON_FIRE)
 	local m2
-	if mode == "primary" then
+	if mode == 0 then
 		if sd && ironseq != -1 then fireseq = ironseq end
 		firetime = self:SequenceDuration(fireseq)
 		m2 = "Primary"
-	elseif mode == "secondary" then
+	elseif mode == 1 then
 		firetime = self:SequenceDuration(fireseq2)
 		m2 = "Secondary"
-	elseif mode == "overcharge" then
+	elseif mode == 2 then
 		firetime = self:SequenceDuration(fireseq3)
 	end
 	self.IdleTimer = CurTime() + firetime
@@ -818,7 +842,7 @@ function SWEP:DoShoot(mode)
 	local speeeeed = GetSpeed()
 	
 	local shotnum = self:GetAttachmentValue("Ammunition", "NumShots")
-	if mode == "primary" then
+	if mode == 0 then
 		if ply:IsPlayer() then
 			self:UpdateBloom("primary")
 		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "primary") end
@@ -839,7 +863,7 @@ function SWEP:DoShoot(mode)
 			end
 			self:TakePrimaryAmmo( batstats.BatteryConsumePerShot )
 		end
-	elseif mode == "secondary" then
+	elseif mode == 1 then
 		if ply:IsPlayer() then
 			self:UpdateBloom("secondary")
 		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "secondary") end
@@ -850,7 +874,7 @@ function SWEP:DoShoot(mode)
 		else
 			self:TakePrimaryAmmo( stats.APS )
 		end
-	elseif mode == "overcharge" then
+	elseif mode == 2 then
 		if ply:IsPlayer() then
 			self:UpdateBloom("overcharge")
 		--	if game.SinglePlayer() then self:CallOnClient( "UpdateBloom", "overcharge") end
@@ -899,11 +923,25 @@ function SWEP:DoShoot(mode)
 	if self.Loading == false && self.ManuallyReloading == false && ply:IsPlayer() then
 		if self.SightsDown == true && self.Secondary.SightsSuppressAnim == true then else
 			local vm = ply:GetViewModel()
-			if mode == "primary" then
-				if sd && ironseq != -1 then self:PlayAnim(ACT_VM_DEPLOYED_IRON_FIRE, true) else self:PlayAnim(ACT_VM_PRIMARYATTACK, true) end
-			elseif mode == "secondary" then
+			if mode == 0 then
+				local curmuzzle = self:GetCurrentMuzzle()
+				if sd && ironseq != -1 then
+					local act = ACT_VM_DEPLOYED_IRON_FIRE
+					local override = self.Muzzles[curmuzzle][3]
+					if override != nil then act = self.Muzzles[curmuzzle][2] end
+					if act == nil then act = ACT_VM_DEPLOYED_IRON_FIRE end
+					
+					self:PlayAnim(act, true)
+				else
+					local act = ACT_VM_PRIMARYATTACK
+					local override = self.Muzzles[curmuzzle][2]
+					if override != nil then act = override end
+					
+					self:PlayAnim(act, true)
+				end
+			elseif mode == 1 then
 				self:PlayAnim(ACT_VM_SECONDARYATTACK, true)
-			elseif mode == "overcharge" then
+			elseif mode == 2 then
 				if fireseq3 == -1 then
 					self:PlayAnim(ACT_VM_PRIMARYATTACK, true)
 				else
@@ -911,9 +949,9 @@ function SWEP:DoShoot(mode)
 				end
 			end
 		end
-		if SERVER && mode == "primary" && self.Primary.ActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.ActOverride)
-		elseif SERVER && mode == "secondary" && self.Secondary.ActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.ActOverride)
-		elseif SERVER && mode == "overcharge" && self.Primary.OCActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.OCActOverride)
+		if SERVER && mode == 0 && self.Primary.ActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.ActOverride)
+		elseif SERVER && mode == 1 && self.Secondary.ActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Secondary.ActOverride)
+		elseif SERVER && mode == 2 && self.Primary.OCActOverride != nil then DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.OCActOverride)
 		else ply:SetAnimation(PLAYER_ATTACK1) end
 	else end
 	
@@ -963,7 +1001,7 @@ function SWEP:DoShoot(mode)
 		if stats.DamageNPC && !ply:IsPlayer() then damnval = stats.DamageNPC end
 		if self.PreventAllBullets == false then self:ShootBullet(damnval, shotnum, spr, stats.Ammo, stats.Force, stats.Tracer) end
 		if ply:IsPlayer() then ply:LagCompensation(false) end
-	elseif mode == "secondary" && self.Projectile == "scripted" then
+	elseif mode == 1 && self.Projectile == "scripted" then
 		timer.Simple(self.Secondary.ProjectileSpawnDelay, function()
 			self:DoScriptedSecondaryAttack()
 			self:EmitSound(self.Secondary.Sound)
@@ -1104,12 +1142,13 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	if !IsValid(self) then return end
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
-	local muzzleattachment = self:LookupAttachment("muzzle")
+	local muzzlename = self.Muzzles[self:GetCurrentMuzzle()][1]
+	local muzzleattachment = self:LookupAttachment(muzzlename)
 	local muzzle = self:GetAttachment(muzzleattachment)
 	local fm = self:GetFireMode()
 	
 	local ttu = nil
-	if mode == "primary" then
+	if mode == 0 then
 		self.vFire = self.Primary.isvFire
 		self.Projectile = self.Primary.Projectile
 		self.TracerEffect = self.Primary.TracerEffect
@@ -1127,21 +1166,35 @@ function SWEP:DoEffects(mode, nosound, multishot)
 			self.SoundDistance = ttu.FarDistance
 		end
 		
+		if self.Primary.MuteSound == true then
+			self.Sound = ""
+			self.DistSound = ""
+		end
+		
 		self.LastHitPos = self.LastHitPos
-	elseif mode == "secondary" then
+	elseif mode == 1 then
 		self.vFire = self.Secondary.isvFire
 		self.Sound = self.Secondary.Sound
 		self.DistSound = self.Secondary.DistSound
 		self.Projectile = self.Secondary.Projectile
 		self.TracerEffect = self.Secondary.TracerEffect
 		
+		if self.Secondary.MuteSound == true then
+			self.Sound = ""
+			self.DistSound = ""
+		end
+		
 		self.LastHitPos = self.LastHitPos
-	elseif mode == "overcharge" then
+	elseif mode == 2 then
 		self.vFire = self.Primary.isvFire
 		self.Sound = self.OCSound
 		self.DistSound = self.OCDistSound
 		self.Projectile = self.Primary.OCProjectile
 		self.TracerEffect = self.Primary.TracerEffect
+		if self.Primary.MuteSound == true then
+			self.Sound = ""
+			self.DistSound = ""
+		end
 		if fm != 3 then
 			self.Sound = self.OCSound
 			self.DistSound = self.OCDistSound
@@ -1179,7 +1232,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	if self.TracerEffect != nil && effectdata != nil then
 		if CLIENT then
 			local effe = {
-				["muzzle"] = {self.TracerEffect, 0},
+				[muzzlename] = {self.TracerEffect, 0},
 			}
 			self:EffectChain(effe, effectdata)
 		elseif SERVER && self:GetOwner() != Entity(1) then -- fucking singleplayer
@@ -1192,7 +1245,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	end
 	
 	if !IsFirstTimePredicted() or nosound == true or self.BurstSound == true then return end
-	if mode == "primary" && fm == 3 && ttu.Single == false then
+	if mode == 0 && fm == 3 && ttu.Single == false then
 		local thyme = self.PrimaryStats.PreCalcRPM*self.FireModes_BurstShots +0.25
 		self.BurstSound = true
 		timer.Simple(CurTime() - self:GetNextPrimaryFire() + thyme, function() self.BurstSound = false end)
@@ -1206,7 +1259,7 @@ function SWEP:DoEffects(mode, nosound, multishot)
 	if RoomType == "Outdoors" && !self.Primary.SoundTable.Envs["Outdoors"] then RoomType = "Large" end
 	if RoomType == "Vent" && !self.Primary.SoundTable.Envs["Vent"] then RoomType = "Small" end
 	
-	if mode == "primary" && self.Primary.SoundTable.Envs[RoomType] then
+	if mode == 0 && self.Primary.MuteSound == false && self.Primary.SoundTable.Envs[RoomType] then
 		if fm != 3 then
 			self.Sound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Near
 			self.DistSound = self.Primary.SoundTable.Envs[RoomType].Semiauto.Far
@@ -1315,7 +1368,7 @@ function SWEP:CallShoot(mode, ignoreimpossibility, endburst)
 	
 	if endburst == true then self:ClearBurstQueue() end
 	
-	if mode == "primary" then
+	if mode == 0 then
 		if ply:IsPlayer() then
 			if ignoreimpossibility != true && !self:CanPrimaryAttack() then return end
 		end
@@ -1332,30 +1385,30 @@ function SWEP:CallShoot(mode, ignoreimpossibility, endburst)
 			return end
 		end
 		self.StatsToPull = self.PrimaryStats
-		self:DoShoot("primary")
-		self:DoEffects("primary")
-		self:DoRecoil("primary")
+		self:DoShoot(0)
+		self:DoEffects(0)
+		self:DoRecoil(0)
 		self:ShootEffects()
 		
 		if IsValid(self) && self:GetLoadedAmmo() > -0.01 then self:DoCustomPrimaryAttackEvents() end
-	elseif mode == "secondary" then
+	elseif mode == 1 then
 		if ignoreimpossibility != true && !self:CanSecondaryAttack() then return end
 		self.StatsToPull = self.SecondaryStats
-		self:DoShoot("secondary")
-		self:DoEffects("secondary")
-		self:DoRecoil("secondary")
+		self:DoShoot(1)
+		self:DoEffects(1)
+		self:DoRecoil(1)
 		
 		if IsValid(self) && self:GetLoadedAmmo() > -1 then self:DoCustomSecondaryAttackEvents() end
-	elseif mode == "overcharge" then
+	elseif mode == 2 then
 		if ply:IsPlayer() then
 			if ignoreimpossibility != true && !self:CanPrimaryAttack() then return end
 		else
 			if ignoreimpossibility != true && !self:CanPrimaryAttackNPC() then return end
 		end
 		self.StatsToPull = self.OCStats
-		self:DoShoot("overcharge")
-		self:DoEffects("overcharge")
-		self:DoRecoil("overcharge")
+		self:DoShoot(2)
+		self:DoEffects(2)
+		self:DoRecoil(2)
 		
 		if IsValid(self) && self:GetLoadedAmmo() > 0 then self:DoCustomOverchargeAttackEvents() end
 	end

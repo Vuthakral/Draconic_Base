@@ -156,6 +156,11 @@ SWEP.OCNPCSound 		= nil
 SWEP.OCProjectile 		= nil
 SWEP.OCProjSpeed 		= 500
 
+-- MUZZLES
+SWEP.Muzzles = nil -- Automatically set by the base itself when left nil.
+SWEP.MuzzleCycle = 0 -- 0 in order, 1 random
+SWEP.MuzzleResetOnReload = true
+
 -- MOVEMENT MODIFIERS
 SWEP.SpeedSprintStand = {
 	nil, nil, nil,
@@ -225,6 +230,9 @@ SWEP.HealInterval			= 1
 SWEP.WeaponIdleLoopSound 	= nil
 SWEP.IdleLoopSoundConstant 	= false
 
+SWEP.Primary.MuteSound		= false
+SWEP.Secondary.MuteSound	= false
+
 SWEP.IntegratedLight_Enabled 	= false
 SWEP.IntegratedLight_FOV 		= 60
 SWEP.IntegratedLight_MaxDist	= 800
@@ -265,7 +273,7 @@ SWEP.Secondary.ScopeHeight	= 1
 SWEP.Secondary.Disabled = false
 
 SWEP.WeaponSkinDefaultMat 			= nil
-SWEP.WeaponSkinSpecialMats 			= nil
+SWEP.WeaponSkinSpecialMats 			= {}
 SWEP.WeaponSkinDisallowUniversals 	= false
 
 SWEP.VElements = {}
@@ -369,12 +377,14 @@ SWEP.CurAng					= Vector(0, 0, 0)
 SWEP.FireMode				= "none"
 SWEP.OwnerActivity 			= "standidle"
 SWEP.IsDoingMelee 			= false
+SWEP.SymmetricalModel		= false
 SWEP.BurstQueue = {}
 SWEP.MeleeQueue = {}
 SWEP.DynOffsetPos = Vector()
 SWEP.DynOffsetAng = Vector()
 SWEP.WeaponSkinSubMaterials = {}
 SWEP.WeaponSkinProxyMaterials = {}
+SWEP.CurrentMuzzle = nil
 
 function SWEP:DoDrawCrosshair( x, y )
 	return true
@@ -382,32 +392,6 @@ end
 
 function SWEP:DrawWorldModelTranslucent()
 	self:DrawModel()
-end
-
-function SWEP:InitialFireMode()
-	if self.Primary.Automatic == false then
-		self:SetNWString("FireMode", "Semi")
-		self:SetNWInt("CurFireMode", 1)
-	elseif self.Primary.Automatic == true && self.FireModes_CanAuto == true then
-		self:SetNWString("FireMode", "Auto")
-		self:SetNWInt("CurFireMode", 2)
-	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
-		self:SetNWString("FireMode", "Burst")
-		self:SetNWInt("CurFireMode", 3)
-		self.Primary.Automatic = false
-	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == false && self.FireModes_CanAuto == false && self.FireModes_CanSemi == true then
-		self:SetNWString("FireMode", "Semi")
-		self:SetNWInt("CurFireMode", 1)
-		self.Primary.Automatic = false
-	else 
-		self:SetNWString("FireMode", "Semi")
-		self:SetNWInt("CurFireMode", 1)
-	end
-	
-	if self.FireModes_CanBurst == true && self.FireModes_CanAuto == false && self.FireModes_CanSemi == false then
-		self:SetNWString("FireMode", "Burst")
-		self:SetNWInt("CurFireMode", 3)
-	end
 end
 
 function SWEP:CreateIdleSound()
@@ -500,6 +484,13 @@ function SWEP:Initialize()
 		self.DefaultPimaryClipSize = self.Primary.ClipSize
 		self:SetupAttachments("drc_abp_generic", "AmmunitionTypes", false, true)
 		self.SpreadCone = ((self.Primary.Spread * self:GetAttachmentValue("Ammunition", "Spread")))
+		
+		if self.Muzzles == nil then
+			self.Muzzles = {
+				[1] = {"muzzle", nil, nil},
+			}
+		end
+		self:SetNWInt("CurrentMuzzle", 1)
 	else
 		self.SpreadCone = math.abs(15)
 	end
@@ -513,6 +504,8 @@ function SWEP:Initialize()
 	end
 	
 	if self.IsBatteryBased == true && self.BatteryConsumPerShot then self.BatteryConsumePerShot = self.BatteryConsumPerShot end -- Fixing my own mistake of an old typo, keeps peoples' weapons compatible without needing to account for my own mistake.
+	
+	if self.WorldModel == self.ViewModel then self.SymmetricalModel = true end
 	
 	-- IV04 Nextbot compatiblity, DO NOT TOUCH OR USE.
 	self.HoldType_Aim = self.HoldType
@@ -662,6 +655,32 @@ end
 function SWEP:DoCustomInitialize()
 end
 
+function SWEP:InitialFireMode()
+	if self.Primary.Automatic == false then
+		self:SetNWString("FireMode", "Semi")
+		self:SetNWInt("CurFireMode", 1)
+	elseif self.Primary.Automatic == true && self.FireModes_CanAuto == true then
+		self:SetNWString("FireMode", "Auto")
+		self:SetNWInt("CurFireMode", 2)
+	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
+		self:SetNWString("FireMode", "Burst")
+		self:SetNWInt("CurFireMode", 3)
+		self.Primary.Automatic = false
+	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == false && self.FireModes_CanAuto == false && self.FireModes_CanSemi == true then
+		self:SetNWString("FireMode", "Semi")
+		self:SetNWInt("CurFireMode", 1)
+		self.Primary.Automatic = false
+	else 
+		self:SetNWString("FireMode", "Semi")
+		self:SetNWInt("CurFireMode", 1)
+	end
+	
+	if self.FireModes_CanBurst == true && self.FireModes_CanAuto == false && self.FireModes_CanSemi == false then
+		self:SetNWString("FireMode", "Burst")
+		self:SetNWInt("CurFireMode", 3)
+	end
+end
+
 function SWEP:Think()
 	if game.SinglePlayer() then self:CallOnClient("Think") end
 	local ply = self:GetOwner()
@@ -678,25 +697,24 @@ function SWEP:Think()
 	local seccharge = self.Secondary.UsesCharge == true
 	local loaded = self:GetLoadedAmmo() > 0
 	
-	if CLIENT && ply:IsPlayer() then
-		local wl = ply:WaterLevel()
-		local oa = self.OwnerActivity
-		local l, r, f, b = ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK)
+	if ply:IsPlayer() then
+		local cv, wl, oa = ply:Crouching(), ply:WaterLevel(), self.OwnerActivity
+		local n, s, e, w = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT)
 		
-		if (l or r or b or f) && cv == false && wl <= 2 then
+		if (n or s or e or w) && cv == false && wl <= 2 then
 			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "sprinting"
 			else self.OwnerActivity = "running" end
-		elseif (l or r or b or f) && cv == true && wl <= 2 then
+		elseif (n or s or e or w) && cv == true && wl <= 2 then
 			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "crouchsprinting"
 			else self.OwnerActivity = "crouchrunning" end
-		elseif (!l or !r or !b or !f) && cv == false && wl <= 2 then
+		elseif (!n or !s or !e or !w) && cv == false && wl <= 2 then
 			self.OwnerActivity = "standidle"
-		elseif (!l or !r or !b or !f) && cv == true && wl <= 2 then
+		elseif (!n or !s or !e or !w) && cv == true && wl <= 2 then
 			self.OwnerActivity = "crouchidle"
-		elseif (l or r or b or f or ply:KeyDown(IN_JUMP)) && wl > 2 then
+		elseif (n or s or e or w or ply:KeyDown(IN_JUMP)) && wl > 2 then
 			if ply:KeyDown(IN_SPEED) then self.OwnerActivity = "fastswimming"
 			else self.OwnerActivity = "swimming" end
-		elseif (!l or !r or !b or !f) && wl > 2 then
+		elseif (!n or !s or !e or !w) && wl > 2 then
 			self.OwnerActivity = "swimidle"
 		end
 	end
@@ -748,23 +766,17 @@ function SWEP:Think()
 	end
 	
 	if self.BurstQueue then
-		if #self.BurstQueue <= 0 then self:ClearBurstQueue() end -- apparently a table with 0 elements isn't empty?
+		if #self.BurstQueue <= 0 then self:ClearBurstQueue() end
 		if !table.IsEmpty(self.BurstQueue) then
 			self.Bursting = true
 			for i=1,#self.BurstQueue do
-				local thyme = self.BurstQueue[i]
-				if thyme && CurTime() >= thyme then
-	--				PrintTable(self.BurstQueue)
+				if self.BurstQueue[i] && CurTime() >= self.BurstQueue[i] then
 					if !IsValid(self) or !IsValid(self:GetOwner()) then return end
 					if self:GetLoadedAmmo() <= 0 then return end
 					local kill = false
 					if i >= self.FireModes_BurstShots && ply:IsPlayer() then kill = true end
-	--				print(#self.BurstQueue, i, self.FireModes_BurstShots, kill)
-					if kill == false then self.BurstQueue[i] = nil end
-					if self.Loading == false then
-						self:CallShoot("primary", true, kill)
-					end
-	--				print("---------------")
+					if self.Loading == false then self:CallShoot(0, true, kill) end
+					if kill == false then table.remove(self.BurstQueue, i) end
 				end
 			end
 		else
@@ -774,6 +786,12 @@ function SWEP:Think()
 	end
 	
 	if ply:IsPlayer() && self.RegenAmmo == true then self:RegeneratingAmmo(self, self.RegenAmmo_Delay, self.RegenAmmo_Amount) end
+	
+	if self.IntegratedLight_Enabled == true && !ply:IsPlayer() then
+		local b = DRC.SV.drc_npc_uses_integratedlights
+		local state = self:GetNWBool("IntegratedLightState", false)
+		if b == 1 && state != true then self:ToggleIntegratedLight(true) end
+	end
 end
 
 SWEP.desiredfov = 90
@@ -861,13 +879,13 @@ function SWEP:ManageCharge(ply, primcharge, seccharge, loaded)
 		local m1r = ply:KeyReleased(IN_ATTACK)
 		
 		if m1r && self:CanOvercharge() then
-			if chargeresponses[charge][2] != nil then self:CallShoot("overcharge") end
+			if chargeresponses[charge][2] != nil then self:CallShoot(2) end
 		elseif m1r && !canoc then
-			if chargeresponses[charge][1] != nil then self:CallShoot("primary") end
+			if chargeresponses[charge][1] != nil then self:CallShoot(0) end
 		end
 		
 		if m1d && canoc then
-			if chargeresponses[charge][3] == false then self:CallShoot("overcharge") end
+			if chargeresponses[charge][3] == false then self:CallShoot(2) end
 		end
 	end
 	
@@ -878,13 +896,13 @@ function SWEP:ManageCharge(ply, primcharge, seccharge, loaded)
 		local ukd = ply:KeyDown(IN_USE)
 			
 		if m1r && self:CanOvercharge() then
-			if chargeresponses[charge][2] != nil then self:CallShoot("overcharge") end
+			if chargeresponses[charge][2] != nil then self:CallShoot(2) end
 		elseif m1r && !canoc then
-			if chargeresponses[charge][1] != nil then self:CallShoot("secondary") end
+			if chargeresponses[charge][1] != nil then self:CallShoot(1) end
 		end
 		
 		if m1d && canoc then
-			if chargeresponses[charge][3] == false then self:CallShoot("overcharge") end
+			if chargeresponses[charge][3] == false then self:CallShoot(2) end
 		end
 	end
 	
@@ -1018,9 +1036,30 @@ local FiringAnims = {
 	ACT_SPECIAL_ATTACK1,
 	ACT_VM_DEPLOYED_IRON_FIRE,
 }
+local fptotp = {
+	[ACT_VM_IDLE] = ACT_IDLE,
+	[ACT_VM_DRAW] = ACT_IDLE,
+	[ACT_VM_DRAW_EMPTY] = ACT_IDLE,
+	[ACT_VM_PRIMARYATTACK] = ACT_RANGE_ATTACK1,
+	[ACT_VM_DEPLOYED_IRON_FIRE] = ACT_RANGE_ATTACK1,
+	[ACT_VM_SECONDARYATTACK] = ACT_RANGE_ATTACK2,
+	[ACT_SPECIAL_ATTACK1] = ACT_RANGE_ATTACK2,
+	[ACT_SHOTGUN_RELOAD_START] = ACT_RELOAD_START,
+	[ACT_SHOTGUN_RELOAD_FINISH] = ACT_RELOAD_FINISH,
+	[ACT_VM_RELOAD] = ACT_RELOAD,
+	[ACT_VM_RELOAD_EMPTY] = ACT_GESTURE_RELOAD,
+}
 function SWEP:ManageAnims(ply, ct)
 	if !IsValid(self) then return end
 	if !IsValid(ply) then return end
+	
+	if self.SymmetricalModel == true then
+		local seq2 = self:SelectWeightedSequence(ACT_IDLE)
+		self:SetSequence(seq2)
+		self:ResetSequence(seq2)
+		self:ResetSequenceInfo()
+	end
+	
 	if !ply:IsPlayer() then return end
 	if !self:HasViewModel() then return end
 	local vm = ply:GetViewModel(0)
@@ -1786,6 +1825,7 @@ local BaseGameAmmoTypes = {
 function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 	if att == nil then initializing = true end
 	local ammo = nil
+	local attachment = scripted_ents.GetStored(att)
 	
 	if emptymag == true && !self.IsBatteryBased then
 		local atr = self:Clip1()
@@ -1837,12 +1877,20 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 			end
 		end
 		if !ammotype && !self.IsBatteryBased then self.Primary.Ammo = self.PrimaryStats.OriginalAmmo end
+		
+		local old = scripted_ents.GetStored(self.AttachmentTable.AmmunitionTypes[1])
+		if old.AttachTable && old.AttachTable.OnDetach then
+			old.AttachTable.OnDetach({self, attachment})
+		end
 	end
 	
-		
 	self.ActiveAttachments = {
 		AmmunitionTypes = ammo,
 	}
+	
+	if attachment.AttachTable && attachment.AttachTable.OnAttach then
+		attachment.AttachTable.OnAttach({self, attachment})
+	end
 	
 	self:PreCalcSpread()
 end
@@ -1873,7 +1921,7 @@ function SWEP:PreCalcSpreadMain()
 end
 
 SWEP.RecoilStats = {
-	["primary"] = {
+	[0] = {
 		RecoilDown = SWEP.Primary.RecoilDown,
 		RecoilUp = SWEP.Primary.RecoilUp,
 		RecoilHoriz = SWEP.Primary.RecoilHoriz,
@@ -1881,7 +1929,7 @@ SWEP.RecoilStats = {
 		KickHoriz = SWEP.Primary.KickHoriz,
 		IronRecoilMul = SWEP.Primary.IronRecoilMul
 	},
-	["secondary"] = {
+	[1] = {
 		RecoilDown = SWEP.Secondary.RecoilDown,
 		RecoilUp = SWEP.Secondary.RecoilUp,
 		RecoilHoriz = SWEP.Secondary.RecoilHoriz,
@@ -1889,7 +1937,7 @@ SWEP.RecoilStats = {
 		KickHoriz = SWEP.Secondary.KickHoriz,
 		IronRecoilMul = SWEP.Secondary.IronRecoilMul
 	},
-	["overcharge"] = {
+	[2] = {
 		RecoilDown = SWEP.OCRecoilDown,
 		RecoilUp = SWEP.OCRecoilUp,
 		RecoilHoriz = SWEP.OCRecoilHoriz,
@@ -1907,7 +1955,7 @@ function SWEP:PreCalcRecoil()
 	local kickhoriz = self:GetAttachmentValue("Ammunition", "KickHoriz")
 	local iron = self:GetAttachmentValue("Ammunition", "IronRecoilMul")
 
-	self.RecoilStats.primary = {
+	self.RecoilStats[0] = {
 		RecoilDown = self.Primary.RecoilDown * down,
 		RecoilUp = self.Primary.RecoilUp * up,
 		RecoilHoriz = self.Primary.RecoilHoriz * horiz,
@@ -1915,7 +1963,7 @@ function SWEP:PreCalcRecoil()
 		KickHoriz = self.Primary.KickHoriz * kickhoriz,
 		IronRecoilMul = self.Primary.IronRecoilMul * iron
 	}
-	self.RecoilStats.secondary = {
+	self.RecoilStats[1] = {
 		RecoilDown = self.Secondary.RecoilDown * down,
 		RecoilUp = self.Secondary.RecoilUp * up,
 		RecoilHoriz = self.Secondary.RecoilHoriz * horiz,
@@ -1923,7 +1971,7 @@ function SWEP:PreCalcRecoil()
 		KickHoriz = self.Secondary.KickHoriz * kickhoriz,
 		IronRecoilMul = self.Secondary.IronRecoilMul * iron
 	}
-	self.RecoilStats.overcharge = {
+	self.RecoilStats[2] = {
 		RecoilDown = self.OCRecoilDown * down,
 		RecoilUp = self.OCRecoilUp * up,
 		RecoilHoriz = self.OCRecoilHoriz * horiz,
@@ -1946,6 +1994,7 @@ function SWEP:SetupDataTables()
 	self:SetNWBool("Passive", false)
 	self:SetNWBool("Inspecting", false)
 	self:SetNWBool("ThirdpersonForceFreelook", false)
+	self:SetNWInt("CurrentMuzzle", 1)
 	
 	self.AttachmentStats = {}
 	
@@ -2132,9 +2181,18 @@ function SWEP:PlayAnim(act, preventstuff, important)
 	if seq == -1 then return end
 	local ct = CurTime()
 	local seqdur = self:SequenceDuration(seq)
-	self:ResetSequence(seq)
-	self:ResetSequenceInfo()
-	self:SendWeaponAnim(act)
+	if self.WorldModel == self.ViewModel then
+		local ply, vm = self:GetOwner()
+		if IsValid(ply) && ply:IsPlayer() then vm = ply:GetViewModel() end
+		if IsValid(vm) then
+			vm:ResetSequence(seq)
+			vm:ResetSequenceInfo()
+		end
+	else
+		self:ResetSequence(seq)
+		self:ResetSequenceInfo()
+		self:SendWeaponAnim(act)
+	end
 	self.IdleTimer = ct + seqdur
 	
 	if important && important == true then
@@ -2168,18 +2226,19 @@ function SWEP:ToggleIntegratedLight(b)
 	end)
 end
 
-function SWEP:SetCamo(mat)
+function SWEP:SetCamo(mat, name)
 	local ply = self:GetOwner()
 	if mat == "" then mat = nil end
 	self.WeaponSkinApplied = mat
+	self.WeaponSkinAppliedName = name
 	
 	if !ply:IsPlayer() then
 		for k,v in pairs(self.WeaponSkinSubMaterials) do
 			if mat != nil then
-				if DRC.WeaponSkins[mat].proxy == true then
-					self:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
-				else
+				if self.WeaponSkinSpecialMats[mat] or DRC.WeaponSkins[mat].proxy != true then
 					self:SetSubMaterial(k-1, mat)
+				elseif DRC.WeaponSkins[mat].proxy == true then
+					self:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
 				end
 			else
 				self:SetSubMaterial(k-1, mat)
@@ -2189,12 +2248,12 @@ function SWEP:SetCamo(mat)
 		local vm = ply:GetViewModel()
 		for k,v in pairs(self.WeaponSkinSubMaterials) do
 			if mat != nil then
-				if DRC.WeaponSkins[mat].proxy == true then
-					self:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
-					vm:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
-				else
+				if self.WeaponSkinSpecialMats[mat] or DRC.WeaponSkins[mat].proxy != true then
 					vm:SetSubMaterial(k-1, mat)
 					self:SetSubMaterial(k-1, mat)
+				elseif DRC.WeaponSkins[mat].proxy == true then
+					self:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
+					vm:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
 				end
 			else
 				vm:SetSubMaterial(k-1, mat)
@@ -2368,6 +2427,8 @@ function SWEP:OnReloaded()
 	self.VARSightPos = self.IronSightsPos
 	self.VARSightAng = self.IronSightsAng
 	
+	if self.WorldModel == self.ViewModel then self.SymmetricalModel = true end
+	
 	self:DoPassiveHoldtype()
 	if self.IsBatteryBased == true then
 		self.Primary.Ammo = "ammo_drc_battery"
@@ -2402,7 +2463,6 @@ function SWEP:SetupVJSupport()
 	if self.IsMelee == true then
 		self.IsMeleeWeapon = true
 		self.MeleeWeaponDistance = self.Primary.Range * 1
-	--	if self:GetHoldType() == "knife" then self:SetHoldType("melee") end
 	else
 		self.IsMeleeWeapon = false
 	end

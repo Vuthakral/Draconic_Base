@@ -24,7 +24,6 @@ ENT.InfoName = "Standard ammunition"
 ENT.InfoDescription = "Standard ammunition for this weapon."
 
 ENT.AttachType = "ammo"
-
 ENT.Model = "models/Items/BoxSRounds.mdl"
 
 ENT.BulletTable = {
@@ -74,6 +73,7 @@ ENT.BulletTable = {
 		MAT_PAINTCAN = 1,
 		MAT_POPCAN = 1,
 		MAT_CANISTER = 1,
+		MAT_CANNISTER = 1, -- Thanks Valve.
 		MAT_VENT = 1,
 		MAT_GRENADE = 1,
 		MAT_WEAPON = 1,
@@ -95,6 +95,7 @@ ENT.BulletTable = {
 		MAT_CHAINLINK = 1,
 		MAT_COMPUTER = 1,
 		MAT_CONCRETE = 1,
+		MAT_CONCRETE_BLOCK = 1,
 		MAT_RUBBER = 1,
 		MAT_RUBBERTIRE = 1,
 		MAT_MUD = 1,

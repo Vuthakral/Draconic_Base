@@ -325,17 +325,19 @@ end
 function SWEP:CanPrimaryAttackNPC()
 	local npc = self:GetOwner()
 	if self.Bursting == true then return false end
-	if self.NPCBurstTime >= CurTime() then return false end
+--	if self.NPCBurstTime >= CurTime() then return false end
 	if self.NPCLoading == true or self.ManuallyReloading == true then return end
 	
-	if self:Clip1() < 1 or self:GetNWInt("LoadedAmmo") < 1 then
-		self:LoadNextShot()	
-		self:SetLoadedAmmo((self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")))
-		if (!npc:IsNextBot() && !npc.Draconic) && SERVER && !CLIENT then 
+	if self:GetLoadedAmmo() <= 0 then
+		if IsFirstTimePredicted() then self:LoadNextShot() end
+		self:DoNPCReload()
+		if (!npc:IsNextBot() && !npc.Draconic) && !CLIENT then 
 			npc:ClearSchedule()
 			npc:SetSchedule(SCHED_PATROL_WALK)
 		end
 		return false
+	else
+		if IsFirstTimePredicted() && self.LoadAfterShot == true then self:LoadNextShot() end
 	end
 	return true
 end
@@ -365,15 +367,9 @@ function SWEP:DoBurstAttack()
 	if self.Bursting == false then
 		if !self.BurstQueue then self.BurstQueue = {} end
 		local rpm = self.PrimaryStats.PreCalcRPM
---		timer.Simple((rpm * self.FireModes_BurstShots *2), function() self.Bursting = false end)
-		for i=0,self.FireModes_BurstShots+1 do
+		for i=1,self.FireModes_BurstShots do
 			local thyme = CurTime() + (rpm*i)
 			self.BurstQueue[i] = thyme
---[[			timer.Simple(i*rpm + 0.02, function()
-				if !IsValid(self) or !IsValid(self:GetOwner()) then return end
-				if self:GetLoadedAmmo() <= 0 then return end
-				if self.Loading == false then self:CallShoot("primary", true) end
-			end) ]]
 		end
 	end
 end
@@ -381,7 +377,7 @@ end
 function SWEP:PrimaryAttackNPC(fs, ft, fm, dc)
 	if !self:CanPrimaryAttackNPC() then return end
 	if !dc then
-		if self.FireModes_CanBurst then self:DoBurstAttack() else self:CallShoot("primary") end
+		if self.FireModes_CanBurst == true then self:DoBurstAttack() else self:CallShoot(0) end
 		if self.LoadAfterShot == true then self.NPCLoading = true timer.Simple(0.5, function() self.NPCLoading = false end) end
 	return end
 	
@@ -403,15 +399,15 @@ function SWEP:PrimaryAttackNPC(fs, ft, fm, dc)
 						elseif self.NPCCharging == true && self:GetCharge() >= 100 then
 							self:NPCCharge()
 						elseif self.NPCCharging == false then
-							self:CallShoot("primary")
+							self:CallShoot(0)
 						end
 					elseif self.ChargeType == "discharge" then
 						self:NPCCharge()
 					else
-						self:CallShoot("primary")
+						self:CallShoot(0)
 					end
 				else
-					self:CallShoot("primary")
+					self:CallShoot(0)
 				end
 			end
 		end
@@ -477,7 +473,7 @@ function SWEP:PrimaryAttack()
 		if (self.ChargeType == "dualaction" or self.ChargeType == "discharge") && charge >= 99 && self:CanOvercharge() && self:CanPrimaryAttack() then self:DoOvercharge() end
 	return end
 	
-	if fm != 3 then self:CallShoot("primary") return end
+	if fm != 3 then self:CallShoot(0) return end
 	if fm == 3 then self:DoBurstAttack() return end
 end
 
@@ -503,7 +499,7 @@ function SWEP:NPCCharge()
 		end
 	else
 		if charge >= 100 then
-			self:CallShoot("overcharge")
+			self:CallShoot(2)
 			self:SetCharge(0)
 			self:StopSound(self.ChargeSound)
 			self.NPCCharging = false
@@ -569,7 +565,7 @@ function SWEP:SecondaryAttack()
 			elseif sprintkey then
 				self:TogglePassive()
 			else
-				self:CallShoot("secondary")
+				self:CallShoot(1)
 			end
 		end
 	end
@@ -650,7 +646,7 @@ function SWEP:SetFireMode(mode, showhint)
 			mode = "Burst"
 			SwitchAnim(ACT_VM_DIFIREMODE, ACT_VM_IFIREMODE)
 		end
-		self:DoCustomFireMode(mode)	
+		self:DoCustomFireMode(mode)
 	end
 	
 	if self.FireModes_CustomScripted == true then return end
@@ -826,14 +822,10 @@ function SWEP:ReloadSecondary()
 		self.Loading = true
 		self:SetIronsights(false, self.Owner)
 		
-		if self.Secondary.ReloadAct != nil then
-			local reloadseq = self:SelectWeightedSequence( self.Secondary.ReloadAct )
-			local reloadtime = self:SequenceDuration( reloadseq )
-			vm:SendViewModelMatchingSequence(reloadseq)
-			timer.Simple( reloadtime, function() self:EndSecondaryReload() end)
-		else
-			self:EndSecondaryReload()
-		end
+		local reloadseq = self:SelectWeightedSequence(ACT_VM_RELOAD2)
+		local reloadtime = self:SequenceDuration(reloadseq)
+		self:PlayAnim(ACT_VM_RELOAD2, true)
+		timer.Simple(reloadtime, function() self:EndSecondaryReload() end)
 	end
 end
 
@@ -858,6 +850,28 @@ function SWEP:CanReloadPrimary()
 	if self.IsDoingMelee == true or self.Loading == true or self.Idle == 0 then return false else return true end
 end
 
+function SWEP:DoNPCReload()
+	if SERVER && self.MagazineEntity != nil then
+		local mag = ents.Create(self.MagazineEntity)
+		mag:SetPos( ply:GetBonePosition(LeftHand) )
+		mag:SetAngles( ply:EyeAngles() )
+		mag:SetOwner(ply)
+		mag:Spawn()
+		mag:Activate()
+		local phys = mag:GetPhysicsObject()
+		phys:SetVelocity(self.Owner:GetAimVector() + ply:GetVelocity())
+	end
+	
+	if SERVER then
+		local fallback = DRC:GetHoldTypeAnim(string.lower(self:GetHoldType()), "reload", true)
+		DRC:CallGesture(ply, GESTURE_SLOT_ATTACK_AND_RELOAD, self.Primary.ReloadAct, true, fallback)
+	end
+	
+	self:DoCustomReloadStartEvents()
+	
+	self:SetLoadedAmmo(self.Primary.ClipSize)
+end
+
 function SWEP:DoReload()
 	if !self:CanReloadPrimary() then return end
 	local ply = self:GetOwner()
@@ -871,18 +885,16 @@ function SWEP:DoReload()
 	local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
 	local RightHand = ply:LookupBone("ValveBiped.Bip01_R_Hand")
 	local vm = nil
---	self.IdleTimer = CurTime()
+	
 	self:ClearBurstQueue()
 	
 	if ply:IsPlayer() then
 		vm = ply:GetViewModel()
-		vm:SetPlaybackRate( 1 )
+		vm:SetPlaybackRate(1)
 	end
 	
 	if self:IsValid() && ply:IsValid() && ply:Health() > 0.001 then
 		self.Loading = true
-	--	self:SetNextPrimaryFire( CurTime() + reloadtime)
-	--	self:SetNextSecondaryFire( CurTime() + reloadtime)
 		
 		self.BloomValue = 1
 		self:DoCustomReloadStartEvents()
@@ -952,7 +964,9 @@ function SWEP:EndReload()
 	local ply = self:GetOwner()
 	
 	if !(self:IsValid() && ply:IsValid() && ply:Health() > 0.001) then return end
---	if SERVER then self:CallOnClient("EndReload") end
+	
+	if self.MuzzleResetOnReload == true then self:SetCurrentMuzzle(1) end
+	
 	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
 	local ATR = math.Round(self:GetLoadedAmmo())

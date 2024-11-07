@@ -974,30 +974,21 @@ function DRC:ValveBipedCheck(ent)
 	return true
 end
 
+local sightfuncs = {
+	["drc"] = function(ent) return ent.SightsDown, ent.Secondary.Scoped end,
+	["tfa"] = function(ent) return ent.GetIronSights(), false end,
+	["astw2"] = function(ent) if ent.TrueScope && ent:GetNWBool("insights") == true then return ent:GetNWBool("insights"), ent.TrueScope else return false end end,
+	["arccw"] = function(ent) if ent.Sighted == true then return true, false else return false, false end end,
+	["arc9"] = function(ent) if ent:IsScoping() == true then return true, false else return false, false end end,
+	["mwb"] = function(ent) if ent:HasFlag("Aiming") then return true, false else return false, false end end,
+}
+
 function DRC:SightsDown(ent, irons)
 	if !IsValid(ent) then return end
 	if irons == nil then irons = false end
 	local base = DRC:GetBaseName(ent)
 	
-	if !irons then
-		if base == "drc" then
-			return ent.SightsDown
-		elseif base == "tfa" then
-			return ent:GetIronSights()
-		elseif base == "astw2" then
-			if ent.TrueScope && ent:GetNWBool("insights") == true then return ent:GetNWBool("insights"), ent.TrueScope else return false end
-		elseif base == "arccw" then
-			if ent.Sighted == true then return true else return false end
-		elseif base == "arc9" then
-			if ent:IsScoping() == true then return true else return false end
-		elseif base == "mwb" then
-			if ent:HasFlag("Aiming") then return true else return false end
-		end
-	else
-		if ent.Draconic then
-			if ent.Secondary.Scoped == true then return ent.SightsDown, ent.Secondary.Scoped else return false end
-		end
-	end
+	if sightfuncs[base] then return sightfuncs[base](ent) else return false, false end
 end
 
 local ConversionRates = {
@@ -1045,19 +1036,10 @@ function DRC:GetVelocityAngle(ent, absolute, flipy, islocal)
 	end
 	
 	return ang
--- stupid code I wrote without testing or realizing the simple solution for
---[[	if !IsValid(ent) then return end
-	if !absolute then absolute = false end
-	if !flipy then flipy = false end
-	local vel = ent:GetVelocity()
-	if vel == Vector() then return Angle() end
-	local length = vel:Length()
-	local forwardang = ent:GetForward():Angle()
-	local velangxy = ent:WorldToLocalAngles(vel:Angle())
-	if flipy == true then velangxy:RotateAroundAxis(velangxy:Up(), 180) end
-	if absolute == true then velangxy.y = math.abs(velangxy.y) end
-	velangxy.x = -velangxy.x
-	return velangxy ]]
+end
+
+function DRC:NumberInRange(input, target, dist)
+	return math.abs(input-target) <= dist
 end
 
 function DRC:LerpColor(fraction, mini, maxi)
@@ -1282,6 +1264,7 @@ function DRC:EmitSound(source, near, far, distance, hint, listener)
 	if CLIENT then return end
 	net.Start("DRCSound")
 	net.WriteEntity(source)
+	net.WriteVector(source:GetPos())
 	if distance then net.WriteFloat(distance) end
 	if near then net.WriteString(near) end
 	if far then net.WriteString(far) end
@@ -1521,6 +1504,23 @@ function DRC:RoomSize(pos)
 			return score
 		end
 	end
+end
+
+function DRC:GetCollisionBoundSizes(ent)
+	local co1, co2 = ent:GetCollisionBounds()
+	co1.x = math.abs(co1.x)
+	co1.y = math.abs(co1.y)
+	co1.z = math.abs(co1.z)
+	
+	local avg, width, height, depth
+	avg = co1+co2
+	avg = (avg.x + avg.y + avg.z) * 0.333
+	
+	width = co1.x + co2.x
+	depth = co2.y + co2.y
+	height = co1.z + co2.z
+	
+	return avg, width, height, depth
 end
 
 -- Credit: Kinyom -- https://github.com/Kinyom -- https://github.com/Facepunch/garrysmod-requests/issues/1779
@@ -1987,365 +1987,6 @@ hook.Add("PlayerTick", "drc_movementhook", function(ply)
 		if jump && !istable(jump) then ply:SetJumpPower(jump) end
 		if walking then ply:SetCrouchedWalkSpeed(0.33) else ply:SetCrouchedWalkSpeed(1) end
 	end
-
-	if 2+2 != 4 then
-	local wpn = ply:GetActiveWeapon()
-	local cv = ply:Crouching()
-	local forwkey = ply:KeyDown(IN_FORWARD)
-	local backkey = ply:KeyDown(IN_BACK)
-	local leftkey = ply:KeyDown(IN_MOVELEFT)
-	local rightkey = ply:KeyDown(IN_MOVERIGHT)
-	local sprintkey = ply:KeyDown(IN_SPEED)
-	local swimming = ply:WaterLevel() >= 3
-	local dry = ply:WaterLevel() <=2
-		
-		local ogs = ply:GetNWFloat("PlayerOGSpeed")
-		local ogw = ply:GetNWFloat("PlayerOGWalk")
-		local ogj = ply:GetNWFloat("PlayerOGJump")
-		local ogc = ply:GetNWFloat("PlayerOGCrouch")
-		
-		if ogs == nil or ogs == 0 then return end
-		if ogw == nil or ogw == 0 then return end
-		if ogj == nil or ogj == 0 then return end
-		if ogc == nil or ogc == 0 then return end
-		
-		if wpn.Draconic == nil then return end
-		if not IsValid(ply) or not ply:Alive() then return end
-	
-		if cv == true then
-		if swimming then
-		
-		elseif dry then
-			if forwkey && !sprintkey then
-			if wpn.SpeedCrouchForward != nil then
-				ply:SetWalkSpeed( wpn.SpeedCrouchForward )
-				ply:SetRunSpeed( wpn.SpeedCrouchForward )
-				if wpn.CrouchingJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightFront )
-				elseif wpn.CrouchingJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchForward != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightFront )
-				elseif wpn.CrouchingJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif backkey && !sprintkey then
-			if wpn.SpeedCrouchBack != nil then
-				ply:SetWalkSpeed( wpn.SpeedCrouchBack )
-				ply:SetRunSpeed( wpn.SpeedCrouchBack )
-				if wpn.CrouchingJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightBack )
-				elseif wpn.CrouchingJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchBack != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightBack )
-				elseif wpn.CrouchingJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif leftkey && !sprintkey then
-			if wpn.SpeedCrouchLeft != nil then
-				ply:SetWalkSpeed( wpn.SpeedCrouchLeft )
-				ply:SetRunSpeed( wpn.SpeedCrouchLeft )
-				if wpn.CrouchingJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightLeft )
-				elseif wpn.CrouchingJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchLeft != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightLeft )
-				elseif wpn.CrouchingJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif rightkey && !sprintkey then
-			if wpn.SpeedCrouchRight != nil then
-				ply:SetWalkSpeed( wpn.SpeedCrouchRight )
-				ply:SetRunSpeed( wpn.SpeedCrouchRight )
-				if wpn.CrouchingJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightRight )
-				elseif wpn.CrouchingJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchRight != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.CrouchingJumpHeightRight )
-				elseif wpn.CrouchingJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif forwkey && sprintkey then
-			if wpn.SpeedSprintCrouchForward != nil then
-				ply:SetWalkSpeed( wpn.SpeedSprintCrouchForward )
-				ply:SetRunSpeed( wpn.SpeedSprintCrouchForward )
-				if wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightFront )
-				elseif wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchForward != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				if wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightFront )
-				elseif wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-			end
-			elseif backkey && sprintkey then
-			if wpn.SpeedSprintCrouchBack != nil then
-				ply:SetWalkSpeed( wpn.SpeedSprintCrouchBack )
-				ply:SetRunSpeed( wpn.SpeedSprintCrouchBack )
-				if wpn.CrouchingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightBack )
-				elseif wpn.CrouchingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchBack != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightBack )
-				elseif wpn.CrouchingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif leftkey && sprintkey then
-			if wpn.SpeedSprintCrouchLeft != nil then
-				ply:SetWalkSpeed( wpn.SpeedSprintCrouchLeft )
-				ply:SetRunSpeed( wpn.SpeedSprintCrouchLeft )
-				if wpn.CrouchingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightLeft )
-				elseif wpn.CrouchingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchLeft != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightLeft )
-				elseif wpn.CrouchingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif rightkey && sprintkey then
-			if wpn.SpeedSprintCrouchRight != nil then
-				ply:SetWalkSpeed( wpn.SpeedSprintCrouchRight )
-				ply:SetRunSpeed( wpn.SpeedSprintCrouchRight )
-				if wpn.CrouchingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightRight )
-				elseif wpn.CrouchingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedCrouchRight != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.CrouchingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.CrouchingSprintJumpHeightRight )
-				elseif wpn.CrouchingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			end
-		end
-		elseif cv == false then
-		if swimming then
-		
-		elseif dry then
-			if forwkey && !sprintkey then
-			if wpn.SpeedStandForward != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandForward )
-				ply:SetRunSpeed( wpn.SpeedStandForward )
-				if wpn.StandingJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightFront )
-				elseif wpn.StandingJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedStandForward != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightFront )
-				elseif wpn.StandingJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif backkey && !sprintkey then
-			if wpn.SpeedStandBack != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandBack )
-				ply:SetRunSpeed( wpn.SpeedStandBack )
-				if wpn.StandingJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightBack )
-				elseif wpn.StandingJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedStandBack != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightBack )
-				elseif wpn.StandingJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif leftkey && !sprintkey then
-			if wpn.SpeedStandLeft != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandLeft )
-				ply:SetRunSpeed( wpn.SpeedStandLeft )
-				if wpn.StandingJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightLeft )
-				elseif wpn.StandingJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedStandLeft != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightLeft )
-				elseif wpn.StandingJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif rightkey && !sprintkey then
-			if wpn.SpeedStandRight != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandRight )
-				ply:SetRunSpeed( wpn.SpeedStandRight )
-				if wpn.StandingJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightRight )
-				elseif wpn.StandingJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedStandRight != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.StandingJumpHeightRight )
-				elseif wpn.StandingJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif forwkey && sprintkey then
-			if wpn.SpeedSprintStandForward != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandForward )
-				ply:SetRunSpeed( wpn.SpeedSprintStandForward )
-				if wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightFront )
-				elseif wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedSprintStandForward != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightFront )
-				elseif wpn.StandingSprintJumpHeightFront != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif backkey && sprintkey then
-			if wpn.SpeedSprintStandBack != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandBack )
-				ply:SetRunSpeed( wpn.SpeedSprintStandBack )
-				if wpn.StandingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightBack )
-				elseif wpn.StandingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedSprintStandBack != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightBack )
-				elseif wpn.StandingSprintJumpHeightBack != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif leftkey && sprintkey then
-			if wpn.SpeedSprintStandLeft != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandLeft )
-				ply:SetRunSpeed( wpn.SpeedSprintStandLeft )
-				if wpn.StandingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightLeft )
-				elseif wpn.StandingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedSprintStandLeft != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightLeft )
-				elseif wpn.StandingSprintJumpHeightLeft != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			elseif rightkey && sprintkey then
-			if wpn.SpeedSprintStandRight != nil then
-				ply:SetWalkSpeed( wpn.SpeedStandRight )
-				ply:SetRunSpeed( wpn.SpeedSprintStandRight )
-				if wpn.StandingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightRight )
-				elseif wpn.StandingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed ( 1 )
-			elseif wpn.SpeedSprintStandRight != nil then
-				ply:SetWalkSpeed( ply:GetNWFloat("PlayerOGWalk") )
-				ply:SetRunSpeed( ply:GetNWFloat("PlayerOGSpeed") )
-				if wpn.StandingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( wpn.StandingSprintJumpHeightRight )
-				elseif wpn.StandingSprintJumpHeightRight != nil then
-					ply:SetJumpPower( ply:GetNWFloat("PlayerOGJump") )
-				end
-				ply:SetCrouchedWalkSpeed( ply:GetNWFloat("PlayerOGCrouch") )
-			end
-			end
-		end
-	else end
-	end
 end)
 
 function DRC:GetVelocityPose(ent, length, vel, mspd)
@@ -2374,7 +2015,7 @@ function DRC:GetVelocityPose(ent, length, vel, mspd)
 	local diffrotator = Lerp(EntY, -1, 1)
 	local mul = 1.5
 	if walk then mul = 3 end
-	ent:ChatPrint(tostring(diffrotator))
+--	ent:ChatPrint(tostring(diffrotator))
 	
 	ent.DRCVelocityPoseX = Lerp(0.01, ent.DRCVelocityPoseX or diff.x, diff.x) * -diffrotator
 	ent.DRCVelocityPoseY = Lerp(0.01, ent.DRCVelocityPoseY or diff.y, diff.y) * -diffrotator
@@ -2736,10 +2377,16 @@ end)
 	-- Arms & legs: 0.2x
 	-- Gear: 0.01x
 
-function DRC:DynamicParticle(source, magnitude, distance, special, target)
+function DRC:DynamicParticle(source, magnitude, distance, special, dosounds, hideparticles)
 	if !special then return end
 	local pos = source
 	if IsEntity(pos) then pos = pos:GetPos() + pos:OBBCenter() end
+	if !dosounds then dosounds = true end
+	
+	local dt = 0
+	local flag = 0
+	if dosounds == true then dt = 1 end
+	if hideparticles == true then flag = 1 end
 	
 	local function GetEffect(name)
 		local str = DRC:SurfacePropToEnum(util.GetSurfacePropName(name))
@@ -2774,6 +2421,8 @@ function DRC:DynamicParticle(source, magnitude, distance, special, target)
 				ed:SetOrigin(v.HitPos)
 				ed:SetNormal(v.HitNormal)
 				ed:SetMagnitude(ed:GetMagnitude()/4 * (1 - v.Fraction))
+				ed:SetDamageType(dt)
+				ed:SetFlags(flag)
 				DoEffect(GetEffect(v.SurfaceProps), ed)
 			end
 		end
@@ -2848,20 +2497,22 @@ function DRC:TraceDir(origin, dir, dist, entitytolookfor, mas)
 		mask = mas or MASK_SOLID,
 	})
 	
-	if tr.Hit && !SERVER && GetConVarNumber("cl_drc_debugmode") >= 1 && GetConVarNumber("cl_drc_debug_tracelines") >= 1 then
-		if !gui.IsGameUIVisible() then
-		local csent1 = ClientsideModel("models/editor/axis_helper.mdl")
-		local csent2 = ClientsideModel("models/editor/axis_helper.mdl")
-		csent1:SetMaterial("models/wireframe")
-		csent2:SetMaterial("models/wireframe")
-		csent1:SetPos(tr.HitPos)
-		csent2:SetPos(tr.StartPos)
-		csent1:SetColor(Color(255, 0, 0, 255))
-		csent2:SetColor(Color(0, 255, 0, 255))
-		csent1:Spawn()
-		csent2:Spawn()
-		timer.Simple(FrameTime(), function() csent1:Remove() csent2:Remove() end)
-		DRC:RenderTrace(tr, Color(255, 255, 0, 255), FrameTime())
+	if !SERVER && !gui.IsGameUIVisible() && GetConVarNumber("cl_drc_debugmode") >= 1 && GetConVarNumber("cl_drc_debug_tracelines") >= 1 then
+		if tr.Hit then
+			local csent1 = ClientsideModel("models/editor/axis_helper.mdl")
+			local csent2 = ClientsideModel("models/editor/axis_helper.mdl")
+			csent1:SetMaterial("models/wireframe")
+			csent2:SetMaterial("models/wireframe")
+			csent1:SetPos(tr.HitPos)
+			csent2:SetPos(tr.StartPos)
+			csent1:SetColor(Color(255, 0, 0, 255))
+			csent2:SetColor(Color(0, 255, 0, 255))
+			csent1:Spawn()
+			csent2:Spawn()
+			timer.Simple(FrameTime(), function() csent1:Remove() csent2:Remove() end)
+			DRC:RenderTrace(tr, Color(255, 255, 0, 255), FrameTime())
+		else
+			DRC:RenderTrace(tr, Color(255, 255, 255, 255), FrameTime())
 		end
 	end
 	
@@ -2947,7 +2598,7 @@ if SERVER then
 			ent:SetNWString("DRC_Shield_DepleteEffect", tbl.Effects.Deplete)
 			ent:SetNWString("DRC_Shield_RechargeEffect", tbl.Effects.Recharge)
 			ent:SetNWString("DRC_Shield_Material", tbl.Material)
-			ent:SetNWString("DRC_Shield_Model", tbl.Model or ent:GetModel())
+			ent:SetNWString("DRC_Shield_Model", tbl.Model or "nil")
 			ent:SetNWVector("DRC_Shield_BaseScale", tbl.BaseScale or Vector(1,1,1))
 			ent:SetNWVector("DRC_Shield_BaseOffset", tbl.BaseOffset or Vector())
 			ent:SetNWInt("DRC_Shield_PingScale", tbl.ScaleMin)
@@ -4052,10 +3703,11 @@ function DRC:SetHealth(ent, amount, maxamount)
 	end
 end
 
-function DRC:CreateProjectile(class, pos, ang, force, owner, inherit)
+function DRC:CreateProjectile(class, pos, ang, force, owner, inherit, model)
 	if !SERVER then return end
 	local proj = ents.Create(class)
 	if owner then proj:SetOwner(owner) end
+	if model then proj:SetModel(model) end
 	proj.InitialSpeed = force
 	proj:SetPos(pos)
 	proj:SetAngles(ang)
@@ -4065,7 +3717,7 @@ function DRC:CreateProjectile(class, pos, ang, force, owner, inherit)
 	local speed = ang:Forward() * force
 	if owner && inherit == true then speed = ((ang:Forward() * force) + owner:GetVelocity()) end
 	local phys = proj:GetPhysicsObject()
-	phys:SetVelocity(speed)
+	if IsValid(phys) then phys:SetVelocity(speed) else proj:SetVelocity(speed) end
 
 	return proj
 end
@@ -4385,8 +4037,6 @@ hook.Add("OnEntityCreated", "drc_OnEntityCreated", function(ent)
 			ent:SetNWVector("EnergyTintVec", colours.Energy)
 			
 			ent:SetNWEntity("Spawner", ply)
-		elseif ent.LFS then
-		
 		else
 			local colours = {
 				["Player"] = Vector(127, 127, 127),
@@ -4462,7 +4112,7 @@ hook.Add("OnEntityWaterLevelChanged", "drc_projectile_submerged", function(ent, 
 	end
 end)
 
-hook.Add( "EntityEmitSound", "drc_timewarpsnd", function( t )
+hook.Add("EntityEmitSound", "drc_timewarpsnd", function(t)
 	local cheats = GetConVar( "sv_cheats" )
 	local bool = DRC.SV.drc_soundtime_disabled
 	if bool != 0 then return end
@@ -4486,7 +4136,7 @@ hook.Add( "EntityEmitSound", "drc_timewarpsnd", function( t )
 		t.Pitch = math.Clamp( t.Pitch * engine.GetDemoPlaybackTimeScale(), 0, 255 )
 		return true
 	end
-end )
+end)
 
 DRC.ActiveWeapons = {}
 hook.Add("OnEntityCreated", "DRC_WeaponTracker", function(ent)

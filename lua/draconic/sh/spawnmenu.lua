@@ -44,6 +44,8 @@ end
 
 hook.Add("PreRegisterSWEP", "DRC_SWEPPreRegister", function(swep, cl)
 	if !string.find(cl, "drc_") then return end
+	swep.Category = "".. swep.Category .." "
+	
 	if ignoresweps[cl] then return end
 	
 	if swep.Category && !ignorecats[swep.Category] then DRC.Categories[swep.Category] = swep.Category end
@@ -131,3 +133,110 @@ hook.Add("PopulateWeapons", "DraconicSWEPSpawnmenuCustom", function(pnl, tree, n
 	end) -- fucking
 end) -- waterfall
 ]]
+
+hook.Add("PopulateWeapons", "DraconicSWEPSpawnmenuCustom", function(pnl, tree, node)
+   	local wpns = list.Get("Weapon")
+	local FilteredCategories, WeaponsPerCat = {}, {}
+	
+	if (wpns) then
+		for k, v in pairs(wpns) do
+			local tab, catlist, wpn = FilteredCategories, WeaponsPerCat, weapons.Get(k)
+			
+			if wpn && weapons.IsBasedOn(wpn.ClassName, "draconic_base") && wpn.Spawnable == true then
+				local cat = wpn.Category
+				local subcat = wpn.Subcategory or "Unorganized"
+				
+				if !tab[cat] then tab[cat] = {} end
+				if !tab[cat][subcat] then tab[cat][subcat] = {} end
+				tab[cat][subcat][k] = v
+				tab[cat][subcat]["name"] = subcat
+				if !catlist[cat] then catlist[cat] = {} end
+				catlist[cat][k] = v
+			end
+		end
+	end
+	
+	local function CreateSubcategory(newnode, data, category, iteration)
+		if !istable(data) then return end
+		iteration = (iteration or 0) + 1
+		local par = newnode:GetParentNode()
+		if par and data.name then
+			par.subcats = par.subcats or {}
+			par.subcats[data.name] = newnode
+		end
+		
+		for k,v in SortedPairsByMemberValue(data or {}, "name") do
+			if !ignorecats[Categories] && iteration < 2 && data.ClassName == nil then
+				local newnode2 = newnode:AddNode(k, "icon16/gun.png")
+				newnode2:SetZPos(math.random(0,10000000))
+				CreateSubcategory(newnode2, v, category, iteration)
+			end
+		end
+		
+		newnode.DoPopulate = function(self)
+			self.PropPanel = vgui.Create("ContentContainer", pnl)
+			self.PropPanel:SetVisible(false)
+			self.PropPanel:SetTriggerSpawnlistChange(false)
+			local wpns = table.Copy(data or {})
+
+			for k,v in SortedPairsByMemberValue(wpns, "PrintName") do
+				if istable(v) && v.ClassName then
+					local wpn = weapons.Get(v.ClassName)
+					if wpn && !wpn.Spawnable then continue end
+					
+					local subicon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
+						nicename = v.PrintName or v.ClassName,
+						spawnname = v.ClassName,
+						material = v.IconOverride or "entities/" .. v.ClassName .. ".png",
+						admin = v.AdminOnly
+					})
+					if wpn && wpn.OnPopulateSpawnMenu then wpn.OnPopulateSpawnMenu(nil, subicon) end
+				end
+			end
+		end
+		
+		newnode.DoClick = function(self)
+			self:DoPopulate()
+			pnl:SwitchPanel(self.PropPanel)
+		end
+	end
+	
+	local CatNames = {}
+	for k,v in pairs(tree:Root():GetChildNodes()) do CatNames[v:GetText()] = v end
+	
+	for k,v in SortedPairs(FilteredCategories) do
+		if !ignorecats[k] then
+			local newnode = CatNames[k]
+			CreateSubcategory(newnode, v, k)
+			newnode.DoPopulate = function(self)
+				self.PropPanel = vgui.Create("ContentContainer", pnl)
+				self.PropPanel:SetVisible(false)
+				self.PropPanel:SetTriggerSpawnlistChange(false)
+				local wpns = WeaponsPerCat[k]
+
+				for k, ent in SortedPairsByMemberValue(wpns, "PrintName") do
+					if istable(ent) && ent.ClassName then
+						local wpn = weapons.Get(ent.ClassName)
+						if wpn && !wpn.Spawnable then continue end
+						
+						local subicon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
+							nicename = ent.PrintName or ent.ClassName,
+							spawnname = ent.ClassName,
+							material = ent.IconOverride or "entities/" .. ent.ClassName .. ".png",
+							admin = ent.AdminOnly
+						})
+						if wpn && wpn.OnPopulateSpawnMenu then wpn.OnPopulateSpawnMenu(nil, subicon) end
+					end
+				end
+			end
+		
+			newnode.DoClick = function(self)
+				self:DoPopulate()
+				pnl:SwitchPanel(self.PropPanel)
+			end
+		end
+	end
+	
+	for k,v in pairs(tree:Root():GetChildNodes()) do v:SetExpanded(false) end
+--	tree:InvalidateChildren()
+end)

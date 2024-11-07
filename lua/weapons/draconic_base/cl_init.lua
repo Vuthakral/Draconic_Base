@@ -77,7 +77,7 @@ function SWEP:GetWeaponAttachment(att)
 	attinfo.ent = ent
 	attinfo.Ang = newang
 	
-	if att == "muzzle" && DRC:SightsDown(self) && self.Secondary.Scoped == true then
+	if !self.IsMelee && att == self.Muzzles[self:GetCurrentMuzzle()][1] && DRC:SightsDown(self) && self.Secondary.Scoped == true then
 		local ea = ply:EyeAngles()
 		attinfo.Pos = ((ply:EyePos() - ea:Up() * 5) - ea:Forward() * 5)
 	end

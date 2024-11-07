@@ -52,7 +52,12 @@ end
 
 function ENT:Draw()
 	if !IsValid(self.FollowEnt) then return end
+	
+	local rt = render.GetRenderTarget()
+	if rt != nil && rt:GetName():lower() == "_rt_shadowdummy" then return end
+	
 	self:SetNoDraw(false)
+	self:SetupBones()
 	local parent = self:GetOwner()
 	local hp, maxhp, ent = DRC:GetShield(parent)
 	
@@ -65,9 +70,14 @@ function ENT:Draw()
 	self.ShieldScale = Lerp(RealFrameTime() * 10, self.ShieldScale or scale, scale)
 	
 	local model = parent:GetNWString("DRC_Shield_Model")
-	if self:GetModel() != model then
+	if self:GetModel() != model && model != "nil" then
 		self:SetModel(model)
 		self.Bones = DRC:GetBones(self)
+	elseif model == "nil" then
+		if self:GetModel() != model then
+			self.Bones = DRC:GetBones(self)
+			self:SetModel(parent:GetModel())
+		end
 	end
 	self:DrawShadow(false)
 	self:DestroyShadow()
@@ -75,13 +85,13 @@ function ENT:Draw()
 	
 	local customscale = parent:GetNWVector("DRC_Shield_BaseScale")
 	customscale = Vector(self.ShieldScale * customscale.x, self.ShieldScale * customscale.y, self.ShieldScale * customscale.z)
-	if model == parent:GetModel() then
+	if model == "nil" or model == parent:GetModel() then
 		for k,v in pairs(self.Bones) do
 			local id = self:LookupBone(k)
 			if id != nil then
 				local matr = parent:GetBoneMatrix(id)
 				if matr then
-				local newmatr = Matrix()
+					local newmatr = Matrix()
 					newmatr:SetTranslation(matr:GetTranslation())
 					newmatr:SetAngles(matr:GetAngles())
 					newmatr:SetScale(customscale)
@@ -129,7 +139,6 @@ function ENT:Draw()
 	end
 	
 	if DRC:GetShieldInvulnerability(parent) == true then
-	--	if parent == LocalPlayer() then print(parent:GetNWString("DRC_Shield_InvulnMaterial")) end
 		if parent:GetNWString("DRC_Shield_InvulnMaterial") != "" then
 		self.mat_to_use = parent:GetNWString("DRC_Shield_InvulnMaterial")
 		end
@@ -169,4 +178,8 @@ function ENT:Draw()
 	end
 	
 	self:DrawModel()
+end
+
+function ENT:RenderOverride()
+	self:Draw()
 end

@@ -108,6 +108,8 @@ DRC:ServerVar("drc_viewdrag", "Enables or disables first person camera drag effe
 
 DRC:ServerVar("drc_funnyplayercorpses", "I added this just to force players to spawn drc_corpse on death as a means of testing.", 0, 0, 1)
 
+DRC:ServerVar("drc_npc_uses_integratedlights", "When set to 1 it forces all NPCs using Draconic weapons with integrated lights to turn them on.", 0, 0, 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DEMO})
+
 --if GetConVar("sv_drc_movement") == nil then DRC.Convars_SV.Movement = CreateConVar("sv_drc_movement", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom movement modifiers of ALL weapons made on the Draconic SWEP Base.", 0, 1) end
 --if GetConVar("sv_drc_movesounds") == nil then DRC.Convars_SV.MoveSounds = CreateConVar("sv_drc_movesounds", 1, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Enables or disables the custom sprint/jump sounds of ALL weapons made on the Draconic SWEP Base.", 0, 1) end
 --if GetConVar("sv_drc_force_sprint") == nil then DRC.Convars_SV.SprintOverride = CreateConVar("sv_drc_force_sprint", 0, {FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_ARCHIVE, FCVAR_DEMO}, "Forces all DSB weapons to use the passive-sprint system, regardless of SWEP author intention.", 0, 1) end

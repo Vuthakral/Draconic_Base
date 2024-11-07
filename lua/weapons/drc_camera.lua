@@ -2,7 +2,7 @@ SWEP.Base				= "draconic_gun_base"
 
 SWEP.HoldType			= "rpg" -- https://wiki.garrysmod.com/page/Hold_Types
 SWEP.CrouchHoldType		= "rpg"
-SWEP.Category			= "Other"
+SWEP.Category			= "Draconic Base Tools"
 SWEP.PrintName			= "Camera (DRC)"
 SWEP.InfoName			= "Camera"
 

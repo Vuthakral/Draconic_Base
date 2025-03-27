@@ -174,14 +174,14 @@ function SWEP:PrimaryAttack()
 	local cv = ply:Crouching()
 	local CanCrouchAttack = self.Primary.CanAttackCrouched
 	local et = ply:GetEyeTrace()
-	local target = self:GetConeTarget()
+	local target = self:GetConeTarget(self.Primary.LungeMaxDist)
 	
 	local moving = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_FORWARD)) && sprintkey
 	if (self.DoesPassiveSprint == true or GetConVar("sv_drc_force_sprint"):GetString() == "1") && moving then return end
 	
 	if self.Primary.CanLunge == true then
 		if self.Primary.LungeAutomatic == true then
-			if IsValid(target) && (target:IsNPC() or target:IsPlayer() or target:IsNextBot()) then
+			if IsValid(target) && DRC:IsCharacter(target) then
 				if(ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist) then
 					if cv == false && self:GetNWBool("Passive") == false then
 						self:DoPrimaryLunge()

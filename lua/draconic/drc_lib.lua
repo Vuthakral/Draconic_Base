@@ -145,6 +145,7 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_DEFAULT"] = {"stone", "dust"}, -- engine
 	["MAT_CLIP"] = {"stone", "dust"}, -- engine
 	["MAT_NO_DECAL"] = {"stone", "dust"}, -- engine
+	["MAT_LADDER"] = {"nil"}, -- engine hack from goldsrc
 	["MAT_ANTLION"] = {"bugshell"}, -- hl2
 	["MAT_FLESH"] = {"flesh"}, -- engine
 	["MAT_ARMORFLESH"] = {"flesh"}, -- hl2
@@ -1297,6 +1298,8 @@ function DRC:BreakInteraction(ply, ent)
 	ply:SetNWBool("Interacting_StopMouse", false)
 end
 
+
+if !DRC.ProjectedLights then DRC.ProjectedLights = {} end
 function DRC:ProjectedTexture(ent, att, tbl)
 	if !IsValid(ent) or att == nil then return end
 	local attnum = ent:LookupAttachment(att)
@@ -1318,6 +1321,7 @@ function DRC:ProjectedTexture(ent, att, tbl)
 	light.FOV			= tbl.FOV
 	light.DrawShadows 	= tbl.DrawShadows
 	
+	DRC.ProjectedLights[light] = ent
 	return light
 end
 
@@ -1427,11 +1431,12 @@ function DRC:EyeCone(ply, dist, degree, angleoverride)
 	return ents.FindInCone(ply:EyePos(), angleoverride or ang, dist or 1000, degree)
 end
 
-function DRC:GetConeTarget(source, distance, degrees, angleoverride)
+function DRC:GetConeTarget(source, distance, degrees, angleoverride, ignoreextraents)
+	if !ignoreextraents then ignoreextraents = {} end
 	local coneents = DRC:EyeCone(source, distance, degrees, angleoverride)
 	local targets = {}
 	for k,v in pairs(coneents) do
-		if !DRC.HelperEnts[v] && (v:IsPlayer() && v != source) or v:IsNPC() or v:IsNextBot() or DRC:IsVehicle(v) then table.insert(targets, v) end
+		if !DRC.HelperEnts[v] && !ignoreextraents[v] && v != source && (DRC:IsCharacter(v) or DRC:IsVehicle(v)) then table.insert(targets, v) end
 	end
 	local closesttarget = nil
 	for k,v in pairs(targets) do
@@ -1758,18 +1763,16 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply, transition)
 			net.Start("DRC_UpdatePlayerHands")
 			net.Send(ply)
 			
+			if ply:GetInfo("cl_playercamo") != "nil" then
+				DRC:RefreshCamoMats(ply)
+				DRC:SetCamo(ply, ply:GetInfo("cl_playercamo"), "automatic")
+			end
+			
 			net.Start("DRC_WeaponAttachSyncInventory")
 			net.WriteTable(ply.DRCAttachmentInventory)
 			net.Send(ply)
 		end
 	end)
-	
---[[	local hands = ply:GetHands()
-	if !hands then return end
-	local hbg = hands:GetBodyGroups()
-	
-	local convar = GetConVar("cl_playerbodygroups")
-	hands:SetBodyGroups(convar) --]]
 	
 	if transition == true then
 		timer.Simple(1, function()
@@ -1786,34 +1789,36 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply, transition)
 end)
 
 hook.Add("StartCommand", "drc_InteractionBlocks", function(ply, cmd)
-	local bool1 = ply:GetNWBool("Interacting")
-	local bool2 = ply:GetNWBool("Interacting_StopMovement")
-	local bool3 = ply:GetNWBool("Interacting_StopMouse")
-	local ent = ply:GetNWEntity("Interacted_Entity", ply)
-	
-	if bool1 then
-		if cmd:KeyDown(IN_ATTACK) then
-			if IsValid(ent) && IsValid(ent.PrimaryAttack) then ent:PrimaryAttack() end
-			cmd:RemoveKey(IN_ATTACK)
+	if ply:Alive() then 
+		local bool1 = ply:GetNWBool("Interacting")
+		local bool2 = ply:GetNWBool("Interacting_StopMovement")
+		local bool3 = ply:GetNWBool("Interacting_StopMouse")
+		local ent = ply:GetNWEntity("Interacted_Entity", ply)
+		
+		if bool1 then
+			if cmd:KeyDown(IN_ATTACK) then
+				if IsValid(ent) && IsValid(ent.PrimaryAttack) then ent:PrimaryAttack() end
+				cmd:RemoveKey(IN_ATTACK)
+			end
+			if cmd:KeyDown(IN_ATTACK2) then cmd:RemoveKey(IN_ATTACK2) end
+			if cmd:KeyDown(IN_RELOAD) then cmd:RemoveKey(IN_RELOAD) end
+			if cmd:KeyDown(IN_WEAPON1) then cmd:RemoveKey(IN_WEAPON1) end
+			if cmd:KeyDown(IN_WEAPON2) then cmd:RemoveKey(IN_WEAPON2) end
+			if cmd:KeyDown(IN_GRENADE1) then cmd:RemoveKey(IN_GRENADE1) end
+			if cmd:KeyDown(IN_GRENADE2) then cmd:RemoveKey(IN_GRENADE2) end
 		end
-		if cmd:KeyDown(IN_ATTACK2) then cmd:RemoveKey(IN_ATTACK2) end
-		if cmd:KeyDown(IN_RELOAD) then cmd:RemoveKey(IN_RELOAD) end
-		if cmd:KeyDown(IN_WEAPON1) then cmd:RemoveKey(IN_WEAPON1) end
-		if cmd:KeyDown(IN_WEAPON2) then cmd:RemoveKey(IN_WEAPON2) end
-		if cmd:KeyDown(IN_GRENADE1) then cmd:RemoveKey(IN_GRENADE1) end
-		if cmd:KeyDown(IN_GRENADE2) then cmd:RemoveKey(IN_GRENADE2) end
-	end
-	if bool2 then
-		cmd:SetForwardMove(0)
-		cmd:SetSideMove(0)
-		cmd:SetUpMove(0)
-		if cmd:KeyDown(IN_MOVELEFT) then cmd:RemoveKey(IN_MOVELEFT) end
-		if cmd:KeyDown(IN_MOVERIGHT) then cmd:RemoveKey(IN_MOVERIGHT) end
-		if cmd:KeyDown(IN_FORWARD) then cmd:RemoveKey(IN_FORWARD) end
-		if cmd:KeyDown(IN_BACK) then cmd:RemoveKey(IN_BACK) end
-	end
-	if bool3 then
-		ply:SetEyeAngles(ply:GetNWAngle("Interacting_EyeAngle"))
+		if bool2 then
+			cmd:SetForwardMove(0)
+			cmd:SetSideMove(0)
+			cmd:SetUpMove(0)
+			if cmd:KeyDown(IN_MOVELEFT) then cmd:RemoveKey(IN_MOVELEFT) end
+			if cmd:KeyDown(IN_MOVERIGHT) then cmd:RemoveKey(IN_MOVERIGHT) end
+			if cmd:KeyDown(IN_FORWARD) then cmd:RemoveKey(IN_FORWARD) end
+			if cmd:KeyDown(IN_BACK) then cmd:RemoveKey(IN_BACK) end
+		end
+		if bool3 then
+			ply:SetEyeAngles(ply:GetNWAngle("Interacting_EyeAngle"))
+		end
 	end
 end)
 
@@ -1901,6 +1906,11 @@ hook.Add("CreateClientsideRagdoll", "drc_playerragdollcolours", function(ply, ra
 	rag:SetNWVector("ColourTintVec1", colours.Tint1 * 255)
 	rag:SetNWVector("ColourTintVec2", colours.Tint2 * 255)
 	rag:SetNWInt("Grunge_DRC", colours.Grunge)
+	
+	if ply:IsPlayer() && ply:GetInfo("cl_playercamo") != "nil" then
+		DRC:RefreshCamoMats(rag)
+		DRC:SetCamo(rag, ply:GetInfo("cl_playercamo"), "automatic")
+	end
 end)
 
 hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
@@ -1914,6 +1924,11 @@ hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	rag:SetNWVector("ColourTintVec1", colours.Tint1 * 255)
 	rag:SetNWVector("ColourTintVec2", colours.Tint2 * 255)
 	rag:SetNWInt("Grunge_DRC", colours.Grunge)
+	
+	if ply:IsPlayer() && ply:GetInfo("cl_playercamo") != "nil" then
+		DRC:RefreshCamoMats(rag)
+		DRC:SetCamo(rag, ply:GetInfo("cl_playercamo"), "automatic")
+	end
 end)
 
 local dirtr = {
@@ -1928,6 +1943,7 @@ local dirtr = {
 	["se"] = 9,
 }
 hook.Add("PlayerTick", "drc_movementhook", function(ply)
+	if !IsValid(ply) or !ply:Alive() then return end
 	if DRC.SV.drc_movement == 0 then return end
 	local wpn = ply:GetActiveWeapon()
 	if !wpn.Draconic or wpn.Draconic == nil then return end
@@ -1989,8 +2005,28 @@ hook.Add("PlayerTick", "drc_movementhook", function(ply)
 	end
 end)
 
-function DRC:GetVelocityPose(ent, length, vel, mspd)
+function DRC:GetVelocityPose(ent, mul, doset)
 	-- hours wasted here: 11
+	
+	if ent:IsPlayer() then ent = ent:GetActiveWeapon() end
+	
+	local velang = DRC:GetVelocityAngle(ent, false, false, false)
+	local vel = ent:GetVelocity()/100000000
+    local velDir = vel:GetNormal()
+	
+	local tr = DRC:TraceDir(ent:GetPos() + ent:OBBCenter(), velang, 0.64 * vel)
+	local trn = tr.Normal
+	
+	local x, y, z = math.Clamp((ent:GetForward():Dot(velDir)), -1, 1), math.Clamp((ent:GetRight():Dot(velDir)), -1, 1), math.Clamp((ent:GetUp():Dot(velDir)), -1, 1)
+	
+	if doset == true then
+		ent:SetPoseParameter("move_x", x)
+		ent:SetPoseParameter("move_y", y)
+		ent:SetPoseParameter("move_z", z)
+	end
+	
+	return x, y, z
+	--[[
 	local velang = DRC:GetVelocityAngle(ent, false, false, false)
 	if vel == Vector() or length == 0 then velang = Angle() end
 	
@@ -2015,7 +2051,6 @@ function DRC:GetVelocityPose(ent, length, vel, mspd)
 	local diffrotator = Lerp(EntY, -1, 1)
 	local mul = 1.5
 	if walk then mul = 3 end
---	ent:ChatPrint(tostring(diffrotator))
 	
 	ent.DRCVelocityPoseX = Lerp(0.01, ent.DRCVelocityPoseX or diff.x, diff.x) * -diffrotator
 	ent.DRCVelocityPoseY = Lerp(0.01, ent.DRCVelocityPoseY or diff.y, diff.y) * -diffrotator
@@ -2026,12 +2061,13 @@ function DRC:GetVelocityPose(ent, length, vel, mspd)
 	local lx, ly = ent.DRCVelocityPoseX * percx, ent.DRCVelocityPoseY * percy
 	
 	return lx, -ly
+	]]
 	
 end
 
 hook.Add("UpdateAnimation", "DRC_MoveBlendWithoutRootMotion", function(ply, vel, msgs)
 	if ply:LookupPoseParameter("drc_move_x") != -1 && ply:LookupPoseParameter("drc_move_y") != -1 then
-	local x, y = DRC:GetVelocityPose(ply, vel:Length(), vel)
+	local x, y, z = DRC:GetVelocityPose(ply, false)
 			
 	ply:SetPoseParameter("drc_move_x", x)
 	ply:SetPoseParameter("drc_move_y", y)
@@ -2091,7 +2127,7 @@ function DRC:CopyPoseParams(ent1, ent2)
 
 local function PlayReadyAnim(ply, anim)
 	if !IsValid(ply) then 
-		DRC:Notify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", ENUM_ERROR, 10)
+		DRC:Notify(nil, nil, "critical", "Player entity is null?! Something might be seriously wrong with your gamemode, that's all I know!", NOTIFY_ERROR, 10)
 	return end
 	
 	local seq = ply:SelectWeightedSequence(anim)
@@ -2166,13 +2202,18 @@ net.Receive("OtherPlayerWeaponSwitch", function(len, ply)
 	PlayReadyAnim(ply, anim)
 end)
 
+DRC.LastNukeTime = 0
 net.Receive("DRC_Nuke", function(len, ply)
+	local ct = CurTime()
+	if DRC.LastNukeTime + 5 > ct then return end
+
 	local ent = net.ReadEntity()
 	if !IsValid(ent) then return end
 	if !ent:IsAdmin() then
 		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_Nuke' net message but they aren't an admin! This is a known (and now patched) exploit which has been reported implemented into a few scripts.") end
 	return end
-	if ply:IsAdmin() then 
+	if ply:IsAdmin() then
+		DRC.LastNukeTime = ct
 		for k,v in pairs(ents.GetAll()) do
 			if v:IsNPC() or v:IsNextBot() or v:GetClass() == "prop_physics" or v:GetClass() == "prop_physics_multiplayer" then
 				if v:IsNPC() && IsValid(v:GetActiveWeapon()) then
@@ -2189,12 +2230,16 @@ net.Receive("DRC_Nuke", function(len, ply)
 end)
 
 net.Receive("DRC_KYS", function(len, ply)
+	local ct = CurTime()
+	if DRC.LastNukeTime + 5 > ct then return end
+
 	local ent = net.ReadEntity()
 	if !IsValid(ent) then return end
 	if !ent:IsAdmin() then
 		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_KYS' net message but they aren't an admin!") end
 	return end
-	if ply:IsAdmin() then 
+	if ply:IsAdmin() then
+		DRC.LastNukeTime = ct
 		for k,v in pairs(ents.GetAll()) do
 			if v:IsNPC() or v:IsNextBot() then
 				if v:IsNPC() && IsValid(v:GetActiveWeapon()) then
@@ -2274,9 +2319,9 @@ end
 
 function DRC:RefreshAmmoTypes()
 	for k,v in pairs(DraconicAmmoTypes) do
-		if !istable(v) then DRC:Notify(nil, nil, "critical", "Someone put a non-table into the Draconic ammo registry, aborting.", ENUM_ERROR, 10) return end
-		if !v.Name then DRC:Notify(nil, nil, "critical", "Ammo Registry - Name not defined for ammo type, aborting.", ENUM_ERROR, 10) return end
-		if !v.Text then DRC:Notify(nil, nil, "critical", "Ammo Registry - Text not set for ".. v.Name ..", Assigning stupid text for you to realize your mistake.", ENUM_ERROR, 10) v.Name = "YOU DIDN'T GIVE ME A NAME" end
+		if !istable(v) then DRC:Notify(nil, nil, "critical", "Someone put a non-table into the Draconic ammo registry, aborting.", NOTIFY_ERROR, 10) return end
+		if !v.Name then DRC:Notify(nil, nil, "critical", "Ammo Registry - Name not defined for ammo type, aborting.", NOTIFY_ERROR, 10) return end
+		if !v.Text then DRC:Notify(nil, nil, "critical", "Ammo Registry - Text not set for ".. v.Name ..", Assigning stupid text for you to realize your mistake.", NOTIFY_ERROR, 10) v.Name = "YOU DIDN'T GIVE ME A NAME" end
 		if !v.DMG then v.DMG = DMG_BULLET end
 		if !v.Tracer then v.DMG = TRACER_LINE_AND_WHIZ end
 		if !v.DamagePlayer then v.DamagePlayer = 0 end
@@ -2284,7 +2329,7 @@ function DRC:RefreshAmmoTypes()
 		if !v.Force then v.Force = 500 end
 		if !v.SplashMin then v.SplashMin = 5 end
 		if !v.SplashMax then v.SplashMax = 10 end
-		if !v.MaxCarry then DRC:Notify(nil, nil, "critical", "Ammo Registry - MaxCarry not defined for ".. v.Name ..", Setting to 9999.", ENUM_ERROR, 10) v.MaxCarry = 9999 end
+		if !v.MaxCarry then DRC:Notify(nil, nil, "critical", "Ammo Registry - MaxCarry not defined for ".. v.Name ..", Setting to 9999.", NOTIFY_ERROR, 10) v.MaxCarry = 9999 end
 	
 		if CLIENT then
 			language.Add("" ..v.Name .."_ammo", v.Text)
@@ -2317,6 +2362,7 @@ end
 function DRC:GetHGMul(ent, hg, dinfo)
 	local infl = dinfo:GetInflictor()
 	if infl.DraconicProjectile == true then infl = infl:GetCreator() end
+	if DRC:IsVehicle(infl) then return 1 end
 	if dinfo:GetDamageCustom() == 2221208 then return 1 end -- prevents running on melee weapons
 	local mul, enum = 1, "HITGROUP_GENERIC"
 	
@@ -2569,6 +2615,7 @@ function DRC:IsVehicle(ent)
 end
 
 function DRC:IsCharacter(ent)
+	if !IsValid(ent) then return end
 	if ent:IsPlayer() == true then return true end
 	if ent:IsNPC() == true then return true end
 	if ent:IsNextBot() == true then return true end
@@ -2610,6 +2657,10 @@ if SERVER then
 			ent:SetNWString("DRC_Shield_OverMaterial", tbl.OverMaterial)
 			if !tbl.ArmourRequirement then tbl.ArmourRequirement = false end
 			ent:SetNWBool("DRC_Shield_RechargeRequiresArmour", tbl.ArmourRequirement) -- not implemented yet
+			if tbl.InitialHealth then
+				ent:SetNWInt("DRC_ShieldHealth", tbl.InitialHealth+1)
+				DRC:SubtractShield(ent, 1, true)
+			end
 			
 			timer.Simple(engine.TickInterval(), function()
 				net.Start("DRC_MakeShieldEnt")
@@ -2663,7 +2714,7 @@ if SERVER then
 		DRC:PingShield(ent, false)
 	end
 	
-	function DRC:SubtractShield(ent, amount)
+	function DRC:SubtractShield(ent, amount, instantrecharge)
 		if !IsValid(ent) then return end
 		local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
 		local overshieldhp = ent:GetNWInt("DRC_ShieldHealth_Extra")
@@ -2671,9 +2722,11 @@ if SERVER then
 		if ent.DoCustomShieldHit then ent:DoCustomShieldHit(amount) end
 		
 		if overshieldhp <= 0 then
+			local delay = ent:GetNWInt("DRC_ShieldRechargeDelay")
+			if instantrecharge == true then delay = 0 end
 			ent:SetNWInt("DRC_ShieldHealth", math.Clamp(ent:GetNWInt("DRC_ShieldHealth") - amount, 0, ent:GetNWInt("DRC_ShieldMaxHealth")))
-			ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + ent:GetNWInt("DRC_ShieldRechargeDelay") - engine.TickInterval())
-			timer.Simple(ent:GetNWInt("DRC_ShieldRechargeDelay"), function()
+			ent:SetNWInt("DRC_Shield_DamageTime", CurTime() + delay - engine.TickInterval())
+			timer.Simple(delay, function()
 				if !IsValid(ent) then return end
 				if CurTime() > ent:GetNWInt("DRC_Shield_DamageTime") && ent:GetNWInt("DRC_Shield_Recharges") == true then
 					ent:SetNWBool("DRC_ShieldDown", false)
@@ -3722,6 +3775,16 @@ function DRC:CreateProjectile(class, pos, ang, force, owner, inherit, model)
 	return proj
 end
 
+function DRC:GetGravityScale()
+	local env = physenv.GetGravity()
+	local base = Vector(0,0,-600)
+	
+	local x, y, z = env.x/base.x, env.y/base.y, env.z/base.z
+	if x!=x then x = 0 end
+	if y!=y then y = 0 end
+	if z!=z then z = 0 end
+	return x,y,z
+end
 
 --[[ Table format example:
 local NewPlayermodel = {
@@ -3758,6 +3821,7 @@ function DRC:RegisterPlayerModel(tbl)
 			["Claws"] = false,
 		},
 		["RequiredModel"] = tbl.RequiredModel or "",
+		["CamoMaterials"] = tbl.CamoMaterials or nil,
 	}
 end
 
@@ -3799,6 +3863,7 @@ function DRC:RegisterPlayerExtension(model, val1, val2, val3)
 			["Extensions"] = { 
 				["Claws"] = false,
 			},
+			["CamoMaterials"] = nil,
 		}
 	end
 	
@@ -3809,8 +3874,60 @@ function DRC:RegisterPlayerExtension(model, val1, val2, val3)
 	end
 end
 
+function DRC:ClearSubMaterials(ent)
+	local mats = ent:GetMaterials()
+	for i=0,#mats do ent:SetSubMaterial(i, nil) end
+	ent.WeaponSkinApplied = nil
+	ent.WeaponSkinAppliedName = nil
+end
+
+function DRC:RefreshCamoMats(ply, nuke)
+	ply.ResetCamo = true
+	local pm = player_manager.TranslateToPlayerModelName(ply:GetModel())
+	local mats = DRC:GetPlayerModelValue(pm, "CamoMaterials")
+	if mats == nil or mats == false then return ply:GetModel(), false end
+	local emats = ply:GetMaterials()
+	
+	if !ply.CamoSubMaterials then ply.CamoSubMaterials = {} end
+	if !ply.CamoProxyMaterials then ply.CamoProxyMaterials = {} end
+	
+	if nuke then ply.CamoSubMaterials = {} ply.CamoProxyMaterials = {} end
+	
+	for k,v in pairs(mats) do
+		local id = table.KeyFromValue(emats, v)
+		ply.CamoSubMaterials[id] = v
+		ply.CamoProxyMaterials[id] = Material(v)
+	end
+	
+	return ply:GetModel(), ply.CamoSubMaterials
+end
+
+function DRC:SetCamo(ply, mat, name)
+	if !ply.CamoSubMaterials then return end
+	if mat == "" then mat = nil end
+	if mat == nil then DRC:ClearSubMaterials(ply) return end
+	ply.WeaponSkinApplied = mat
+	ply.WeaponSkinAppliedName = name
+	
+	local pm = player_manager.TranslateToPlayerModelName(ply:GetModel())
+	local mats = DRC:GetPlayerModelValue(pm, "CamoMaterials")
+	
+	for k,v in pairs(ply.CamoSubMaterials) do
+		if mat != nil && DRC.WeaponSkins[mat] then
+			if DRC.WeaponSkins[mat].proxy == true then
+				ply:SetSubMaterial(k-1, "models/vuthakral/weaponskin_".. k-1 .."")
+			else
+				ply:SetSubMaterial(k-1, mat)
+			end
+		else
+			ply:SetSubMaterial(k-1, mat)
+		end
+	end
+end
+
 if !DRC.WeaponSkins then DRC.WeaponSkins = {} end
-function DRC:RegisterWeaponSkin(name, desc, mat, icon, isproxy)
+function DRC:RegisterWeaponSkin(name, desc, mat, icon, isproxy, importtype)
+	if !importtype then importtype = "Draconic" end
 	if !isproxy then isproxy = false end
 	local str
 	if !isproxy then str = "materials/".. mat ..".vmt" end
@@ -3819,7 +3936,7 @@ function DRC:RegisterWeaponSkin(name, desc, mat, icon, isproxy)
 	local ntu
 	if isproxy == false then ntu = mat else ntu = mat.UniqueName end
 	
-	DRC.WeaponSkins[ntu] = {["name"] = name, ["desc"] = desc, ["icon"] = icon or nil, ["proxy"] = isproxy}
+	DRC.WeaponSkins[ntu] = {["name"] = name, ["desc"] = desc, ["icon"] = icon or nil, ["proxy"] = isproxy, ["type"] = importtype}
 	if isproxy then DRC.WeaponSkins[ntu]["ProxyMat"] = mat end
 	
 	table.SortByMember(DRC.WeaponSkins, "name")

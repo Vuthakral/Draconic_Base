@@ -109,7 +109,7 @@ function SWEP:EffectChain(tbl, ed)
 				effectdata:SetEntity(attinfo.ent)
 			end
 			
-			util.Effect( effect, effectdata )
+			util.Effect(effect, effectdata)
 		end end)
 	end
 end

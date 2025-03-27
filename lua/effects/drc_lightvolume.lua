@@ -71,7 +71,13 @@ function EFFECT:Init( data )
 						pos = atta.Pos
 						ang = light:GetAngles()
 						if light.AddAng then ang = ang + light.AddAng end
+						if light.OffsetPos then
+							pos:Add(ang:Right() * light.OffsetPos.x)
+							pos:Add(ang:Forward() * light.OffsetPos.y)
+							pos:Add(ang:Up() * light.OffsetPos.z)
+						end
 						part:SetPos(pos + ang:Forward() * spacing * 0.5)
+						if ent.Alive && ent:Alive() == false then part:SetPos(Vector()) end
 						
 						if light.IsDynamic != false then
 							local ncol = light.col

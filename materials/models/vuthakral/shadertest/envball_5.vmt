@@ -3,8 +3,9 @@
 	"$baseTexture" "models\vuthakral\grey63-0"
 	"$envmap" "env_cubemap"
 
-	$cmpower	5
+	$cmpower	2
 	$cmtint		"[ 1 1 1 ]"
+	$cmtint_fb	"[ 1 1 1 ]"
 	$cmlightsat	0
 
 	$bpm 30
@@ -17,9 +18,9 @@
 		}
 		caramell
 		{
-			resultVar	$cmtint
-			resultVar2	$cmtint_fb
-			resultVar3	$color2
+			resultVar		$cmtint
+			resultVar2		$cmtint_fb
+			resultVar3		$color2
 		}
 	}
 }

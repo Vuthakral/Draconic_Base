@@ -142,7 +142,7 @@ hook.Add("PopulateWeapons", "DraconicSWEPSpawnmenuCustom", function(pnl, tree, n
 		for k, v in pairs(wpns) do
 			local tab, catlist, wpn = FilteredCategories, WeaponsPerCat, weapons.Get(k)
 			
-			if wpn && weapons.IsBasedOn(wpn.ClassName, "draconic_base") && wpn.Spawnable == true then
+			if wpn && !ignorecats[wpn.Category] && weapons.IsBasedOn(wpn.ClassName, "draconic_base") && wpn.Spawnable == true then
 				local cat = wpn.Category
 				local subcat = wpn.Subcategory or "Unorganized"
 				
@@ -207,32 +207,34 @@ hook.Add("PopulateWeapons", "DraconicSWEPSpawnmenuCustom", function(pnl, tree, n
 	for k,v in SortedPairs(FilteredCategories) do
 		if !ignorecats[k] then
 			local newnode = CatNames[k]
-			CreateSubcategory(newnode, v, k)
-			newnode.DoPopulate = function(self)
-				self.PropPanel = vgui.Create("ContentContainer", pnl)
-				self.PropPanel:SetVisible(false)
-				self.PropPanel:SetTriggerSpawnlistChange(false)
-				local wpns = WeaponsPerCat[k]
+			if newnode then
+				CreateSubcategory(newnode, v, k)
+				newnode.DoPopulate = function(self)
+					self.PropPanel = vgui.Create("ContentContainer", pnl)
+					self.PropPanel:SetVisible(false)
+					self.PropPanel:SetTriggerSpawnlistChange(false)
+					local wpns = WeaponsPerCat[k]
 
-				for k, ent in SortedPairsByMemberValue(wpns, "PrintName") do
-					if istable(ent) && ent.ClassName then
-						local wpn = weapons.Get(ent.ClassName)
-						if wpn && !wpn.Spawnable then continue end
-						
-						local subicon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
-							nicename = ent.PrintName or ent.ClassName,
-							spawnname = ent.ClassName,
-							material = ent.IconOverride or "entities/" .. ent.ClassName .. ".png",
-							admin = ent.AdminOnly
-						})
-						if wpn && wpn.OnPopulateSpawnMenu then wpn.OnPopulateSpawnMenu(nil, subicon) end
+					for k, ent in SortedPairsByMemberValue(wpns, "PrintName") do
+						if istable(ent) && ent.ClassName then
+							local wpn = weapons.Get(ent.ClassName)
+							if wpn && !wpn.Spawnable then continue end
+							
+							local subicon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
+								nicename = ent.PrintName or ent.ClassName,
+								spawnname = ent.ClassName,
+								material = ent.IconOverride or "entities/" .. ent.ClassName .. ".png",
+								admin = ent.AdminOnly
+							})
+							if wpn && wpn.OnPopulateSpawnMenu then wpn.OnPopulateSpawnMenu(nil, subicon) end
+						end
 					end
 				end
-			end
-		
-			newnode.DoClick = function(self)
-				self:DoPopulate()
-				pnl:SwitchPanel(self.PropPanel)
+			
+				newnode.DoClick = function(self)
+					self:DoPopulate()
+					pnl:SwitchPanel(self.PropPanel)
+				end
 			end
 		end
 	end

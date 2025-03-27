@@ -1,14 +1,5 @@
 AddCSLuaFile()
 
---[[     I M P O R T A N T
-
-Please, go to the GitHub wiki for this, and not just rip settings from the base as reference.
-https://github.com/Vuthakral/Draconic_Base/wiki
-
-It contains all of the settings, explanations on how to use them, tutorials, helpful links, etc.
-
---]]
-
 ENT.Type = "anim"
 
 ENT.PrintName 	= "Base Projected Texture Entity"
@@ -61,8 +52,11 @@ end
 function ENT:Think()
 	self:DoCustomThink()
 	
+	if DRC.ProjectedLights[self] == nil then self:Remove() end
+	if CLIENT && DRC.ProjectedLights[self] == LocalPlayer():GetViewModel() && self != DRC.CalcView.MuzzleLamp then self:Remove() end
+	
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
-	self:SetMaterial("models/vuthakral/nodraw")
+	if self:GetMaterial() != "models/vuthakral/nodraw" then self:SetMaterial("models/vuthakral/nodraw") end
 	
 	if !self.Light then self.Light = ProjectedTexture() end
 	

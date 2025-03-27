@@ -54,9 +54,11 @@ SWEP.CrosshairNoIronFade 	= false
 SWEP.CrosshairFOVPower		= 1
 SWEP.Crosshair 				= nil
 
-SWEP.ViewModelFOV		= 54
-SWEP.ViewModelFlip		= false
-SWEP.DrawAmmo			= true
+SWEP.ViewModelFOV			= 54
+SWEP.ViewModelSightsFOV		= nil
+SWEP.ViewModelSightsFOVAlt	= nil
+SWEP.ViewModelFlip			= false
+SWEP.DrawAmmo				= true
 
 SWEP.UseHands			= true
 SWEP.DoesPassiveSprint	= false
@@ -85,6 +87,8 @@ SWEP.InspectAng 		= Vector(15, 15, 0)
 -- VIEWMODEL SWAY
 SWEP.SS 				= 1
 SWEP.BS 				= 1
+SWEP.SightsSS			= 0.25
+SWEP.SightsBS			= 0.1
 SWEP.NearWallPower		= 1
 SWEP.RollingPower		= 1
 SWEP.PerspectivePower	= 1
@@ -92,7 +96,18 @@ SWEP.Sway_IsShouldered	= nil
 SWEP.Sway_OffsetPowerPos= nil
 SWEP.Sway_OffsetPowerAng= Vector(1,1,1)
 
+SWEP.SwayStyle = 1
+SWEP.BobStyle = 1
+SWEP.OldschoolBobRate = 1
+SWEP.OldschoolBobScale = Vector(0,1,0)
+SWEP.OldschoolSwayScale = Vector(0,0,0)
+
+SWEP.IdleBobRate = 1
+SWEP.IdleBobScale = Vector(0,0,0)
+SWEP.IdleSwayScale = Vector(0,0,0)
+
 -- CAMERA EFFECTS
+SWEP.CameraDrag	= true
 SWEP.CameraStabilityIdle	= 1
 SWEP.CameraStabilityMove	= 1
 SWEP.CameraStabilityReload	= 0.5
@@ -259,6 +274,7 @@ SWEP.GlowDecay		= 1000
 SWEP.GlowSize		= 150
 SWEP.GlowStyle		= 0
 
+SWEP.Secondary.SightsBlurMul= 1
 SWEP.Secondary.ScopeMat		= "overlays/draconic_scope"
 SWEP.Secondary.Q2Mat		= nil
 SWEP.Secondary.Q3Mat		= nil
@@ -341,13 +357,11 @@ SWEP.BloomValue 			= 0
 SWEP.PrevBS 				= 0
 SWEP.RealTime 				= 0
 SWEP.VariablePos 			= Vector(0, 0, 0)
-SWEP.CRPo 					= Vector(0, 0, 0)
 SWEP.PRPos 					= Vector(0, 0, 0)
 SWEP.SPRPos 				= Vector(0, 0, 0)
 SWEP.IRPos 					= Vector(0, 0, 0)
 SWEP.VARPos 				= Vector(0, 0, 0)
 SWEP.VariableAng 			= Vector(0, 0, 0)
-SWEP.CRPo 					= Vector(0, 0, 0)
 SWEP.PRAng 					= Vector(0, 0, 0)
 SWEP.SPRAng 				= Vector(0, 0, 0)
 SWEP.IRAng 					= Vector(0, 0, 0)
@@ -422,6 +436,10 @@ function SWEP:Initialize()
 	if self.Sway_IsShouldered == nil then self.Sway_IsShouldered = DRC.HoldTypes[string.lower(self.HoldType)].shouldered end
 	if self.Sway_OffsetPowerPos == nil then self.Sway_OffsetPowerPos = Vector(self.SS, 1, 1) end
 	
+	self.ViewModelFOVOriginal = self.ViewModelFOV
+	if self.ViewModelSightsFOV == nil then self.ViewModelSightsFOV = self.ViewModelFOV end
+	if self.ViewModelSightsFOVAlt == nil then self.ViewModelSightsFOVAlt = self.ViewModelSightsFOV end
+	
 	if self.KeepUpright == true then
 		self:AddCallback( "PhysicsCollide", function( ent, newangle )
 			local vel = ent:GetVelocity()
@@ -492,7 +510,7 @@ function SWEP:Initialize()
 		end
 		self:SetNWInt("CurrentMuzzle", 1)
 	else
-		self.SpreadCone = math.abs(15)
+		self.SpreadCone = 15
 	end
 	
 	if self.Primary.Ammo != nil && (self:GetOwner():IsNPC() or self:GetOwner():IsNextBot()) && !self.IsMelee then
@@ -693,10 +711,6 @@ function SWEP:Think()
 	
 	if ct > self.LockoutTime then self.Idle = 1 else self.Idle = 0 end
 	
-	local primcharge = self.Primary.UsesCharge == true
-	local seccharge = self.Secondary.UsesCharge == true
-	local loaded = self:GetLoadedAmmo() > 0
-	
 	if ply:IsPlayer() then
 		local cv, wl, oa = ply:Crouching(), ply:WaterLevel(), self.OwnerActivity
 		local n, s, e, w = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT)
@@ -719,6 +733,9 @@ function SWEP:Think()
 		end
 	end
 	
+	local primcharge = self.Primary.UsesCharge
+	local seccharge = self.Secondary.UsesCharge
+	local loaded = self:GetLoadedAmmo() > 0
 	local overheated = self:GetNWBool("Overheated") == true
 	local passive = self:GetNWBool("Passive") == true
 	
@@ -796,6 +813,7 @@ end
 
 SWEP.desiredfov = 90
 SWEP.fovchecktime = 0
+SWEP.vmfov = 0
 function SWEP:ManageSights(ply, ct)
 	if ply:IsPlayer() && ct > self.fovchecktime + 5 then
 		self.fovchecktime = self.fovchecktime + 5
@@ -803,18 +821,30 @@ function SWEP:ManageSights(ply, ct)
 	end
 	
 	if ply:IsPlayer() then
+		local sd = self.SightsDown
 		local fov = ply:GetFOV()
 		local newfov = fov
+		local vmfov = self.ViewModelFOVOriginal
+		if self.vmfov == 0 then self.vmfov = vmfov end
 		if !fov or !newfov then return end
 		if !self.fovgrace then self.fovgrace = 0 end
 		if self.SightsDown == true then newfov = self.IdealSightFOV
 		elseif self.SightsDown == false && ply:KeyDown(IN_ZOOM) then newfov = 25 end
 		if self:ShouldFixFOV() != false then newfov = self.desiredfov end
 		
+		if sd then
+			vmfov = self.ViewModelSightsFOV
+			if self.AltSightBool == true then vmfov = self.ViewModelSightsFOVAlt end
+		end
+		if self.ViewModelSightsFOV != self.ViewModelFOVOriginal then
+			self.vmfov = Lerp(FrameTime() * 5, self.vmfov or vmfov, vmfov)
+			self.ViewModelFOV = self.vmfov
+		end
+		
 		local range = fov<=newfov+1 && fov>=newfov-1
 		if !range && ct > self.fovgrace then
-			self.fovgrace = ct + 0.4
-			ply:SetFOV(newfov, 0.4)
+			self.fovgrace = ct + (self.Secondary.ScopeZoomTime or 0.4)
+			ply:SetFOV(newfov, (self.Secondary.ScopeZoomTime or 0.4))
 		end
 	end
 	
@@ -822,6 +852,7 @@ function SWEP:ManageSights(ply, ct)
 		self:SetIronsights(false, self.Owner)
 	elseif self:CanUseSights() && self.Secondary.Ironsights == true && self.IronCD == false && self.Secondary.Disabled == false then
 		if self.SightsDown != self:GetNWBool("SightsDown") then self.SightsDown = self:GetNWBool("SightsDown") end
+		local sd = self.SightsDown
 		if ply:KeyPressed(IN_ATTACK2) == true && self.SightsDown == false && self:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ply:KeyDown(IN_USE) then
 			self:SetIronsights(true, self.Owner)
 			
@@ -1061,6 +1092,7 @@ function SWEP:ManageAnims(ply, ct)
 	end
 	
 	if !ply:IsPlayer() then return end
+	if ply:GetActiveWeapon() != self then return end
 	if !self:HasViewModel() then return end
 	local vm = ply:GetViewModel(0)
 	if !IsValid(vm) then return end
@@ -1178,7 +1210,7 @@ end
 function SWEP:DoCustomThink()
 end
 
-SWEP.MulIns = 0
+SWEP.SightInt = 0
 if CLIENT then
 	SWEP.InterpolateHolsterBoolVal = 1
 	SWEP.VelInterp = 0
@@ -1206,22 +1238,19 @@ if CLIENT then
 			if self:GetHoldType() != self.HoldType then self:SetHoldType(self.HoldType) end
 		end
 		
-		local IronTime = self.IronTime or 0	
-		local InspectTime = self.InspectTime or 0
-		
-		self.MulI = math.Clamp((CurTime() - IronTime) / 0.35, 0, 1)
-		self.MulIns = math.Clamp((CurTime() - InspectTime) / 0.325, 0, 1)
-		
 		local vel = math.Clamp(ply:GetVelocity():LengthSqr()/36100, 0, 1)
 		self.VelInterp = Lerp(0.1, self.VelInterp or vel, vel)
 		
+		local z = 0
 		if sd == true then
-			self.BobScale = 0.1
-			self.SwayScale = 0.25
+			self.BobScale = self.SightsBS
+			self.SwayScale = self.SightsSS
+			z = 1
 		else
 			self.BobScale = self.BS
 			self.SwayScale = self.SS
 		end
+		self.SightInt = Lerp(FrameTime() * 5, self.SightInt or z, z)
 		
 		local holsterbool = false
 		if self.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1 then
@@ -1720,21 +1749,17 @@ function SWEP:PlayCloseSound()
 end
 
 function SWEP:GetShootPosition()
-	local pos
-	local ang
-
+	local pos, ang
+	
 	if CLIENT then -- We're drawing the view model
 		if LocalPlayer() == self:GetOwner() and GetViewEntity() == LocalPlayer() then
-
 			local vm = LocalPlayer():GetViewModel()
 			pos, ang = vm:GetBonePosition(0)
 			pos = pos
 				+ ang:Forward() * -5 -- Left
 				+ ang:Right() * 1.5 -- Down
 				+ ang:Up() * 20 -- Forward
-
 		else -- We're drawing the world model
-
 			local ply = self:GetOwner()
 			
 			if !self.flameThrowerHand then
@@ -1742,13 +1767,11 @@ function SWEP:GetShootPosition()
 			end
 
 			local handData = ply:GetAttachment(self.flameThrowerHand)
-
 			ang = handData.Ang
 			pos = handData.Pos
 				+ ang:Forward() * 28
 				+ ang:Right() * 0.3
 				+ ang:Up() * 4.5
-
 		end
 	end
 
@@ -2352,8 +2375,9 @@ function SWEP:DrawHUD()
 	if not CLIENT then return end
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	self:DrawCustomCrosshairElements()
-	--if not self:GetNWBool("ironsights") == true && self.Secondary.Scoped == true then return end
-	if not self.SightsDown == true && self.Secondary.Scoped == true then return end
+	if self.SightsDown == false then return end
+	if (self.AltSightBool == false && self.Secondary.Scoped == false) then return end
+	if (self.AltSightBool == true && self.Secondary.ScopedAlt == false) then return end
 	self:DrawCustom2DScopeElements()
 end
 
@@ -2822,7 +2846,7 @@ if CLIENT or game.SinglePlayer() then
 
 	function SWEP:UpdateBonePositions(vm)
 		
-		if self.ViewModelBoneMods then
+		if self.ViewModelBoneMods != nil then
 			
 			if (!vm:GetBoneCount()) then return end
 			

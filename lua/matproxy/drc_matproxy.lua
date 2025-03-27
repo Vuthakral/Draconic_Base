@@ -52,12 +52,22 @@ local translation = {
 	["None"] = Vector(1, 1, 1)
 }
 local function GetPlayerColour(src, channel)
+	local ct = RealTime()
 	if !IsValid(src) then src = LocalPlayer() end
 	if src:GetClass() == "drc_csplayermodel" then src = LocalPlayer() end
 	if !lply then lply = LocalPlayer() end
 	if !lply or !IsValid(lply) then return Vector() end
 	local col = Vector(0.5, 0.5, 0.5)
 	if src == lply:GetViewModel() then src = lply:GetActiveWeapon() end
+	
+	src.CheckCDS = src.CheckCDS or {}
+	src.CheckCDS[channel] = src.CheckCDS[channel] or {}
+	
+	local thyme = src.CheckCDS[channel][1] or 0
+	if ct - thyme < 0.25 then 
+		src.CheckCDS[channel][1] = ct
+		return src.CheckCDS[channel][2]
+	end
 	
 	if channel == "Entity" then
 		local vals = DRC:GetColours(src, true)
@@ -74,6 +84,7 @@ local function GetPlayerColour(src, channel)
 			pull = translation[channel]
 			if vals then col = vals[pull] end
 		end
+		src.CheckCDS[channel][2] = col
 		return col
 	elseif channel && channel != "Entity" && channel != "None" then
 		if (src == lply or src.Preview == true or src.preview == true) or (src:EntIndex() == lply:GetHands():EntIndex()) or (src:GetNWVector(channel, Vector(0,0,0)) == Vector(0,0,0)) then
@@ -112,7 +123,7 @@ local function CalcPoll(ent)
 	end
 	
 	local lightlevel = render.GetLightColor(pos)
-	local lla = (lightlevel.x + lightlevel.y + lightlevel.z) / 3
+	local lla = (lightlevel.x + lightlevel.y + lightlevel.z) * 0.333
 	ent.DRCLightPolling["LightTint"] = lightlevel
 	return lightlevel, lla
 end
@@ -126,8 +137,8 @@ local function LightPollEntity(ent, mat)
 	if !ent.DRCLightPolling[mat] then ent.DRCLightPolling[mat] = "" end
 	
 	if ent.DRCInitialLightPoll == false then QueuePoll(ent) CalcPoll(ent) ent.DRCInitialLightPoll = true end
-	if RealTime() < ent.DRCLightPolling["LightPollTime"] then return end
-	if ent:GetPos() == ent.DRCLightPolling["LightPollLastPos"] then QueuePoll(ent) return
+	if RealTime() < ent.DRCLightPolling["LightPollTime"] then local v = ent.DRCLightPolling["LightTint"] return v, (v.x + v.y + v.z) * 0.333 end
+	if ent:GetPos() == ent.DRCLightPolling["LightPollLastPos"] then QueuePoll(ent) v = ent.DRCLightPolling["LightTint"] return v, (v.x + v.y + v.z) * 0.333
 	else ent.DRCLightPolling["LightPollLastPos"] = ent:GetPos() end
 	QueuePoll(ent)
 	CalcPoll(ent)
@@ -171,6 +182,13 @@ local function ReturnValue(ent, col, mat, channel)
 	if HDR then col = col * mat.HDRCorrectionLevel else col = col * mat.LDRCorrectionLevel end
 --	col = col * (Vector(DRC.MapInfo.MapAmbient.r + 1, DRC.MapInfo.MapAmbient.g + 1, DRC.MapInfo.MapAmbient.b +1))
 	return col * 2
+end
+
+local function isenv(str)
+	if str == "env_cubemap" then return true end
+	if str == "env_cubemap.hdr" then return true end
+	if str == "env_cuemap.hdr" then return true end -- ty valve
+	return false
 end
 
 local blacklist = {
@@ -254,16 +272,16 @@ local function GetCubemapStrength(mat, ent, channel, imat, realtime)
 		if fps < 20 then nexttick = RealTime() + (2 + (math.Rand(0, 3))) end
 		ent.DRCReflectionTints[name]["EnvmapUpdateTime"] = nexttick
 		if envmaps == false then
-			if ienv != "env_cubemap" then 
-				ent.DRCReflectionTints[name]["Envmap"] = ienv or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
-			else
+			if isenv(ienv) then
 				ent.DRCReflectionTints[name]["Envmap"] = imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
+			else
+				ent.DRCReflectionTints[name]["Envmap"] = ienv or imat:GetString("$envmapfallback") or "models/vuthakral/defaultcubemap"
 			end
 		end
 	end
 	
 	if envmaps == false && (ienv == "env_cubemap" && ienv != ent.DRCReflectionTints[name]["Envmap"]) then imat:SetTexture("$envmap", ent.DRCReflectionTints[name]["Envmap"]) end
-	if ent.DRCReflectionTints[name]["Envmap"] == "models/vuthakral/defaultcubemap" then m2 = 0.05 end
+	if ent.DRCReflectionTints[name]["Envmap"] == "models/vuthakral/defaultcubemap" then if !HDR then m2 = 0.05 else m2 = 0.5 end end
 	
 	if (RealTime() > ent.DRCReflectionTints[name]["UpdateTime"]) then
 		local fps = 1/RealFrameTime()
@@ -1390,11 +1408,14 @@ matproxy.Add( {
 	name = "drc_PlayerSpray",
 	init = function( self, mat, values )
 		self.ResultTo = values.resultvar
+		self.DoExponent = values.exponent
 	end,
 
 	bind = function( self, mat, ent )
 		if !IsValid(ent) then return end
 		if ent.spray_updatetime == nil then ent.spray_updatetime = 0 end
+		
+		if !lply then lply = LocalPlayer() end
 		
 		local et = "unknown"
 		if ent:IsNPC() then et = "npc" end
@@ -1469,6 +1490,7 @@ matproxy.Add( {
 		
 		if !SID then
 			mat:SetTexture("$basetexture", "models/effects/vol_light001")
+			if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
 		--	mat:SetTexture("$detail", "models/effects/vol_light001")
 			mat:SetFloat("$translucent", 1)
 			mat:SetFloat("$cloakpassenabled", 1)
@@ -1481,6 +1503,7 @@ matproxy.Add( {
 		if et == "viewmodel" or et == "weapon" or et == "SCKElement" then
 			if display_weapons == 0 then
 				mat:SetTexture("$basetexture", "models/effects/vol_light001")
+				if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
 				ent.nodetail_spray = false
 				if mat:GetTexture("$detail"):GetName() == "error" then ent.nodetail_spray = true end
 				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/effects/vol_light001") end
@@ -1492,6 +1515,7 @@ matproxy.Add( {
 		if et == "npc" or et == "scripted" then
 			if display_generic == 0 then
 				mat:SetTexture("$basetexture", "models/effects/vol_light001")
+				if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
 				ent.nodetail_spray = false
 				if mat:GetTexture("$detail"):GetName() == "error" then ent.nodetail_spray = true end
 				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/effects/vol_light001") end
@@ -1503,6 +1527,7 @@ matproxy.Add( {
 		if et == "ply" or et == "previewmodel" then
 			if display_player == 0 then
 				mat:SetTexture("$basetexture", "models/effects/vol_light001")
+				if self.exponent then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
 				ent.nodetail_spray = false
 				if mat:GetTexture("$detail"):GetName() == "error" then ent.nodetail_spray = true end
 				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/effects/vol_light001") end
@@ -1517,6 +1542,7 @@ matproxy.Add( {
 		
 		if game.SinglePlayer() == true or ent.Preview == true then
 			mat:SetTexture("$basetexture", "vgui/logos/spray")
+			if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "vgui/logos/spray") end
 			local fps = 0.33
 			if RealTime() > ent.spray_updatetime then
 				local frame = mat:GetInt("$frame")
@@ -1526,6 +1552,7 @@ matproxy.Add( {
 			end
 		else
 			mat:SetTexture("$basetexture", "../data/draconic/sprays/".. SID .."")
+			if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "../data/draconic/sprays/".. SID .."") end
 		end
 		
 		ent.nobump_spray = false
@@ -1898,14 +1925,15 @@ local function Read(mat, ent)
 	local val = Vector()
 	if !mid then mid = LerpVector(0.5, mini, maxi) end
 	
-	local function calc(frac)
+	local function calc(frac, maxinvertmin)
 		local function Ease(fr, mi, ma)
 			local func = matlerps[mat.FuncEase]
 			return Lerp(func(fr), mi, ma)
 		end
-	
+		
 		local midfrac = math.Clamp(math.abs(0.5+frac), 0, 1) * frac
 		local newmini = LerpVector(midfrac, mini, mid*5)
+		if maxinvertmin == true then newmini = -maxi end
 		local newval = LerpVector(frac, newmini, maxi)
 		
 		if mat.FuncEase != "Linear" then newval = Vector(Ease(frac, newmini.x, maxi.x), Ease(frac, newmini.y, maxi.y), Ease(frac, newmini.z, maxi.z)) end
@@ -1922,6 +1950,10 @@ local function Read(mat, ent)
 			if !own then val = calc(math.Clamp(ent:GetVelocity():Length(), 1, 999999)/funcmax, 0, 1) -- weapon exists in the world
 			else val = calc(math.Clamp(ent:GetOwner():GetVelocity():Length(), 1, 999999)/funcmax, 0, 1) -- weapon is held by an entity
 			end
+		elseif input == "sway" && ent.proxydang then -- DRC
+			val = Vector(ent.proxydang.x, ent.proxydang.y, 0)
+			val.x = math.Clamp(calc(val.x).x, -maxi.x, maxi.x)
+			val.y = math.Clamp(calc(val.y).x, -maxi.x, maxi.x)
 		end
 	end
 	
@@ -1954,7 +1986,19 @@ local function Read(mat, ent)
 		end
 		val = calc(math.Clamp(ap/map, 0, 1))
 	elseif input == "shield" then local sp, msp = DRC:GetShield(ent) val = calc(math.Clamp(sp/msp, 0, 1))
+	elseif input == "lightlevelhitpos" then
+		local tr, hit
+		if ent:IsPlayer() then tr = ent:GetEyeTrace() hit = tr.HitPos
+		else tr = util.QuickTrace(ent:EyePos(), ent:EyeAngles():Forward(), ent) hit = tr.HitPos end
+		val = render.GetLightColor(hit)
+	elseif input == "lightlevelhitposavg" then
+		local tr, hit
+		if ent:IsPlayer() then tr = ent:GetEyeTrace() hit = tr.HitPos
+		else tr = util.QuickTrace(ent:EyePos(), ent:EyeAngles():Forward(), ent) hit = tr.HitPos end
+		local col = render.GetLightColor(hit)
+		val = calc((col.r + col.g + col.b) * 0.333)
 	elseif input == "lightlevel" then val = LightPollEntity(ent)
+	elseif input == "lightlevelavg" then local ll, lla = LightPollEntity(ent) val = calc(lla)
 	elseif input == "velocity" then
 		if ent:IsNPC() or ent:IsNextBot() then -- bruh
 			val = calc(math.Clamp(math.Clamp(ent:GetVelocity():Length(),1, 999999)/funcmax, 0, 1))
@@ -1984,7 +2028,7 @@ local matfuncs = {
 	["read"] = Read,
 }
 
-local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
+local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture, 5 matrix
 	["$basetexture"] = 4,
 	["$bumpmap"] = 4,
 	["$normalmap"] = 4,
@@ -2028,7 +2072,8 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
 	["$cloakfactor"] = 3,
 	["$cloakcolortint"] = 0,
 	["$refractamount"] = 3,
-	["$basetexturetransform"] = 1,
+	["$refracttint"] = 0,
+	["$basetexturetransform"] = 5, -- need to implement proper matrix support
 	["$frame"] = 3,
 	-- These few below technically don't exist, but are the most common used for translations
 	["$angle"] = 3,
@@ -2044,6 +2089,8 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture
 	["$cmshiftpower"] = 3,
 	["$cmshift"] = 0,
 	["$rimlightpower"] = 3,
+	-- Function matproxy workarounds
+	["basetranslate"] = 99
 }
 
 local function ReturnVal(info, val, mat)
@@ -2052,6 +2099,15 @@ local function ReturnVal(info, val, mat)
 	elseif numb == 1 then mat:SetString(info.ResultTo, val * info.Mul1)
 	elseif numb == 2 or numb == 3 then mat:SetFloat(info.ResultTo, val.x * info.Mul1)
 	elseif numb == 4 then mat:SetTexture(info.ResultTo, val)
+	elseif numb == 99 then
+		val = val*info.Mul1
+		local matr = Matrix({
+			{1, 0, 0, val.y},
+			{0, 1, 0, -val.x},
+			{0, 0, 0, 0},
+			{0, 0, 0, 0}
+		})
+		mat:SetMatrix("$basetexturetransform", matr)
 	end
 	
 	if matreturns[info.ResultTo2] then
@@ -2083,18 +2139,30 @@ local function SetVal(key, val, mat)
 	end
 end
 
-local function CopyBaseVals(mat, ent)
-	local original = ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")]
+local function CopyBaseVals(mat, ent, tbl)
+	local original
+	local ply = ent:IsPlayer() == true or ent.Preview == true or ent:IsRagdoll() == true
+	if ply then original = ent.CamoProxyMaterials[mat:GetFloat("$slotnum")]
+	else original = ent.WeaponSkinProxyMaterials[mat:GetFloat("$slotnum")] end
+	
 	if original != nil then
 		mat:SetTexture("$basetexture", original:GetTexture("$basetexture") or "")
 		mat:SetTexture("$bumpmap", original:GetTexture("$bumpmap") or "")
 		mat:SetTexture("$phongexponenttexture", original:GetTexture("$phongexponenttexture") or "")
+		mat:SetTexture("$detail", original:GetTexture("$detail") or "")
 		mat:SetVector("$color2", original:GetVector("$color2") or Vector(1,1,1))
 		mat:SetVector("$phongtint", original:GetVector("$phongtint") or Vector(1,1,1))
 		mat:SetVector("$phongfresnelranges", original:GetVector("$phongfresnelranges") or Vector(1,1,1))
 		mat:SetVector("$cmtint", original:GetVector("$cmtint") or Vector(1,1,1))
 		mat:SetFloat("$cmpower", original:GetFloat("$cmpower") or 1)
 		mat:SetFloat("$rimlightpower", original:GetFloat("$rimlightpower") or 1)
+		
+		if original:GetString("$drc_camocolour") != nil then
+			tbl.camocolour = original:GetString("$drc_camocolour")
+		end
+		if original:GetString("$drc_camoscale") != nil then
+			tbl.camoscale = original:GetString("$drc_camoscale")
+		end
 		if original:GetString("$envmapfallback") != nil then
 			local str = original:GetString("$envmapfallback")
 			mat:SetTexture("$envmapfallback", str)
@@ -2107,8 +2175,19 @@ local function CopyBaseVals(mat, ent)
 			mat:SetVector("$cmtint_fb", vec)
 			mat:SetFloat("$cmpower_fb", power)
 		end
+	else
+		ent:SetSubMaterial(mat:GetFloat("$slotnum"), nil)
 	end
 end
+
+local coltranslate = {
+	["player"] = "PlayerColour_DRC",
+	["weapon"] = "WeaponColour_DRC",
+	["tint1"] = "ColourTintVec1",
+	["tint2"] = "ColourTintVec2",
+	["eye"] = "EyeTintVec",
+	["energy"] = "EnergyTintVec",
+}
 
 matproxy.Add({
 	name = "drc_WeaponCamo",
@@ -2120,28 +2199,56 @@ matproxy.Add({
 		if !IsValid(lply) then return end
 		if ent == lply:GetViewModel() then ent = lply:GetActiveWeapon() end
 		local skin = ent.WeaponSkinApplied
+	--	print(ent, self, skin)
 		if skin != nil && DRC.WeaponSkins[skin] && DRC.WeaponSkins[skin].ProxyMat then
-			CopyBaseVals(mat, ent)
+			CopyBaseVals(mat, ent, self)
+			local colchannel = self.camocolour
+			local camoscale = self.camoscale or 1
 			for k,v in pairs(DRC.WeaponSkins[skin].ProxyMat) do
 				if matreturns[k] then SetVal(k, v, mat) end
 				
+				if k == "$color2" && colchannel != nil then
+					local col = GetPlayerColour(lply, coltranslate[colchannel])
+					mat:SetVector("$color2", col)
+				end
+				
 				if k == "$detailscale" then
-					for ke,va in pairs(ent.WeaponSkinProxyMaterials) do
-						local camoscale = ent.WeaponSkinProxyMaterials[ke]:GetFloat("$drc_camoscale") or 1
-						if mat:GetString("$detail") != "" then mat:SetFloat("$detailscale", v * camoscale) end
+					if ent:IsPlayer() or ent.Preview == true or ent:IsRagdoll() then
+						for ke,va in pairs(ent.CamoProxyMaterials) do
+						--	local camoscale = ent.CamoProxyMaterials[ke]:GetFloat("$drc_camoscale") or 1
+							if mat:GetString("$detail") != "" then mat:SetFloat("$detailscale", v * camoscale) end
+						end
+					else
+						for ke,va in pairs(ent.WeaponSkinProxyMaterials) do
+						--	local camoscale = ent.WeaponSkinProxyMaterials[ke]:GetFloat("$drc_camoscale") or 1
+							if mat:GetString("$detail") != "" then mat:SetFloat("$detailscale", v * camoscale) end
+						end
 					end
-				--[[	if camoscale != 1 then
-						local matr = mat:GetMatrix("$basetexturetransform")
-						matr:SetScale(Vector(camoscale, camoscale, 0))
-						mat:SetMatrix("$basetexturetransform", matr)
-					end ]] -- This ended up being unusable because the normal scales with it and can often become stuck.
 				end
 			end
-			
-			
 		end
 	end
 })
+
+matproxy.Add( {
+	name = "drc_PlayerColours",
+	init = function( self, mat, values )
+		InitColours(self, mat, values)
+	end,
+
+	bind = function( self, mat, ent )
+		if !IsValid(ent) then return end
+		local col = GetPlayerColour(ent, "PlayerColour_DRC")
+		if self.ResultTo == nil then self.ResultTo = "$color2" end
+		if self.Mul == nil then self.Mul = 1 end
+		if self.Mul2 == nil then self.Mul2 = 1 end
+		if self.Mul3 == nil then self.Mul3 = 1 end
+		
+		mat:SetVector(self.ResultTo, ClampVector(col*self.Mul, self.Min, self.Max))
+		if self.ResultTo2 then mat:SetVector(self.ResultTo2, ClampVector(col*self.Mul2, self.Min2, self.Max2)) end
+		if self.ResultTo3 then mat:SetVector(self.ResultTo3, ClampVector(col*self.Mul3, self.Min3, self.Max3)) end
+	end
+} )
 
 local function DRCFunctionInit(self, mat, values)
 	self.ResultTo = values.resultvar
@@ -2168,6 +2275,7 @@ end
 
 local function DRCFunctionBind(self, mat, ent)
 	if !IsValid(ent) then return end
+	if !IsValid(lply) then return end
 	local ent2
 	if ent == lply:GetHands() or ent == lply:GetViewModel(0) then ent2 = lply else ent2 = ent end
 	if !IsValid(ent2) then return end

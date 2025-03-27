@@ -5,6 +5,8 @@
 	"$bumpmap" "models/shadertest/envball_6_normal"
 	"$normalmapalphaenvmapmask" 1
 
+	$cmpower	1
+
 	Proxies
 	{
 		drc_ReflectionTint

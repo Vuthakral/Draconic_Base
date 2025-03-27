@@ -42,13 +42,15 @@ hook.Add("Think", "DRC_Lighting", function()
 	end
 	
 	ply = LocalPlayer()
+	if !ply:Alive() then return end
 	local vm = ply:GetViewModel()
 	if !IsValid(vm) then return end
 	local wpn = ply:GetActiveWeapon()
 	if !IsValid(wpn) then return end
 	if !wpn.Draconic then 
-		if DRC.CalcView.MuzzleLamp then
+		if IsValid(DRC.CalcView.MuzzleLamp) then
 			DRC.CalcView.MuzzleLamp.Enabled = false
+			DRC.CalcView.MuzzleLamp:Remove()
 		end
 	return end
 	if wpn:HasViewModel() != true then return end
@@ -132,11 +134,12 @@ hook.Add("Think", "DRC_Lighting", function()
 	end
 end)
 
-function DRC:LightVolume(ent, att, colour, length, width, quality, addang, mat)
+function DRC:LightVolume(ent, att, colour, length, width, quality, addang, mat, posoff, useeyeang)
 	if !IsValid(ent) then return end
 	if IsValid(ent.DRCVolumeLight) then return end
 	if !quality then quality = 25 end
 	if !mat then mat = "sprites/glow04_noz" end
+	if useeyeang == nil then useeyeang = true end
 	local attnum, attinfo
 	if att then
 		attnum = ent:LookupAttachment(att)
@@ -147,6 +150,7 @@ function DRC:LightVolume(ent, att, colour, length, width, quality, addang, mat)
 	light:Spawn()
 	light:SetParent(ent, attnum)
 	light.AddAng = addang or Angle()
+	light.OffsetPos = posoff or Vector()
 	light.LightMaterial = mat
 	
 	local pos, ang = ent:GetPos(), ent:GetAngles()
@@ -161,6 +165,7 @@ function DRC:LightVolume(ent, att, colour, length, width, quality, addang, mat)
 		["quality"] = quality,
 		["angles"] = ang,
 		["position"] = pos,
+		["eyeang"] = useeyeang,
 	}
 	ent.DRCVolumeLight = light
 	
@@ -278,11 +283,11 @@ hook.Add("GetMotionBlurValues", "drc_modifiedmotionblur", function(horizontal, v
 		local wi = w / 10 * ss
 		local hi = h / 10 * ss
 		
-		if wpn.Secondary.Scoped == true && wpn.Secondary.ScopeBlur == true && wpn.SightsDown == true then
+		if ((wpn.Secondary.Scoped == true && wpn.Secondary.ScopeBlur == true) or (wpn.Secondary.Ironsights == true && wpn.Secondary.IronBlur == true)) && wpn.SightsDown == true then
 			if sw != 1 then
-				forward = forward + (ss * 0.015 / sw) * (wpn.Secondary.IronFOV * ratio * 0.05)
+				forward = forward + (ss * 0.015 / sw) * (wpn.Secondary.IronFOV * ratio * 0.05) * wpn.Secondary.SightsBlurMul
 			else
-				forward = forward + (ss * 0.0175) / (wpn.Secondary.IronFOV * ratio * 0.01)
+				forward = forward + (ss * 0.0175) / (wpn.Secondary.IronFOV * ratio * 0.01) * wpn.Secondary.SightsBlurMul
 			end
 		  --  rotational = rotational + 0.05 * math.sin( CurTime() * 3 )
 		end

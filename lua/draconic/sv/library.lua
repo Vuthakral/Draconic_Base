@@ -221,6 +221,7 @@ net.Receive("DRC_ApplyPlayermodel", function(len, ply)
 	local vs = tbl.voiceset
 	local fs = tbl.footsteps
 	local hands = tbl.hands
+	local camo = tbl.camo
 	
 	if !util.IsValidModel(model) then return end
 	local pname = player_manager.TranslateToPlayerModelName(model)
@@ -232,9 +233,15 @@ net.Receive("DRC_ApplyPlayermodel", function(len, ply)
 	end
 	if ent:GetInfo("cl_playerhands") == "disabled" then ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model) end
 	DRC:RefreshColours(ent)
+	DRC:RefreshCamoMats(ent, true)
+	
 	ent:SetNWString("DRCVoiceSet", vs)
 	ent:SetNWString("DRCFootsteps", fs)
 	ent:SetNWString("DRC_SpawnModel", model)
+	
+	DRC:SetCamo(ent, camo, "automatic")
+	if !camo then ent:ConCommand("cl_playercamo nil")
+	else ent:ConCommand("cl_playercamo ".. camo .."") end
 	
 	net.Start("DRC_UpdatePlayermodel")
 	net.WriteTable(tbl)
@@ -687,50 +694,53 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 end)
 
 hook.Add("PlayerTick", "DRC_BarnacleGrabDetection", function(ply, cmd)
+	if !ply:Alive() then return end
 	local b = ply:GetNWBool("BarnacleHeld")
 	if b != ply:IsEFlagSet(EFL_IS_BEING_LIFTED_BY_BARNACLE) then
 		ply:SetNWBool("BarnacleHeld", ply:IsEFlagSet(EFL_IS_BEING_LIFTED_BY_BARNACLE))
-	end -- This engine flag always returns false on client, so I make it usable for client players here.
+	end -- This engine flag always returns false on client, so I make it usable for clients here.
 end)
 
 hook.Add("PlayerTick", "DRC_VoiceSetsBreathing", function(ply)
-	if DRC:GetVoiceSet(ply) != nil && DRC.VoiceSets[DRC:GetVoiceSet(ply)].Breathing != nil then
+	if !ply:Alive() then return end
+	local vs = DRC:GetVoiceSet(ply)
+	if vs != nil && DRC.VoiceSets[vs].Breathing != nil then
 		local ct = CurTime()
 		if !ply.NextVSBreathTime then ply.NextVSBreathTime = 0 end
 		if !ply.NextVSBreath then ply.NextVSBreath = 0 end -- 0 in 1 out
 		if ct > ply.NextVSBreathTime then
 			local n,s,e,w,cv,ju,sprinting = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT), ply:Crouching(), ply:KeyDown(IN_JUMP), ply:KeyDown(IN_SPEED)
 			local swimming = ply:WaterLevel() == 3
-			local settings = DRC.VoiceSets[DRC:GetVoiceSet(ply)].Breathing
+			local settings = DRC.VoiceSets[vs].Breathing
 			local moving = n or s or e or w
 			
 			local delay
 			if !moving && !swimming && !sprinting && !cv then
 				delay = settings.Delay_Idle or 1
-				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "In_Idle") then
+				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(vs, "Breathing", "In_Idle") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 1 DRC:SpeakSentence(ply, "Breathing", "In_Idle")
-				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "Out_Idle") then
+				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(vs, "Breathing", "Out_Idle") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 0 DRC:SpeakSentence(ply, "Breathing", "Out_Idle")
 				end
 			elseif !moving && !swimming && !sprinting && cv then
 				delay = settings.Delay_Crouch or delay
-				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "In_Crouch") then
+				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(vs, "Breathing", "In_Crouch") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 1 DRC:SpeakSentence(ply, "Breathing", "In_Crouch")
-				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "Out_Crouch") then
+				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(vs, "Breathing", "Out_Crouch") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 0 DRC:SpeakSentence(ply, "Breathing", "Out_Crouch")
 				end
 			elseif moving && !swimming && !sprinting then
 				delay = settings.Delay_Run or delay
-				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "In_Run") then
+				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(vs, "Breathing", "In_Run") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 1 DRC:SpeakSentence(ply, "Breathing", "In_Run")
-				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "Out_Run") then
+				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(vs, "Breathing", "Out_Run") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 0 DRC:SpeakSentence(ply, "Breathing", "Out_Run")
 				end
 			elseif moving && !swimming && sprinting then
 				delay = settings.Delay_Sprint or delay
-				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "In_Sprint") then
+				if ply.NextVSBreath == 0 && DRC:IsVSentenceValid(vs, "Breathing", "In_Sprint") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 1 DRC:SpeakSentence(ply, "Breathing", "In_Sprint")
-				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Breathing", "Out_Sprint") then
+				elseif ply.NextVSBreath == 1 && DRC:IsVSentenceValid(vs, "Breathing", "Out_Sprint") then
 					ply.NextVSBreathTime = ct + delay ply.NextVSBreath = 0 DRC:SpeakSentence(ply, "Breathing", "Out_Sprint")
 				end
 			end
@@ -739,22 +749,24 @@ hook.Add("PlayerTick", "DRC_VoiceSetsBreathing", function(ply)
 end)
 
 hook.Add("PlayerTick", "DRC_VoiceSetsIdling", function(ply)
-	if DRC:GetVoiceSet(ply) != nil && DRC.VoiceSets[DRC:GetVoiceSet(ply)].Idle != nil then
+	if !ply:Alive() then return end
+	local vs = DRC:GetVoiceSet(ply)
+	if vs != nil && DRC.VoiceSets[vs].Idle != nil then
 		local ct = CurTime()
 		if !ply.NextVSIdleTime then ply.NextVSIdleTime = 0 end
 		if ct > ply.NextVSIdleTime then
 			local swimming = ply:WaterLevel() == 3
-			local settings = DRC.VoiceSets[DRC:GetVoiceSet(ply)].Idle
+			local settings = DRC.VoiceSets[vs].Idle
 			local delay = math.random(settings.Delay_Min or 30, settings.Delay_Max or 120)
 			if !swimming then
 				local hp, mhp = DRC:Health(ply)
 				local chp = hp/mhp
 				if chp < (settings.InjureThreshold or 0.75) && settings.Injured != nil then
-					if DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Idle", "Generic") then
+					if DRC:IsVSentenceValid(vs, "Idle", "Generic") then
 						DRC:SpeakSentence(ply, "Idle", "Injured", false, delay)
 					end
 				else
-					if DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Idle", "Generic") then
+					if DRC:IsVSentenceValid(vs, "Idle", "Generic") then
 						DRC:SpeakSentence(ply, "Idle", "Generic", false, delay)
 					end
 				end

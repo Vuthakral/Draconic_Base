@@ -30,6 +30,8 @@ SWEP.LoadAfterReloadEmpty	= false
 SWEP.LoadAnimationTP		= nil
 SWEP.ManualReload			= false
 SWEP.ManualReloadAutoLoop	= true
+SWEP.ManualReloadOnEnter	= false
+SWEP.ManualReloadOnExit		= false
 SWEP.MagazineEntity			= nil
 
 SWEP.FireModes_AnimPreventsFiring = false
@@ -77,6 +79,7 @@ SWEP.Primary.SpreadXMul		= 1
 SWEP.Primary.SpreadYMul		= 1
 SWEP.Primary.Kick			= 0.76
 SWEP.Primary.KickHoriz		= 0.26
+SWEP.Primary.KickVisualScale= 1
 SWEP.Primary.RecoilUp		= 0
 SWEP.Primary.RecoilDown		= 0
 SWEP.Primary.RecoilHoriz	= 0
@@ -143,16 +146,18 @@ SWEP.Primary.MeleeEndY			= 5
 SWEP.Primary.MeleeShakeMul		= 1
 
 SWEP.Secondary.Ironsights			= false
+SWEP.Secondary.IronsDrawCrosshair	= false
+SWEP.Secondary.IronBlur 			= false
 SWEP.Secondary.SightsSuppressAnim 	= false
 SWEP.Secondary.Scoped				= false
+SWEP.Secondary.ScopedAlt			= false
 SWEP.Secondary.ScopeHideVM			= false
 SWEP.Secondary.ScopeMat				= "overlays/draconic_scope.png"
 SWEP.Secondary.IronFOV				= 60
 SWEP.Secondary.IronFOVAlt			= 60
 SWEP.Secondary.IronInFP				= nil
 SWEP.Secondary.IronOutFP			= nil
-SWEP.Secondary.ScopeZoomTime 		= 0.25
-SWEP.Secondary.SpreadRecoilMul 		= 1.0
+SWEP.Secondary.ScopeZoomTime 		= 0.4
 SWEP.Secondary.SightsKickMul 		= 1.0
 SWEP.Secondary.ScopePitch 			= 0
 SWEP.Secondary.ScopeYOffset 		= -1
@@ -169,9 +174,10 @@ SWEP.Secondary.SpreadXMul		= 1
 SWEP.Secondary.SpreadYMul		= 1
 SWEP.Secondary.Kick				= 0.5
 SWEP.Secondary.KickHoriz		= 0.26
-SWEP.Secondary.RecoilUp			= 1
-SWEP.Secondary.RecoilDown		= 1
-SWEP.Secondary.RecoilHoriz		= 1
+SWEP.Secondary.KickVisualScale	= 1
+SWEP.Secondary.RecoilUp			= 0
+SWEP.Secondary.RecoilDown		= 0
+SWEP.Secondary.RecoilHoriz		= 0
 SWEP.Secondary.MuzzleAngle		= Angle(0, 0, 0)
 SWEP.Secondary.Force			= 0.2
 SWEP.Secondary.Damage			= 12
@@ -208,6 +214,7 @@ SWEP.OCSpreadXMul		= 1
 SWEP.OCSpreadYMul		= 1
 SWEP.OCKick				= 0.87
 SWEP.OCKickHoriz		= 0.26
+SWEP.OCKickVisualScale	= 1
 SWEP.OCRecoilUp			= 0.06
 SWEP.OCRecoilDown		= 0.03
 SWEP.OCRecoilHoriz		= 8
@@ -266,23 +273,19 @@ end
 function SWEP:CanPrimaryAttack()
 	if !IsValid(self) then return end
 	if self.Primary.Disabled == true then return end
-	
 	if self.Bursting == true then return false end
-	
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
+	
+	if self.IsOverhated == true then return false end
+	if self:GetNWBool("Overheated") == true then return false end
+	
 	local charge = self:GetCharge()
 	local sk = ply:KeyDown(IN_SPEED)
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 	local issprinting = sk && mk
 	local wl = ply:WaterLevel()
 	local ct = CurTime()
-	
-	local curFOV = ply:GetFOV()
-	local IronFOV = self.Secondary.IronFOV
-	
---	if ct < self:GetNextPrimaryFire() then return false end
---	if game.SinglePlayer() && SERVER && ct < self:GetNextPrimaryFire() then return end -- ugh
 	
 	if self:GetLoadedAmmo() <= 0 then
 		if CLIENT then self:StopSound(self.Primary.EmptySound) self:EmitSound(self.Primary.EmptySound) end
@@ -323,29 +326,41 @@ function SWEP:CanPrimaryAttack()
 end
 
 function SWEP:CanPrimaryAttackNPC()
+	if !SERVER then return end
 	local npc = self:GetOwner()
 	if self.Bursting == true then return false end
---	if self.NPCBurstTime >= CurTime() then return false end
 	if self.NPCLoading == true or self.ManuallyReloading == true then return end
+	local clip, loaded = self:Clip1(), self:GetLoadedAmmo()
+	local perc = clip/self.Primary.ClipSize
 	
-	if self:GetLoadedAmmo() <= 0 then
+	print(clip, loaded, perc)
+	if clip <= 0 or loaded <= 0 or perc < 0.15 then
 		if IsFirstTimePredicted() then self:LoadNextShot() end
 		self:DoNPCReload()
-		if (!npc:IsNextBot() && !npc.Draconic) && !CLIENT then 
+--[[		if (!npc:IsNextBot() && !npc.Draconic) && !CLIENT then 
 			npc:ClearSchedule()
 			npc:SetSchedule(SCHED_PATROL_WALK)
-		end
+		end --]]
 		return false
-	else
-		if IsFirstTimePredicted() && self.LoadAfterShot == true then self:LoadNextShot() end
 	end
+	
+	if (clip <= 0 or loaded <= 0 or perc < 0.15) or npc:GetActivity() == ACT_RELOAD or self:GetNWBool("NPCLoading") == true then
+		self:LoadNextShot()
+		self:DoNPCReload()
+		return false
+	end
+	
+	if !npc:IsNextBot() then npc:SetSchedule(SCHED_RANGE_ATTACK1) end
+	
 	return true
 end
 
 function SWEP:CanSecondaryAttack()
-local ply = self:GetOwner()
-local curFOV = ply:GetFOV()
-local IronFOV = self.Secondary.IronFOV
+	if !IsValid(self) then return end
+	if self.Primary.Disabled == true then return end
+	if self.Bursting == true then return false end
+	local ply = self:GetOwner()
+	if !IsValid(ply) then return end
 
 	if self.Secondary.Disabled == true then return end
 	local loaded = self:Clip2()
@@ -723,14 +738,14 @@ end
 
 function SWEP:DisplayFireMode()
 local ply = self:GetOwner()
-local string = self:GetNWString("FireMode")
+local str = self:GetNWString("FireMode")
 	self:EmitSound(self.FireModes_SwitchSound)
 	
 	if SERVER then
 		if self.InfoName == nil then
-			ply:PrintMessage( HUD_PRINTCENTER, "Switched to "..string..".")
+			ply:PrintMessage( HUD_PRINTCENTER, "Switched to "..str..".")
 		else
-			ply:PrintMessage( HUD_PRINTCENTER, ""..self.InfoStats.InfoName.." switched to "..string..".")
+			ply:PrintMessage( HUD_PRINTCENTER, ""..self.InfoStats.InfoName.." switched to "..str..".")
 		end
 	else end
 end
@@ -851,10 +866,12 @@ function SWEP:CanReloadPrimary()
 end
 
 function SWEP:DoNPCReload()
+	local ply = self:GetOwner()
 	if SERVER && self.MagazineEntity != nil then
 		local mag = ents.Create(self.MagazineEntity)
-		mag:SetPos( ply:GetBonePosition(LeftHand) )
-		mag:SetAngles( ply:EyeAngles() )
+		local LeftHand = ply:LookupBone("ValveBiped.Bip01_L_Hand")
+		mag:SetPos(ply:GetBonePosition(LeftHand) )
+		mag:SetAngles(ply:EyeAngles() )
 		mag:SetOwner(ply)
 		mag:Spawn()
 		mag:Activate()
@@ -870,6 +887,8 @@ function SWEP:DoNPCReload()
 	self:DoCustomReloadStartEvents()
 	
 	self:SetLoadedAmmo(self.Primary.ClipSize)
+	self:SetClip1(self.Primary.ClipSize)
+	if ply:IsNPC() then ply:TaskComplete() end
 end
 
 function SWEP:DoReload()
@@ -1011,9 +1030,7 @@ function SWEP:StartManualReload()
 	if !IsValid(self) then return end
 	local ply = self:GetOwner()
 	if ply:KeyDown(IN_USE) then return end
-	local vm = ply:GetViewModel()
-	local enterseq = self:SelectWeightedSequence( ACT_SHOTGUN_RELOAD_START )
-	local entertime = self:SequenceDuration( enterseq )
+	local vm, ammo = ply:GetViewModel(), self:GetLoadedAmmo()
 
 	if self:IsValid() && ply:IsValid() && ply:Alive() then
 		self:SetNextPrimaryFire( CurTime() + 9001)
@@ -1022,98 +1039,141 @@ function SWEP:StartManualReload()
 		self.Loading = true
 		self.ManuallyReloading = true
 		self:SetIronsights(false, ply)
-		self:PlayAnim(ACT_SHOTGUN_RELOAD_START, true)
-		timer.Simple( entertime, function() if ply:IsValid() && ply:Alive() then self:DoManualReload() end end)
+		
+		local enterseqempty = self:SelectWeightedSequence(ACT_VM_RELOAD_INSERT_PULL)
+		local seq, thyme, empty = -1, 0, false
+		if ammo <= 0 then empty = true end
+		if enterseqempty != -1 then self:PlayAnim(ACT_VM_RELOAD_INSERT_PULL, true) seq = self:SelectWeightedSequence(ACT_VM_RELOAD_INSERT_PULL)
+		else self:PlayAnim(ACT_SHOTGUN_RELOAD_START, true) seq = self:SelectWeightedSequence(ACT_SHOTGUN_RELOAD_START) end
+		thyme = self:SequenceDuration(seq)
+		
+		timer.Simple(thyme, function() 
+			if ply:IsValid() && ply:Alive() then
+				if self.ManualReloadOnEnter == true then
+					local atr = 1
+					if DRC.SV.drc_infiniteammo >= 1 then atr = 0 end
+					self:LoadAmmo(atr, self.Primary.APS, self.Primary.Ammo)
+				end
+				self:DoManualReload(false, empty)
+			end
+		end)
 	else end
 return true
 end
 
 function SWEP:PlayManualReloadAnimation()
-	local ply = self:GetOwner()
-	local vm = ply:GetViewModel()
-	local loopseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
-	local looptime = self:SequenceDuration( loopseq )
 	self:PlayAnim(ACT_VM_RELOAD, true)
-	
 	if IsFirstTimePredicted() then -- prediction sure is amazing
 		timer.Simple(0, function() self:PlayAnim(ACT_VM_RELOAD, true) end)
 	end
 end
 
-function SWEP:DoManualReload(looped)
+function SWEP:DoManualReload(looped, wasempty)
 	if looped == nil then looped = false end
 	local ply = self:GetOwner()
 	local vm = ply:GetViewModel()
 	local loopseq = self:SelectWeightedSequence( ACT_VM_RELOAD )
 	local looptime = self:SequenceDuration( loopseq )
+	if !looped then looptime = 0.001 end
 
-	if self:IsValid() && ply:IsValid() && ply:Alive() then
+	if IsValid(self) && IsValid(ply) && ply:Alive() then
 		self.ManuallyReloading = true
 		self:SetIronsights(false, self.Owner)
 		
 		if IsFirstTimePredicted() then self:DoCustomReloadLoopEvents() end
+		if looped == true then self:PlayManualReloadAnimation() end
 		
-		local atr = 1
-		if DRC.SV.drc_infiniteammo >= 1 then atr = 0 end
-		
-		self:GetOwner():RemoveAmmo( atr, self.Primary.Ammo, false )
-		self:SetNWBool("LoadedAmmo", self:GetNWBool("LoadedAmmo") + self.Primary.APS)
-		self:SetClip1(self:GetLoadedAmmo())
-		
-		if looped == true then
-			self:PlayManualReloadAnimation()
-		else
-			self:PlayManualReloadAnimation()
-		end -- for reasons I cannot comprehend, this doesn't work if done any other way.
-		
-		timer.Simple( looptime, function() if ply:IsValid() && ply:Alive() then self:ManualReloadLoop() end end)
+		timer.Simple(looptime, function()
+			if ply:IsValid() && ply:Alive() then
+				if looped == true then 
+				local atr = 1
+				if DRC.SV.drc_infiniteammo >= 1 then atr = 0 end
+				self:LoadAmmo(atr, self.Primary.APS, self.Primary.Ammo)
+				end
+				self:ManualReloadLoop(wasempty)
+			end
+		end)
 	else end
 end
 
-function SWEP:ManualReloadLoop()
+function SWEP:ManualReloadLoop(wasempty)
 	local ply = self:GetOwner()
 	local BT = self.ActiveAttachments.AmmunitionTypes.t.BulletTable
 	local CM = math.Round(self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul"))
+	local full = self:Clip1() >= CM
+	local manualexit = self.ManualReloadOnExit == true
+	if manualexit then full = self:Clip1() >= CM-1 end
 	
-	if self:IsValid() && ply:IsValid() && ply:Alive() then
+	if IsValid(self) && IsValid(ply) && ply:Alive() then
 			if self:Clip1() <= CM then
-				if (ply:KeyDown(IN_RELOAD) or self.ManualReloadAutoLoop == true) && self:Clip1() < CM then
-					if ( ply:GetAmmoCount(self.Primary.Ammo) ) > 0 then
-						self:DoManualReload(true)
+				if (ply:KeyDown(IN_RELOAD) or self.ManualReloadAutoLoop == true) && !full then
+					if ply:GetAmmoCount(self.Primary.Ammo) > 0 then
+						self:DoManualReload(true, wasempty)
 					else
-						self:FinishManualReload()
+						self:FinishManualReload(wasempty)
 					end
 				else
-					self:FinishManualReload()
+					self:FinishManualReload(wasempty)
 				end
 			end
 	else end
 end
 
-function SWEP:FinishManualReload()
+function SWEP:FinishManualReload(wasempty)
 	local ply = self:GetOwner()
 	local endseq = self:SelectWeightedSequence(ACT_SHOTGUN_RELOAD_FINISH)
 	local endtime = self:SequenceDuration(endseq)
+	local loopseq = self:SelectWeightedSequence(ACT_VM_RELOAD)
+	local looptime = self:SequenceDuration(loopseq)
 	
 	if CLIENT then
 		local vm = ply:GetViewModel()
 		endseq = vm:SelectWeightedSequence(ACT_SHOTGUN_RELOAD_FINISH)
 		endtime = vm:SequenceDuration(endseq)
+		loopseq = vm:SelectWeightedSequence(ACT_VM_RELOAD)
+		looptime = vm:SequenceDuration(loopseq)
+	end
+	
+	local exitseqempty = self:SelectWeightedSequence(ACT_VM_RELOAD_END_EMPTY)
+	local function ExitReloadAnim()
+		if wasempty == true && exitseqempty != -1 then self:PlayAnim(ACT_VM_RELOAD_END_EMPTY, true, true) endseq = self:SelectWeightedSequence(ACT_VM_RELOAD_END_EMPTY)
+		else self:PlayAnim(ACT_SHOTGUN_RELOAD_FINISH, true, true) endseq = self:SelectWeightedSequence(ACT_SHOTGUN_RELOAD_FINISH) end
+		endtime = self:SequenceDuration(endseq)
 	end
 	
 	if self:IsValid() && ply:IsValid() && ply:Alive() then
+		local CM = self.Primary.ClipSize * self:GetAttachmentValue("Ammunition", "ClipSizeMul")
+		local full = self:Clip1() >= CM
 		self.Loading = true
 		self:SetHoldType(self.HoldType)
-		self:PlayAnim(ACT_SHOTGUN_RELOAD_FINISH, true, true)
 		self.EndingManualReload = true
-		timer.Simple(endtime, function()
-			if IsValid(self) then
-				self.ManuallyReloading = false
-				self:FinishLoading()
-				self.IronCD = false
-				self:ManuallyLoadAfterReload()
-			end
-		end)
+		if self.ManualReloadOnExit == false then
+			ExitReloadAnim()
+			timer.Simple(endtime, function()
+				if IsValid(self) then
+					self.ManuallyReloading = false
+					self:FinishLoading()
+					self.IronCD = false
+					self:ManuallyLoadAfterReload()
+				end
+			end)
+		else
+			if !full then self:PlayAnim(ACT_VM_RELOAD, true, true) else ExitReloadAnim() end
+			timer.Simple(looptime, function()
+				if IsValid(self) then
+					if !full then ExitReloadAnim() end
+					if self.ManualReloadOnExit == true && !full then
+						local atr = 1
+						if DRC.SV.drc_infiniteammo >= 1 then atr = 0 end
+						self:LoadAmmo(atr, self.Primary.APS, self.Primary.Ammo)
+					end
+					self.ManuallyReloading = false
+					self:FinishLoading()
+					self.IronCD = false
+					self:ManuallyLoadAfterReload()
+				end
+			end)
+		end
 	else end
 end
 
@@ -1152,6 +1212,11 @@ end
 function SWEP:GetShootPos()
 	local attnum = self:LookupAttachment("muzzle")
 	local attinfo = self:GetAttachment(attnum)
+	
+	if CLIENT && self:GetOwner() == LocalPlayer() && DRC:ThirdPersonEnabled(LocalPlayer()) == false then
+		attinfo = self:GetWeaponAttachment("muzzle")
+		attinfo.Pos = attinfo.Pos + attinfo.Ang:Forward() * 2
+	end
 	
 	if attinfo == nil then
 		DRC:Notify(self, nil, "critical", "Draconic: ".. self:GetModel() .." OR ".. self.ViewModel .." does not have a muzzle attachment!", NOTIFY_ERROR, 10)

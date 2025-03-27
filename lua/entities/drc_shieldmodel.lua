@@ -38,27 +38,30 @@ function ENT:Think()
 	if parent:GetNWBool("DRC_Shielded") == false then self:Remove() end
 	
 	
-	self.Bones = DRC:GetBones(self)
-	self:SetModelScale(parent:GetModelScale())
-	self:SetPos(self:GetOwner():GetPos())
+	if parent:IsPlayer() &&!parent:Alive() then return end
 	if parent:IsPlayer() then
 		self:SetAngles(parent:GetRenderAngles())
 	else
 		self:SetAngles(parent:GetAngles())
 	end
+	self.Bones = DRC:GetBones(self)
+	self:SetModelScale(parent:GetModelScale())
+	self:SetPos(self:GetOwner():GetPos())
 	self:DrawShadow(false)
 	self:DestroyShadow()
 end
 
 function ENT:Draw()
 	if !IsValid(self.FollowEnt) then return end
+	local parent = self:GetOwner()
+	if parent:IsPlayer() && !parent:Alive() then return end
+	if parent == LocalPlayer() && !DRC:ThirdPersonEnabled(parent) then return end
 	
 	local rt = render.GetRenderTarget()
 	if rt != nil && rt:GetName():lower() == "_rt_shadowdummy" then return end
 	
 	self:SetNoDraw(false)
 	self:SetupBones()
-	local parent = self:GetOwner()
 	local hp, maxhp, ent = DRC:GetShield(parent)
 	
 	if DRC:Health(parent) < 0.01 && !DRC:IsVehicle(parent) && (parent:GetClass() != "prop_physics") then self:SetMaterial("models/vuthakral/nodraw") return end

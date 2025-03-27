@@ -64,14 +64,7 @@ end
 
 hook.Add("HUDShouldDraw", "DRC_HideBaseCrosshairThirdperson", function(str)
 	local ply = LocalPlayer()
-	if IsValid(ply) then
-		if IsValid(ply:GetActiveWeapon()) then
-			if !IsValid(ply:GetVehicle()) && ShouldDrawHLCrosshair() then
-				if str == "CHudCrosshair" then return false end
-			end
-		end
-	end
-	
+	if IsValid(ply) && ply:Alive() && IsValid(ply:GetActiveWeapon()) && !IsValid(ply:GetVehicle()) && ShouldDrawHLCrosshair() && str == "CHudCrosshair" then return false end
 end)
 
 local function CrosshairLerp(fraction, from, to)
@@ -82,7 +75,6 @@ local function ShouldDrawCrosshair(ply)
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return false end
 	if GetConVar("crosshair"):GetFloat() == 0 then return false end
 	if GetConVar("cl_drc_disable_crosshairs"):GetFloat() == 1 then return false end
---	if ply:GetActiveWeapon().CrosshairStatic == nil && ply:GetActiveWeapon().CrosshairDynamic == nil then return false end
 	if DRC.SV.drc_disable_crosshairs == 1 then return false end
 	
 	local vehicle = ply:GetVehicle()
@@ -97,23 +89,12 @@ local function drc_Crosshair()
 	local curswep = ply:GetActiveWeapon()
 	if !IsValid(curswep) then return end
 	if !ShouldDrawCrosshair(ply) then return end
-	
-	-- Replace base game crosshair with a duplicate that uses the actual hitpos, for compatibility with mods that offset the view (thirdperson, first person offsets, etc).
 	local pos = DRC.CalcView.ToScreen
---[[	if DRC.HoldTypes.HardcodedWeapons[string.lower(curswep:GetClass())] && !IsValid(ply:GetVehicle()) && pos.x && pos.y then
-		local centered = (pos.x <= ScrW()/2 + 5 && pos.x >= ScrW()/2 - 5) && (pos.y <= ScrH()/2 + 5 && pos.y >= ScrH()/2 - 5)
-		if centered then pos.x = ScrW()/2 pos.y = ScrH()/2 end
-		if DRC.CalcView.ToScreen && GetConVar("crosshair"):GetInt() > 0 && ShouldDrawHLCrosshair() then
-			surface.SetFont("Crosshairs")
-			surface.SetTextPos(pos.x-10, pos.y-18)
-			surface.SetTextColor( 255, 211, 64, 255 )
-			surface.DrawText("Q")
-		end
-	end ]]
 	
-	-- Actual crosshair code.
 	if !curswep.Draconic then return end
 	if curswep.DrawCrosshair == false then return end
+	
+	
 	
 	if curswep.SightsDown == false or curswep.Secondary.ScopePitch != 0 then
 	elseif curswep.SightsDown && curswep.Secondary.Scoped == true then
@@ -135,28 +116,36 @@ local function drc_Crosshair()
 
 	local chmode = GetConVar("cl_drc_debug_crosshairmode"):GetFloat()
 	
-	local bool1 = curswep.Weapon:GetNWBool("Inspecting")
+	local smode = curswep.AltSightBool
+	local primscope = curswep.Secondary.Scoped
+	local secscope = curswep.Secondary.ScopedAlt
+	local ironcross = curswep.Secondary.IronsDrawCrosshair
+	local sd = curswep.SightsDown
+	
+	local bool1 = curswep:GetNWBool("Inspecting")
 	local bool2 = curswep:GetNWBool("Passive")
-	local bool3 = (curswep.SightsDown == true && !DRC:ThirdPersonEnabled(ply))
+	local bool3 = false
 	
-	if (bool1 == false) or (bool2 == false) or (bool3 == false) then
-		alphach = Lerp(curswep.MulIns, 0, 255)
-	else
-		alphach = Lerp(curswep.MulIns, 255, 0)
+	if sd then
+		if smode then
+			if secscope == false && ironcross == false then bool3 = true end
+		else
+			if primscope == false && ironcross == false then bool3 = true end
+		end
 	end
 	
-	if (bool1 == true) or (bool2 == true) or (bool3 == true && curswep.Secondary.Scoped == false) then
-		alphalerpch = Lerp(FrameTime() * 25, alphalerpch or 0, 0)
+	local alph = 1
+	if (bool1 == false) && (bool2 == false) && (bool3 == false) then
+		alph = 1
 	else
-		alphalerpch = Lerp(FrameTime() * 25, alphalerpch or alphach or 0, alphach or 0)
+		alph = 0
 	end
-
+	alphach = Lerp(0.1, alphach or alph, alph)
+	local alphargb = alphach*255
 	
 	local artificial = curswep.CrosshairSizeMul
 	local static = curswep.CrosshairStaticSize
 	local hx, hy = DRC:GetHUDScale()
---	artificial = artificial * hx
---	print(artificial)
 	
 	local modspread = nil
 	local modspreaddiv = nil
@@ -168,22 +157,22 @@ local function drc_Crosshair()
 	local ccol = curswep.CrosshairColor
 	
 	if curswep.Base == "draconic_melee_base" then
-		local target = curswep:GetConeTarget()
+		local target = curswep:GetConeTarget(curswep.Primary.LungeMaxDist)
 		local dist = 696969
 		if target then dist = ply:GetPos():Distance(target:GetPos()) end
 	
 			if curswep.CrosshairStatic != nil then
 				if curswep.CrosshairShadow == true then
-				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch*1.5 )
+				surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphargb )
 				surface.SetMaterial( Material(curswep.CrosshairStatic, "smooth") )
 				surface.DrawTexturedRect(pos.x, pos.y, artificial, artificial)
 				surface.DrawTexturedRect(pos.x, pos.y, artificial, artificial)
 			end
 	
 		if target && (dist < curswep.Primary.LungeMaxDist) then
-			surface.SetDrawColor( Color(255, 0, 0, alphalerpch) )
+			surface.SetDrawColor( Color(255, 0, 0, alphargb) )
 		else
-			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphalerpch )
+			surface.SetDrawColor( curswep.CrosshairColor.r, curswep.CrosshairColor.g, curswep.CrosshairColor.b, alphargb )
 		end
 		surface.SetMaterial( Material(curswep.CrosshairStatic, "smooth") )
 		surface.DrawTexturedRectRotated(pos.x * artificial, pos.y * artificial, ScrH()/8 * artificial, ScrH()/8 * artificial, 0)
@@ -237,11 +226,7 @@ local function drc_Crosshair()
 			local box = DRC.CalcView.Trace.HitBox
 			local hitgroup = DRC.CalcView.Trace.Entity:GetHitBoxHitGroup(box, 0)
 			if hitgroup == HITGROUP_HEAD then
-				if curswep.CrosshairNoIronFade == false then
-					surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphalerpch )
-				else
-					surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
-				end
+				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphargb )
 				if !ShouldDrawCrosshair(ply) then surface.SetDrawColor(ccol.r, ccol.g, ccol.b, 0) end
 				surface.SetMaterial( Material("vgui/circle") )
 				surface.DrawTexturedRectRotated(pos.x, pos.y, 3, 3, 0)
@@ -310,7 +295,7 @@ local function drc_Crosshair()
 		if curswep.CrosshairStatic != nil then
 			if curswep.CrosshairShadow == true then
 				if curswep.CrosshairNoIronFade == false then
-					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch * 1.5 )
+					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphargb )
 				else
 					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 				end
@@ -327,7 +312,7 @@ local function drc_Crosshair()
 			end
 		
 			if curswep.CrosshairNoIronFade == false then
-				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphalerpch )
+				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphargb )
 			else
 				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 			end
@@ -342,7 +327,7 @@ local function drc_Crosshair()
 		if curswep.CrosshairDynamic != nil then
 			if curswep.CrosshairShadow == true then
 				if curswep.CrosshairNoIronFade == false then
-					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphalerpch * 1.5 )
+					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, alphargb )
 				else
 					surface.SetDrawColor( ccol.r/2, ccol.g/2, ccol.b/2, 150 )
 				end
@@ -352,7 +337,7 @@ local function drc_Crosshair()
 			end
 		
 			if curswep.CrosshairNoIronFade == false then
-				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphalerpch )
+				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, alphargb )
 			else
 				surface.SetDrawColor( ccol.r, ccol.g, ccol.b, 255 )
 			end
@@ -366,19 +351,19 @@ local function drc_Crosshair()
 	
 	if curswep.CrosshairStatic != nil or curswep.CrosshairDynamic != nil then return end
 	
-	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp + smath + smathoffset, pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp + smath + smathoffset, pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp + smath + smathoffset, pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphach))
+	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp + smath + smathoffset, pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphach))
 	
-	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp - smath - (smathoffset*2), pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp - smath - (smathoffset*2), pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp - smath - (smathoffset*2), pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphach))
+	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp - smath - (smathoffset*2), pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphach))
 	
-	draw.RoundedBox( 0, pos.x -1, pos.y + DRCCrosshairLerp + smath + smathoffset -1, 3, smathoffset, Color(0, 0, 0, 200 * alphalerpch))
-	draw.RoundedBox( 0, pos.x, pos.y + DRCCrosshairLerp + smath + smathoffset, 1, smathoffset, Color(255, 255, 255, 255 * alphalerpch))
+	draw.RoundedBox( 0, pos.x -1, pos.y + DRCCrosshairLerp + smath + smathoffset -1, 3, smathoffset, Color(0, 0, 0, 200 * alphach))
+	draw.RoundedBox( 0, pos.x, pos.y + DRCCrosshairLerp + smath + smathoffset, 1, smathoffset, Color(255, 255, 255, 255 * alphach))
 	
 	surface.DrawCircle((pos.x), (pos.y), 64 * DRCCrosshairLerp / 50, DRCCrosshairLerp * 5, DRCCrosshairLerp * 5, DRCCrosshairLerp * 5, DRCCrosshairLerp * 2.5)
 	
-	surface.DrawCircle((pos.x), (pos.y), 1, 255, 255, 255, 255 * alphalerpch)
-	surface.DrawCircle((pos.x), (pos.y), 2, 0, 0, 0, 10 * alphalerpch)
+	surface.DrawCircle((pos.x), (pos.y), 1, 255, 255, 255, 255 * alphach)
+	surface.DrawCircle((pos.x), (pos.y), 2, 0, 0, 0, 10 * alphach)
 end
 hook.Add("HUDPaint", "drc_crosshair", drc_Crosshair)
 
@@ -392,7 +377,9 @@ local function drc_Scope()
 	local curswep = ply:GetActiveWeapon()
 	if curswep.Draconic == nil then return end
 	if curswep:CanUseSights() == false then forward = 0 return end
-	if curswep.Secondary.Scoped == false then return end
+	local cursight = curswep.AltSightBool or false
+	if cursight == false && curswep.Secondary.Scoped == false then return end
+	if cursight == true && curswep.Secondary.ScopedAlt == false then return end
 	--if curswep.Weapon:GetNWBool("ironsights") == false then return end
 	if curswep.SightsDown == false then return end
 
@@ -798,7 +785,7 @@ hook.Add("PreDrawViewModel", "drc_inspection_dof", function(vm, ply, wpn)
 	local alpha = 0
 	local bool = wpn:GetNWBool("Inspecting")
 	if bool == true then
-		alpha = Lerp(wpn.MulIns, 0, 5)
+		alpha = Lerp(wpn.SightInt, 0, 5)
 		DrawToyTown(1 * alpha, ScrH()/1.25)
 	end
 end)
@@ -878,11 +865,23 @@ end
 hook.Add("HUDPaint", "drc_interactiontext", drc_IText)
 
 hook.Add("PreDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
-	if ply:GetActiveWeapon().Draconic == true && ply:GetActiveWeapon().Secondary.ScopeHideVM == true && ply:GetActiveWeapon().SightsDown == true then return true end
+	local wpn = ply:GetActiveWeapon()
+	if wpn.Draconic == true then
+		if wpn.SightsDown == false then return end
+		local hide = wpn.Secondary.ScopeHideVM == true
+		if (hide && wpn.AltSightBool != true && wpn.Secondary.Scoped == true) then return true end
+		if (hide && wpn.AltSightBool == true && wpn.Secondary.ScopedAlt == true) then return true end
+	end
 	if ply:GetNWBool("Interacting") == true then return true end
 end)
 hook.Add("PostDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
-	if ply:GetActiveWeapon().Draconic == true && ply:GetActiveWeapon().Secondary.ScopeHideVM == true && ply:GetActiveWeapon().SightsDown == true then return true end
+	local wpn = ply:GetActiveWeapon()
+	if wpn.Draconic == true then
+		if wpn.SightsDown == false then return end
+		local hide = wpn.Secondary.ScopeHideVM == true
+		if (hide && wpn.AltSightBool != true && wpn.Secondary.Scoped == true) then return true end
+		if (hide && wpn.AltSightBool == true && wpn.Secondary.ScopedAlt == true) then return true end
+	end
 	if ply:GetNWBool("Interacting") == true then return true end
 end)
 hook.Add("PostDrawViewHands", "drc_interact_hidevm", function(vm, ply, wep)
@@ -953,6 +952,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 		
 		m.Sections = {}
 		s.Items = {}
+		m.CamoButtons = {}
 		
 		local function MakeSelectionMenu(relevancy)
 			m[relevancy].Section = vgui.Create("DScrollPanel", s)
@@ -1029,6 +1029,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 				if selection:IsVisible() == true then
 					selection:SetVisible(false)
 					cbutton:SetText("+")
+					for k,v in pairs(m.CamoButtons) do v:SetVisible(false) end
 				else
 					for k,v in pairs(cbuttons) do
 						if v[1] != cbutton then
@@ -1037,6 +1038,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 						end
 					end
 					selection:SetVisible(true)
+					for k,v in pairs(m.CamoButtons) do v:SetVisible(false) end
 					cbutton:SetText(">") end
 				for k,v in pairs(m.Sections) do v:Dock(TOP) end
 				surface.PlaySound(DRC.Inspection.Theme.Sounds.Dropdown)
@@ -1176,15 +1178,20 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 				if selection:IsVisible() == true then
 					selection:SetVisible(false)
 					cbutton:SetText("+")
+					for k,v in pairs(m.CamoButtons) do v:SetVisible(false) end
 				else
 					for k,v in pairs(cbuttons) do
 						if v[1] != cbutton then
 							v[1]:SetText("+")
 							v[2]:SetVisible(false)
+							for k,v in pairs(m.CamoButtons) do v:SetVisible(false) end
 						end
 					end
 					selection:SetVisible(true)
-					cbutton:SetText(">") end
+					for k,v in pairs(m.CamoButtons) do v:SetVisible(true) end
+					cbutton:SetText(">")
+				end
+				
 				for k,v in pairs(m.Sections) do v:Dock(TOP) end
 				surface.PlaySound(DRC.Inspection.Theme.Sounds.Dropdown)
 			end
@@ -1268,11 +1275,8 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 				end
 			end
 			
-			for k,v in SortedPairs(DRC.WeaponSkins) do
-				local name, desc, id = v.name or "", v.desc or "", k
-				local selection = m[relevancy].Section
-				local pnl = vgui.Create("DButton", selection)
-				
+			local function MakeSkinButton(parent, name, desc, id, icontex)
+				local pnl = vgui.Create("DButton", parent)
 				pnl:SetSize(s:GetWide(), 64)
 				pnl:SetPos(0, 0)
 				pnl:Dock(TOP)
@@ -1291,16 +1295,89 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 					end
 				end
 				
-				pnl.DoClick = function() ApplySkin(wpn, k, name) end
+				pnl.DoClick = function() ApplySkin(wpn, id, name) end
 					
-				m[relevancy].Section[k] = vgui.Create("DImageButton", pnl)
-				local icon = m[relevancy].Section[k]
+				m[relevancy].Section[id] = vgui.Create("DImageButton", pnl)
+				local icon = m[relevancy].Section[id]
 				icon:SetSize(pnl:GetTall()-2, pnl:GetTall()-2)
 				icon:SetPos(2,2)
-				icon:SetImage(v.icon or k)
-				selection.Panels[k] = {icon, name, desc}
-				selection[icon] = {name, desc, k}
+				if type(icontex) == "IMaterial" then icon:SetMaterial(icontex or id)
+				else icon:SetImage(icontex or id) end
+				selection.Panels[id] = {icon, name, desc}
+				selection[icon] = {name, desc, id}
+				
+				return pnl
 			end
+			
+			local cats = {}
+			for k,v in SortedPairs(DRC.WeaponSkins) do
+				local name, desc, id = v.name or "", v.desc or "", k
+				local cat = v.type
+				local skin = {name, desc, id}
+				if !cats[cat] then cats[cat] = {} end
+				cats[cat][id] = skin
+				cats[cat].num = -1
+			end
+			
+			catpanels = {}
+			for k,v in pairs(cats) do
+				for ke,va in pairs(cats[k]) do
+					cats[k].num = cats[k].num + 1
+				end
+				local pnl = vgui.Create("DPanel", selection)
+				
+				pnl:SetPos(0, 0)
+				pnl:Dock(TOP)
+				pnl:SetSize(selection:GetWide(), 64*cats[k].num)
+				pnl:SetVisible(false)
+				pnl.Paint = function(self,w,h)
+					DrawBox(0, 0, w, h, Color(0,0,0,0))
+				end
+				
+				cats[k]["panel"] = pnl
+				catpanels[k] = pnl
+			end
+			
+			local icons = {
+				["Draconic"] = {0, "icon64/draconic_base.png", "Draconic Camos", function() end },
+				["ARC9"] = {1, "arc9/arc9_logo.png", "ARC9 Camos", function() end }
+			}
+			for k,v in pairs(catpanels) do
+				local sec = s
+				local btn = vgui.Create("DImageButton")
+				btn:SetSize(32,32)
+				btn:SetPos(sec:GetWide() + 8, 0)
+				btn:SetImage(icons[k][2])
+				btn:SetTooltip(icons[k][3])
+				btn:SetVisible(false)
+				m.CamoButtons[k] = btn
+				btn.Think = function()
+					if IsValid(sec) then
+						local sx, sy = sec:GetBounds()
+						btn:SetPos(sx + sec:GetWide() + 8, sy + 34*icons[k][1])
+					end
+					if !IsValid(sec) then btn:Remove() end
+				end
+				
+				btn.DoClick = function()
+					for ke,va in pairs(catpanels) do
+						if ke == k then va:SetVisible(true) else va:SetVisible(false) end
+						selection:InvalidateLayout()
+					end
+				end
+			end
+			
+			for k,v in SortedPairs(DRC.WeaponSkins) do
+				local name, desc, id = v.name or "", v.desc or "", k
+				local selection = m[relevancy].Section
+				
+				local cat = v.type
+				local pnl = catpanels[cat]
+				
+				MakeSkinButton(pnl, name, desc, id, v.icon)
+			end
+			
+			if catpanels.Draconic then catpanels.Draconic:SetVisible(true) end
 		end
 		
 		if wpn.WeaponSkinSubMaterials != nil && wpn.WeaponSkinDefaultMat != nil then MakeSkinSelection() end

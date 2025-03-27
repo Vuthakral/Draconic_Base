@@ -76,6 +76,7 @@ SWEP.IsOverheated			= false
 SWEP.IsBatteryBased			= true
 SWEP.IsMelee = false
 
+--[[
 function SWEP:CanPrimaryAttack()
 	local ply = self:GetOwner()
 	local sk, mk, issprinting = nil, nil
@@ -144,10 +145,13 @@ function SWEP:CanPrimaryAttack()
 		return true
 	end
 end
+--]]
 
 function SWEP:CanPrimaryAttackNPC()
 	if !SERVER then return end
 	local npc = self:GetOwner()
+	if self.Bursting == true then return false end
+	if self.NPCLoading == true or self.ManuallyReloading == true then return end
 	
 	if self:Clip1() <= 0 then -- Prevent NPCs from running out of ammo
 		self:SetNWInt("LoadedAmmo", math.Round(math.Clamp(math.Rand(self.BatteryConsumePerShot, self.BatteryConsumePerShot * 10)/10, 0, 100)) * 10)
@@ -158,7 +162,9 @@ function SWEP:CanPrimaryAttackNPC()
 		self:LoadNextShot()
 		return false
 	end
+	
 	if !npc:IsNextBot() then npc:SetSchedule(SCHED_RANGE_ATTACK1) end
+	
 	return true
 end
 

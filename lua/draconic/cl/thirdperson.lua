@@ -164,96 +164,98 @@ end)
 hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	local ply = LocalPlayer()
 	if !IsValid(ply) then return end
-	local wpn = ply:GetActiveWeapon()
-	if DRC:IsDraconicThirdPersonEnabled(ply) != true then return end
-	local settings = wpn.ThirdPersonProfileOverride or DRC.ThirdPerson.LoadedSettings
-	if !settings.LerpTransition then settings.LerpTransition = 1 end
-	for k,v in pairs(settings) do -- used to interpolate profile changes for scripted systems that utilize profile overrides.
-		if !isbool(v) && !isstring(v) then
-			DRC.ThirdPerson.LerpedSettings[k] = Lerp(RealFrameTime()*(5*settings.LerpTransition), DRC.ThirdPerson.LerpedSettings[k] or v, v)
-		else
-			DRC.ThirdPerson.LerpedSettings[k] = v
+	if ply:Alive() then
+		local wpn = ply:GetActiveWeapon()
+		if DRC:IsDraconicThirdPersonEnabled(ply) != true then return end
+		local settings = wpn.ThirdPersonProfileOverride or DRC.ThirdPerson.LoadedSettings
+		if !settings.LerpTransition then settings.LerpTransition = 1 end
+		for k,v in pairs(settings) do -- used to interpolate profile changes for scripted systems that utilize profile overrides.
+			if !isbool(v) && !isstring(v) then
+				DRC.ThirdPerson.LerpedSettings[k] = Lerp(RealFrameTime()*(5*settings.LerpTransition), DRC.ThirdPerson.LerpedSettings[k] or v, v)
+			else
+				DRC.ThirdPerson.LerpedSettings[k] = v
+			end
 		end
-	end
-	local n, s, e, w = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT)
-	local moving = n or s or e or w
-	settings = DRC.ThirdPerson.LerpedSettings
-	if settings.AllowFreeLook == false or GetConVar("sv_drc_disable_thirdperson_freelook"):GetFloat() == 1 then
-		DRC:ThirdPerson_PokeLiveAngle(ply)
-	elseif IsValid(wpn) && (wpn.ThirdpersonNoFreelook == true) then
-		DRC:ThirdPerson_PokeLiveAngle(ply)
-	end
-	
-	local sens = ply:GetFOV() / 100
-	
-	DRC.MoveInfo.Mouse.X = (DRC.MoveInfo.Mouse[1] * 0.03) * sens
-	DRC.MoveInfo.Mouse.Y = (DRC.MoveInfo.Mouse[2] * 0.03) * sens
-	
-	if !DRC.CalcView then DRC.CalcView = {} end
-	if !DRC.CalcView.ThirdPerson then DRC.CalcView.ThirdPerson = {} end
-	if !DRC.CalcView.ThirdPerson.Ang then DRC.CalcView.ThirdPerson.Ang = Angle() end
-	
-	DRC.CalcView.ThirdPerson.Ang = DRC.CalcView.ThirdPerson.Ang + Angle(DRC.MoveInfo.Mouse.Y, -DRC.MoveInfo.Mouse.X, 0)
-	DRC.CalcView.ThirdPerson.Ang.X = math.Clamp(DRC.CalcView.ThirdPerson.Ang.X, -85, 90)
-	
-	local pokers = {
-		ply:KeyDown(IN_ATTACK),
-		ply:KeyDown(IN_ATTACK2),
-		ply:KeyDown(IN_USE),
-	}
-	
-	if settings.ForceDirectional != true then
-		for k,v in pairs(pokers) do
-			if v == true then DRC:ThirdPerson_PokeLiveAngle(ply) end
+		local n, s, e, w = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT), ply:KeyDown(IN_MOVELEFT)
+		local moving = n or s or e or w
+		settings = DRC.ThirdPerson.LerpedSettings
+		if settings.AllowFreeLook == false or GetConVar("sv_drc_disable_thirdperson_freelook"):GetFloat() == 1 then
+			DRC:ThirdPerson_PokeLiveAngle(ply)
+		elseif IsValid(wpn) && (wpn.ThirdpersonNoFreelook == true) then
+			DRC:ThirdPerson_PokeLiveAngle(ply)
 		end
-	end
+		
+		local sens = ply:GetFOV() / 100
+		
+		DRC.MoveInfo.Mouse.X = (DRC.MoveInfo.Mouse[1] * 0.03) * sens
+		DRC.MoveInfo.Mouse.Y = (DRC.MoveInfo.Mouse[2] * 0.03) * sens
+		
+		if !DRC.CalcView then DRC.CalcView = {} end
+		if !DRC.CalcView.ThirdPerson then DRC.CalcView.ThirdPerson = {} end
+		if !DRC.CalcView.ThirdPerson.Ang then DRC.CalcView.ThirdPerson.Ang = Angle() end
+		
+		DRC.CalcView.ThirdPerson.Ang = DRC.CalcView.ThirdPerson.Ang + Angle(DRC.MoveInfo.Mouse.Y, -DRC.MoveInfo.Mouse.X, 0)
+		DRC.CalcView.ThirdPerson.Ang.X = math.Clamp(DRC.CalcView.ThirdPerson.Ang.X, -85, 90)
+		
+		local pokers = {
+			ply:KeyDown(IN_ATTACK),
+			ply:KeyDown(IN_ATTACK2),
+			ply:KeyDown(IN_USE),
+		}
+		
+		if settings.ForceDirectional != true then
+			for k,v in pairs(pokers) do
+				if v == true then DRC:ThirdPerson_PokeLiveAngle(ply) end
+			end
+		end
 
-	if DRC.MoveInfo.Forward != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
-	if DRC.MoveInfo.Side != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
-	
-	if IsValid(wpn) then
-		local ht = wpn:GetHoldType()
+		if DRC.MoveInfo.Forward != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
+		if DRC.MoveInfo.Side != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
 		
-		if fullranges[ht] && wpn.ThirdpersonNoFreelook != true && settings.AllowFreeLook == true then
-			DRC.CalcView.ThirdPerson.Directional = true
+		if IsValid(wpn) then
+			local ht = wpn:GetHoldType()
 			
-			local Compass = {
-				["N"] = ply:KeyDown(IN_FORWARD),
-				["S"] = ply:KeyDown(IN_BACK),
-				["E"] = ply:KeyDown(IN_MOVERIGHT),
-				["W"] = ply:KeyDown(IN_MOVELEFT),
-			}
-			local input = ""
-			local temptable = {}
-			for k,v in pairs(Compass) do
-				if v == true then table.insert(temptable, k) end
+			if fullranges[ht] && wpn.ThirdpersonNoFreelook != true && settings.AllowFreeLook == true then
+				DRC.CalcView.ThirdPerson.Directional = true
+				
+				local Compass = {
+					["N"] = ply:KeyDown(IN_FORWARD),
+					["S"] = ply:KeyDown(IN_BACK),
+					["E"] = ply:KeyDown(IN_MOVERIGHT),
+					["W"] = ply:KeyDown(IN_MOVELEFT),
+				}
+				local input = ""
+				local temptable = {}
+				for k,v in pairs(Compass) do
+					if v == true then table.insert(temptable, k) end
+				end
+				for k,v in pairs(temptable) do
+					input = ""..input..""..v..""
+				end
+				input = string.reverse(input)
+				if string.len(input) > 2 then input = "" end
+				
+				DRC.CalcView.ThirdPerson.DirectionalAng = LerpAngle(0.1, DRC.CalcView.ThirdPerson.DirectionalAng or Directional[input], Directional[input])
+				local val = (math.abs(cmd:GetForwardMove()) + math.abs(cmd:GetSideMove()))
+				cmd:SetForwardMove(val * MovementCorrection[input])
+				cmd:SetSideMove(0)
+				
+				if moving then DRC.CalcView.ThirdPerson.DirectionalEyeAngles = ply:EyeAngles() end
+			else
+				DRC.CalcView.ThirdPerson.DirectionalAng = Angle()
+				DRC.CalcView.ThirdPerson.DirectionalEyeAngles = ply:EyeAngles()
 			end
-			for k,v in pairs(temptable) do
-				input = ""..input..""..v..""
-			end
-			input = string.reverse(input)
-			if string.len(input) > 2 then input = "" end
-			
-			DRC.CalcView.ThirdPerson.DirectionalAng = LerpAngle(0.1, DRC.CalcView.ThirdPerson.DirectionalAng or Directional[input], Directional[input])
-			local val = (math.abs(cmd:GetForwardMove()) + math.abs(cmd:GetSideMove()))
-			cmd:SetForwardMove(val * MovementCorrection[input])
-			cmd:SetSideMove(0)
-			
-			if moving then DRC.CalcView.ThirdPerson.DirectionalEyeAngles = ply:EyeAngles() end
-		else
-			DRC.CalcView.ThirdPerson.DirectionalAng = Angle()
-			DRC.CalcView.ThirdPerson.DirectionalEyeAngles = ply:EyeAngles()
-		end
-	
-		if DRC:SightsDown(wpn) then
-			DRC.CalcView.ThirdPerson.Live = true
-			DRC.CalcView.ThirdPerson.StoredAng = ply:EyeAngles()
-		elseif !DRC:SightsDown(wpn) && DRC.CalcView.ThirdPerson.Live == false then
-			DRC.CalcView.ThirdPerson.Live = false
-		end
 		
-		if !DRC:SightsDown(wpn) then
-			if wpn.ASTWTWO then ASTW2Anticlipping(LocalPlayer(), false, false) end
+			if DRC:SightsDown(wpn) then
+				DRC.CalcView.ThirdPerson.Live = true
+				DRC.CalcView.ThirdPerson.StoredAng = ply:EyeAngles()
+			elseif !DRC:SightsDown(wpn) && DRC.CalcView.ThirdPerson.Live == false then
+				DRC.CalcView.ThirdPerson.Live = false
+			end
+			
+			if !DRC:SightsDown(wpn) then
+				if wpn.ASTWTWO then ASTW2Anticlipping(LocalPlayer(), false, false) end
+			end
 		end
 	end
 end)

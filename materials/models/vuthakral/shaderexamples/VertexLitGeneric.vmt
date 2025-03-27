@@ -1,0 +1,27 @@
+"VertexLitGeneric"
+{
+	$basetexture	"models\vuthakral\grey127-100"
+	$bumpmap	"models/shadertest/envball_6_normal"
+
+	$basetexturetransform	"center .5 .5 scale 4 4 rotate 0 translate -0.25 0.3"
+
+	$phong	1
+	$phongboost	1
+	$phongexponent	5
+	$phongfresnelranges	"[ 1 1 1 ]"
+	$phongtint		"[ 1 1 1 ]"	
+	$normalmapalphaenvmapmask	1
+
+	$rimlight	1
+	$rimlightboost	10
+
+	$envmap	env_cubemap
+	$cmtint	"[ 2 2 2 ]"
+	
+	Proxies
+	{
+		drc_ReflectionTint{}
+	}
+}
+
+

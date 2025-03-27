@@ -1,5 +1,12 @@
 local cmap = game.GetMap()
 
+local uicols = {
+	["invis"] = Color(0,0,0,0),
+	["white"] = Color(255,255,255,255),
+	["black"] = Color(0,0,0,255),
+	["neutral"] = Color(234,234,234,255),
+}
+
 local function GreyOut(element)
 	element:SetEnabled(false)
 	element.GreyOut = vgui.Create("DPanel", element)
@@ -16,8 +23,28 @@ local ind = {
 	[5]=94,
 	[6]=128,
 }
-function DRCMenu( player )
-	local ply = player
+
+local function UpdateDraconicColours()		
+	DRC:RefreshColours(LocalPlayer())
+end
+
+local function MakeHint(element, posx, posy, hint)
+	local hintbox = vgui.Create("DButton", element)
+	hintbox:SetFont("DRC_DermaMedium")
+	hintbox:SetText("?")
+	hintbox:SetPos(posx, posy)
+	hintbox:SetSize(18, 18)
+	hintbox:SetTextColor(color_white)
+	hintbox:SetContentAlignment(5)
+	hintbox:SetTooltip(hint)
+	hintbox:SetDark(true)
+	function hintbox.Paint(w, h)
+		draw.RoundedBox(4, 0, 0, 18, 18, Color(200,200,200))
+		draw.RoundedBox(2, 1, 1, 16, 16, Color(125,125,125))
+	end
+end
+
+function DRCMenu(ply)
 	local VSelection = ply:GetNWString("DRCVoiceSet")
 	local FSelection = ply:GetNWString("DRCFootsteps")
 	local Customization, TweakMode = true, 0
@@ -29,27 +56,9 @@ function DRCMenu( player )
 	local sprintkey = string.upper(ReturnKey("+speed"))
 	local reloadkey = string.upper(ReturnKey("+reload"))
 	local forwkey = string.upper(ReturnKey("+forward"))
+	local walkkey = string.upper(ReturnKey("+walk"))
 	
 	local TextCol = Color(220, 220, 220, 255)
-	local SubtextCol = Color(170, 170, 170, 255)
-	local NotifyCol = Color(255, 255, 255, 255)
-	
-	local function UpdateDraconicColours()		
-		DRC:RefreshColours(LocalPlayer())
-	end
-	
-	local function MakeHint(element, posx, posy, hint)
-		local hintbox = vgui.Create("DButton", element)
-		hintbox:SetText("?")
-		hintbox:SetPos(posx, posy)
-		hintbox:SetSize(16, 16)
-		hintbox:SetTextColor(color_white)
-		hintbox:SetContentAlignment(5)
-		hintbox:SetTooltip(hint)
-		function hintbox.Paint(w, h)
-			draw.RoundedBox(5, 0, 0, 16, 16, Color(157,161,165))
-		end
-	end
 	
 	local Derma = vgui.Create("DFrame")
 	Derma:SetSize(1200, 720)
@@ -144,7 +153,7 @@ function DRCMenu( player )
 	local mt1 = mainframe.maintabs
 	mt1:DockMargin(0, 0, 0, 0)
 	mt1:DockPadding(0, 0, 0, 0)
-	mt1:SetBackgroundColor(Color(255, 255, 255, 0))
+	mt1:SetBackgroundColor(Color(0, 0, 0, 0))
 	maintabs:AddSheet( "Player Representation", mt1, "icon16/user.png")
 	
 	Derma.PlayerFrame1 = vgui.Create("DPanel", mt1)
@@ -153,7 +162,7 @@ function DRCMenu( player )
 	frame:Dock(LEFT)
 	frame:DockPadding(0, 0, 0, 0)
 --	frame:SetSize(512, topwide/1.5-24)
-	frame:SetBackgroundColor(Color(255, 255, 255, 5))
+	frame:SetBackgroundColor(Color(0, 0, 0, 0))
 	
 	Derma.PlayerFrame2 = vgui.Create("DPanel", mt1)
 	local frame2 = Derma.PlayerFrame2
@@ -162,7 +171,7 @@ function DRCMenu( player )
 	frame2:Dock(FILL)
 	frame2:DockPadding(0, 0, 0, 0)
 --	frame2:SetSize(leftwide*1.25/2, topwide/1.5-54)
-	frame2:SetBackgroundColor(Color(255, 255, 255, 15))
+	frame2:SetBackgroundColor(Color(0, 0, 0, 0))
 	
 	local MapAmbient = render.GetAmbientLightColor() * 255
 	MapAmbient.r = math.Clamp(MapAmbient.r, 35, 255)
@@ -266,12 +275,20 @@ function DRCMenu( player )
 	end
 	SetupScene(pmodelname)
 	
+	local camo = ply:GetInfo("cl_playercamo")
+	if camo == "nil" or camo == "" then camo = nil end
+	local storedmodel, tstoredmodel, camosubmats = nil, nil, nil
 	function frame.preview:LayoutEntity(ent)
 		ent:SetLOD(0)
 		ent.preview = true
 		ent.Preview = true
 		DRC.PlayermodelMenuEnt = ent
 		frame.preview:SetFOV(math.Clamp(frame.preview:GetFOV(), 10, 100))
+		
+		if storedmodel != ent:GetModel() then
+			local e, hasskins = DRC:RefreshCamoMats(frame.preview.Entity)
+			if hasskins == false then camo = nil end
+		end
 		if !ent.SelectedIdle then ent.SelectedIdle = ent:SelectWeightedSequence(ACT_HL2MP_IDLE) end
 		if ent:LookupSequence("drc_menu") != -1 then
 			ent:SetSequence("drc_menu")
@@ -323,6 +340,7 @@ function DRCMenu( player )
 		frame.previewfloor:GetEntity():SetParent(frame.preview:GetEntity())
 		frame.previewfloor:GetEntity():AddEffects(EF_BONEMERGE)
 	end
+	timer.Simple(0, function() if camo != nil then DRC:SetCamo(frame.preview.Entity, camo, "automatic") end end)
 	
 	function frame.previewfloor:LayoutEntity(ent)
 		ent:SetLOD(0)
@@ -677,18 +695,15 @@ function DRCMenu( player )
 	tabs:SetPadding(0)
 	tabs:DockPadding(0, 0, 0, 0)
 	tabs.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+		draw.RoundedBox(0, 0, 0, w, h, Color(234, 234, 234, 0))
 	end
 	
 	local tab1 = vgui.Create("DPropertySheet", tabs)
 	tab1:SetPadding(0)
 	tab1:DockPadding(0, 0, 0, 0)
-	tab1.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-	end
-	function tab1:OnActiveTabChanged(old, new)
-		local mode = new:GetText()
-	end
+--	tab1.Paint = function(self, w, h)
+--		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+--	end
 	
 	if Customization == true then
 		tabs:AddSheet( "Player", tab1, "icon16/user.png")
@@ -696,18 +711,18 @@ function DRCMenu( player )
 		tab1:SetVisible(false)
 	end
 	
-	local tab1PMs = vgui.Create( "DPanel", tab1 )
+	local tab1PMs = vgui.Create("DPanel", tab1)
 	tab1PMs:DockPadding(0, 0, 0, 0)
-	tab1PMs:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab1PMs:SetBackgroundColor(Color(255, 255, 255, 0))
 	if TweakMode < 1 && Customization == true then
 		tab1:AddSheet( "Playermodels", tab1PMs, "icon16/folder_user.png")
 	else
 		tab1PMs:SetVisible(false)
 	end
 	
-	tab1.tab1Hands = vgui.Create( "DPanel", tab1 )
+	tab1.tab1Hands = vgui.Create("DPanel", tab1)
 	tab1.tab1Hands:DockPadding(0, 0, 0, 0)
-	tab1.tab1Hands:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab1.tab1Hands:SetBackgroundColor(Color(255, 255, 255, 0))
 	if TweakMode < 1 && Customization == true then
 		tab1:AddSheet( "Hands", tab1.tab1Hands, "icon16/folder_page.png")
 	else
@@ -715,44 +730,42 @@ function DRCMenu( player )
 	end
 
 	
-	local tab2 = vgui.Create( "DPanel", tab1 )
-	tab2:SetBackgroundColor( Color(255, 255, 255, 255) )
+	local tab2 = vgui.Create("DPanel", tab1)
+	tab2:SetBackgroundColor(Color(255, 255, 255, 0))
 	if TweakMode != 3 && Customization == true then
 		tab1:AddSheet( "Colours", tab2, "icon16/color_wheel.png" )
 	else
 		tab2:SetVisible(false)
 	end
 	
+	local t3c = vgui.Create("DPanel", tab1)
+	t3c:SetBackgroundColor(Color(255, 255, 255, 0))
 	
-	local t3c = vgui.Create( "DPanel", tab1 )
-	t3c:SetBackgroundColor( Color(0, 0, 0, 0) )
-	t3c:SetPos(-200, 0)
-	
-	local tab3 = t3c:Add( "DPanelList" )
-	tab3:DockPadding( 32, 8, 8, 8 )
-	tab3:EnableVerticalScrollbar( true )
+	local tab3 = vgui.Create("DPanelList", t3c)
 	tab3:Dock(FILL)
+	tab3:DockPadding( 0, 16, 0, 16 )
+	tab3:EnableVerticalScrollbar(true)
 	if TweakMode != 2 && Customization == true then
-		tab1:AddSheet( "#smwidget.bodygroups", tab3, "icon16/cog.png" )
+		tab1:AddSheet( "#smwidget.bodygroups", t3c, "icon16/cog.png" )
 	else
 		tab3:SetVisible(false)
 	end
 	
-	local modelListPnl = tab1PMs:Add( "DPanel" )
-	modelListPnl:DockPadding( 8, 0, 8, 0 )
+	local modelListPnl = tab1PMs:Add("DPanel")
+	modelListPnl:DockPadding( 8, 0, 0, 0 )
 	modelListPnl:Dock(FILL)
 	modelListPnl:SetBackgroundColor(Color(0, 0, 0, 0))
 	
-	local SearchBar = modelListPnl:Add( "DTextEntry" )
+	local SearchBar = modelListPnl:Add("DTextEntry")
 	SearchBar:Dock( TOP )
 	SearchBar:DockMargin( 0, 0, 0, 0 )
 	SearchBar:SetUpdateOnType( true )
-	SearchBar:SetPlaceholderText( "#spawnmenu.quick_filter" )
+	SearchBar:SetPlaceholderText("#spawnmenu.quick_filter")
 	
-	Derma.PlayerModels = modelListPnl:Add( "DPanelSelect" )
+	Derma.PlayerModels = modelListPnl:Add("DPanelSelect")
 	local PanelSelect = Derma.PlayerModels
 	PanelSelect:Dock(FILL)
-	PanelSelect:SetBackgroundColor(Color(0, 0, 0, 0))
+--	PanelSelect:SetBackgroundColor(Color(0, 0, 0, 0))
 	PanelSelect.Paint = function(self, w, h)
 		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
 	end
@@ -780,6 +793,14 @@ function DRCMenu( player )
 				
 				icon.OpenMenu = function( icon )
 					icon:RebuildSpawnIcon()
+				end
+				
+				if DRC.Playermodels[name] && DRC.Playermodels[name].CamoMaterials != nil then
+					local camomarker = vgui.Create("DImage", icon)
+					camomarker:SetImage("icon16/palette.png")
+					camomarker:SetSize(16, 16)
+					camomarker:SetPos(46, 2)
+					camomarker:SetTooltip("This model supports camoflauges.")
 				end
 				
 				PanelSelect:AddPanel( icon, { cl_playermodel = name } )
@@ -933,14 +954,6 @@ function DRCMenu( player )
 	row3:SetSize(windowwide*0.5, windowtall/3.75 )
 	row3:SetBackgroundColor(Color(255, 255, 255, 0))
 	
-
-	
---	local clabel = vgui.Create("DLabel", tab2)
---	clabel:SetPos(8, 600)
---	clabel:SetSize(600, 32)
---	clabel:SetTextColor(Color(0, 0, 0, 255))
---	clabel:SetText("These colours update for everyone when you respawn or press the 'Apply Changes' button on the left.")
-	
 	local playercol = Vector(GetConVarString("cl_playercolor")) * 255
 	local weaponcol = Vector(GetConVarString("cl_weaponcolor")) * 255
 	local eyecol = Vector(GetConVarNumber("cl_drc_eyecolour_r"), GetConVarNumber("cl_drc_eyecolour_g"), GetConVarNumber("cl_drc_eyecolour_b"))
@@ -1061,12 +1074,6 @@ function DRCMenu( player )
 	MakeHint(ScrollPrim, 14, 599, "Only works on playermodels with support for it.\n\nDraconic material proxy ''drc_PlayerGrunge'', which lets you choose how ''worn'' the material(s) will be.")
 	
 	function applybutton:DoClick()
-	--[[	local str = ""
-		for k,v in pairs(frame.preview:GetEntity():GetBodyGroups()) do
-			local num = frame.preview:GetEntity():GetBodygroup(k-1)
-			str = "".. str .."".. tostring(num) ..""
-		end
-	]]
 		local bgs = DRC:GetBodyGroups(frame.preview:GetEntity())
 		local handval = player_manager.TranslatePlayerModel(LocalPlayer():GetInfo("cl_playerhands"))
 		local pmname = player_manager.TranslateToPlayerModelName(handval)
@@ -1144,6 +1151,7 @@ function DRCMenu( player )
 		end
 		handstable.skin = tbl.hands.skin
 		handstable.bodygroups = tbl.hands.bodygroups
+		tbl.camo = camo
 		
 		net.Start("DRC_ApplyPlayermodel")
 		net.WriteTable(tbl)
@@ -1169,29 +1177,108 @@ function DRCMenu( player )
 	end
 	
 	local tab5 = vgui.Create( "DPropertySheet", tabs )
+	tab5:DockMargin(0, 0, 0, 0)
 	tab5:DockPadding(0, 0, 0, 0)
-	tab5.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(234, 234, 234, 255))
-	end
+	tab5:SetPadding(0)
 	tabs:AddSheet( "Extra", tab5, "icon16/draconic_base.png" )
 	
 	tab5.SpraySettings = vgui.Create( "DPanel", tab1 )
-	tab5.SpraySettings:DockPadding(0, 0, 0, 0)
-	tab5.SpraySettings:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab5.SpraySettings:DockPadding(16, 16, 0, 0)
+	tab5.SpraySettings:SetBackgroundColor(uicols.invis)
 	tab5:AddSheet( "Spray Settings", tab5.SpraySettings, "icon16/layers.png")
 	
 	tab5.VoiceSetSettings = vgui.Create( "DPanel", tab1 )
-	tab5.VoiceSetSettings:DockPadding(0, 0, 0, 0)
-	tab5.VoiceSetSettings:SetBackgroundColor( Color(245, 245, 245, 0) )
+	tab5.VoiceSetSettings:DockPadding(16, 16, 0, 0)
+	tab5.VoiceSetSettings:SetBackgroundColor(uicols.invis)
 	tab5:AddSheet( "VoiceSet", tab5.VoiceSetSettings, "icon16/sound.png")
 	
 	tab5.FootstepSounds = vgui.Create( "DPanel", tab1 )
-	tab5.FootstepSounds:DockPadding(0, 0, 0, 0)
+	tab5.FootstepSounds:DockPadding(16, 16, 0, 0)
+	tab5.FootstepSounds:SetBackgroundColor(uicols.invis)
 	tab5:AddSheet( "Footsteps", tab5.FootstepSounds, "icon16/sound_add.png")
-	tab5.FootstepSounds:SetBackgroundColor( Color(245, 245, 245, 0) )
+	
+	local function LoadCamos() end
+	if !table.IsEmpty(DRC.WeaponSkins) then
+		tab5.Camos = vgui.Create("DPropertySheet", tab1)
+		tab5.Camos:DockPadding(0, 0, 0, 0)
+		tab5.Camos.Paint = function(self, w, h)
+			draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+		end
+		tab1:AddSheet("Camoflauge", tab5.Camos, "icon16/folder_palette.png")
+		tab5.Camos.Loaded = false
+		
+		MakeHint(tab5.Camos, 567, 10, "These ''camoflauges'' will only work on playermodels set up for it.")
+		
+		LoadCamos = function()
+			tab5.Camos.Loaded = true
+			local cats = {}
+			for k,v in pairs(DRC.WeaponSkins) do
+				local name, desc, id = v.name or "", v.desc or "", k
+				local cat = v.type
+				local skin = {name, desc, id}
+				if !cats[cat] then cats[cat] = {} end
+				cats[cat][id] = skin
+				cats[cat].num = -1
+			end
+			
+			local icons = {
+				["Draconic"] = {0, "icon16/draconic_base.png", "Draconic Camos", function() end },
+				["ARC9"] = {1, "arc9/icon_16.png", "ARC9 Camos", function() end }
+			}
+			for k,v in pairs(cats) do
+				tab5.Camos[k] = vgui.Create("DPanelSelect", tab1)
+				local sec = tab5.Camos[k]
+			--	sec:Dock(FILL)
+				sec:DockPadding(0,0,0,0)
+				tab5.Camos:AddSheet(k, sec, icons[k][2])
+				
+				local removebutton = vgui.Create("DImageButton", sec)
+				removebutton:SetSize(64,64)
+				removebutton:SetTooltip("None\n\nRemove applied camoflauge.")
+				removebutton:SetImage("gui/cross.png")
+				removebutton:SetColor(Color(255, 0, 0, 127))
+					
+				sec:AddPanel(removebutton)
+				
+				removebutton.DoClick = function()
+					camo = nil
+					DRC:SetCamo(frame.preview.Entity, camo, name)
+				end
+			end
+			
+			local function MakeSkinButton(parent, name, desc, id, icontex)
+				local btn = vgui.Create("DImageButton", parent)
+				btn:SetSize(64,64)
+				btn:SetTooltip(""..name.."\n\n"..desc.."")
+				if type(icontex) == "IMaterial" then btn:SetMaterial(icontex or id) else btn:SetImage(icontex or id) end
+				parent:AddPanel(btn)
+				
+				btn.DoClick = function()
+					camo = id
+					DRC:SetCamo(frame.preview.Entity, id, name)
+				end
+						
+				return btn
+			end
+			
+			for k,v in SortedPairs(DRC.WeaponSkins) do
+				local name, desc, id = v.name or "", v.desc or "", k				
+				local cat = v.type
+						
+				MakeSkinButton(tab5.Camos[cat], name, desc, id, v.icon)
+			end
+		end
+		
+		
+		function tab1:OnActiveTabChanged(old, new)
+			local mode = new:GetText()
+			if mode == "Camoflauge" && tab5.Camos.Loaded != true then LoadCamos() end
+		end
+	end
+--	LoadCamos()
 	
 	local tab4 = vgui.Create( "DPanel", tabs )
-	tab4:SetBackgroundColor( Color(255, 255, 255, 255) )
+--	tab4:SetBackgroundColor( Color(255, 255, 255, 255) )
 --	tab4:Dock(FILL)
 	tabs:AddSheet( "Saved Avatars", tab4, "icon16/award_star_gold_1.png" )
 	
@@ -1503,8 +1590,8 @@ function DRCMenu( player )
 		accentColour2preview:SetBackgroundColor(accentColour2:GetColor())
 	end
 	
-		local function UpdateBodyGroups( pnl, val )
-			if ( pnl.type == "bgroup" ) then
+		local function UpdateBodyGroups(pnl, val)
+			if (pnl.type == "bgroup") then
 
 				frame.preview.Entity:SetBodygroup( pnl.typenum, math.Round( val ) )
 
@@ -1512,7 +1599,26 @@ function DRCMenu( player )
 				if ( #str < pnl.typenum + 1 ) then for i = 1, pnl.typenum + 1 do str[ i ] = str[ i ] or 0 end end
 				str[ pnl.typenum + 1 ] = math.Round( val )
 				RunConsoleCommand( "cl_playerbodygroups", table.concat( str, " " ) )
-
+				
+				--[[
+				val = math.Round(val)
+				local modelname = "Model #" .. val
+				print(pnl.bgs, val, pnl.bgs[val])
+				PrintTable(pnl.bgs)
+				if (pnl.bgs and pnl.bgs[val] != "") then modelname = pnl.bgs[val] end
+				
+				if modelname then
+					modelname = string.Trim( modelname, "." )
+					modelname = string.Trim( modelname, "/" )
+					modelname = string.Trim( modelname, "\\" )
+					modelname = string.StripExtension( modelname )
+					modelname = string.GetFileFromFilename( modelname )
+					modelname = string.NiceName(modelname)
+				end
+				
+				print(pnl, pnl.basename, modelname)
+				pnl:SetText("".. pnl.basename .."".. modelname .."")
+				]]
 			elseif ( pnl.type == "skin" ) then
 
 				frame.preview.Entity:SetSkin( math.Round( val ) )
@@ -1528,20 +1634,22 @@ function DRCMenu( player )
 
 		--	tab3.Tab:SetVisible( false )
 
-			local nskins = frame.preview.Entity:SkinCount() - 1
-			if ( nskins > 0 ) then
-				local skins = vgui.Create( "DNumSlider", tab3 )
-				skins:Dock( TOP )
-				skins:SetText( "Skin" )
-				skins:SetDark( true )
-				skins:SetTall( 50 )
-				skins:SetDecimals( 0 )
-				skins:SetMax( nskins )
-				skins:SetValue( GetConVarNumber( "cl_playerskin" ) )
+			local nskins = frame.preview.Entity:SkinCount()-1
+			if (nskins > 0) then
+				local skins = vgui.Create("DNumSlider", tab3)
+				skins:Dock(TOP)
+				skins:DockPadding(16, 8, 0, 0)
+				skins:DockMargin(0, 0, 0, 0)
+				skins:SetText("Skin")
+				skins:SetDark(true)
+				skins:SetTall(50)
+				skins:SetDecimals(0)
+				skins:SetMax(nskins)
+				skins:SetValue( GetConVarNumber("cl_playerskin"))
 				skins.type = "skin"
 				skins.OnValueChanged = UpdateBodyGroups
 
-				tab3:AddItem( skins )
+				tab3:AddItem(skins)
 
 				frame.preview.Entity:SetSkin( GetConVarNumber( "cl_playerskin" ) )
 
@@ -1549,19 +1657,25 @@ function DRCMenu( player )
 			end
 
 			local groups = string.Explode( " ", GetConVarString( "cl_playerbodygroups" ) )
-			for k = 0, frame.preview.Entity:GetNumBodyGroups() - 1 do
-				if ( frame.preview.Entity:GetBodygroupCount( k ) <= 1 ) then continue end
+			for k=0,frame.preview.Entity:GetNumBodyGroups() -1 do
+				if (frame.preview.Entity:GetBodygroupCount(k) <= 1) then continue end
 
-				local bgroup = vgui.Create( "DNumSlider" )
-				bgroup:Dock( TOP )
-				bgroup:SetText( frame.preview.Entity:GetBodygroupName( k ) )
-				bgroup:SetDark( true )
-				bgroup:SetTall( 50 )
-				bgroup:SetDecimals( 0 )
+				local bgroup = vgui.Create("DNumSlider")
+				bgroup:Dock(TOP)
+				bgroup:DockPadding(16, 0, 0, 0)
+				bgroup:DockMargin(0, 0, 0, 0)
+				bgroup:SetText(frame.preview.Entity:GetBodygroupName(k))
+				bgroup:SetDark(true)
+				bgroup:SetTall(50)
+				bgroup:SetDecimals(0)
 				bgroup.type = "bgroup"
 				bgroup.typenum = k
-				bgroup:SetMax( frame.preview.Entity:GetBodygroupCount( k ) - 1 )
-				bgroup:SetValue( groups[ k + 1 ] or 0 )
+				bgroup:SetMax( frame.preview.Entity:GetBodygroupCount(k)-1)
+				bgroup:SetValue(groups[k+1] or 0)
+				
+			--	bgroup.basename = "".. frame.preview.Entity:GetBodygroupName(k) ..": "
+			--	bgroup.bgs = frame.preview.Entity:GetBodyGroups()[k].submodels
+			--	bgroup.subid = k
 				bgroup.OnValueChanged = UpdateBodyGroups
 
 				tab3:AddItem( bgroup )
@@ -1616,6 +1730,9 @@ function DRCMenu( player )
 				UpdateFromConvars()
 			end
 			bgloading:SetVisible(false)
+			local e, hasskins = DRC:RefreshCamoMats(frame.preview.Entity)
+			if hasskins == false then camo = nil end
+			DRC:SetCamo(frame.preview.Entity, camo, "automatic")
 		end)
 	end
 
@@ -1649,6 +1766,9 @@ function DRCMenu( player )
 		frame.preview.Entity:SetModel(tbl.Model)
 		frame.preview.Entity:SetBodyGroups(string.gsub(tbl.Bodygroups, "%s+", ""))
 		frame.preview.Entity:SetSkin(GetConVarNumber("cl_playerskin"))
+		local e, hasskins = DRC:RefreshCamoMats(frame.preview.Entity)
+		if hasskins == false then camo = nil end
+		DRC:SetCamo(frame.preview.Entity, camo, "automatic")
 		
 		playercolourpreview:SetBackgroundColor(playercolour:GetColor())
 		weaponcolourpreview:SetBackgroundColor(weaponcolour:GetColor())
@@ -1975,19 +2095,19 @@ function DRCMenu( player )
 	RefreshAvatars()
 	
 	local mt2 = vgui.Create( "DPanel", maintabs )
-	mt2:SetBackgroundColor(Color(255, 255, 255, 5))
+	mt2:SetBackgroundColor(Color(255, 255, 255, 0))
 	maintabs:AddSheet( "Settings & Tools", mt2, "icon16/wrench.png")
 	
 	local t2frame = vgui.Create("DPanel", mt2)
-	t2frame:SetBackgroundColor(Color(255, 255, 255, 5))
+	t2frame:SetBackgroundColor(Color(255, 255, 255, 0))
 	t2frame:Dock(FILL)
 	
 	local t2tabs = vgui.Create("DPropertySheet", t2frame)
 	t2tabs:Dock(FILL)
 	t2tabs:SetPadding(0)
-	t2tabs.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-	end
+--	t2tabs.Paint = function(self, w, h)
+--		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+--	end
 	
 	local controls = vgui.Create( "DPanel", t2tabs)
 	controls:Dock(RIGHT)
@@ -2028,15 +2148,15 @@ function DRCMenu( player )
 	local ControlsText = vgui.Create( "DLabel", controls1 )
 	ControlsText:Dock(TOP)
 	ControlsText:SetSize(1, 160)
-	ControlsText:SetText("Primary attack: \nSecondary attack / ironsights: \nReload / Vent: \nReload secondary: \nToggle passive: \nSwitch firemode: \nInspect weapon: \nMelee (guns) / Lunge (melees):")
+	ControlsText:SetText("- Primary attack: \n- Secondary attack / ironsights: \n- Reload / Vent: \n- Reload secondary: \n- Toggle passive: \n- Switch firemode: \n- Inspect weapon: \n- Melee (guns) / Lunge (melees):\n- Swap sights:")
 	ControlsText:SetColor(TextCol)
 	ControlsText:SetContentAlignment(4)
 	
 	local ControlsValue = vgui.Create( "DLabel", controls2 )
 	ControlsValue:Dock(TOP)
 	ControlsValue:SetSize(1, 160)
-	ControlsValue:SetText("".. m1key .."\n".. m2key .."\n".. reloadkey .."\n".. sprintkey .." + ".. reloadkey .."\n".. sprintkey .." + ".. usekey .." + ".. m2key .."\n".. usekey .." + ".. m2key .."\n".. usekey .. " + ".. reloadkey .."\n".. usekey .. " + ".. m1key .."")
-	ControlsValue:SetColor(NotifyCol)
+	ControlsValue:SetText("".. m1key .."\n".. m2key .."\n".. reloadkey .."\n".. sprintkey .." + ".. reloadkey .."\n".. sprintkey .." + ".. usekey .." + ".. m2key .."\n".. usekey .." + ".. m2key .."\n".. usekey .. " + ".. reloadkey .."\n".. usekey .. " + ".. m1key .."\n".. walkkey .." + ".. reloadkey .."")
+	ControlsValue:SetColor(Color(255, 255, 255, 255))
 	ControlsValue:SetContentAlignment(6)
 	
 	local t2tab1 = vgui.Create( "DPanel" )
@@ -2054,13 +2174,13 @@ function DRCMenu( player )
 	AccessibilityTitle:SetFont("DermaLarge")
 	AccessibilityTitle:SetContentAlignment(0)
 	
-	local DrcCrosshairs = vgui.Create( "DCheckBoxLabel", t2tab1 )
-	DrcCrosshairs:SetPos(516, 100)
-	DrcCrosshairs:SetSize(200, 20)
-	DrcCrosshairs:SetText( "I am photosensitive" )
-	DrcCrosshairs:SetConVar( "cl_drc_accessibility_photosensitivity_muzzle" )
-	DrcCrosshairs.Label:SetColor(TextCol)
-	DrcCrosshairs:SetEnabled(true)
+	local DrcPhotosensitivity = vgui.Create( "DCheckBoxLabel", t2tab1 )
+	DrcPhotosensitivity:SetPos(516, 100)
+	DrcPhotosensitivity:SetSize(200, 20)
+	DrcPhotosensitivity:SetText( "I am photosensitive" )
+	DrcPhotosensitivity:SetConVar( "cl_drc_accessibility_photosensitivity_muzzle" )
+	DrcPhotosensitivity.Label:SetDark(true)
+	DrcPhotosensitivity:SetEnabled(true)
 	
 	MakeHint(t2tab1, 495, 100, "- Dims muzzle flashes from Draconic SWEPs")
 	
@@ -2068,7 +2188,7 @@ function DRCMenu( player )
 	ColourBlindSetting:SetPos(516, 35)
 	ColourBlindSetting:SetSize(100, 20)
 	ColourBlindSetting:SetText("Colour Blindness:")
-	ColourBlindSetting:SetColor(TextCol)
+	ColourBlindSetting:SetDark(true)
 				
 	local ColourBlindCombo = vgui.Create( "DComboBox", t2tab1 )
 	ColourBlindCombo:SetSortItems(false)
@@ -2094,7 +2214,7 @@ function DRCMenu( player )
 	ColourBlindStrength:SetPos(516, 55)
 	ColourBlindStrength:SetSize(300, 20)
 	ColourBlindStrength:SetText( "Col. Blind Filter Strength" )
-	ColourBlindStrength.Label:SetColor(TextCol)
+	ColourBlindStrength.Label:SetDark(true)
 	ColourBlindStrength:SetMin( 0 )
 	ColourBlindStrength:SetMax( 100 )
 	ColourBlindStrength:SetDecimals( 0 )
@@ -2106,7 +2226,7 @@ function DRCMenu( player )
 	t2tab1.AMDUser:SetSize(500, 20)
 	t2tab1.AMDUser:SetText( "I am using an AMD Graphics Card" )
 	t2tab1.AMDUser:SetConVar( "cl_drc_accessibility_amduser" )
-	t2tab1.AMDUser.Label:SetColor(TextCol)
+	t2tab1.AMDUser.Label:SetDark(true)
 	t2tab1.AMDUser:SetEnabled(true)
 	
 	MakeHint(t2tab1, 495, 80, "Forces Draconic-Enabled materials to use a fallback cubemap, as AMD cards frequently have maps' envmaps become missing textures.\n\n[ WARNING ] Enabling this is a one-way ticket until you reload, due to limitations of the Source engine.\nAfter the envmap has been changed from a dynamic one, it cannot be changed back.\nIf you are not using an AMD GPU and just messing with settings, leave this OFF.")
@@ -2117,7 +2237,7 @@ function DRCMenu( player )
 	DRCSway:SetSize(500, 20)
 	DRCSway:SetText( "I get motion sickness easily" )
 	DRCSway:SetConVar( "cl_drc_sway" )
-	DRCSway.Label:SetColor(TextCol)
+	DRCSway.Label:SetDark(true)
 	DRCSway:SetEnabled(true)
 	
 	MakeHint(t2tab1, 495, 100, "- Turns off scipted bob/sway on Draconic SWEPs") ]]
@@ -2132,7 +2252,7 @@ function DRCMenu( player )
 	
 	local SettingsSubTitle_CL = vgui.Create( "DLabel", t2tab1)
 	SettingsSubTitle_CL:SetText("User Preferences")
-	SettingsSubTitle_CL:SetSize(200, 50)
+	SettingsSubTitle_CL:SetSize(250, 50)
 	SettingsSubTitle_CL:SetPos(16, 200)
 	SettingsSubTitle_CL:SetColor(Color(255, 255, 255, 255))
 	SettingsSubTitle_CL:SetFont("DermaLarge")
@@ -2149,7 +2269,7 @@ function DRCMenu( player )
 	DrcSoul:SetSize(500, 20)
 	DrcSoul:SetText( "Sacrifice your soul to Vuthakral" )
 	DrcSoul:SetConVar( "cl_drc_sell_soul" )
-	DrcSoul.Label:SetColor(TextCol)
+	DrcSoul.Label:SetDark(true)
 	DrcSoul:SetEnabled(false)
 	
 	local DrcCrosshairs = vgui.Create( "DCheckBoxLabel", t2tab1 )
@@ -2157,7 +2277,7 @@ function DRCMenu( player )
 	DrcCrosshairs:SetSize(500, 20)
 	DrcCrosshairs:SetText( "Disable crosshairs*" )
 	DrcCrosshairs:SetConVar( "cl_drc_disable_crosshairs" )
-	DrcCrosshairs.Label:SetColor(TextCol)
+	DrcCrosshairs.Label:SetDark(true)
 	DrcCrosshairs:SetEnabled(true)
 	
 	local DrcErrorHints = vgui.Create( "DCheckBoxLabel", t2tab1 )
@@ -2165,7 +2285,7 @@ function DRCMenu( player )
 	DrcErrorHints:SetSize(500, 20)
 	DrcErrorHints:SetText( "Disable error hints" )
 	DrcErrorHints:SetConVar( "cl_drc_disable_errorhints" )
-	DrcErrorHints.Label:SetColor(TextCol)
+	DrcErrorHints.Label:SetDark(true)
 	DrcErrorHints:SetEnabled(true)
 	
 	local DrcLoweredCrosshair = vgui.Create( "DCheckBoxLabel", t2tab1 )
@@ -2173,14 +2293,14 @@ function DRCMenu( player )
 	DrcLoweredCrosshair:SetSize(500, 20)
 	DrcLoweredCrosshair:SetText( "Enable lowered crosshair on Draconic SWEPs" )
 	DrcLoweredCrosshair:SetConVar( "cl_drc_lowered_crosshair" )
-	DrcLoweredCrosshair.Label:SetColor(TextCol)
+	DrcLoweredCrosshair.Label:SetDark(true)
 	DrcLoweredCrosshair:SetEnabled(true)
 	
 	local ChestScale = vgui.Create( "DNumSlider", t2tab1 )
 	ChestScale:SetPos(25, 355)
 	ChestScale:SetSize(300, 20)
 	ChestScale:SetText( "EFP Torso Depth Scale*" )
-	ChestScale.Label:SetColor(TextCol)
+	ChestScale.Label:SetDark(true)
 	ChestScale:SetMin( 0 )
 	ChestScale:SetMax( 1 )
 	ChestScale:SetDecimals( 4 )
@@ -2193,7 +2313,7 @@ function DRCMenu( player )
 	PlayermodelSpawnIconSize:SetPos(25, 400)
 	PlayermodelSpawnIconSize:SetSize(200, 20)
 	PlayermodelSpawnIconSize:SetText("Playermodel Selector Icon Size:")
-	PlayermodelSpawnIconSize:SetColor(TextCol)
+	PlayermodelSpawnIconSize:SetDark(true)
 				
 	local PlayermodelSpawnIconSizeCombo = vgui.Create( "DComboBox", t2tab1 )
 	PlayermodelSpawnIconSizeCombo:SetSortItems(false)
@@ -2215,7 +2335,7 @@ function DRCMenu( player )
 	PlayermodelSpawnIconSizeFullscreen:SetPos(25, 420)
 	PlayermodelSpawnIconSizeFullscreen:SetSize(200, 20)
 	PlayermodelSpawnIconSizeFullscreen:SetText("Selector Fullscreen Icon Size:")
-	PlayermodelSpawnIconSizeFullscreen:SetColor(TextCol)
+	PlayermodelSpawnIconSizeFullscreen:SetDark(true)
 				
 	local PlayermodelSpawnIconSizeComboFullscreen = vgui.Create( "DComboBox", t2tab1 )
 	PlayermodelSpawnIconSizeComboFullscreen:SetSortItems(false)
@@ -2238,7 +2358,7 @@ function DRCMenu( player )
 	DrcExperimentalFP:SetSize(500, 20)
 	DrcExperimentalFP:SetText( "Enable ''Experimental First Person'' mode" )
 	DrcExperimentalFP:SetConVar( "cl_drc_experimental_fp" )
-	DrcExperimentalFP.Label:SetColor(TextCol)
+	DrcExperimentalFP.Label:SetDark(true)
 	DrcExperimentalFP:SetEnabled(true)
 	
 	MakeHint(t2tab1, 4, 75, "<< Work in Progress Feature >>\n\n''Experimental First Person'' is a true full-body first person camera system which still utilizes the player's viewmodel.\n\nEFP Does:\n> Show your body in first person, accurate to how it is seen in third-person.\n> Show your character's arms when in a vehicle\n> Add a small amount of viewbobbing based on your character's head\n> Still uses the player's viewmodel, allowing you to see your weapon properly as intended by its creators.\n\nEFP Does NOT:\n> Change the aiming angle to match the new camera position (yet)\n\nCurrent known issues:\n> Body desyncs when game is paused in singleplayer")
@@ -2247,7 +2367,7 @@ function DRCMenu( player )
 	VMOX:SetPos(25, 240)
 	VMOX:SetSize(300, 20)
 	VMOX:SetText( "Global viewmodel offset X" )
-	VMOX.Label:SetColor(TextCol)
+	VMOX.Label:SetDark(true)
 	VMOX:SetMin( -10 )
 	VMOX:SetMax( 10 )
 	VMOX:SetDecimals( 4 )
@@ -2258,7 +2378,7 @@ function DRCMenu( player )
 	VMOY:SetPos(25, 260)
 	VMOY:SetSize(300, 20)
 	VMOY:SetText( "Global viewmodel offset Y" )
-	VMOY.Label:SetColor(TextCol)
+	VMOY.Label:SetDark(true)
 	VMOY:SetMin( -10 )
 	VMOY:SetMax( 10 )
 	VMOY:SetDecimals( 4 )
@@ -2269,12 +2389,56 @@ function DRCMenu( player )
 	VMOZ:SetPos(25, 280)
 	VMOZ:SetSize(300, 20)
 	VMOZ:SetText( "Global viewmodel offset Y" )
-	VMOZ.Label:SetColor(TextCol)
+	VMOZ.Label:SetDark(true)
 	VMOZ:SetMin( -10 )
 	VMOZ:SetMax( 10 )
 	VMOZ:SetDecimals( 4 )
 	VMOZ:SetConVar( "cl_drc_vmoffset_z" )
 	VMOZ:SetEnabled(true)
+	
+	t2tab1.ResetToDefault = vgui.Create("DButton", t2tab1)
+	t2tab1.ResetToDefault:SetPos(20, 600)
+	t2tab1.ResetToDefault:SetSize(200, 24)
+	t2tab1.ResetToDefault:SetEnabled(true)
+	t2tab1.ResetToDefault:SetText("Reset Settings to Default")
+	t2tab1.ResetToDefault.DoClick = function()
+		DrcErrorHints:SetValue(false)
+		RunConsoleCommand("cl_drc_disable_errorhints", 0)
+		
+		DrcExperimentalFP:SetValue(false)
+		RunConsoleCommand("cl_drc_experimental_fp", 0)
+		
+		ColourBlindCombo:SetValue("None")
+		RunConsoleCommand("cl_drc_accessibility_colourblind", "None")
+		
+		t2tab1.AMDUser:SetValue(false)
+		RunConsoleCommand("cl_drc_accessibility_amduser", 0)
+		
+		DrcPhotosensitivity:SetValue(false)
+		RunConsoleCommand("cl_drc_accessibility_photosensitivity_muzzle", 0)
+		
+		VMOX:SetValue(0)
+		RunConsoleCommand("cl_drc_vmoffset_x", 0)
+		VMOY:SetValue(0)
+		RunConsoleCommand("cl_drc_vmoffset_y", 0)
+		VMOZ:SetValue(0)
+		RunConsoleCommand("cl_drc_vmoffset_z", 0)
+		
+		DrcCrosshairs:SetValue(false)
+		RunConsoleCommand("cl_drc_disable_crosshairs", 0)
+		
+		DrcLoweredCrosshair:SetValue(false)
+		RunConsoleCommand("cl_drc_lowered_crosshair", 0)
+		
+		ChestScale:SetValue(1)
+		RunConsoleCommand("cl_drc_experimental_fp_chestscale", 1)
+		
+		PlayermodelSpawnIconSizeCombo:SetValue("64x64 (default)")
+		RunConsoleCommand("cl_drc_menu_iconsize", 3)
+		
+		PlayermodelSpawnIconSizeComboFullscreen:SetValue("64x64 (default)")
+		RunConsoleCommand("cl_drc_menu_iconsize_fullscreen", 3)
+	end
 	
 	local t2tab2 = vgui.Create( "DPanel" )
 	t2tab2:Dock(FILL)
@@ -2288,35 +2452,35 @@ function DRCMenu( player )
 	DrcMovement:SetSize(20, 20)
 	DrcMovement:SetText( "Draconic SWEP movement speed overrides" )
 	DrcMovement:SetConVar( "sv_drc_movement" )
-	DrcMovement.Label:SetColor(TextCol)
+	DrcMovement.Label:SetDark(true)
 	
 	local DrcMoveSounds = vgui.Create( "DCheckBoxLabel", t2tab2 )
 	DrcMoveSounds:SetPos(25, 35)
 	DrcMoveSounds:SetSize(20, 20)
 	DrcMoveSounds:SetText( "Draconic SWEP movement sounds" )
 	DrcMoveSounds:SetConVar( "sv_drc_movesounds" )
-	DrcMoveSounds.Label:SetColor(TextCol)
+	DrcMoveSounds.Label:SetDark(true)
 	
 	local DrcInspections = vgui.Create( "DCheckBoxLabel", t2tab2 )
 	DrcInspections:SetPos(25, 55)
 	DrcInspections:SetSize(20, 20)
 	DrcInspections:SetText( "Draconic SWEP Inspection Menu" )
 	DrcInspections:SetConVar( "sv_drc_inspections" )
-	DrcInspections.Label:SetColor(TextCol)
+	DrcInspections.Label:SetDark(true)
 	
 	local DrcPassive = vgui.Create( "DCheckBoxLabel", t2tab2 )
 	DrcPassive:SetPos(25, 75)
 	DrcPassive:SetSize(20, 20)
 	DrcPassive:SetText( "Draconic SWEP Passives" )
 	DrcPassive:SetConVar( "sv_drc_passives" )
-	DrcPassive.Label:SetColor(TextCol)
+	DrcPassive.Label:SetDark(true)
 	
 	local SvThirdperson = vgui.Create( "DCheckBoxLabel", t2tab2 )
 	SvThirdperson:SetPos(25, 115)
 	SvThirdperson:SetSize(20, 20)
 	SvThirdperson:SetText( "Disable access to Draconic's thirdperson system" )
 	SvThirdperson:SetConVar( "sv_drc_disable_thirdperson" )
-	SvThirdperson.Label:SetColor(TextCol)
+	SvThirdperson.Label:SetDark(true)
 	
 	MakeHint(t2tab2, 4, 115, "Draconic SWEPs which require thirdperson will still use Draconic thirdperson regardless of this setting.")
 	
@@ -2325,18 +2489,18 @@ function DRCMenu( player )
 	SvFreecam:SetSize(20, 20)
 	SvFreecam:SetText( "Disable Draconic thirdperson's freecam system globally" )
 	SvFreecam:SetConVar( "sv_drc_disable_thirdperson_freelook" )
-	SvFreecam.Label:SetColor(TextCol)
+	SvFreecam.Label:SetDark(true)
 	
 	t2tab2.SoundStretch = vgui.Create( "DCheckBoxLabel", t2tab2 )
 	t2tab2.SoundStretch:SetPos(25, 155)
 	t2tab2.SoundStretch:SetSize(20, 20)
 	t2tab2.SoundStretch:SetText( "Disable host_timescale sound alteration" )
 	t2tab2.SoundStretch:SetConVar( "sv_drc_soundtime_disabled" )
-	t2tab2.SoundStretch.Label:SetColor(TextCol)
+	t2tab2.SoundStretch.Label:SetDark(true)
 	
-	MakeHint(t2tab2, 4, 135, "Enabling this setting will make it so sounds do not slow down/speed up when host_timescale changes are in effect.")
+	MakeHint(t2tab2, 4, 155, "Enabling this setting will make it so sounds do not slow down/speed up when host_timescale changes are in effect.")
 	
-	local DiffSetting = vgui.Create( "DLabel", t2tab2)
+--[[	local DiffSetting = vgui.Create( "DLabel", t2tab2)
 	DiffSetting:SetPos(400, 15)
 	DiffSetting:SetSize(100, 20)
 	DiffSetting:SetText("HL2 Difficulty:")
@@ -2359,12 +2523,13 @@ function DRCMenu( player )
 	local textH = "''Hard'': ".. GetConVarNumber("sk_dmg_inflict_scale3") * 100 .."% damage dealt, ".. GetConVarNumber("sk_dmg_take_scale3") * 100 .."% damage taken."
 	
 	MakeHint(t2tab2, 378, 17, "".. textE .."\n\n".. textM .."\n\n".. textH .."\n\n\nThis is the actual Half-Life 2 difficulty the game/server is currently set to.\nIt will also affect certain NPC's behaviours.\n\nDEFAULT AND RECOMMENDED IS MEDIUM.")
+	]]
 	
 	t2tab2.AmmoSetting = vgui.Create( "DLabel", t2tab2)
 	t2tab2.AmmoSetting:SetPos(400, 50)
 	t2tab2.AmmoSetting:SetSize(100, 20)
 	t2tab2.AmmoSetting:SetText("DRC Infinite Ammo:")
-	t2tab2.AmmoSetting:SetColor(TextCol)
+	t2tab2.AmmoSetting:SetDark(true)
 	
 	t2tab2.InfiniteAmmo = vgui.Create( "DComboBox", t2tab2 )
 	t2tab2.InfiniteAmmo:SetSortItems(false)
@@ -2384,7 +2549,7 @@ function DRCMenu( player )
 	t2tab2.SprintSetting:SetPos(400, 85)
 	t2tab2.SprintSetting:SetSize(100, 20)
 	t2tab2.SprintSetting:SetText("DRC SWEP Sprint:")
-	t2tab2.SprintSetting:SetColor(TextCol)
+	t2tab2.SprintSetting:SetDark(true)
 	
 	t2tab2.SprintDropdown = vgui.Create( "DComboBox", t2tab2 )
 	t2tab2.SprintDropdown:SetSortItems(false)
@@ -2399,7 +2564,41 @@ function DRCMenu( player )
 	end
 	
 	MakeHint(t2tab2, 378, 87, "''SWEP Default'': Passive sprinting will be based on the weapon's settings.\n\n''Force Passives'': Passive sprinting will be forced on all DRC SWEPs.\n\n''Disable Passives'': Passive sprinting will be DISABLED on all DRC SWEPs.")
-
+	
+	t2tab2.ResetToDefault = vgui.Create("DButton", t2tab2)
+	t2tab2.ResetToDefault:SetPos(20, 600)
+	t2tab2.ResetToDefault:SetSize(200, 24)
+	t2tab2.ResetToDefault:SetEnabled(true)
+	t2tab2.ResetToDefault:SetText("Reset Settings to Default")
+	t2tab2.ResetToDefault.DoClick = function()
+		DrcMovement:SetValue(true)
+		RunConsoleCommand("sv_drc_movement", 1)
+		
+		DrcMoveSounds:SetValue(true)
+		RunConsoleCommand("sv_drc_movesounds", 1)
+		
+		DrcInspections:SetValue(true)
+		RunConsoleCommand("sv_drc_inspections", 1)
+		
+		DrcPassive:SetValue(true)
+		RunConsoleCommand("sv_drc_passives", 1)
+		
+		SvThirdperson:SetValue(false)
+		RunConsoleCommand("sv_drc_disable_thirdperson", 0)
+		
+		SvFreecam:SetValue(false)
+		RunConsoleCommand("sv_drc_disable_thirdperson_freelook", 0)
+		
+		t2tab2.SoundStretch:SetValue(false)
+		RunConsoleCommand("sv_drc_soundtime_disabled", 0)
+		
+		t2tab2.InfiniteAmmo:SetValue("Disabled")
+		RunConsoleCommand("sv_drc_infiniteammo", 0)
+		
+		t2tab2.SprintDropdown:SetValue("SWEP Default")
+		RunConsoleCommand("sv_drc_force_sprint", 0)
+	end
+	
 	local t2tab3 = vgui.Create( "DPanel" )
 	t2tab3:Dock(FILL)
 	t2tab3.Paint = function(self, w, h)
@@ -2412,7 +2611,7 @@ function DRCMenu( player )
 	DrcThirdperson:SetSize(500, 20)
 	DrcThirdperson:SetText( "Enable Draconic Thirdperson*" )
 	DrcThirdperson:SetConVar( "cl_drc_thirdperson" )
-	DrcThirdperson.Label:SetColor(TextCol)
+	DrcThirdperson.Label:SetDark(true)
 	DrcThirdperson:SetEnabled(true)
 	
 	t2tab3.ThirdPersonEditor = vgui.Create("DButton", t2tab3)
@@ -2547,21 +2746,15 @@ function DRCMenu( player )
 	]] )
 				
 	local mt4 = vgui.Create( "DPanel", maintabs )
-	mt4:SetBackgroundColor(Color(255, 255, 255, 10))
+	mt4:SetBackgroundColor(Color(255, 255, 255, 0))
 	maintabs:AddSheet( "Debug & Dev Tools", mt4, "icon16/folder_bug.png")
 	
 	local t4tabs = vgui.Create("DPropertySheet", mt4)
 	t4tabs:Dock(FILL)
 	t4tabs:SetPadding(0)
-	t4tabs.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-	end
 	
 	local t4tab1 = vgui.Create( "DPanel" )
-	t4tab1:Dock(FILL)
-	t4tab1.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-	end
+	t4tab1:SetBackgroundColor(uicols.invis)
 	t4tabs:AddSheet( "Debug Information", t4tab1, "icon16/information.png")
 	
 	local debug_gameinfo = vgui.Create( "DPanel", t4tab1)
@@ -2709,8 +2902,8 @@ function DRCMenu( player )
 	ControlsTitle:SetFont("DermaLarge")
 	DebugInfo:SetPos(25, 10)
 	DebugInfo:SetSize(400, 20)
-	DebugInfo:SetText("HDR Support						| Hardware: ".. tostring(render.SupportsHDR()) .." / Map: ".. tostring(render.GetHDREnabled()) .."")
-	DebugInfo:SetColor(TextCol)
+	DebugInfo:SetText("HDR Support                        | Hardware: ".. tostring(render.SupportsHDR()) .." / Map: ".. tostring(render.GetHDREnabled()) .."")
+	DebugInfo:SetDark(true)
 	
 	local gbranch = BRANCH
 	if gbranch == "unknown" then gbranch = "Main" end
@@ -2746,13 +2939,13 @@ function DRCMenu( player )
 --		["snd_mixahead"] = {					22, "Asynchronous Mix Time", 0.1, false, "snd_mixahead\nLeave this at its default of 0.1.\nAmount of time (0.1 = 100ms) to dedicate to mixing asynchronous audio.\nSet this too low and audio begins to break, set it too high and audio goes back to synchronous processing."},
 		["gmod_mcore_test"] = {					22, "Gmod Multicore", 1, false, "gmod_mcore_test\n0 or 1 (Recommended: 1)\nEnable multicore processing, providing a significant performance increase most of the time."},
 		["cl_threaded_bone_setup"] = {			23, "Threaded Bones", 1, false, "cl_threaded_bone_setup\n0 or 1 (Recommended: 1)\nEnable multithreaded processing of gmod-lua bone transformations."},
-		["cl_threaded_client_leaf_system"] = {	24, "Threaded VisLeafs", 1, false, "cl_threaded_client_leaf_system\n0 or 1 (Recommended: 1)\nEnable multithreaded processing of visleaf-related computations."},
-		["mat_queue_mode"] = {					25, "Threaded Materials", 1, false, "mat_queue_mode\n-1, 0, 1, or 2 (Recommended: 2)\nEnables the following:\n- Multithreaded processing of materials with engine-programming effects such as material proxies.\n- Enables materials being cached for the fist time to be done on multiple threads.\n\n-1: Automatic detection (unreliable)\n0: Synchronus single thread\n1: Single-threaded computation\n2: Multithreaded computation"},
-		["r_threaded_particles"] = {			26, "Threaded Particles", 1, false, "r_threaded_particles\n-1, 0 or 1 (Recommended: 1)\nEnable multithreaded processing of particle computations."},
-		["r_threaded_client_shadow_manager"] = {27, "Threaded Shadows", 1, false, "r_threaded_client_shadow_manager\n-1, 0 or 1 (Recommended: 1)\nNobody seems to know fully what this does, best guesses are that it's a leftover from old-engine,\nas it has nothing tied to it in SDK 2013+. Everyone turns it to 1 just to be safe with no adverse effect."},
-		["r_threaded_renderables"] = {			28, "Threaded Renderables", 1, false, "r_threaded_renderables\n-1, 0 or 1 (Recommended: 1)\nFrom mastercomfig's TF2 configs: ''Asynchronously set up bones on animated entities''."},
-		["r_queued_ropes"] = {					29, "Materialized Ropes", 1, false, "r_queued_ropes\n-1, 0 or 1 (Recommended: 1)\nWhen set to 1, this will make the engine treat ropes as materials, offloading their rendering operations to the GPU instead of the CPU."},
-		["r_occludermincount"] = {				30, "Minimum Occluders", 1, false, "r_occludermincount\n0 to ??? (Recommended: 1)\nForces the game to always have at least one occlusion cull, preventing stuff from being drawn that otherwise shouldn't be when off-screen."},
+--		["cl_threaded_client_leaf_system"] = {	24, "Threaded VisLeafs", 1, false, "cl_threaded_client_leaf_system\n0 or 1 (Recommended: 1)\nEnable multithreaded processing of visleaf-related computations."},
+		["mat_queue_mode"] = {					24, "Threaded Materials", 1, false, "mat_queue_mode\n-1, 0, 1, or 2 (Recommended: 2)\nEnables the following:\n- Multithreaded processing of materials with engine-programming effects such as material proxies.\n- Enables materials being cached for the fist time to be done on multiple threads.\n\n-1: Automatic detection (unreliable)\n0: Synchronus single thread\n1: Single-threaded computation\n2: Multithreaded computation"},
+		["r_threaded_particles"] = {			25, "Threaded Particles", 1, false, "r_threaded_particles\n-1, 0 or 1 (Recommended: 1)\nEnable multithreaded processing of particle computations."},
+--		["r_threaded_client_shadow_manager"] = {27, "Threaded Shadows", 1, false, "r_threaded_client_shadow_manager\n-1, 0 or 1 (Recommended: 1)\nNobody seems to know fully what this does, best guesses are that it's a leftover from old-engine,\nas it has nothing tied to it in SDK 2013+. Everyone turns it to 1 just to be safe with no adverse effect."},
+--		["r_threaded_renderables"] = {			28, "Threaded Renderables", 1, false, "r_threaded_renderables\n-1, 0 or 1 (Recommended: 1)\nFrom mastercomfig's TF2 configs: ''Asynchronously set up bones on animated entities''."},
+		["r_queued_ropes"] = {					26, "Materialized Ropes", 1, false, "r_queued_ropes\n-1, 0 or 1 (Recommended: 1)\nWhen set to 1, this will make the engine treat ropes as materials, offloading their rendering operations to the GPU instead of the CPU."},
+		["r_occludermincount"] = {				27, "Minimum Occluders", 1, false, "r_occludermincount\n0 to ??? (Recommended: 1)\nForces the game to always have at least one occlusion cull, preventing stuff from being drawn that otherwise shouldn't be when off-screen."},
 	}
 	
 	for k,v in pairs(convars) do
@@ -2772,9 +2965,10 @@ function DRCMenu( player )
 		end
 	
 		t4tab1[k] = vgui.Create("DLabel", t4tab1)
-		t4tab1[k]:SetPos(25, 10 + (15*v[1]))
+		t4tab1[k]:SetPos(25, 10 + (18*v[1]))
 		t4tab1[k]:SetSize(300, 20)
 		t4tab1[k]:SetText("".. v[2] .."")
+		t4tab1[k]:SetDark(true)
 		
 		local col = Color(0, 255, 0)
 		if !IsGud(GetConVar(k):GetFloat()) then col = Color(255, 0, 0) end
@@ -2782,12 +2976,12 @@ function DRCMenu( player )
 		
 		local str = "".. k .."_value"
 		t4tab1[str] = vgui.Create("DLabel", t4tab1)
-		t4tab1[str]:SetPos(160, 10 + (15*v[1]))
+		t4tab1[str]:SetPos(160, 10 + (18*v[1]))
 		t4tab1[str]:SetSize(300, 20)
 		t4tab1[str]:SetText("| ".. math.Round(GetConVar(k):GetFloat(), 2) .."")
 		t4tab1[str]:SetColor(col)
 		
-		MakeHint(t4tab1, 3, 10 + (15*v[1]), v[5])
+		MakeHint(t4tab1, 3, 10 + (18*v[1]), v[5])
 	end
 	
 	t4tab1.copy = vgui.Create("DButton", t4tab1)
@@ -2795,7 +2989,7 @@ function DRCMenu( player )
 	t4tab1.copy:SetSize(200, 20)
 	t4tab1.copy:SetText("Copy optimal configs to clipboard")
 	t4tab1.copy.DoClick = function()
-		SetClipboardText("r_radiosity 3\nr_ambientmin 0\nr_shadows 1\nr_flashlightdepthres 8192\nr_flashlightdepthtexture 1\nr_projectedtexture_filter 0.1\nr_shadow_allowdynamic 1\nr_shadow_allowbelow 1\nmat_specular 1\nmat_motion_blur_enabled 1\nmat_motion_blur_strength 0\ndsp_enhance_stereo 1\nsnd_mix_async 0\ngmod_mcore_test 1\ncl_threaded_bone_setup 1\ncl_threaded_client_leaf_system 1\nmat_queue_mode 2\nr_threaded_particles 1\nr_threaded_client_shadow_manager 1\nr_threaded_renderables 1\nr_queued_ropes 1\nr_occludermincount 1")
+		SetClipboardText("r_radiosity 3\nr_ambientmin 0\nr_shadows 1\nr_flashlightdepthres 8192\nr_flashlightdepthtexture 1\nr_projectedtexture_filter 0.1\nr_shadow_allowdynamic 1\nr_shadow_allowbelow 1\nmat_specular 1\nmat_motion_blur_enabled 1\nmat_motion_blur_strength 0\ndsp_enhance_stereo 1\nsnd_mix_async 0\ngmod_mcore_test 1\ncl_threaded_bone_setup 1\nmat_queue_mode 2\nr_threaded_particles 1\nr_queued_ropes 1\nr_occludermincount 1")
 	end
 
 --[[	
@@ -2815,10 +3009,7 @@ function DRCMenu( player )
 	]]
 	
 	local t4tab2 = vgui.Create( "DPanel" )
-	t4tab2:Dock(FILL)
-	t4tab2.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-	end
+	t4tab2:SetBackgroundColor(uicols.invis)
 	t4tabs:AddSheet( "Development Tools", t4tab2, "icon16/bomb.png")
 	
 	local t4tab2panel_left = vgui.Create("DPanel", t4tab2)
@@ -2840,7 +3031,7 @@ function DRCMenu( player )
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Debug mode enabled (Requires sv_drc_allowdebug 1)" )
 	DebugSetting:SetConVar( "cl_drc_debugmode" )
-	DebugSetting.Label:SetColor(TextCol)
+	DebugSetting.Label:SetDark(true)
 	DebugSetting:SetEnabled(true)
 	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2848,7 +3039,7 @@ function DRCMenu( player )
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Legacy ''DSB Debug Assistant''" )
 	DebugSetting:SetConVar( "cl_drc_debug_legacyassistant" )
-	DebugSetting.Label:SetColor(TextCol)
+	DebugSetting.Label:SetDark(true)
 	DebugSetting:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 200, 55, "The OG debugging UI to display debug info.\nI just don't have the heart to remove it.")
@@ -2858,7 +3049,7 @@ function DRCMenu( player )
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Invert near/far sound effects" )
 	DebugSetting:SetConVar( "cl_drc_debug_invertnearfar" )
-	DebugSetting.Label:SetColor(TextCol)
+	DebugSetting.Label:SetDark(true)
 	DebugSetting:SetEnabled(true)
 	
 	local DebugSetting = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2866,7 +3057,7 @@ function DRCMenu( player )
 	DebugSetting:SetSize(500, 20)
 	DebugSetting:SetText( "Show viewmodel attachments" )
 	DebugSetting:SetConVar( "cl_drc_debug_vmattachments" )
-	DebugSetting.Label:SetColor(TextCol)
+	DebugSetting.Label:SetDark(true)
 	DebugSetting:SetEnabled(true)
 	
 	t4tab2panel_left.Hitboxes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2874,7 +3065,7 @@ function DRCMenu( player )
 	t4tab2panel_left.Hitboxes:SetSize(500, 20)
 	t4tab2panel_left.Hitboxes:SetText( "Hitbox Renderer" )
 	t4tab2panel_left.Hitboxes:SetConVar( "cl_drc_debug_hitboxes" )
-	t4tab2panel_left.Hitboxes.Label:SetColor(TextCol)
+	t4tab2panel_left.Hitboxes.Label:SetDark(true)
 	t4tab2panel_left.Hitboxes:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 115, "Continuously renders your own hitboxes while not in first person.\nAlso renders hitboxes of whatever you are looking at.")
@@ -2884,7 +3075,7 @@ function DRCMenu( player )
 	t4tab2panel_left.Tracelines:SetSize(500, 20)
 	t4tab2panel_left.Tracelines:SetText( "TraceLine Renderer" )
 	t4tab2panel_left.Tracelines:SetConVar( "cl_drc_debug_tracelines" )
-	t4tab2panel_left.Tracelines.Label:SetColor(TextCol)
+	t4tab2panel_left.Tracelines.Label:SetDark(true)
 	t4tab2panel_left.Tracelines:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 135, "Renders TraceLines used by the Draconic Base.\nServer-sided traces will only render in singleplayer.\n\nWhite = Undefined/generic\nRed = Harmful hit connection\nYellow = DRC:TraceDir() trace.\nBlue = DRC:FloorDist() trace.")
@@ -2894,7 +3085,7 @@ function DRCMenu( player )
 	t4tab2panel_left.Lights:SetSize(500, 20)
 	t4tab2panel_left.Lights:SetText( "Light Visualizer" )
 	t4tab2panel_left.Lights:SetConVar( "cl_drc_debug_lights" )
-	t4tab2panel_left.Lights.Label:SetColor(TextCol)
+	t4tab2panel_left.Lights.Label:SetDark(true)
 	t4tab2panel_left.Lights:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 155, "Visualizes lights created by the Draconic Base.\nThe outer circle shows the radius of the light.")
@@ -2904,7 +3095,7 @@ function DRCMenu( player )
 	t4tab2panel_left.CubemapRenderer:SetSize(500, 20)
 	t4tab2panel_left.CubemapRenderer:SetText( "Cubemap Renderer" )
 	t4tab2panel_left.CubemapRenderer:SetConVar( "cl_drc_debug_cubemaps" )
-	t4tab2panel_left.CubemapRenderer.Label:SetColor(TextCol)
+	t4tab2panel_left.CubemapRenderer.Label:SetDark(true)
 	t4tab2panel_left.CubemapRenderer:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 175, "Renders env_cubemap entities.")
@@ -2914,7 +3105,7 @@ function DRCMenu( player )
 	t4tab2panel_left.BoundingBoxes:SetSize(500, 20)
 	t4tab2panel_left.BoundingBoxes:SetText( "Bounds Renderer" )
 	t4tab2panel_left.BoundingBoxes:SetConVar( "cl_drc_debug_bounds" )
-	t4tab2panel_left.BoundingBoxes.Label:SetColor(TextCol)
+	t4tab2panel_left.BoundingBoxes.Label:SetDark(true)
 	t4tab2panel_left.BoundingBoxes:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 195, "Continuously renders your own collision (yellow) & render (purple) bounds while not in first person.\nAlso renders bounds of whatever you are looking at.")
@@ -2924,7 +3115,7 @@ function DRCMenu( player )
 	t4tab2panel_left.CubeFallback:SetSize(500, 20)
 	t4tab2panel_left.CubeFallback:SetText( "Cubemap fallbacks" )
 	t4tab2panel_left.CubeFallback:SetConVar( "cl_drc_debug_cubefallbacks" )
-	t4tab2panel_left.CubeFallback.Label:SetColor(TextCol)
+	t4tab2panel_left.CubeFallback.Label:SetDark(true)
 	t4tab2panel_left.CubeFallback:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 215, "Forces Draconic Base ''ReflectionTint'' proxies to act as if the current map has no envmaps, using their fallback settings.")
@@ -2934,7 +3125,7 @@ function DRCMenu( player )
 	t4tab2panel_left.HideShaderFixes:SetSize(500, 20)
 	t4tab2panel_left.HideShaderFixes:SetText( "Hide ''fixers''" )
 	t4tab2panel_left.HideShaderFixes:SetConVar( "cl_drc_debug_hideshaderfixes" )
-	t4tab2panel_left.HideShaderFixes.Label:SetColor(TextCol)
+	t4tab2panel_left.HideShaderFixes.Label:SetDark(true)
 	t4tab2panel_left.HideShaderFixes:SetEnabled(true)
 	
 	MakeHint(t4tab2panel_left, 150, 235, "Hides the effects of all ReflectionTint and ScalingRimLight material proxies, showing what assets would look like without them.")
@@ -2952,7 +3143,7 @@ function DRCMenu( player )
 	t4tab2panel_left.DrawPortals:SetSize(500, 20)
 	t4tab2panel_left.DrawPortals:SetText( "Draw Portals (r_DrawPortals)" )
 	t4tab2panel_left.DrawPortals:SetConVar( "r_DrawPortals" )
-	t4tab2panel_left.DrawPortals.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawPortals.Label:SetDark(true)
 	t4tab2panel_left.DrawPortals:SetEnabled(true)
 	
 	t4tab2panel_left.DrawBrushes = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2960,7 +3151,7 @@ function DRCMenu( player )
 	t4tab2panel_left.DrawBrushes:SetSize(500, 20)
 	t4tab2panel_left.DrawBrushes:SetText( "Draw Clips (r_drawclipbrushes)" )
 	t4tab2panel_left.DrawBrushes:SetConVar( "r_drawclipbrushes" )
-	t4tab2panel_left.DrawBrushes.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawBrushes.Label:SetDark(true)
 	t4tab2panel_left.DrawBrushes:SetEnabled(true)
 	
 	t4tab2panel_left.DrawEntityMessages = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2968,7 +3159,7 @@ function DRCMenu( player )
 	t4tab2panel_left.DrawEntityMessages:SetSize(500, 20)
 	t4tab2panel_left.DrawEntityMessages:SetText( "Draw Entity Messages (ent_messages_draw)" )
 	t4tab2panel_left.DrawEntityMessages:SetConVar( "ent_messages_draw" )
-	t4tab2panel_left.DrawEntityMessages.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawEntityMessages.Label:SetDark(true)
 	t4tab2panel_left.DrawEntityMessages:SetEnabled(true)
 	
 	t4tab2panel_left.DrawLightInfo = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2976,7 +3167,7 @@ function DRCMenu( player )
 	t4tab2panel_left.DrawLightInfo:SetSize(500, 20)
 	t4tab2panel_left.DrawLightInfo:SetText( "Draw Light Info (r_drawlightinfo)" )
 	t4tab2panel_left.DrawLightInfo:SetConVar( "r_drawlightinfo" )
-	t4tab2panel_left.DrawLightInfo.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawLightInfo.Label:SetDark(true)
 	t4tab2panel_left.DrawLightInfo:SetEnabled(true)
 	
 	t4tab2panel_left.DrawLightInfo = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2984,7 +3175,7 @@ function DRCMenu( player )
 	t4tab2panel_left.DrawLightInfo:SetSize(500, 20)
 	t4tab2panel_left.DrawLightInfo:SetText( "Draw Render Bounds (r_drawrenderboxes)" )
 	t4tab2panel_left.DrawLightInfo:SetConVar( "r_drawrenderboxes" )
-	t4tab2panel_left.DrawLightInfo.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawLightInfo.Label:SetDark(true)
 	t4tab2panel_left.DrawLightInfo:SetEnabled(true)
 	
 	t4tab2panel_left.DrawLightInfo = vgui.Create( "DCheckBoxLabel", t4tab2panel_left )
@@ -2992,7 +3183,7 @@ function DRCMenu( player )
 	t4tab2panel_left.DrawLightInfo:SetSize(500, 20)
 	t4tab2panel_left.DrawLightInfo:SetText( "Draw Soundscapes (soundscape_debug)" )
 	t4tab2panel_left.DrawLightInfo:SetConVar( "soundscape_debug" )
-	t4tab2panel_left.DrawLightInfo.Label:SetColor(TextCol)
+	t4tab2panel_left.DrawLightInfo.Label:SetDark(true)
 	t4tab2panel_left.DrawLightInfo:SetEnabled(true)
 	
 	local DebugSetting = vgui.Create( "DLabel", t4tab2panel_left)
@@ -3082,10 +3273,7 @@ function DRCMenu( player )
 	end
 	
 	local t4tab3 = vgui.Create( "DPanel" )
-	t4tab2:Dock(FILL)
-	t4tab2.Paint = function(self, w, h)
-		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-	end
+	t4tab3:SetBackgroundColor(uicols.invis)
 	t4tabs:AddSheet( "Draconic Wiki", t4tab3, "icon16/book_link.png")
 	
 	local wiki = vgui.Create("DHTML", t4tab3)

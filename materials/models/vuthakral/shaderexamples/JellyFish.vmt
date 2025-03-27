@@ -1,0 +1,16 @@
+JellyFish
+{
+	$basetexture	"models\vuthakral\black-0"
+	$gradienttexture	"models\vuthakral\shaderexamples\jellyfish_gradient"
+	
+	$model	1
+
+	$pulserate	0.5
+
+	$envmap		"env_cubemap"
+
+	Proxies
+	{
+		drc_ReflectionTint{}
+	}
+}

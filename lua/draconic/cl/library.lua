@@ -121,10 +121,13 @@ net.Receive("DRC_UpdatePlayermodel", function()
 	local bgs = tbl.bodygroups
 	local colours = tbl.colours
 	local model = tbl.model
+	local camo = tbl.camo
 	
 	if !IsValid(ent) then return end
 	ent:SetModel(model)
 	ent:SetSkin(skin)
+	DRC:RefreshCamoMats(ent, true)
+	DRC:SetCamo(ent, camo, "automatic")
 	for k,v in pairs(bgs) do
 		ent:SetBodygroup(k-1, v)
 	end
@@ -214,6 +217,10 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 			print("Disabling motion blur will break addons' effects. Setting mat_motion_blur_strength to 0 instead...")
 			LocalPlayer():ConCommand("mat_motion_blur_enabled 1")
 			LocalPlayer():ConCommand("mat_motion_blur_strength 0")
+		end
+		if GetConVar("cl_drc_sell_soul"):GetInt() != 1 then 
+			LocalPlayer():ConCommand("cl_drc_sell_soul 1")
+			DRC:Notify(nil, "hint", "critical", "You aren't getting your soul back THAT easily...", NOTIFY_ERROR, 10)
 		end
 	end
 end)
@@ -358,8 +365,9 @@ local HideHUDElements = {
 	["CHudGMod"] = "E",
 }
 hook.Add("HUDShouldDraw", "DRC_Camera", function(n)
-	if !IsValid(LocalPlayer()) or !IsValid(LocalPlayer():GetActiveWeapon()) then return end
-	if LocalPlayer():GetActiveWeapon():GetClass() != "drc_camera" then return end
+	local ply = LocalPlayer()
+	if !IsValid(ply) or !ply:Alive() or !IsValid(ply:GetActiveWeapon()) then return end
+	if ply:GetActiveWeapon():GetClass() != "drc_camera" then return end
 	if HideHUDElements[n] then return false end
 end)
 
@@ -822,6 +830,7 @@ end)
 
 local function CalcViewChecks(ply)
 	if !IsValid(ply) then return false end
+	if !ply:Alive() then return end
 	if ThirdPersonModEnabled(ply) then return false end
 --	if game.IsDedicated() then return false end
 	if DRC.SV.drc_viewdrag != 1 then return false end
@@ -833,6 +842,7 @@ local function CalcViewChecks(ply)
 	if wpn:GetClass() == "drc_camera" then return false end
 	if wpn.Draconic == nil then return false end
 	if wpn.IsMelee == true then return false end
+	if wpn.CameraDrag == false then return false end
 	
 	return true
 end
@@ -848,6 +858,10 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 		local pos = Vector(0, drc_vmapos.y, drc_vmapos.z)
 		local oang = drc_vmaangle
 		
+		local rft = 0.005
+		local ft = RealFrameTime()
+		if ft < rft then rft = ft end -- Effect has a stroke if using a lerp value outside range of player's current framerate.
+		
 		if GetConVar("cl_drc_lowered_crosshair"):GetFloat() == 1 then
 			DRC.CrosshairAngMod = Angle(-8, 0, 0)
 		else
@@ -855,23 +869,23 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 		end
 		
 		if sights == true or (ply:GetCanZoom() == true && ply:KeyDown(IN_ZOOM)) then
-			drc_vm_sightpow = Lerp(FrameTime() * 25, drc_vm_sightpow or 1, 0)
+			drc_vm_sightpow = Lerp(rft * 25, drc_vm_sightpow or 1, 0)
 		else
-			drc_vm_sightpow = Lerp(FrameTime() * 25, drc_vm_sightpow or 0, 1)
+			drc_vm_sightpow = Lerp(rft * 25, drc_vm_sightpow or 0, 1)
 		end
 		
 		if sights == true then
-			drc_vm_sightpow_inv = Lerp(FrameTime() * 25, drc_vm_sightpow_inv or 0, 1)
+			drc_vm_sightpow_inv = Lerp(rft * 25, drc_vm_sightpow_inv or 0, 1)
 		else
-			drc_vm_sightpow_inv = Lerp(FrameTime() * 25, drc_vm_sightpow_inv or 1, 0)
+			drc_vm_sightpow_inv = Lerp(rft * 25, drc_vm_sightpow_inv or 1, 0)
 		end
 		
 		drc_crosshair_pitchmod = Angle(wpn.Secondary.ScopePitch, 0, 0) * drc_vm_sightpow_inv
 		
 		if wpn.Loading == false && wpn.Inspecting == false then
-			drc_vm_lerpang = Angle(oang.x, oang.y, Lerp(FrameTime() * drc_vm_angmedian, drc_vm_lerpang.z or 0, 0))
+			drc_vm_lerpang = Angle(oang.x, oang.y, Lerp(rft * drc_vm_angmedian, drc_vm_lerpang.z or 0, 0))
 		else
-			drc_vm_lerpang = LerpAngle(FrameTime(), oang or Angle(0, 0, 0), oang)
+			drc_vm_lerpang = LerpAngle(rft, oang or Angle(0, 0, 0), oang)
 		end
 		
 		local swepmul = 50
@@ -892,46 +906,46 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 			["firing"] = wpn.CameraAngleMulFiring or wpn.CameraAngleMulIdle
 		}
 		
-		drc_vm_lerppos = Vector(Lerp(FrameTime() * 25, 0 or pos.x, 0), Lerp(FrameTime() * 25, 0 or pos.y, 0), Lerp(FrameTime() * 25, 0 or pos.z, 0))
+		drc_vm_lerppos = Vector(Lerp(rft * 25, 0 or pos.x, 0), Lerp(rft * 25, 0 or pos.y, 0), Lerp(rft * 25, 0 or pos.z, 0))
 		if loading == true && !firing then
 			local val = swepmul * swepmuls.reload
 			drc_vm_angmul = angmuls.reload
-			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+			drc_vm_lerpdivval = Lerp(rft * 5, drc_vm_lerpdivval or val, val)
 		elseif firing && !loading then
 			local val = swepmul * swepmuls.idle
 			drc_vm_angmul = angmuls.firing
-			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+			drc_vm_lerpdivval = Lerp(rft * 5, drc_vm_lerpdivval or val, val)
 		elseif melee == true then
 			local val = swepmul * swepmuls.melee
 				drc_vm_angmul = angmuls.melee
-			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+			drc_vm_lerpdivval = Lerp(rft * 5, drc_vm_lerpdivval or val, val)
 		elseif inspecting == true then
 			local val = swepmul * swepmuls.inspect
 			drc_vm_angmul = angmuls.inspect
-			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+			drc_vm_lerpdivval = Lerp(rft * 5, drc_vm_lerpdivval or val, val)
 		elseif !loading && !inspecting && idle then
 			local val = swepmul * swepmuls.idle
 			drc_vm_angmul = angmuls.idle
-			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+			drc_vm_lerpdivval = Lerp(rft * 5, drc_vm_lerpdivval or val, val)
 		elseif !loading && !inspecting && !idle then
 			local val = swepmul * swepmuls.move
 			drc_vm_angmul = angmuls.move
-			drc_vm_lerpdivval = Lerp(FrameTime() * 5, drc_vm_lerpdivval or val, val)
+			drc_vm_lerpdivval = Lerp(rft * 5, drc_vm_lerpdivval or val, val)
 		end
 		
 		if wpn.SightsDown == true or (wpn.Loading == false && wpn.Inspecting == false && wpn.Idle == 1) then
-			local fr = math.Round(1 / FrameTime())
+			local fr = math.Round(1 / rft)
 			
 			if ply:KeyDown(IN_SPEED) or wpn.SightsDown == true then
 				drc_vm_lerpang_final = Angle(0, 0, 0)
 			else
-				drc_vm_lerpang_final = LerpAngle(FrameTime() * drc_vm_angmedian, drc_vm_lerpang_final or Angle(0, 0, 0), drc_vm_lerpang)
+				drc_vm_lerpang_final = LerpAngle(rft * drc_vm_angmedian, drc_vm_lerpang_final or Angle(0, 0, 0), drc_vm_lerpang)
 			end
 		else
-			drc_vm_lerpang_final = LerpAngle(FrameTime() * drc_vm_angmedian, drc_vm_lerpang_final or drc_vm_lerpang, drc_vm_lerpang) * 1
+			drc_vm_lerpang_final = LerpAngle(rft * drc_vm_angmedian, drc_vm_lerpang_final or drc_vm_lerpang, drc_vm_lerpang) * 1
 		end
 		
-		drc_vm_lerpdiv = Lerp(FrameTime() * 5, drc_vm_lerpdiv or drc_vm_lerpdivval, drc_vm_lerpdivval)
+		drc_vm_lerpdiv = Lerp(rft * 5, drc_vm_lerpdiv or drc_vm_lerpdivval, drc_vm_lerpdivval)
 		
 		if wpn.IsMelee == false && !attachment then return end
 
@@ -988,6 +1002,7 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 					local sightkill = 0
 					if sd == true then sightkill = 0 else sightkill = 1 end
 					if !wpn.dang then wpn.dang = Angle() end
+					if !wpn.proxydang then wpn.proxydang = Angle() end
 					if !wpn.oang then wpn.oang = Angle() end
 					if !wpn.LLTime then wpn.LLTime = 0 end
 					
@@ -1016,6 +1031,8 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 						xval = 0
 					end
 					
+				--	rollval = rollval + DRC.MoveInfo.Mouse[1]*0.05
+					
 					if ply:KeyDown(IN_FORWARD) then
 						yval = 1
 					elseif ply:KeyDown(IN_BACK) then
@@ -1030,7 +1047,7 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 						end
 					end
 					
-					local rft = RealFrameTime()
+					local rft = FrameTime()
 					rollval_lerp = Lerp(rft*5, rollval_lerp or rollval, rollval)
 					drc_xval_lerp = Lerp(rft*10, drc_xval_lerp or xval, xval)
 					drc_yval_lerp = Lerp(rft*10, drc_yval_lerp or yval, yval)
@@ -1051,15 +1068,16 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 					vm:SetPoseParameter("drc_move_y", drc_yval_lerp)
 					
 					local holdang = LocalPlayer():EyeAngles()
-					wpn.dang = LerpAngle((wpn.SS/15), wpn.dang, holdang - wpn.oang)
+					local inputang = Angle(DRC.MoveInfo.Mouse[2], -DRC.MoveInfo.Mouse[1], 0)*0.05
+					wpn.dang = LerpAngle((wpn.SS * 0.05), wpn.dang, inputang)--holdang - wpn.oang)
+					wpn.proxydang = LerpAngle((wpn.SS * 0.05), wpn.proxydang, inputang)
 					if RealTime() > wpn.LLTime + (FrameTime() * 0.001) then
 						wpn.LLTime = RealTime()
 						wpn.oang = LocalPlayer():EyeAngles()
-						wpn.dang = wpn.dang * sightkill
+						wpn.dang = wpn.dang * (1-wpn.SightInt)
 					end
 					
 					if sd then wpn.dang = wpn.dang * 0.85 end
-				--	if GetConVar("cl_drc_sway"):GetInt() < 1 then wpn.dang = Angle(0, 0, 0) end
 					
 					local dynang = Angle(wpn.dang.x * -wpn.SS/1.25, wpn.dang.y * wpn.SS/2, wpn.dang.z + rollval_lerp)*2
 
@@ -1103,12 +1121,11 @@ local hightypes = { "rpg" }
 local meleetypes = { "melee", "knife", "grenade", "slam" }
 local meleetwohand = { "melee2" }
 local handguns = { "pistol", "revolver" }
-	
-function DRCSwepOffset(wpn, vm)
-	if !wpn.Draconic then return end
-	local ply = LocalPlayer()
+
+local function GetBaseOffsets(wpn, setpos, setangle)
+	local ply = wpn:GetOwner()
 	local DrcGlobalVMOffset = Vector(GetConVar("cl_drc_vmoffset_x"):GetFloat(), GetConVar("cl_drc_vmoffset_y"):GetFloat(), GetConVar("cl_drc_vmoffset_z"):GetFloat())
-	
+
 	local offs = {
 		["null"] = {Vector(), Vector()},
 		["base"] = {wpn.VMPos, wpn.VMAng},
@@ -1129,14 +1146,24 @@ function DRCSwepOffset(wpn, vm)
 	local inspect = wpn:GetNWBool("Inspecting") && DRC.SV.drc_inspections >= 1
 	lerppower = FrameTime() * 7
 	if DRC.SV.drc_force_sprint == 2 then sprint = false end
-	
-	if sprint then passive = false end
-	
+	local sd = wpn.SightsDown
 	local mul2 = 1
 	if cv && !sd then offs.base = offs.crouch mul2=0.25 end
 	
+	if osd != sd then
+		osd = sd
+		if sd == true then Bump(Vector(-2.5, 0, -1), Vector(0, -5, -15), 1) end
+	end
+	
+	local irpos, irang
+	if sd then irpos = offs.iron[1] + bump irang = offs.iron[2] + bumpang
+	else irpos = offs.base[1] + bump + DrcGlobalVMOffset irang = offs.base[2] + bumpang end
+	if !irpos or !irang then return end
+	irposlerp = LerpVector(lerppower*1.5, irposlerp or irpos, irpos)
+	iranglerp = LerpVector(lerppower, iranglerp or irang, irang)
+	
 	if sprint then sprpos = offs.sprint[1] + offs.base[1] sprang = offs.sprint[2] + offs.base[2]
-	else sprpos = offs.base[1] sprang = offs.base[2] end
+	else sprpos = offs.null[1] sprang = offs.null[2] end
 	if !sprpos or !sprang then return end
 	sprposlerp = LerpVector(lerppower*mul2, sprposlerp or sprpos, sprpos)
 	spranglerp = LerpVector(lerppower*0.75*mul2, spranglerp or sprang, sprang)
@@ -1165,6 +1192,44 @@ function DRCSwepOffset(wpn, vm)
 	insposlerp = LerpVector(lerppower*0.7, insposlerp or inspos, inspos)
 	insanglerp = LerpVector(lerppower*0.5, insanglerp or insang, insang)
 	
+	local p = irposlerp + sprposlerp + passposlerp + insposlerp
+	local a = iranglerp + spranglerp + passanglerp + insanglerp
+	
+	wpn.DynOffsetPos = p
+	
+	if !wpn.dynmove then wpn.dynmove = {["Ang"] = Angle(), ["Pos"] = Vector(), ["Roll"] = 0} end
+	if setangle == true then
+		wpn.DynOffsetAng = a
+		wpn.dynmove.Ang = a
+		wpn.dang = Angle(a)
+	end
+	wpn.dynmove.Pos = p
+	wpn.dynmove.Roll = 0
+	
+	
+	return p, a
+end
+	
+function DRCSwepOffset(wpn, vm)
+	if !wpn.Draconic then return end
+	local ply = LocalPlayer()
+	local DrcGlobalVMOffset = Vector(GetConVar("cl_drc_vmoffset_x"):GetFloat(), GetConVar("cl_drc_vmoffset_y"):GetFloat(), GetConVar("cl_drc_vmoffset_z"):GetFloat())
+	
+	local bpos, bang = GetBaseOffsets(wpn, true, false)
+	
+	local cv = ply:Crouching()
+	local ea = ply:EyeAngles()
+	local sd = wpn.SightsDown
+	local sk = ply:KeyDown(IN_SPEED)
+	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
+	local sprint = sk && mk && (wpn.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1)
+	local passive = wpn:GetNWBool("Passive", false) && DRC.SV.drc_passives >= 1
+	local inspect = wpn:GetNWBool("Inspecting") && DRC.SV.drc_inspections >= 1
+	lerppower = FrameTime() * 7
+	if DRC.SV.drc_force_sprint == 2 then sprint = false end
+	
+	if sprint then passive = false end
+	
 	local POX = (ea.x / 135)
 	local POY = (ea.x / 100 * 5)
 	local POZ = (ea.x / -45)
@@ -1173,8 +1238,8 @@ function DRCSwepOffset(wpn, vm)
 	wpn.VAPos = Vector(POX, POY, POZ)
 	wpn.VAAng = Vector(AOX, 0, 0)
 
-	wpn.VARPos = LerpVector(wpn.MulI, -wpn.VMPos / 255, wpn.VAPos ) * math.Clamp(wpn.PerspectivePower, 0, 1)
-	wpn.VARAng = LerpVector(wpn.MulI, Vector(0, 0, 0), wpn.VAAng ) * math.Clamp(wpn.PerspectivePower, 0, 1)
+	wpn.VARPos = Vector()
+	wpn.VARAng = Vector()
 				
 	wpn.DownCorrectionPos = Vector()
 	wpn.DownCorrectionAng = Vector()
@@ -1183,7 +1248,6 @@ function DRCSwepOffset(wpn, vm)
 	wpn.DownCorrectionAng.y = wpn.DownCorrectionAng.y + math.abs(ea.x / 90) * math.Clamp(wpn.PerspectivePower, 0, 1)
 				
 	local eyepos = ply:EyePos()
-				
 	local walloffset, heft = {}, 10
 	if CTFK(handguns, wpn:GetHoldType()) then
 		heft = 10
@@ -1218,21 +1282,18 @@ function DRCSwepOffset(wpn, vm)
 	wpn.VARPos = wpn.VARPos + wpn.DownCorrectionPos + wallpos
 	wpn.VARAng = wpn.VARAng + wpn.DownCorrectionAng + wallang
 	
+	wpn.VARPos = LerpVector(wpn.SightInt, wpn.VARPos, Vector())
+	wpn.VARAng = LerpVector(wpn.SightInt, wpn.VARAng, Vector())
+	
 	if osd != sd then
 		osd = sd
 		if sd == true then Bump(Vector(-2.5, 0, -1), Vector(0, -5, -15), 1) end
 	end
 	
-	if sd then irpos = offs.iron[1] - offs.base[1] + bump irang = offs.iron[2] - offs.base[2] + bumpang
-	else irpos = offs.null[1] + bump + DrcGlobalVMOffset + wpn.VARPos irang = offs.null[2] + bumpang + wpn.VARAng end
-	if !irpos or !irang then return end
-	irposlerp = LerpVector(lerppower*1.5, irposlerp or irpos, irpos)
-	iranglerp = LerpVector(lerppower, iranglerp or irang, irang)
-	
 	local angpos
 	if wpn.Sway_IsShouldered == true then
 		local mul = wpn.Sway_OffsetPowerPos
-		local x = -wpn.dynmove.Ang.y*0.15 * mul.x
+		local x = wpn.dynmove.Ang.y*0.15 * -mul.x
 		local y = math.abs(wpn.dynmove.Ang.x*0.25) * mul.y
 		local z = -wpn.dynmove.Ang.x*0.05 * mul.z
 		angpos = Vector(x, y, z)
@@ -1245,22 +1306,126 @@ function DRCSwepOffset(wpn, vm)
 	end
 	angpos = angpos
 	
-	local finalpos = sprposlerp + passposlerp + insposlerp + irposlerp + angpos
-	local finalang = spranglerp + passanglerp + insanglerp + iranglerp
 	local dynang = Vector(wpn.dynmove.Ang.x, wpn.dynmove.Ang.y, wpn.dynmove.Ang.z)
 	dynang.x = dynang.x * wpn.Sway_OffsetPowerAng.x
 	dynang.y = dynang.y * wpn.Sway_OffsetPowerAng.y
 	dynang.z = dynang.z * wpn.Sway_OffsetPowerAng.z
-	finalang = finalang + dynang
+	finalang = bang + dynang + wpn.VARAng
 	
-	wpn.DynOffsetPos = finalpos
+	wpn.DynOffsetPos = bpos + wpn.VARPos
 	wpn.DynOffsetAng = finalang
 end
 
+local move, movelerp = 0, 0
+function DRCOldschoolBobbing(wpn, vm, ogpos, ogang, pos, ang)
+	local base, basea = GetBaseOffsets(wpn, false, false)
+	
+	local ply = wpn:GetOwner()
+	local ea = ply:EyeAngles()
+	local vel = ply:GetVelocity():Length()*0.01
+	local sd = wpn.SightsDown
+	local rate, scale = wpn.OldschoolBobRate, wpn.OldschoolBobScale
+	
+	if vel != 0 then move = 1 else move = 0 end
+	movelerp = Lerp(0.95, move or movelerp, movelerp)
+	
+	local x = TimedSin(0.66*rate, 0, 0.5*movelerp*vel, 0.33)
+	local y = TimedSin(0.66*rate, 0, 3*movelerp, 0)
+	local easy = math.ease.InSine(y, 0, 1)*0.5*vel
+	local z = TimedSin(1.32*rate, 0, 0.25*movelerp, 0)
+	local bob = Vector(x, -easy, z) * scale
+	
+	local holdang = LocalPlayer():EyeAngles()
+	if !wpn.oldschooldang then wpn.oldschooldang = Angle() end
+	if !wpn.LLTime then wpn.LLTime = 0 end
+	if !wpn.oang then wpn.oang = Angle() end
+	wpn.oldschooldang = LerpAngle(0.25, wpn.oldschooldang, holdang - wpn.oang)
+	if RealTime() > wpn.LLTime + (FrameTime() * 0.001) then
+		wpn.LLTime = RealTime()
+		wpn.oang = LocalPlayer():EyeAngles()
+	end
+	
+	bob = bob + (Vector(wpn.oldschooldang.y, wpn.oldschooldang.x, wpn.oldschooldang.x) * wpn.OldschoolSwayScale)
+	
+	local irpos
+	if sd then irpos = base else irpos = base + bob end
+	if !irpos then return end
+	irposlerp_oldschool = LerpVector(lerppower*1.5, irposlerp_oldschool or irpos, irpos)
+	
+	local POX = (ea.x / 135)
+	local POY = (ea.x / 90*0.66)
+	local POZ = (ea.x / -45)
+	local AOX = (ea.x / 30)
+	
+	local easpoy = math.ease.InSine(POY, 0, 1)
+	
+	wpn.VAPos = Vector(0, easpoy*5, easpoy)
+	wpn.VARPos = -wpn.VAPos * math.Clamp(wpn.PerspectivePower, 0, 1)
+	wpn.VARPos = LerpVector(wpn.SightInt, wpn.VARPos, Vector())
+	
+	local pos = irposlerp_oldschool + wpn.VARPos
+	
+	wpn.DynOffsetPos = pos
+end
+
+local idlemove, idlemovelerp = 0, 0
+function DRCIdleBobbing(wpn, vm, ogpos, ogang, pos, ang)
+	local base, basea = Vector(), Angle()
+	local rate, scale = wpn.IdleBobRate*0.25, wpn.IdleBobScale
+	if scale == base then return end
+	
+	local ply = wpn:GetOwner()
+	local ea = ply:EyeAngles()
+	local vel = ply:GetVelocity():Length()*0.01
+	local sd = wpn.SightsDown
+	
+	if vel == 0 then idlemove = 1 else idlemove = 0 end
+	idlemovelerp = Lerp(0.95, idlemove or idlemovelerp, idlemovelerp)
+	
+	local x = TimedSin(0.66*rate, 0, 0.5*idlemovelerp, 0.33)
+	local y = TimedSin(0.66*rate, 0, 3*idlemovelerp, 0)
+	local easy = math.ease.InSine(y, 0, 1)*0.5
+	local z = TimedSin(1.32*rate, 0, 0.25*idlemovelerp, 0)
+	local bob = Vector(x, -easy, z) * scale
+	local sway = Vector(x, -easy, z) * wpn.IdleSwayScale
+	
+	bob = bob * scale
+	
+	local irpos
+	if sd then irpos = base else irpos = base + bob end
+	if !irpos then return end
+	irposlerp_idlebob = LerpVector(lerppower*1.5, irposlerp_idlebob or irpos, irpos)
+	
+	local POX = (ea.x / 135)
+	local POY = (ea.x / 90*0.66)
+	local POZ = (ea.x / -45)
+	local AOX = (ea.x / 30)
+	
+	local easpoy = math.ease.InSine(POY, 0, 1)
+	
+	wpn.VAPos = Vector(0, easpoy*5, easpoy)
+	wpn.VARPos = LerpVector(wpn.SightInt, wpn.VARPos, Vector())
+	
+	local pos = irposlerp_idlebob + wpn.VARPos
+	wpn.DynOffsetPos = wpn.DynOffsetPos + bob
+	wpn.DynOffsetAng = wpn.DynOffsetAng + Vector(-sway.x*10, sway.y*10, sway.z)
+end
+
 hook.Add("CalcViewModelView", "DRC_SWEP_Effects", function(wpn, vm, ogpos, ogang, pos, ang)
-	DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
-	DRCSwepOffset(wpn, vm)
-				
+	if IsValid(wpn) && wpn.Draconic == true then
+		local sway, bob = wpn.SwayStyle, wpn.BobStyle
+		if sway == 1 then DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang) DRCSwepOffset(wpn, vm) end
+		
+		if sway == 0 then wpn.SS = 0 GetBaseOffsets(wpn, false, false) end
+		if bob == 0 then wpn.BS = 0 end
+		
+		if sway == 2 then GetBaseOffsets(wpn) end
+		if sway == 3 then wpn.SS = 0 GetBaseOffsets(wpn, false, true) end
+		if bob == 3 then wpn.BS = 0 DRCOldschoolBobbing(wpn, vm, ogpos, ogang, pos, ang) end
+		
+		DRCIdleBobbing(wpn, vm, ogpos, ogang, pos, ang)
+	end
+			
 		--[[		if LocalPlayer():GetInfoNum("cl_drc_testvar_0", 0) == 1 then
 					local function Ease(fr, f, t)
 						return Lerp(math.ease.InOutQuad(fr), f, t)
@@ -1686,11 +1851,6 @@ DRC.Debug.TraceLines = {}
 DRC.Debug.Lights = {}
 DRC.Debug.Sounds = {}
 
-hook.Add("PostDrawTranslucentRenderables", "drc_DebugMenuPM", function()
-	local tgtent = DRC.PlayermodelMenuEnt
-	
-end)
-
 hook.Add("PostDrawTranslucentRenderables", "drc_DebugStuff", function()
 	if DRC.SV.drc_allowdebug == 0 then return end
 	if GetConVar("cl_drc_debugmode"):GetFloat() == 0 then return end
@@ -1839,7 +1999,7 @@ hook.Add("PostDrawTranslucentRenderables", "drc_DebugStuff", function()
 end)
 
 hook.Add("PostDrawTranslucentRenderables", "DRC_LightVolumeRendering", function()
-	if GetConVar("cl_drc_debugmode"):GetFloat() > 0 && GetConVar("cl_drc_debug_lights"):GetFloat() == 1 && DRC:DebugModeAllowed() then
+	if DRC:DebugModeAllowed() && GetConVar("cl_drc_debugmode"):GetFloat() > 0 && GetConVar("cl_drc_debug_lights"):GetFloat() == 1 then
 		for k,v in pairs(DRC.VolumeLights) do
 			local pos, ang, length, width, col, ent, light = v[1], v[2], v[3], v[4]*10, v[5], v[6], v[7]
 			if light.AddAng then ang = ang + light.AddAng end

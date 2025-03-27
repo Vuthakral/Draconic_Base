@@ -13,6 +13,7 @@
 	$cmpower_fb	1
 
 	$slotnum	14
+	$drc_camocolour	""
 	
 	Proxies
 	{

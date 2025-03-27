@@ -54,8 +54,8 @@ end
 
 ENT.ParticleMade = false
 ENT.TargetEntity = nil
+ENT.OffsetPosition = Vector(0,0,0)
 function ENT:Think()
---	self:Remove()
 	if !self.Info then return end
 	
 	self:DoCustomThink(self.Info)
@@ -76,9 +76,11 @@ function ENT:Think()
 	end
 	
 	local ply = LocalPlayer()
+	local tp = DRC:ThirdPersonEnabled(ply)
 	
 	local etu = self.TargetEntity
-	if tgt:IsWeapon() && tgt == ply:GetActiveWeapon() && !DRC:ThirdPersonEnabled(ply) then
+	if etu == ply && tp == false then return end
+	if tgt:IsWeapon() && tgt == ply:GetActiveWeapon() && !tp then
 		attinfo = ply:GetViewModel():GetAttachment(ply:GetViewModel():LookupAttachment(info.attachment))
 		attinfo.Pos = ply:GetActiveWeapon():FormatViewModelAttachment(ply:GetActiveWeapon().ViewModelFOV, attinfo.Pos, false)
 		etu = ply:GetViewModel()
@@ -88,7 +90,7 @@ function ENT:Think()
 		self:SetParent(etu)
 	end
 	
-	if etu:IsPlayer() or etu:IsNPC() && info.attachment == "eyes" then
+	if info.eyeang == true && etu:IsPlayer() or etu:IsNPC() && info.attachment == "eyes" then
 		attinfo.Ang = Angle(etu:EyeAngles().x*0.8, attinfo.Ang.y, attinfo.Ang.z)
 	end
 	

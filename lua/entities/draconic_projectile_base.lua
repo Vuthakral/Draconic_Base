@@ -32,6 +32,7 @@ ENT.Damage 					= 25
 ENT.DamageType				= DMG_GENERIC
 ENT.Force					= 5
 ENT.Gravity					= true
+ENT.GravityArtificial		= Vector()
 ENT.DoesRadialDamage 		= false
 ENT.RadialDamagesOwner		= true
 ENT.ProjectileType 			= "point"
@@ -40,6 +41,7 @@ ENT.ExplosionType			= "hl2"
 ENT.ExplosiveIgnoresCover	= false
 ENT.RemoveInWater			= false
 ENT.AffectedByWater			= true
+ENT.DoNotAffectSimilar		= true
 
 ENT.StickSound = nil
 
@@ -358,6 +360,10 @@ function ENT:PhysicsUpdate()
 		phys:SetVelocity(vel)
 	end
 	
+	if self.GravityArtificial != Vector() then
+		phys:SetVelocity(vel + (self.GravityArtificial * DRC:GetGravityScale()))
+	end
+	
 	if self.Tracking == true then
 		if !IsValid(self:GetOwner()) then return end
 		if !IsValid(self:GetCreator()) then return end
@@ -389,7 +395,7 @@ function ENT:PhysicsUpdate()
 			if self.TrackingSpeed != nil then 
 				phys:SetVelocity(phys:GetAngles():Forward() * self.TrackingSpeed)
 			else
-				phys:SetVelocity(phys:GetAngles():Forward() * self:GetCreator().Primary.ProjSpeed)
+				phys:SetVelocity(phys:GetAngles():Forward() * self.InitialSpeed)
 			end
 		elseif isvector(tgt) then
 			local tr = util.TraceLine({
@@ -406,7 +412,7 @@ function ENT:PhysicsUpdate()
 			ang = Angle(angx, angy, angz)
 			
 			phys:SetAngles(ang)
-			phys:SetVelocity(phys:GetAngles():Forward() * self:GetCreator().Primary.ProjSpeed)
+			phys:SetVelocity(phys:GetAngles():Forward() * self.InitialSpeed)
 		end
 	end
 end
@@ -969,6 +975,36 @@ end
 function ENT:LuaExplodeCustom()
 end
 
+function ENT:ReleasePressure(pressure, radius)
+	if !IsValid(self) then return end
+	if pressure == 0 then return end
+	local pos = self:GetPos()
+
+	local entities = ents.FindInSphere(pos, self.MSRadius)
+	for k,v in pairs(entities) do
+		local class = v:GetClass()
+		local phys = v:GetPhysicsObject()
+		
+		if class == self:GetClass() && self.DoNotAffectSimilar == false && self.Gravity == true then
+			if IsValid(v) && IsValid(phys) then phys:SetVelocity(phys:GetVelocity() + ((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100) / phys:GetMass()) end
+		else
+			if IsValid(phys) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
+				phys:SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
+			elseif DRC:IsCharacter(v) then
+				if class != "npc_strider" && class != "npc_combinegunship" then
+					local tr = util.TraceLine({
+						start = self:GetPos(),
+						endpos = v:GetPos() + v:OBBCenter(),
+						filter = function(ent) if ent != v then return false else return true end end
+					})
+					local dir = tr.Normal:Angle():Forward() * 500
+					v:SetVelocity(dir*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50)
+				end
+			end
+		end
+	end
+end
+
 function ENT:LuaExplode(mode)
 	local pos = self:GetPos()
 	local phys = self:GetPhysicsObject()
@@ -998,57 +1034,37 @@ function ENT:LuaExplode(mode)
 	
 	DRC:RenderSphere(pos, self.MSRadius, Color(255, 0, 0, 100), 2)
 	
-	DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast", self.DynamicSounds, !self.DynamicParticles)
+	if self.MSPressure != 0 then DRC:DynamicParticle(self, self.MSPressure * 30, self.MSPressure * 20, "blast", self.DynamicSounds, !self.DynamicParticles) end
+	
+	self:ReleasePressure(self.MSPressure, self.MSRadius)
 	
 	local entities = ents.FindInSphere(pos, self.MSRadius)
-	for f, v in pairs(entities) do
-	
-	local totaldamage = 0
-	local d1 = (self.MSDamage / (v:GetPos() + Vector(v:OBBCenter().x, v:OBBCenter().y, (v:OBBMaxs().z - (v:OBBMaxs().z/10)))):Distance(pos) * 20) / 2
-	local d2 = (self.MSDamage / (v:GetPos() + v:OBBCenter()):Distance(pos) * 20) / 2
-	totaldamage = d1 + d2
-	
-	local dmg2 = DamageInfo()
-	dmg2:SetDamage(totaldamage)
-	dmg2:SetInflictor(self)
-	dmg2:SetDamageForce(self:EyeAngles():Forward())
-	dmg2:SetDamagePosition(self:GetPos())
-	dmg2:SetDamageType(self.MSDamageType)
-	if !IsValid(owner) then dmg2:SetAttacker(self) else dmg2:SetAttacker(owner) end
-	
-		if v:GetClass() == self:GetClass() then
-			if self.Gravity == true then
-				if v:IsValid() && v:GetPhysicsObject():IsValid() then v:GetPhysicsObject():SetVelocity( v:GetPhysicsObject():GetVelocity() + ((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100) / v:GetPhysicsObject():GetMass()) end
-			end
-		else
-			if IsValid(v:GetPhysicsObject()) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
-				v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
-			elseif DRC:IsCharacter(v) then
-				if v:GetClass() != "npc_strider" && v:GetClass() != "npc_combinegunship" then
-					local tr = util.TraceLine({
-						start = self:GetPos(),
-						endpos = v:GetPos() + v:OBBCenter(),
-						filter = function(ent) if ent != v then return false else return true end end
-					})
-					local dir = tr.Normal:Angle():Forward() * 500
-					v:SetVelocity(dir*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50)
-				end
-			end
-			if SERVER && !DRC.HelperEnts[v:GetClass()] then
-				if self.ExplosiveIgnoresCover == true then 
-					v:TakeDamageInfo(dmg2)
-				else
-					if DRC:EnvelopTrace(self, v) == true then v:TakeDamageInfo(dmg2) end
-				end
-			end
-			if self.EMP == true then self:DoEMP(v) end
+	for k,v in pairs(entities) do
+		local totaldamage = 0
+		local d1 = (self.MSDamage / (v:GetPos() + Vector(v:OBBCenter().x, v:OBBCenter().y, (v:OBBMaxs().z - (v:OBBMaxs().z/10)))):Distance(pos) * 20)*0.5
+		local d2 = (self.MSDamage / (v:GetPos() + v:OBBCenter()):Distance(pos) * 20)*0.5
+		totaldamage = d1 + d2
+		
+		local dmg2 = DamageInfo()
+		dmg2:SetDamage(totaldamage)
+		dmg2:SetInflictor(self)
+		dmg2:SetDamageForce(self:EyeAngles():Forward())
+		dmg2:SetDamagePosition(self:GetPos())
+		dmg2:SetDamageType(self.MSDamageType)
+		if !IsValid(owner) then dmg2:SetAttacker(self) else dmg2:SetAttacker(owner) end
+		
+		if SERVER && !DRC.HelperEnts[class] then
+			if self.ExplosiveIgnoresCover == true then v:TakeDamageInfo(dmg2)
+			else if DRC:EnvelopTrace(self, v) == true then v:TakeDamageInfo(dmg2) end end
 		end
+		
+		if self.EMP == true then self:DoEMP(v) end
 	end
 	self:LuaExplodeCustom(entities)
 
 	util.ScreenShake( Vector( self:GetPos() ), (self.MSExplShakePower / 2), self.MSExplShakePower, self.MSExplShakeTime, self.MSExplShakeDist )
 		
-	if self:IsValid() then
+	if IsValid(self) then
 		if self.LuaExplEffect != nil or self.MSPCFExplode != nil then
 			if self.LuaExplEffect != nil then
 				local ed3 = EffectData()
@@ -1099,11 +1115,14 @@ function ENT:Explode(mode)
 		self.explosion = self
 	end
 	
+	self:ReleasePressure(self.MSPressure, self.MSRadius)
+	
 	if SERVER then
 		local explo = ents.Create("env_explosion")
 		explo:SetOwner(self.explosion)
 		explo:SetPos(self:GetPos())
 		explo:SetKeyValue("iMagnitude", "25")
+		explo:SetKeyValue("DamageForce", "0")
 		explo:SetKeyValue("radius", self.AffectRadius)
 		explo:Spawn()
 		explo:Activate()
@@ -1112,20 +1131,7 @@ function ENT:Explode(mode)
 	util.BlastDamage(self, self.explosion, self:GetPos(), self.MSRadius, self.MSDamage)
 	util.ScreenShake( Vector( self:GetPos() ), (self.MSExplShakePower / 2), self.MSExplShakePower, self.MSExplShakeTime, self.MSExplShakeDist )
 	
-	for f, v in pairs(ents.FindInSphere(pos, self.MSRadius)) do
-		if v:GetClass() == self:GetClass() then
-			if self.Gravity == true then
-				if v:IsValid() && v:GetPhysicsObject():IsValid() then v:GetPhysicsObject():SetVelocity( v:GetPhysicsObject():GetVelocity() + ((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100) / v:GetPhysicsObject():GetMass()) end
-			end
-		else
-			if IsValid(v:GetPhysicsObject()) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
-				v:GetPhysicsObject():SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
-			elseif v:IsPlayer() or v:IsNPC() or v:IsNextBot() then
-				if v:GetClass() != "npc_strider" && v:GetClass() != "npc_combinegunship" then v:SetVelocity((v:OBBCenter()-pos)*self.MSPressure/(v:OBBCenter()):Distance(pos) * 50) end
-			end
-			if self.EMP == true then self:DoEMP(v) end
-		end
-	end
+	for k,v in pairs(ents.FindInSphere(pos, self.MSRadius)) do if self.EMP == true then self:DoEMP(v) end end
 	
 	if self.LoopingSound != nil then
 		if self:IsValid() then

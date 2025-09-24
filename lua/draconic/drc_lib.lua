@@ -2694,6 +2694,15 @@ if SERVER then
 			ent:SetNWInt("DRC_ShieldMaxHealth", 0)
 		end
 	end
+
+	function DRC:PopEffects(ent)
+		DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_DepleteSound"), nil, 1500)
+		local ed = EffectData()
+		ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
+		ed:SetStart(ent:GetPos() + ent:OBBCenter())
+		ed:SetEntity(ent)
+		util.Effect(ent:GetNWString("DRC_Shield_DepleteEffect"), ed)
+	end
 	
 	function DRC:ShieldEffects(ent, dinfo)
 		local hp, maxhp = DRC:GetShield(ent)
@@ -2706,12 +2715,7 @@ if SERVER then
 			ed:SetEntity(ent)
 			util.Effect(ent:GetNWString("DRC_Shield_ImpactEffect"), ed)
 		elseif hp <= 0 && ent:GetNWBool("DRC_ShieldDown") == false then
-			DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_DepleteSound"), nil, 1500)
-			local ed = EffectData()
-			ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
-			ed:SetStart(ent:GetPos() + ent:OBBCenter())
-			ed:SetEntity(ent)
-			util.Effect(ent:GetNWString("DRC_Shield_DepleteEffect"), ed)
+			DRC:PopEffects(ent)
 		end
 	end
 	
@@ -2739,7 +2743,9 @@ if SERVER then
 		if !IsValid(ent) then return end
 		local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
 		local overshieldhp = ent:GetNWInt("DRC_ShieldHealth_Extra")
-		if shieldhp <= 0 then ent:SetNWBool("DRC_ShieldDown", true) end
+		if shieldhp <= 0 then
+			ent:SetNWBool("DRC_ShieldDown", true)
+		end
 		if ent.DoCustomShieldHit then ent:DoCustomShieldHit(amount) end
 		
 		if overshieldhp <= 0 then
@@ -2791,10 +2797,19 @@ if SERVER then
 end
 
 function DRC:PopShield(ent)
-	if ent.DoCustomShieldBreak then tgt:DoCustomShieldBreak(dmg) end
-	ent:SetNWInt("DRC_ShieldHealth", 0)
+	if ent.DoCustomShieldBreak then ent:DoCustomShieldBreak(dmg) end
+		
+	local shieldhp = ent:GetNWInt("DRC_ShieldHealth")
+	local overshieldhp = ent:GetNWInt("DRC_ShieldHealth_Extra")
+		
 	ent:SetNWInt("DRC_ShieldHealth_Extra", 0)
-	
+	if shieldhp > 0 then
+		DRC:SubtractShield(ent, shieldhp, false)
+		DRC:PopEffects(ent)
+	else
+		ent:SetNWInt("DRC_ShieldHealth", 0)
+	end
+
 	DRC:SpeakSentence(ent, "Reactions", "Shield_Down", true)
 end
 
@@ -4370,4 +4385,5 @@ function util.ScreenShake(pos, amp, freq, dur, radi, inair)
 	if DRC.DisableHardScreenshake == true then return function() end end
 	
 	return OldScreenshake(pos, amp, freq, dur, radi, inair)
+
 end

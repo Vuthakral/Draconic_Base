@@ -1,3 +1,5 @@
+DRC.ARC9Stickers = {}
+
 timer.Simple(5, function() -- gotta wait for everything else to load
 DRC:RegisterPlayerExtension("zombie", "Extensions", "Claws", true)
 DRC:RegisterPlayerExtension("zombiefast", "Extensions", "Claws", true)
@@ -20,7 +22,6 @@ end
 
 
 -- ARC9 reading
-DRC.ARC9Stickers = {}
 if ARC9 then
 	for k,v in pairs(ARC9.Attachments) do
 		local tbl = v
@@ -56,6 +57,71 @@ if ARC9 then
 			DRC.ARC9Stickers[tbl.ShortName] = {Material(tbl.StickerMaterial):GetTexture("$basetexture"), tbl.StickerMaterial, tbl.Description or ""}
 		end
 	end
+end
+
+-- ASTW2 Custom Camera Interpreter
+if CLIENT && ASTW2_INSTALLED then
+	DRC:ReInterpretASTW()
+	
+	local astw2cc_cache = { -- AddChangeCallback sucks at its job
+		["astw2_force_camera"] = GetConVar("astw2_force_camera"):GetFloat(),
+		["astw2_ccc_attachment"] = GetConVar("astw2_ccc_attachment"):GetFloat(),
+		["astw2_ccp_attachment"] = GetConVar("astw2_ccp_attachment"):GetFloat(),
+		["astw2_cc_attachment"] = GetConVar("astw2_cc_attachment"):GetFloat(),
+		["astw2_ccc_forward"] = GetConVar("astw2_ccc_forward"):GetFloat(),
+		["astw2_ccp_forward"] = GetConVar("astw2_ccp_forward"):GetFloat(),
+		["astw2_cc_forward"] = GetConVar("astw2_cc_forward"):GetFloat(),
+		["astw2_ccc_up"] = GetConVar("astw2_ccc_up"):GetFloat(),
+		["astw2_ccp_up"] = GetConVar("astw2_ccp_up"):GetFloat(),
+		["astw2_cc_up"] = GetConVar("astw2_cc_up"):GetFloat(),
+		["astw2_ccc_right"] = GetConVar("astw2_ccc_right"):GetFloat(),
+		["astw2_ccp_right"] = GetConVar("astw2_ccp_right"):GetFloat(),
+		["astw2_cc_right"] = GetConVar("astw2_cc_right"):GetFloat(),
+		["astw2_ccc_lerp"] = GetConVar("astw2_ccc_lerp"):GetFloat(),
+		["astw2_ccp_lerp"] = GetConVar("astw2_ccp_lerp"):GetFloat(),
+		["astw2_cc_lerp"] = GetConVar("astw2_cc_lerp"):GetFloat(),
+		["astw2_camera_fov"] = GetConVar("astw2_camera_fov"):GetFloat(),
+		["astw2_ccc_forward_f"] = GetConVar("astw2_ccc_forward_f"):GetFloat(),
+		["astw2_ccp_forward_f"] = GetConVar("astw2_ccp_forward_f"):GetFloat(),
+		["astw2_cc_forward_f"] = GetConVar("astw2_cc_forward_f"):GetFloat(),
+		["astw2_ccc_up_f"] = GetConVar("astw2_ccc_up_f"):GetFloat(),
+		["astw2_ccp_up_f"] = GetConVar("astw2_ccp_up_f"):GetFloat(),
+		["astw2_cc_up_f"] = GetConVar("astw2_cc_up_f"):GetFloat(),
+		["astw2_ccc_right_f"] = GetConVar("astw2_ccc_right_f"):GetFloat(),
+		["astw2_ccp_right_f"] = GetConVar("astw2_ccp_right_f"):GetFloat(),
+		["astw2_cc_right_f"] = GetConVar("astw2_cc_right_f"):GetFloat(),
+		["astw2_ccc_lerp_f"] = GetConVar("astw2_ccc_lerp_f"):GetFloat(),
+		["astw2_ccp_lerp_f"] = GetConVar("astw2_ccp_lerp_f"):GetFloat(),
+		["astw2_cc_lerp_f"] = GetConVar("astw2_cc_lerp_f"):GetFloat(),
+		["astw2_forced_fieldofview"] = GetConVar("astw2_forced_fieldofview"):GetFloat(),
+		["astw2_always_aim"] = GetConVar("astw2_always_aim"):GetFloat(),
+	}
+	
+	local lessentheblow = 0
+	hook.Add("Think", "drc_astw2_interpreter", function()
+		if RealTime() > lessentheblow then
+			lessentheblow = RealTime() + 0.1
+			local lply = DRC.LocalPlayer
+			if !IsValid(lply) or !lply:Alive() then return end
+			
+			for k,v in pairs(astw2cc_cache) do
+				local check = GetConVar(k):GetFloat()
+				if check != v then
+					astw2cc_cache[k] = check
+					DRC:ReInterpretASTW()
+				end
+			end
+			
+			local wpn = lply:GetActiveWeapon()
+			if IsValid(wpn) && wpn.ASTWTWO then
+				local ptu = DRC.ThirdPerson.ASTWInterpreter
+				if lply:Crouching() == true then ptu = DRC.ThirdPerson.ASTWInterpreter_Crouch end
+				if wpn:GetNWBool("insights", false) == true then ptu = DRC.ThirdPerson.ASTWInterpreter_Aim end
+			
+				wpn.ThirdPersonProfileOverride = ptu
+			end
+		end
+	end)
 end
 
 -- FETCH ME THEIR SOULS

@@ -72,6 +72,7 @@ SWEP.VentingStartSound			= Sound("draconic.VentOpenGeneric")
 SWEP.VentingStopSound			= Sound("draconic.VentCloseGeneric")
 SWEP.BatteryConsumePerShot		= 0.5
 
+SWEP.Primary.TriggerMode	= 0
 SWEP.Primary.IronRecoilMul	= 0.5
 SWEP.Primary.BloomMul		= 1
 SWEP.Primary.BloomMulCrouch	= 1
@@ -141,6 +142,7 @@ SWEP.Primary.MeleeHitDelay		= 0.1
 SWEP.Primary.CanAttackCrouched = false
 SWEP.Primary.MeleeHitActivity	= nil 
 SWEP.Primary.MeleeMissActivity	= ACT_VM_HITCENTER
+SWEP.Primary.MeleeMissActivityOH= nil
 SWEP.Primary.MeleeActTP			= nil
 SWEP.Primary.MeleeStartX		= 25
 SWEP.Primary.MeleeEndX			= -25
@@ -165,6 +167,7 @@ SWEP.Secondary.SightsKickMul 		= 1.0
 SWEP.Secondary.ScopePitch 			= 0
 SWEP.Secondary.ScopeYOffset 		= -1
 
+SWEP.Secondary.TriggerMode		= 0
 SWEP.Secondary.UsesPrimaryMag	= false
 SWEP.Secondary.NumShots 		= 0
 SWEP.Secondary.IronRecoilMul	= 0.5
@@ -279,49 +282,38 @@ function SWEP:CanPrimaryAttack()
 	if self.Bursting == true then return false end
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
+	local isply = ply:IsPlayer()
 	
-	if self.IsOverhated == true then return false end
-	if self:GetNWBool("Overheated") == true then return false end
+	if self.IsOverheated == true then return false end
+	if self:GetNW2Bool("Overheated", false) == true then return false end
+	if self:GetNW2Bool("IsDoingMelee", false) == true then return false end
+	if self.IsDoingMelee == true then return false end
 	
 	local charge = self:GetCharge()
-	local sk = ply:KeyDown(IN_SPEED)
-	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
-	local issprinting = sk && mk
+	local sk = isply && ply:KeyDown(IN_SPEED)
+	local mk = isply && (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
+	local issprinting = isply && (sk && mk)
 	local wl = ply:WaterLevel()
 	local ct = CurTime()
 	local fm = self:GetFireMode()
 	
-	if self:GetLoadedAmmo() <= 0 then
-		if CLIENT then self:StopSound(self.Primary.EmptySound) self:EmitSound(self.Primary.EmptySound) end
-		self:SetNextPrimaryFire(ct + 0.3)
-		
-		local sd = self.SightsDown
-		local emptyseq = self:SelectWeightedSequence(ACT_VM_DRYFIRE)
-		local adsemptyseq = self:SelectWeightedSequence(ACT_VM_DEPLOYED_IRON_DRYFIRE)
-
-		if sd then
-			if adsemptyseq != -1 then self:PlayAnim(ACT_VM_DEPLOYED_IRON_DRYFIRE, true)
-			else self:PlayAnim(ACT_VM_DRYFIRE, true) end
-		else
-			self:PlayAnim(ACT_VM_DRYFIRE, true)
-		end
-		
+	if self.Primary.UsesCharge == false then
+		if self:GetNextPrimaryFire() > RealTime() then return false end
+	else
+		if self:GetNextPrimaryFire() > CurTime() then return false end -- kms
+	end
+	
+	if self:GetLoadedAmmo() <= 0 then	
 		return false
 	elseif ( self:Clip1() <= 0 ) && self.SecondaryAttacking == false then
 		return true
 	end
 	
-	if self:GetNWBool("Inspecting") == true then
+	if self:GetNW2Bool("Inspecting") == true then
 		return false
 	end
 	
-	if self:GetNWBool("Passive") == true then
-		self:TogglePassive()
-		self:SetNextPrimaryFire(ct + 0.3)
-		return false
-	end
-	
-	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self:GetNWBool("Passive") == true or self:GetNWBool("Inspecting") == true or (((self.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1) && issprinting && DRC.SV.drc_force_sprint != 2)) or (self.Primary.CanFireUnderwater == false && wl >= 3) then
+	if self.Loading == true or self.ManuallyReloading == true or self.SecondaryAttacking == true or self:GetNW2Bool("Passive") == true or self:GetNW2Bool("Inspecting") == true or (((self.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1) && issprinting && DRC.SV.drc_force_sprint != 2)) or (self.Primary.CanFireUnderwater == false && wl >= 3) then
 		if wl >= 3 then self:EmitSound(self.Primary.EmptySound) end
 		return false
 	else 
@@ -348,7 +340,7 @@ function SWEP:CanPrimaryAttackNPC()
 		return false
 	end
 	
-	if (clip <= 0 or loaded <= 0 or perc < 0.15) or npc:GetActivity() == ACT_RELOAD or self:GetNWBool("NPCLoading") == true then
+	if (clip <= 0 or loaded <= 0 or perc < 0.15) or npc:GetActivity() == ACT_RELOAD or self:GetNW2Bool("NPCLoading") == true then
 		self:LoadNextShot()
 		self:DoNPCReload()
 		return false
@@ -361,18 +353,17 @@ end
 
 function SWEP:CanSecondaryAttack()
 	if !IsValid(self) then return end
-	if self.Primary.Disabled == true then return end
 	if self.Bursting == true then return false end
 	local ply = self:GetOwner()
 	if !IsValid(ply) then return end
 
-	if self.Secondary.Disabled == true then return end
+	if self.Secondary.Ironsights == true or self.Secondary.Disabled == true then return end
 	local loaded = self:Clip2()
 	if self.Secondary.UsesPrimaryMag == true then loaded = self:Clip1() end
 
 	if ( loaded <= 0 ) then
-		if CLIENT then self:StopSound(self.Secondary.EmptySound) self:EmitSound(self.Secondary.EmptySound) end
-		self:SetNextPrimaryFire (( CurTime() + 0.3 ))
+	--	if CLIENT then self:StopSound(self.Secondary.EmptySound) self:EmitSound(self.Secondary.EmptySound) end
+	--	self:SetNextSecondaryFire (( CurTime() + 0.3 ))
 		return false
 	end
 	if self.Loading == true or self.ManuallyReloading == true or self.Passive == true or (self.DoesPassiveSprint == true && issprinting) or (self.Secondary.CanFireUnderwater == false && wl >= 3) then
@@ -452,19 +443,27 @@ function SWEP:DoGunMelee()
 		["hitsound"] = self.Primary.MeleeHitSound,
 		["trigger"] = 3,
 	}
+	
+	if self.Primary.MeleeMissActivityOH != nil && self.IsOverheated == true then swing.anim_fp_miss = self.Primary.MeleeMissActivityOH end
 	self:DoMeleeSwing(swing)
 end
 
 function SWEP:PrimaryAttack()
 	if !IsValid(self) then return end
+	if !self:GetOwner():IsPlayer() then self:PrimaryAttackNPC() return end
+	
 	if game.SinglePlayer() then self:CallOnClient("PrimaryAttack") end
 	self:DoCustomPrimary()
-	local ply = self:GetOwner()
+	
+	if self.Primary.UsesCharge == true then return end
+	self:TriggerPrimary()
+	
+--[[	local ply = self:GetOwner()
 	
 	local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
 	local firetime = self:SequenceDuration( fireseq )
 	local fm = self:GetFireMode()
-	local canmelee = self.Primary.CanMelee
+
 	local dc = self.Primary.UsesCharge
 	local ekd = ply.KeyDown && ply:KeyDown(IN_USE)
 	
@@ -473,31 +472,23 @@ function SWEP:PrimaryAttack()
 	if (self.Primary.UsesCharge == true && ply:IsPlayer()) && ekd then self:DoGunMelee() else end
 	if self.Loading == true or self.ManuallyReloading == true then return end
 	
-	local vm = self
-	if ply:IsPlayer() then
-		vm = ply:GetViewModel()
-	end
-	
 	local function LNS()
 		timer.Simple(0, function() self.Loading = true end)
 		timer.Simple(firetime, function() if IsValid(self) && IsValid(ply) && ply:Alive() then self:LoadNextShot() end end)
 	end
-		
-	if canmelee && self:CanGunMelee() && ekd then self:DoGunMelee() return end
-	if self.LoadAfterShot == true && self.LoadAfterReloadEmpty == true && self:GetLoadedAmmo() > 1 then
-		LNS()
-	elseif self.LoadAfterShot == true &&  self.LoadAfterReloadEmpty == false && self:GetLoadedAmmo() > 0 then
-		LNS()
+	
+	if self.LoadAfterShot == true && self.LoadAfterReloadEmpty == true && self:GetLoadedAmmo() > 1 then LNS()
+	elseif self.LoadAfterShot == true &&  self.LoadAfterReloadEmpty == false && self:GetLoadedAmmo() > 0 then LNS()
 	elseif self.LoadAfterShot == true && self:GetLoadedAmmo() <= 0 then self.Loading = false end
 	
 	if dc then
 		local charge = self:GetCharge()
 		if (self.ChargeType == "dualaction" or self.ChargeType == "discharge") && charge >= 99 && self:CanOvercharge() && self:CanPrimaryAttack() then self:DoOvercharge() end
-	return end
+	end
 	
 	if canmelee && ekd then return end
 	if fm != 3 then self:CallShoot(0) return end
-	if fm == 3 then self:DoBurstAttack() return end
+	if fm == 3 then self:DoBurstAttack() return end ]]
 end
 
 function SWEP:NPCCharge()
@@ -553,18 +544,29 @@ function SWEP:FinishLoading()
 end
 
 function SWEP:SecondaryAttack()
+	if !IsValid(self) then return end
 	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
+	self:DoCustomSecondary()
+	
 	local ply = self:GetOwner()
-	local cv = ply:Crouching()
 	local usekey = ply:KeyDown(IN_USE)
-	local reloadkey = ply:KeyDown(IN_RELOAD)
 	local sprintkey = ply:KeyDown(IN_SPEED)
+	
+	if usekey && sprintkey then self:TogglePassive() return end
+	if usekey && !sprintkey then self:SetFireMode() return end
+	if self.Secondary.UsesCharge == true then return end
+
+	self:TriggerSecondary()
+	
+	--[[
+	
+	local cv = ply:Crouching()
+	local reloadkey = ply:KeyDown(IN_RELOAD)
+	
 	local fireseq = self:SelectWeightedSequence( ACT_VM_PRIMARYATTACK )
 	local firetime = self:SequenceDuration( fireseq )
 	local vm = ply:GetViewModel()
 	local dc = self.Secondary.UsesCharge
-	
-	self:DoCustomSecondary()
 	if dc == true then return end
 	
 	if dc && self.ChargeType == "default" && charge < 99 then
@@ -577,7 +579,7 @@ function SWEP:SecondaryAttack()
 			elseif sprintkey && usekey then
 				self:TogglePassive()
 			elseif self.Passive == false then
-				if self:GetNWBool("Ironsights") == true then
+				if self:GetNW2Bool("Ironsights") == true then
 					self:SetNetworkedBool( "Ironsights", true )
 				else
 					self:SetNetworkedBool( "Ironsights", false )
@@ -592,7 +594,7 @@ function SWEP:SecondaryAttack()
 				self:CallShoot(1)
 			end
 		end
-	end
+	end ]]
 end
 
 function SWEP:TogglePassive()
@@ -601,16 +603,16 @@ function SWEP:TogglePassive()
 	local ply = self:GetOwner()
 	self:EmitSound(self.FireModes_SwitchSound)
 	
-	if self:GetNWBool("Passive") == false then
+	if self:GetNW2Bool("Passive") == false then
 		self.Passive = true
 		self:DoPassiveHoldtype()
-		self:SetNWBool("Passive", true)
-		if self:GetNWBool("ironsights") == true then 
+		self:SetNW2Bool("Passive", true)
+		if self:GetNW2Bool("ironsights") == true then 
 			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
-			self:SetNWBool("ironsights", false)
+			self:SetNW2Bool("ironsights", false)
 		else end
 		ply:EmitSound("draconic.IronOutGeneric")
-		if self:GetNWBool("Inspecting") == true then
+		if self:GetNW2Bool("Inspecting") == true then
 			self:ToggleInspectMode()
 		end
 	else
@@ -619,7 +621,7 @@ function SWEP:TogglePassive()
 	--	self:SendWeaponAnim( ACT_VM_DRAW )
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
-		self:SetNWBool("Passive", false)
+		self:SetNW2Bool("Passive", false)
 		ply:EmitSound("draconic.IronInGeneric")
 		timer.Simple(0.42, function()
 			self.Loading = false 
@@ -632,14 +634,14 @@ function SWEP:DoCustomFireMode(mode)
 end
 
 function SWEP:GetFireMode()
-	return self:GetNWInt("CurFireMode")
+	return self:GetNW2Int("CurFireMode")
 end
 
 function SWEP:SetFireMode(mode, showhint)
 	local ply = self:GetOwner()
 	if !self:CanSwitchFireModes() then return end
-	if self:GetNWString("FireMode") == nil then self:SetNWString("FireMode", "Semi") end
-	if self:GetNWInt("CurFireMode") == nil then self:SetNWInt("CurFireMode", 1) end
+	if self:GetNW2String("FireMode") == nil then self:SetNW2String("FireMode", "Semi") end
+	if self:GetNW2Int("CurFireMode") == nil then self:SetNW2Int("CurFireMode", 1) end
 	
 	if showhint == nil then showhint = true end
 	if self.FireModes_CustomScripted == true then showhint = false end
@@ -655,18 +657,18 @@ function SWEP:SetFireMode(mode, showhint)
 	
 	if self.FireModes_CustomScripted == true then
 		if mode == "Semi" then
-			self:SetNWString("FireMode", "Semi")
-			self:SetNWInt("CurFireMode", 1)
+			self:SetNW2String("FireMode", "Semi")
+			self:SetNW2Int("CurFireMode", 1)
 			mode = "Semi"
 			SwitchAnim(ACT_VM_IFIREMODE, ACT_VM_IFIREMODE)
 		elseif mode == "Auto" then
-			self:SetNWString("FireMode", "Auto")
-			self:SetNWInt("CurFireMode", 2)
+			self:SetNW2String("FireMode", "Auto")
+			self:SetNW2Int("CurFireMode", 2)
 			mode = "Auto"
 			SwitchAnim(ACT_VM_DFIREMODE, ACT_VM_IFIREMODE)
 		elseif mode == "Burst" then
-			self:SetNWString("FireMode", "Burst")
-			self:SetNWInt("CurFireMode", 3)
+			self:SetNW2String("FireMode", "Burst")
+			self:SetNW2Int("CurFireMode", 3)
 			mode = "Burst"
 			SwitchAnim(ACT_VM_DIFIREMODE, ACT_VM_IFIREMODE)
 		end
@@ -681,63 +683,63 @@ function SWEP:SetFireMode(mode, showhint)
 		if fmode == 1 then
 			if self.FireModes_CanAuto == true then
 				self.Primary.Automatic = true
-				self:SetNWString("FireMode", "Auto")
-				self:SetNWInt("CurFireMode", 2)
+				self:SetNW2String("FireMode", "Auto")
+				self:SetNW2Int("CurFireMode", 2)
 				mode = "Auto"
 				SwitchAnim(ACT_VM_DFIREMODE, ACT_VM_IFIREMODE)
 			elseif self.FireModes_CanBurst == true then
 				self.Primary.Automatic = false
-				self:SetNWString("FireMode", "Burst")
-				self:SetNWInt("CurFireMode", 3)
+				self:SetNW2String("FireMode", "Burst")
+				self:SetNW2Int("CurFireMode", 3)
 				mode = "Burst"
 				SwitchAnim(ACT_VM_DIFIREMODE, ACT_VM_IFIREMODE)
 			end
 		elseif fmode == 2 then
 			if self.FireModes_CanBurst == true then
 				self.Primary.Automatic = false
-				self:SetNWString("FireMode", "Burst")
-				self:SetNWInt("CurFireMode", 3)
+				self:SetNW2String("FireMode", "Burst")
+				self:SetNW2Int("CurFireMode", 3)
 				mode = "Burst"
 				SwitchAnim(ACT_VM_DIFIREMODE, ACT_VM_IFIREMODE)
 			elseif self.FireModes_CanSemi == true then
 				self.Primary.Automatic = false
-				self:SetNWString("FireMode", "Semi")
-				self:SetNWInt("CurFireMode", 1)
+				self:SetNW2String("FireMode", "Semi")
+				self:SetNW2Int("CurFireMode", 1)
 				mode = "Semi"
 				SwitchAnim(ACT_VM_IFIREMODE, ACT_VM_IFIREMODE)
 			end
 		elseif fmode == 3 then
 			if self.FireModes_CanSemi == true then
 				self.Primary.Automatic = false
-				self:SetNWString("FireMode", "Semi")
-				self:SetNWInt("CurFireMode", 1)
+				self:SetNW2String("FireMode", "Semi")
+				self:SetNW2Int("CurFireMode", 1)
 				mode = "Semi"
 				SwitchAnim(ACT_VM_IFIREMODE, ACT_VM_IFIREMODE)
 			elseif self.FireModes_CanAuto == true then
 				self.Primary.Automatic = true
-				self:SetNWString("FireMode", "Auto")
-				self:SetNWInt("CurFireMode", 2)
+				self:SetNW2String("FireMode", "Auto")
+				self:SetNW2Int("CurFireMode", 2)
 				mode = "Auto"
 				SwitchAnim(ACT_VM_DFIREMODE, ACT_VM_IFIREMODE)
 			end
 		end
 	elseif mode == "Semi" then
 		if self.FireModes_CanSemi == true then 
-			self:SetNWString("FireMode", "Semi")
-			self:SetNWInt("CurFireMode", 1)
+			self:SetNW2String("FireMode", "Semi")
+			self:SetNW2Int("CurFireMode", 1)
 			SwitchAnim(ACT_VM_IFIREMODE, ACT_VM_IFIREMODE)
 		end
 	elseif mode == "Auto" then
 		if self.FireModes_CanAuto == true then
 			self.Primary.Automatic = true
-			self:SetNWString("FireMode", "Auto")
-			self:SetNWInt("CurFireMode", 2)
+			self:SetNW2String("FireMode", "Auto")
+			self:SetNW2Int("CurFireMode", 2)
 			SwitchAnim(ACT_VM_DFIREMODE, ACT_VM_IFIREMODE)
 		end
 	elseif mode == "Burst" then
 		if self.FireModes_CanBurst == true then
-			self:SetNWString("FireMode", "Burst")
-			self:SetNWInt("CurFireMode", 3)
+			self:SetNW2String("FireMode", "Burst")
+			self:SetNW2Int("CurFireMode", 3)
 			SwitchAnim(ACT_VM_DIFIREMODE, ACT_VM_IFIREMODE)
 		end
 	end
@@ -748,7 +750,7 @@ end
 
 function SWEP:DisplayFireMode()
 local ply = self:GetOwner()
-local str = self:GetNWString("FireMode")
+local str = self:GetNW2String("FireMode")
 	self:EmitSound(self.FireModes_SwitchSound)
 	
 	if SERVER then
@@ -803,11 +805,11 @@ function SWEP:Reload()
 			else
 					self:StartManualReload()
 					ply:SetFOV(0, 0.05)
-					self:SetNWBool( "Ironsights", false )
+					self:SetNW2Bool( "Ironsights", false )
 					if self:Clip1() <= 0 then
-						self:SetNWBool("reloadedEmpty", true)
+						self:SetNW2Bool("reloadedEmpty", true)
 					else
-						self:SetNWBool("reloadedEmpty", false)
+						self:SetNW2Bool("reloadedEmpty", false)
 					end
 					if CLIENT && MR then self:DumbassDetector(reloadkeypressed) end
 					return true
@@ -816,11 +818,11 @@ function SWEP:Reload()
 				if ( self:Clip1() < CM ) && self:Ammo1() > 0 then
 					self:DoReload()
 					ply:SetFOV(0, 0.05)
-					self:SetNWBool( "Ironsights", false )
+					self:SetNW2Bool( "Ironsights", false )
 					if self:Clip1() <= 0 then
-						self:SetNWBool("reloadedEmpty", true)
+						self:SetNW2Bool("reloadedEmpty", true)
 					else
-						self:SetNWBool("reloadedEmpty", false)
+						self:SetNW2Bool("reloadedEmpty", false)
 					end
 					if CLIENT && MR then self:DumbassDetector(reloadkeypressed) end
 					return true
@@ -1016,7 +1018,7 @@ function SWEP:EndReload()
 		self:SetHoldType( self.HoldType )
 	end
 		
-	if self:GetNWBool("reloadedEmpty") == true && self.LoadAfterReloadEmpty == true then
+	if self:GetNW2Bool("reloadedEmpty") == true && self.LoadAfterReloadEmpty == true then
 		self:PlayAnim(ACT_SHOTGUN_PUMP, true)
 		if SERVER && self.LoadAnimationTP != nil then DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, self.LoadAnimationTP) end
 	end
@@ -1048,6 +1050,7 @@ function SWEP:StartManualReload()
 		ply:SetAnimation( PLAYER_RELOAD )
 		self.Loading = true
 		self.ManuallyReloading = true
+		self.ManualReloadInterrupt = false
 		self:SetIronsights(false, ply)
 		
 		local enterseqempty = self:SelectWeightedSequence(ACT_VM_RELOAD_INSERT_PULL)
@@ -1116,6 +1119,11 @@ function SWEP:ManualReloadLoop(wasempty)
 	
 	if IsValid(self) && IsValid(ply) && ply:Alive() then
 			if self:Clip1() <= CM then
+				if self.ManualReloadInterrupt == true then
+					self:FinishManualReload(wasempty)
+					self.ManualReloadInterrupt = false
+				return end
+				
 				if (ply:KeyDown(IN_RELOAD) or self.ManualReloadAutoLoop == true) && !full then
 					if ply:GetAmmoCount(self.Primary.Ammo) > 0 then
 						self:DoManualReload(true, wasempty)
@@ -1190,7 +1198,7 @@ end
 function SWEP:ManuallyLoadAfterReload()
 	local ply = self:GetOwner()
 	if self:IsValid() && ply:IsValid() && ply:Health() > 0.01 then
-		if self:GetNWBool("reloadedEmpty") == true && self.LoadAfterReloadEmpty == true && self:IsValid() then
+		if self:GetNW2Bool("reloadedEmpty") == true && self.LoadAfterReloadEmpty == true && self:IsValid() then
 			if IsFirstTimePredicted() then 
 				local loadseq = self:SelectWeightedSequence( ACT_SHOTGUN_PUMP )
 				local loadtime = self:SequenceDuration( loadseq )
@@ -1202,7 +1210,7 @@ function SWEP:ManuallyLoadAfterReload()
 				self:PlayAnim(ACT_SHOTGUN_PUMP, true)
 				if SERVER && self.LoadAnimationTP != nil then DRC:CallGesture(ply, GESTURE_SLOT_CUSTOM, self.LoadAnimationTP) end
 				timer.Simple(loadtime, function() self:FinishLoading() end)
-				self:SetNWBool("NPCLoading", false)
+				self:SetNW2Bool("NPCLoading", false)
 			end
 		else end
 	else end
@@ -1307,22 +1315,7 @@ function SWEP:AI_PrimaryAttack() -- Iv04
 	self:PrimaryAttack()
 end
 
-function SWEP:NPC_ServerNextFire() -- VJ
-	local ply = self:GetOwner()
-	if ply:IsPlayer() then return end
-	
-	local enemy
-	if ply.GetEnemy then enemy = ply:GetEnemy() end
-	if IsValid(enemy) && self.ignorepcs[enemy:GetClass()] then ply:SetEnemy(nil, true) end
-	
---	if IsValid(enemy) && !ply:IsLineOfSightClear(enemy:GetPos()) then return end
-	
-	if IsValid(enemy) && self:CanPrimaryAttackNPC() then
-		self:PrimaryAttack()
-	end
-end
-
-function SWEP:NPCAbleToShoot() -- VJ
+function SWEP:NPCAbleToShoot() -- old VJ compatibility
 	local enemy
 	if ply.GetEnemy then enemy = ply:GetEnemy() end
 	if IsValid(enemy) && !ply:IsLineOfSightClear(enemy:GetPos()) then return end
@@ -1331,15 +1324,13 @@ function SWEP:NPCAbleToShoot() -- VJ
 end
 
 function SWEP:NPC_Reload() -- Still VJ.
-	local ply = self:GetOwner()
-	local ht = self:GetHoldType()
 	self:DoCustomReloadStartEvents()
 	ply.NextThrowGrenadeT = ply.NextThrowGrenadeT + 2
-	
-	if VJ_AnimationExists(ply, ply:TranslateToWeaponAnim(VJ_PICK(ply.AnimTbl_WeaponReload))) == true then
-		ply:VJ_ACT_PLAYACTIVITY(seq, true, 1, ply.WeaponReloadAnimationFaceEnemy, ply.WeaponReloadAnimationDelay, {SequenceDuration=dur, PlayBackRateCalculated=true})
-	end
 end
 
 function SWEP:CustomOnReload_Finish() -- Seriously, still VJ.
+end
+
+function SWEP:GetBulletPos() -- Yep, you guessed it. VJ.
+	return self:GetShootPosition()
 end

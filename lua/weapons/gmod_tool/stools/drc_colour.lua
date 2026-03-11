@@ -45,31 +45,37 @@ TOOL.ClientConVar[ "grunge" ] = 0
 local function SetColour( ply, ent, data )
 	if data[2] == "player" then
 		ent:SetNWVector("PlayerColour_DRC", Vector(data[1].x, data[1].y, data[1].z))
-	--	if SERVER then duplicator.StoreEntityModifier( ent, "colour", data ) end
+	--	DRC:SetColour(ent, "PlayerColour_DRC", Vector(data[1].x, data[1].y, data[1].z))
 	end
 	
 	if data[2] == "weapon" then
 		ent:SetNWVector("WeaponColour_DRC", Vector(data[1].x, data[1].y, data[1].z))
+	--	DRC:SetColour(ent, "WeaponColour_DRC", Vector(data[1].x, data[1].y, data[1].z))
 	end
 	
 	if data[2] == "eye" then
 		ent:SetNWVector("EyeTintVec", Vector(data[1].x, data[1].y, data[1].z))
+	--	DRC:SetColour(ent, "EyeTintVec", Vector(data[1].x, data[1].y, data[1].z))
 	end
 	
 	if data[2] == "energy" then
 		ent:SetNWVector("EnergyTintVec", Vector(data[1].x, data[1].y, data[1].z))
+	--	DRC:SetColour(ent, "EnergyTintVec", Vector(data[1].x, data[1].y, data[1].z))
 	end
 	
 	if data[2] == "accent1" then
 		ent:SetNWVector("ColourTintVec1", Vector(data[1].x, data[1].y, data[1].z))
+	--	DRC:SetColour(ent, "ColourTintVec1", Vector(data[1].x, data[1].y, data[1].z))
 	end
 	
 	if data[2] == "accent2" then
 		ent:SetNWVector("ColourTintVec2", Vector(data[1].x, data[1].y, data[1].z))
+	--	DRC:SetColour(ent, "ColourTintVec2", Vector(data[1].x, data[1].y, data[1].z))
 	end
 	
 	if data[2] == "grunge" then
 		ent:SetNWInt("Grunge_DRC", data[1])
+	--	DRC:SetGrunge(ent, data[1])
 	end
 end
 duplicator.RegisterEntityModifier( "drc_colour_player", SetColour )

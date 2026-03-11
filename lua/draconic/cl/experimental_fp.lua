@@ -338,6 +338,7 @@ hook.Add("Think", "DRC_ExpFP_Body", function()
 	local pos = plypos
 	
 	lerppos = Lerp(RealFrameTime()*20, lerppos or pos, pos)
+	if !lerppos then lerppos = ply:EyePos() end
 
 	if !IsValid(ply:GetVehicle()) then
 		CSPos = Vector(lerppos.x + DRC.CalcView.wallpos.x, lerppos.y + DRC.CalcView.wallpos.y, lerppos.z)

@@ -148,7 +148,7 @@ local function drc_Crosshair()
 	local curswep = ply:GetActiveWeapon()
 	if !IsValid(curswep) then return end
 	if !ShouldDrawCrosshair(ply) then return end
-	local pos = DRC.CalcView.ToScreen
+	local pos = DRC.CalcView.ToScreenNoProjectiles
 	
 	if !curswep.Draconic then return end
 	if curswep.DrawCrosshair == false then return end
@@ -181,8 +181,8 @@ local function drc_Crosshair()
 	local ironcross = curswep.Secondary.IronsDrawCrosshair
 	local sd = curswep.SightsDown
 	
-	local bool1 = curswep:GetNWBool("Inspecting")
-	local bool2 = curswep:GetNWBool("Passive")
+	local bool1 = curswep:GetNW2Bool("Inspecting")
+	local bool2 = curswep:GetNW2Bool("Passive")
 	local bool3 = false
 	
 	if sd then
@@ -242,12 +242,12 @@ local function drc_Crosshair()
 	if curswep.PrimaryStats == nil then return end
 	
 	
-	
+	local fovscale = DRC:GetFOVScale()
 	local spread = (curswep.PrimaryStats.Spread * modspread)
 	local spreaddiv = (curswep.PrimaryStats.SpreadDiv * modspreaddiv)
 	local cx = curswep.CrosshairCorrectX
 	local cy = curswep.CrosshairCorrectY
-	local smath = Lerp(curswep.CrosshairFOVPower, ((spread/spreaddiv) * hx), ((spread/spreaddiv) * hx) * DRC:GetFOVScale())
+	local smath = Lerp(curswep.CrosshairFOVPower, ((spread/spreaddiv) * hx), ((spread/spreaddiv) * hx) * fovscale)
 	local smathoffset = smath * 150
 	
 	local b = math.Clamp(curswep.BloomValue * 100 or 0, 0, 100) * smath * 10
@@ -410,16 +410,16 @@ local function drc_Crosshair()
 	
 	if curswep.CrosshairStatic != nil or curswep.CrosshairDynamic != nil then return end
 	
-	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp + smath + smathoffset, pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphach))
-	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp + smath + smathoffset, pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphach))
+	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp*fovscale + smath + smathoffset, pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphach))
+	draw.RoundedBox( 0, pos.x + DRCCrosshairLerp*fovscale + smath + smathoffset, pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphach))
 	
-	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp - smath - (smathoffset*2), pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphach))
-	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp - smath - (smathoffset*2), pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphach))
+	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp*fovscale - smath - (smathoffset*2), pos.y -2, smathoffset, 3, Color(0, 0, 0, 200 * alphach))
+	draw.RoundedBox( 0, pos.x - DRCCrosshairLerp*fovscale - smath - (smathoffset*2), pos.y -1, smathoffset, 1, Color(255, 255, 255, 255 * alphach))
 	
-	draw.RoundedBox( 0, pos.x -1, pos.y + DRCCrosshairLerp + smath + smathoffset -1, 3, smathoffset, Color(0, 0, 0, 200 * alphach))
-	draw.RoundedBox( 0, pos.x, pos.y + DRCCrosshairLerp + smath + smathoffset, 1, smathoffset, Color(255, 255, 255, 255 * alphach))
+	draw.RoundedBox( 0, pos.x -1, pos.y + DRCCrosshairLerp*fovscale + smath + smathoffset -1, 3, smathoffset, Color(0, 0, 0, 200 * alphach))
+	draw.RoundedBox( 0, pos.x, pos.y + DRCCrosshairLerp*fovscale + smath + smathoffset, 1, smathoffset, Color(255, 255, 255, 255 * alphach))
 	
-	surface.DrawCircle((pos.x), (pos.y), 64 * DRCCrosshairLerp / 50, DRCCrosshairLerp * 5, DRCCrosshairLerp * 5, DRCCrosshairLerp * 5, DRCCrosshairLerp * 2.5)
+	surface.DrawCircle((pos.x), (pos.y), 64 * DRCCrosshairLerp*fovscale / 50, DRCCrosshairLerp * 5, DRCCrosshairLerp * 5, DRCCrosshairLerp * 5, DRCCrosshairLerp * 2.5)
 	
 	surface.DrawCircle((pos.x), (pos.y), 1, 255, 255, 255, 255 * alphach)
 	surface.DrawCircle((pos.x), (pos.y), 2, 0, 0, 0, 10 * alphach)
@@ -632,7 +632,7 @@ local function drc_Inspect()
 	if !IsValid(ply) or !ply.GetActiveWeapon then return end
 	local wpn = ply:GetActiveWeapon()
 	if wpn.Draconic == nil then return end
-	local bool = wpn:GetNWBool("Inspecting", false)
+	local bool = wpn:GetNW2Bool("Inspecting", false)
 	
 	local b2 = wpn.Customizing
 	local w = ScrW()
@@ -755,7 +755,7 @@ local function drc_Inspect()
 		if wpn.Base == "draconic_gun_base" then
 			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. wpn:Clip1() .."/".. (wpn:GetMaxClip1() * wpn:GetAttachmentValue("Ammunition", "ClipSizeMul")) .." | ".. wpn.ActiveAttachments.AmmunitionTypes.t.InfoName .." (".. (game.GetAmmoName(wpn:GetPrimaryAmmoType()) or "None") ..")")
 		else
-			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. math.Round(wpn:GetNWInt("LoadedAmmo"), 2) .."% (".. math.Round(100/wpn.BatteryConsumePerShot * (wpn:GetNWInt("LoadedAmmo")/100)) .." Shots remaining) | ".. wpn.ActiveAttachments.AmmunitionTypes.t.InfoName .."")
+			DrawText(w-390+drc_ins_offsetlerp_x, h*0.02 + infoy+1, theme.Fonts.Default, DRC.Inspection.ThemeColours.Text, TEXT_ALIGN_LEFT, "".. math.Round(wpn:GetNW2Int("LoadedAmmo"), 2) .."% (".. math.Round(100/wpn.BatteryConsumePerShot * (wpn:GetNW2Int("LoadedAmmo")/100)) .." Shots remaining) | ".. wpn.ActiveAttachments.AmmunitionTypes.t.InfoName .."")
 		end
 		
 		infoy = infoy + 20
@@ -843,7 +843,7 @@ hook.Add("PreDrawViewModel", "drc_inspection_dof", function(vm, ply, wpn)
 	if wpn.Draconic == nil then return end
 	if wpn.Initialized != true then return end
 	local alpha = 0
-	local bool = wpn:GetNWBool("Inspecting")
+	local bool = wpn:GetNW2Bool("Inspecting")
 	if bool == true then
 		alpha = Lerp(wpn.SightInt, 0, 5)
 		DrawToyTown(1 * alpha, ScrH()/1.25)
@@ -856,24 +856,28 @@ end)
 
 -- ###Interaction
 local bool, alpha, alphalerp, SwapCD = true, 0, 0, 0
+local lastviablecheck = 0
 local function drc_IText()
 	if GetConVar("cl_drawhud"):GetFloat() == 0 then return end
 	local ply = DRC.LocalPlayer
 	if !IsValid(DRC.LocalPlayer) then return end
 	local center = { ScrW()/2, ScrH()/2 }
-	local curswep = ply:GetActiveWeapon()
+	local wpn = ply:GetActiveWeapon()
 	
 	
 	if !IsValid(ply.ViableWeapons) then ply.ViableWeapons = {} end
 	if !IsValid(ply.PickupWeapons) then ply.PickupWeapons = {} end
 	
-	ViableWeaponCheck(ply)
+	if CurTime() < lastviablecheck then
+		ViableWeaponCheck(ply)
+		lastviablecheck = CurTime() + 0.2
+	end
 	
 	local b1, b2, b3, b4
-	if table.IsEmpty(ply.ViableWeapons) then b1 = false else b1 = true end
-	if table.IsEmpty(ply.PickupWeapons) then b2 = false else b2 = true end
-	if curswep.Draconic && curswep:CanCustomize() then b3 = true else b3 = false end
-	b4 = curswep.Customizing
+	local pickup, typ = ply:GetNWEntity("DRC_WeaponPickup", nil), ply:GetNWInt("DRC_PickupMode")
+	if IsValid(pickup) then b1 = true end
+	if wpn.Draconic && wpn:CanCustomize() then b3 = true else b3 = false end
+	b4 = wpn.Customizing
 	
 	
 	if b1 or b2 or b3 then
@@ -882,46 +886,34 @@ local function drc_IText()
 		alpha = 0
 	end
 	alphalerp = Lerp(0.25, alphalerp or alpha, alpha)
-	
---	local wpc = ply:GetNWVector("EnergyTintVec")
---	wpc.r = math.Clamp(wpc.r, 0.1, 1)
---	wpc.g = math.Clamp(wpc.g, 0.1, 1)
---	wpc.b = math.Clamp(wpc.b, 0.1, 1)
---	wpc = wpc * 255
---	local TextCol = Color(wpc.r, wpc.g, wpc.b, alphalerp)
 	local TextCol = Color(255, 255, 255, alphalerp)
 	
 	surface.SetDrawColor(TextCol)
 	
 	
-	if b3 && !b4 then draw.DrawText("Press ".. string.upper(ReturnKey("+zoom")) .." to ".. curswep.ModifyText .."", "ApercuStatsTitle", center[1], center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER) end
-	
-	local src, text = nil, nil
-	if b2 then
-		src = ply.PickupWeapons[1]
+	if b3 && !b4 then draw.DrawText("Press ".. string.upper(ReturnKey("+zoom")) .." to ".. wpn.ModifyText .."", "ApercuStatsTitle", center[1], center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER) end
+
+	if !pickup then return end
+	local text = ""
+	if typ == 1 then
 		text = "pick up"
-	end
-	if b1 then
-		src = ply.ViableWeapons[1]
+	else
 		text = "swap for"
 	end
-	if b1 && b2 then text = "swap for" end
 	
-	if b1 or b2 then
-		if src.WepSelectIcon != nil then
-			if isnumber(src.WepSelectIcon) then
-				surface.SetTexture( src.WepSelectIcon )
-			elseif isstring(src.WepSelectIcon) then
-				surface.SetTexture( surface.GetTextureID( src.WepSelectIcon ) )
+	if b1 then
+		if pickup.WepSelectIcon != nil then
+			if isnumber(pickup.WepSelectIcon) then
+				surface.SetTexture( pickup.WepSelectIcon )
+			elseif isstring(pickup.WepSelectIcon) then
+				surface.SetTexture( surface.GetTextureID( pickup.WepSelectIcon ) )
 			end
 			surface.DrawTexturedRect(center[1]+86, center[2]*1.5-32, 128, 128)
 			draw.DrawText("Press ".. string.upper(ReturnKey("+use")) .." to ".. text .." ", "ApercuStatsTitle", center[1]-64, center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER)
 		else
-			draw.DrawText("Press ".. string.upper(ReturnKey("+use")) .." to ".. text .." ".. src.PrintName .."", "ApercuStatsTitle", center[1]-64, center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER)
+			draw.DrawText("Press ".. string.upper(ReturnKey("+use")) .." to ".. text .." ".. pickup.PrintName .."", "ApercuStatsTitle", center[1]-64, center[2]*1.5+16, TextCol, TEXT_ALIGN_CENTER)
 		end
 	end
-	
-	
 end
 hook.Add("HUDPaint", "drc_interactiontext", drc_IText)
 
@@ -933,7 +925,7 @@ hook.Add("PreDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
 		if (hide && wpn.AltSightBool != true && wpn.Secondary.Scoped == true) then return true end
 		if (hide && wpn.AltSightBool == true && wpn.Secondary.ScopedAlt == true) then return true end
 	end
-	if ply:GetNWBool("DRC_Interacting") == true then return true end
+	if ply.DRC_Interacting == true then return true end
 end)
 hook.Add("PostDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
 	local wpn = ply:GetActiveWeapon()
@@ -943,11 +935,11 @@ hook.Add("PostDrawViewModel", "drc_interact_hidevm", function(vm, ply, wep)
 		if (hide && wpn.AltSightBool != true && wpn.Secondary.Scoped == true) then return true end
 		if (hide && wpn.AltSightBool == true && wpn.Secondary.ScopedAlt == true) then return true end
 	end
-	if ply:GetNWBool("DRC_Interacting") == true then return true end
+	if ply.DRC_Interacting == true then return true end
 end)
 hook.Add("PostDrawViewHands", "drc_interact_hidevm", function(vm, ply, wep)
 	if ply:GetActiveWeapon().Draconic == true && ply:GetActiveWeapon().SightsDown == true then return true end
-	if ply:GetNWBool("DRC_Interacting") == true then return true end
+	if ply.DRC_Interacting == true then return true end
 end)
 
 
@@ -1008,7 +1000,7 @@ function DRC:ToggleAttachmentMenu(wpn, b)
 			draw.RoundedBox(0, 0, 0, w, h, Color(0,0,0,0))
 		end
 		s.Think = function()
-			s:SetPos(20-drc_ins_offsetlerp_x_att, 128 + m:GetTall() + 20)
+			if m then s:SetPos(20-drc_ins_offsetlerp_x_att, 128 + m:GetTall() + 20) end
 		end
 		
 		m.Sections = {}
@@ -1508,14 +1500,14 @@ end
 
 local function drc_Debug()
 	if DRC:DebugModeEnabled() == false then return end
-	local debuglevel = GetConVar("cl_drc_debugmode"):GetString()
+	local debuglevel = GetConVar("cl_drc_debugmode"):GetInt()
 	
 	local chmode = GetConVar("cl_drc_debug_crosshairmode"):GetFloat()
 	local legacy = GetConVar("cl_drc_debug_legacyassistant"):GetFloat()
 
 	local curswep = DRC.LocalPlayer:GetActiveWeapon()
 	
-		if debuglevel == "1" or debuglevel == "2" then
+		if debuglevel == 1 or debuglevel == 2 then
 			local ply = DRC.LocalPlayer
 			local curswep = ply:GetActiveWeapon()
 			local staticmat = Material("vgui/replay/replay_camera_crosshair")
@@ -1608,8 +1600,8 @@ local function drc_Debug()
 			end
 		end
 	
-	if debuglevel == "0" then
-	elseif debuglevel == "1" then
+	if debuglevel == 0 then
+	elseif debuglevel == 1 then
 		if legacy == 1 then
 			if curswep.Draconic != true then
 			else
@@ -1620,17 +1612,17 @@ local function drc_Debug()
 				local name = "".. curswep:GetClass() .." - ".. curswep.Base ..""
 
 				if curswep.Base == "draconic_battery_base" then
-					firemode = "".. curswep.Weapon:GetNWString("FireMode") .." | Bloom Score: ".. math.Round(curswep.BloomValue, 2) ..""
+					firemode = "".. curswep.Weapon:GetNW2String("FireMode") .." | Bloom Score: ".. math.Round(curswep.BloomValue, 2) ..""
 				elseif curswep.Base == "draconic_gun_base" then
-					firemode = "".. curswep.Weapon:GetNWString("FireMode") .." | Bloom Score: ".. math.Round(curswep.BloomValue, 2) ..""
+					firemode = "".. curswep.Weapon:GetNW2String("FireMode") .." | Bloom Score: ".. math.Round(curswep.BloomValue, 2) ..""
 				else
 					firemode = "Not a gun."
 				end
 				
 				if curswep.Base == "draconic_battery_base" then
-					ammoint = "".. curswep.Weapon:GetNWInt("LoadedAmmo") .."%"
+					ammoint = "".. curswep.Weapon:GetNW2Int("LoadedAmmo") .."%"
 				elseif curswep.Base == "draconic_gun_base" then
-					ammoint = "".. curswep.Weapon:GetNWInt("LoadedAmmo") .." (int) / ".. curswep:Clip1() .." (clip) / ".. DRC.LocalPlayer:GetAmmoCount( curswep:GetPrimaryAmmoType() ) .." (reserve)"
+					ammoint = "".. curswep.Weapon:GetNW2Int("LoadedAmmo") .." (int) / ".. curswep:Clip1() .." (clip) / ".. DRC.LocalPlayer:GetAmmoCount( curswep:GetPrimaryAmmoType() ) .." (reserve)"
 				else
 					ammoint = "Not a gun."
 				end
@@ -1667,7 +1659,7 @@ local function drc_Debug()
 					rpm = "Not a gun."
 				end
 				
-				if curswep.Weapon:GetNWBool("Passive") == true then
+				if curswep.Weapon:GetNW2Bool("Passive") == true then
 					passive = "True"
 				else
 					passive = "False"
@@ -1747,7 +1739,7 @@ local function drc_Debug()
 					if curswep.ChargeBase == false then
 						charge = "".. curswep.PrintName .." does not charge."
 					else
-						charge = "".. curswep.Weapon:GetNWInt("Charge") .."%"
+						charge = "".. curswep.Weapon:GetNW2Int("Charge") .."%"
 					end
 				end
 			
@@ -1815,7 +1807,7 @@ drc_vmapos = Vector(0, 0, 0)
 
 local function DrawVMAttachments(att, ent)
 	if DRC:DebugModeEnabled() == false then return end
-	local debuglevel = GetConVar("cl_drc_debugmode"):GetString()
+	local debuglevel = GetConVar("cl_drc_debugmode"):GetInt()
 	
 	if !att then return end
 	if !IsValid(ent) then return end
@@ -1855,7 +1847,7 @@ local function DrawVMAttachments(att, ent)
 	
 	local newpos = wpn:FormatViewModelAttachment(wpn.ViewModelFOV, attdata.Pos, false)
 	
-	if debuglevel != "1" then return end
+	if debuglevel != 1 then return end
 	local vmattach = GetConVar("cl_drc_debug_vmattachments"):GetFloat()
 	if vmattach != 1 then return end
 	

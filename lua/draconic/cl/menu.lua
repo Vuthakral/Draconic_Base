@@ -44,6 +44,17 @@ local function MakeHint(element, posx, posy, hint)
 	end
 end
 
+local function MakeCheckbox(ele,x,y,text,convar,hinttext)
+	local check = vgui.Create( "DCheckBoxLabel", ele )
+	check:SetPos(x, y)
+	check:SetSize(20, 20)
+	check:SetText(text)
+	check:SetConVar(convar)
+	check.Label:SetDark(true)
+	
+	MakeHint(ele, x-21, y, hinttext)
+end
+
 function DRCMenu(ply)
 	local VSelection = ply:GetNWString("DRCVoiceSet")
 	local FSelection = ply:GetNWString("DRCFootsteps")
@@ -705,7 +716,7 @@ function DRCMenu(ply)
 --		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
 --	end
 	
-	if Customization == true then
+	if Customization != false then
 		tabs:AddSheet( "Player", tab1, "icon16/user.png")
 	else
 		tab1:SetVisible(false)
@@ -714,7 +725,7 @@ function DRCMenu(ply)
 	local tab1PMs = vgui.Create("DPanel", tab1)
 	tab1PMs:DockPadding(0, 0, 0, 0)
 	tab1PMs:SetBackgroundColor(Color(255, 255, 255, 0))
-	if TweakMode < 1 && Customization == true then
+	if TweakMode < 1 && Customization != false then
 		tab1:AddSheet( "Playermodels", tab1PMs, "icon16/folder_user.png")
 	else
 		tab1PMs:SetVisible(false)
@@ -723,7 +734,7 @@ function DRCMenu(ply)
 	tab1.tab1Hands = vgui.Create("DPanel", tab1)
 	tab1.tab1Hands:DockPadding(0, 0, 0, 0)
 	tab1.tab1Hands:SetBackgroundColor(Color(255, 255, 255, 0))
-	if TweakMode < 1 && Customization == true then
+	if TweakMode < 1 && Customization != false then
 		tab1:AddSheet( "Hands", tab1.tab1Hands, "icon16/folder_page.png")
 	else
 		tab1.tab1Hands:SetVisible(false)
@@ -732,7 +743,7 @@ function DRCMenu(ply)
 	
 	local tab2 = vgui.Create("DPanel", tab1)
 	tab2:SetBackgroundColor(Color(255, 255, 255, 0))
-	if TweakMode != 3 && Customization == true then
+	if TweakMode != 3 && Customization != false then
 		tab1:AddSheet( "Colours", tab2, "icon16/color_wheel.png" )
 	else
 		tab2:SetVisible(false)
@@ -745,7 +756,7 @@ function DRCMenu(ply)
 	tab3:Dock(FILL)
 	tab3:DockPadding( 0, 16, 0, 16 )
 	tab3:EnableVerticalScrollbar(true)
-	if TweakMode != 2 && Customization == true then
+	if TweakMode != 2 && Customization != false then
 		tab1:AddSheet( "#smwidget.bodygroups", t3c, "icon16/cog.png" )
 	else
 		tab3:SetVisible(false)
@@ -1085,7 +1096,6 @@ function DRCMenu(ply)
 			handstable.model = DRC.LocalPlayer:GetInfo("cl_playerhands")
 			handval = handstable.model
 		end
-		
 		local tbl = {}
 		if Customization == false then -- Disallowed
 			tbl = {
@@ -1103,20 +1113,29 @@ function DRCMenu(ply)
 				}
 			}
 		elseif Customization == nil then -- Tweak-only
+			local colourstweak = {
+				["Energy"] = Color(energyColour:GetColor().r, energyColour:GetColor().g, energyColour:GetColor().b),
+				["Eye"] = Color(eyecolour:GetColor().r, eyecolour:GetColor().g, eyecolour:GetColor().b),
+				["Player"] = Color(playercolour:GetColor().r, playercolour:GetColor().g, playercolour:GetColor().b),
+				["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
+				["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
+				["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
+				["Grunge"] = DRC.LocalPlayer:GetInfo("drc_playergrunge"),
+			}
+			local bgstweak = bgs
+			local skintweak = frame.preview:GetEntity():GetSkin()
+			
+			if TweakMode == 2 then bgstweak = nil end
+			if TweakMode == 2 then skintweak = nil end
+			if TweakMode == 3 then colourstweak = nil end
+			print(colourstweak)
+			
 			tbl = {
 				["player"] = DRC.LocalPlayer,
 				["model"] = DRC.LocalPlayer:GetModel(),
-				["colours"] = {
-					["Energy"] = Color(energyColour:GetColor().r, energyColour:GetColor().g, energyColour:GetColor().b),
-					["Eye"] = Color(eyecolour:GetColor().r, eyecolour:GetColor().g, eyecolour:GetColor().b),
-					["Player"] = Color(playercolour:GetColor().r, playercolour:GetColor().g, playercolour:GetColor().b),
-					["Tint1"] = Color(accentColour1:GetColor().r, accentColour1:GetColor().g, accentColour1:GetColor().b),
-					["Tint2"] = Color(accentColour2:GetColor().r, accentColour2:GetColor().g, accentColour2:GetColor().b),
-					["Weapon"] = Color(weaponcolour:GetColor().r, weaponcolour:GetColor().g, weaponcolour:GetColor().b),
-					["Grunge"] = DRC.LocalPlayer:GetInfo("drc_playergrunge"),
-				},
-				["bodygroups"] = bgs,
-				["skin"] = frame.preview:GetEntity():GetSkin(),
+				["colours"] = colourstweak,
+				["bodygroups"] = bgstweak,
+				["skin"] = skintweak,
 				["voiceset"] = VSelection,
 				["footsteps"] = FSelection,
 				["hands"] = {
@@ -2542,58 +2561,14 @@ function DRCMenu(ply)
 	end
 	t2tabs:AddSheet( "Server Settings", t2tab2, "icon16/wrench.png")
 	
-	local DrcMovement = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	DrcMovement:SetPos(25, 15)
-	DrcMovement:SetSize(20, 20)
-	DrcMovement:SetText( "Draconic SWEP movement speed overrides" )
-	DrcMovement:SetConVar( "sv_drc_movement" )
-	DrcMovement.Label:SetDark(true)
-	
-	local DrcMoveSounds = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	DrcMoveSounds:SetPos(25, 35)
-	DrcMoveSounds:SetSize(20, 20)
-	DrcMoveSounds:SetText( "Draconic SWEP movement sounds" )
-	DrcMoveSounds:SetConVar( "sv_drc_movesounds" )
-	DrcMoveSounds.Label:SetDark(true)
-	
-	local DrcInspections = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	DrcInspections:SetPos(25, 55)
-	DrcInspections:SetSize(20, 20)
-	DrcInspections:SetText( "Draconic SWEP Inspection Menu" )
-	DrcInspections:SetConVar( "sv_drc_inspections" )
-	DrcInspections.Label:SetDark(true)
-	
-	local DrcPassive = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	DrcPassive:SetPos(25, 75)
-	DrcPassive:SetSize(20, 20)
-	DrcPassive:SetText( "Draconic SWEP Passives" )
-	DrcPassive:SetConVar( "sv_drc_passives" )
-	DrcPassive.Label:SetDark(true)
-	
-	local SvThirdperson = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	SvThirdperson:SetPos(25, 115)
-	SvThirdperson:SetSize(20, 20)
-	SvThirdperson:SetText( "Disable access to Draconic's thirdperson system" )
-	SvThirdperson:SetConVar( "sv_drc_disable_thirdperson" )
-	SvThirdperson.Label:SetDark(true)
-	
-	MakeHint(t2tab2, 4, 115, "Draconic SWEPs which require thirdperson will still use Draconic thirdperson regardless of this setting.")
-	
-	local SvFreecam = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	SvFreecam:SetPos(25, 135)
-	SvFreecam:SetSize(20, 20)
-	SvFreecam:SetText( "Disable Draconic thirdperson's freecam system globally" )
-	SvFreecam:SetConVar( "sv_drc_disable_thirdperson_freelook" )
-	SvFreecam.Label:SetDark(true)
-	
-	t2tab2.SoundStretch = vgui.Create( "DCheckBoxLabel", t2tab2 )
-	t2tab2.SoundStretch:SetPos(25, 155)
-	t2tab2.SoundStretch:SetSize(20, 20)
-	t2tab2.SoundStretch:SetText( "Disable host_timescale sound alteration" )
-	t2tab2.SoundStretch:SetConVar( "sv_drc_soundtime_disabled" )
-	t2tab2.SoundStretch.Label:SetDark(true)
-	
-	MakeHint(t2tab2, 4, 155, "Enabling this setting will make it so sounds do not slow down/speed up when host_timescale changes are in effect.")
+	MakeCheckbox(t2tab2,25,15,"Draconic SWEP Movement Speed Overrides","sv_drc_movement","Allows Draconic SWEPs to alter player movement speed values.\n\nShould work fine with most gamemodes/addons. Speeds get cached on equip & reset when the weapon is dropped/swapped off/etc.")
+	MakeCheckbox(t2tab2,25,35,"Draconic SWEP Movement Sounds","sv_drc_movesounds","Custom movement sounds tied to specific weapons, an old systm that predates footstep sets.")
+	MakeCheckbox(t2tab2,25,55,"Draconic SWEP Inspection Menu","sv_drc_inspections","Enable/Disable access to the inspection menu (shift+e+r). Disabling this will inherently also prevent access to weapon customization.")
+	MakeCheckbox(t2tab2,25,75,"Draconic SWEP Passives","sv_drc_passives","Enable/Disable the ability to put weapons into ''passive mode'' with shift+e+right click.")
+	MakeCheckbox(t2tab2,25,95,"Draconic SWEP Arcade Spread","sv_drc_spreadstyle","When enabled, SWEPs will use arcade-style spread that does not account for movement/stance modifiers unlike most games.")
+	MakeCheckbox(t2tab2,25,135,"Disable access to Draconic's thirdperson system","sv_drc_disable_thirdperson","Draconic SWEPs which require thirdperson will still use Draconic thirdperson regardless of this setting.")
+	MakeCheckbox(t2tab2,25,155,"Disable Draconic thirdperson's freelook system globally","sv_drc_disable_thirdperson_freelook","This will prevent players from using the free-rotation camera when idling in third person.")
+	MakeCheckbox(t2tab2,25,175,"Disable host_timescale sound alteration","sv_drc_soundtime_disabled","Enabling this setting will make it so sounds do not slow down/speed up when host_timescale changes are in effect.")
 	
 --[[	local DiffSetting = vgui.Create( "DLabel", t2tab2)
 	DiffSetting:SetPos(400, 15)
@@ -2709,8 +2684,25 @@ function DRCMenu(ply)
 	DrcThirdperson.Label:SetDark(true)
 	DrcThirdperson:SetEnabled(true)
 	
+	t2tab3.AutoFlip = vgui.Create( "DCheckBoxLabel", t2tab3 )
+	t2tab3.AutoFlip:SetPos(25, 55)
+	t2tab3.AutoFlip:SetSize(500, 20)
+	t2tab3.AutoFlip:SetText( "Automatic shoulder swapping" )
+	t2tab3.AutoFlip:SetConVar( "cl_drc_thirdperson_autoflip" )
+	t2tab3.AutoFlip.Label:SetDark(true)
+	t2tab3.AutoFlip:SetEnabled(true)
+	
+	t2tab3.astw = vgui.Create( "DCheckBoxLabel", t2tab3 )
+	t2tab3.astw:SetPos(25, 75)
+	t2tab3.astw:SetSize(500, 20)
+	t2tab3.astw:SetText( "Hook into ASTW2" )
+	t2tab3.astw:SetConVar( "cl_drc_thirdperson_override_astw2" )
+	t2tab3.astw.Label:SetDark(true)
+	t2tab3.astw:SetEnabled(true)
+	MakeHint(t2tab3, 5, 72, "DISABLE ASTW2 CAMERA.\n\nEnabling this will make Draconic's thirdperson system interpret ASTW2's camera values, letting you\nuse ASTW2 weapons seamlessly with Draconic's thirdperson gameplay.")
+	
 	t2tab3.ThirdPersonEditor = vgui.Create("DButton", t2tab3)
-	t2tab3.ThirdPersonEditor:SetPos(20, 76)
+	t2tab3.ThirdPersonEditor:SetPos(20, 95)
 	t2tab3.ThirdPersonEditor:SetSize(200, 24)
 	t2tab3.ThirdPersonEditor:SetEnabled(true)
 	t2tab3.ThirdPersonEditor:SetText("Open Thirdperson Editor")
@@ -2720,7 +2712,7 @@ function DRCMenu(ply)
 	end
 	
 	t2tab3.TPReset = vgui.Create("DButton", t2tab3)
-	t2tab3.TPReset:SetPos(20, 106)
+	t2tab3.TPReset:SetPos(20, 135)
 	t2tab3.TPReset:SetSize(200, 24)
 	t2tab3.TPReset:SetEnabled(true)
 	t2tab3.TPReset:SetText("Reset Thirdperson to Default")
@@ -3042,6 +3034,8 @@ function DRCMenu(ply)
 --		["r_threaded_renderables"] = {			28, "Threaded Renderables", 1, false, "r_threaded_renderables\n-1, 0 or 1 (Recommended: 1)\nFrom mastercomfig's TF2 configs: ''Asynchronously set up bones on animated entities''."},
 		["r_queued_ropes"] = {					25, "Materialized Ropes", 1, false, "r_queued_ropes\n-1, 0 or 1 (Recommended: 1)\nWhen set to 1, this will make the engine treat ropes as materials, offloading their rendering operations to the GPU instead of the CPU."},
 		["r_occludermincount"] = {				26, "Minimum Occluders", 1, false, "r_occludermincount\n0 to ??? (Recommended: 1)\nForces the game to always have at least one occlusion cull, preventing stuff from being drawn that otherwise shouldn't be when off-screen."},
+		["host_limitlocal"] = {					27, "Loopback Perf. Throttle", 0, false, "host_limitlocal\n0 or 1 (Recommended: 0)\n''Apply cl_cmdrate and cl_updaterate to loopback connection'', This WILL lower your performance. Potentially extremely if cmdrates are altered for some reason."},
+		["net_chokeloop"] = {					28, "Bandwidth Loopback Choke", 0, false, "net_chokeloop\n0 or 1 (Recommended: 0)\n''Apply bandwidth choke to loopback packets'', This WILL lower your performance. Potentially extremely if cmdrates are altered for some reason."},
 	}
 	
 	for k,v in pairs(convars) do
@@ -3085,7 +3079,7 @@ function DRCMenu(ply)
 	t4tab1.copy:SetSize(200, 20)
 	t4tab1.copy:SetText("Copy optimal configs to clipboard")
 	t4tab1.copy.DoClick = function()
-		SetClipboardText("r_radiosity 3\nr_ambientmin 0\nr_shadows 1\nr_flashlightdepthres 8192\nr_flashlightdepthtexture 1\nr_projectedtexture_filter 0.1\nr_shadow_allowdynamic 1\nr_shadow_allowbelow 1\nmat_specular 1\nmat_motion_blur_enabled 1\nmat_motion_blur_strength 0\ndsp_enhance_stereo 1\ngmod_mcore_test 1\ncl_threaded_bone_setup 1\nmat_queue_mode 2\nr_threaded_particles 1\nr_queued_ropes 1\nr_occludermincount 1")
+		SetClipboardText("r_radiosity 3\nr_ambientmin 0\nr_shadows 1\nr_flashlightdepthres 8192\nr_flashlightdepthtexture 1\nr_projectedtexture_filter 0.1\nr_shadow_allowdynamic 1\nr_shadow_allowbelow 1\nmat_specular 1\nmat_motion_blur_enabled 1\nmat_motion_blur_strength 0\ndsp_enhance_stereo 1\ngmod_mcore_test 1\ncl_threaded_bone_setup 1\nmat_queue_mode 2\nr_threaded_particles 1\nr_queued_ropes 1\nr_occludermincount 1\nhost_limitlocal 0\nnet_chokeloop 0")
 	end
 
 --[[	

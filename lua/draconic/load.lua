@@ -41,7 +41,6 @@ function DRC:IncludeDir( directory )
 	end
 
 	for _, v in ipairs( directories ) do
-	--	print( "[Draconic Base] Directory: " .. v )
 		DRC:IncludeDir( directory .. v )
 	end
 end

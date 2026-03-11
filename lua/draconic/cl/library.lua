@@ -24,6 +24,8 @@ DRC.Menu = {}
 DRC.CurrentRPModelOptions = {}
 DRC.CurrentSpecialModelOptions = {}
 DRC.VolumeLights = {}
+DRC.ReflectionModifier = 1
+DRC.ReflectionModifier_IsBadMap = 0
 
 language.Add( "SniperRound_ammo", "Sniper Ammo" ) -- give a string to base-game sniper ammo since it has none
 
@@ -75,7 +77,7 @@ function DRC:GetCustomizationAllowed()
 	if !table.IsEmpty(DRC.CurrentRPModelOptions) then return true, svtweaktoggle end
 		
 	if svtoggle == 1 then return false, svtweaktoggle end
-	if svtweaktoggle >= 1 then return true, svtweaktoggle end
+	if svtweaktoggle >= 1 then return nil, svtweaktoggle end
 	
 	return true, svtweaktoggle
 end
@@ -135,16 +137,18 @@ net.Receive("DRC_UpdatePlayermodel", function()
 	
 	if !IsValid(ent) then return end
 	ent:SetModel(model)
-	ent:SetSkin(skin)
+	if skin then ent:SetSkin(skin) end
 	DRC:RefreshCamoMats(ent, true)
 	DRC:SetCamo(ent, camo, "automatic")
 	for k,v in pairs(bgs) do
 		ent:SetBodygroup(k-1, v)
 	end
 --	ent:SetBodyGroups(bgs)
-	ent:SetPlayerColor(Vector(colours.Player.r/255, colours.Player.g/255, colours.Player.b/255))
-	ent:SetWeaponColor(Vector(colours.Weapon.r/255, colours.Weapon.g/255, colours.Weapon.b/255))
-	DRC:RefreshColours(ent)
+	if colours then
+		ent:SetPlayerColor(Vector(colours.Player.r/255, colours.Player.g/255, colours.Player.b/255))
+		ent:SetWeaponColor(Vector(colours.Weapon.r/255, colours.Weapon.g/255, colours.Weapon.b/255))
+		DRC:RefreshColours(ent)
+	end
 end)
 
 DRC.Cols = {}
@@ -186,10 +190,19 @@ hook.Add("Think", "drc_CSThinkStuff", function()
 		mask = MASK_SHOT_PORTAL,
 		filter = function(ent) if ent != ply then return true end end
 	})
+	local etrnoproj = util.TraceLine({
+		start = ply:GetShootPos(),
+		endpos = ply:GetShootPos() + ply:EyeAngles():Forward() * 10000,
+		mask = MASK_SHOT_PORTAL,
+		filter = function(ent) if ent != ply && ent:GetCollisionGroup() != COLLISION_GROUP_PROJECTILE then return true end end
+	})
 	
 	DRC.CalcView.Trace = etr
+	DRC.CalcView.TraceNoProjectiles = etrnoproj
 	DRC.CalcView.HitPos = etr.HitPos
+	DRC.CalcView.HitPosNoProjectiles = etrnoproj.HitPos
 	DRC.CalcView.ToScreen = DRC.CalcView.HitPos:ToScreen()
+	DRC.CalcView.ToScreenNoProjectiles = DRC.CalcView.HitPosNoProjectiles:ToScreen()
 	if DRC.CalcView.LightColour then DRC.CalcView.LightColour:SetString(tostring(render.GetLightColor(ply:EyePos()))) end
 	
 	DRC.Cols = {
@@ -252,7 +265,7 @@ function DRC:AggressiveCull(obj, hardmul, cutoffmul)
 	local zoom = DRC.AggCullFOVCheck
 	local mul = GetConVar("cl_drc_perf_aggressiveculling_mindist"):GetFloat()
 	
-	local initialvalid = dist > 100000*mul*hardmul
+	local initialvalid = dist > 200000*mul*hardmul
 	if !initialvalid then return false end
 	
 	if !zoom && dist > 10000000 * cutoffmul then return true end
@@ -264,7 +277,7 @@ function DRC:AggressiveCull(obj, hardmul, cutoffmul)
 		
 		if obj:IsWeapon() && IsValid(obj.Owner) then spos = spos+Vector(0,0,20) else spos = spos+Vector(0,0,10) end
 		local dir = ((ppos-lply:OBBCenter()+off)-spos):GetNormalized()
-		local tr = util.QuickTrace(spos, dir * 999999999, function(ent) if ent == lply or ent:IsWorld() then return true else return false end end) 
+		local tr = util.QuickTrace(spos, dir * 999999999, function(ent) return ent == lply end) 
 		DRC:RenderTrace(tr, Color(0, 255, 0, 255), RealFrameTime()*2)
 		if tr.Hit && tr.Entity != lply then return true end
 		return false
@@ -273,11 +286,23 @@ function DRC:AggressiveCull(obj, hardmul, cutoffmul)
 end
 
 net.Receive("DRC_SyncAggCull", function()
+	if !DRC.AggressiveCulls then return end
 	local ent = net.ReadEntity()
 	local b = net.ReadBool()
-	
-	if b == true then DRC.AggressiveCulls[ent] = ent else DRC.AggressiveCulls[ent] = nil end
-	if b == false then ent:SetNoDraw(b) end
+
+	if b then
+		if !table.HasValue(DRC.AggressiveCulls, ent) then
+			table.insert(DRC.AggressiveCulls, ent)
+		end
+	else
+		for i = #DRC.AggressiveCulls, 1, -1 do
+			if DRC.AggressiveCulls[i] == ent then
+				table.remove(DRC.AggressiveCulls, i)
+				break
+			end
+		end
+		ent:SetNoDraw(false)
+	end
 end)
 
 local function ReadBytes(str, pos, n)
@@ -434,6 +459,20 @@ function DRC:ReadMidi(name, fyle)
 	return song
 end
 
+net.Receive("PlayerSwitchWeaponSinglePlayer", function()
+	DRC:ToggleThirdperson(true)
+end)
+
+net.Receive("DRC_Interact", function()
+	local ent, interacting, move, mouse, ang = net.ReadEntity(), net.ReadBool(), net.ReadBool(), net.ReadBool(), net.ReadAngle()
+	
+	ent.DRC_Interacted_Entity = ent
+	ent.DRC_Interacting = interacting
+	ent.DRC_Interacting_StopMovement = movement
+	ent.DRC_Interacting_StopMouse = mouse
+	ent.DRC_Interacting_EyeAngle = ang
+end)
+
 
 
 
@@ -544,6 +583,10 @@ net.Receive("DRC_ReflectionModifier", function(length, ply)
 	DRC.ReflectionModifier = net.ReadFloat()
 end)
 
+net.Receive("DRC_ReflectionModifier_BadMap", function(length, ply)
+	DRC.ReflectionModifier_IsBadMap = net.ReadFloat()
+end)
+
 net.Receive("DRC_WeaponAttachForceOpen", function(length, ply)
 	DRC:ToggleAttachmentMenu(LocalPlayer():GetActiveWeapon(), true, true)
 end)
@@ -589,14 +632,14 @@ RunConsoleCommand("r_fogstart", fogstart)
 RunConsoleCommand("r_fogend", fogend)
 
 hook.Add("PlayerTick", "DRC_SpeakingPoseParam", function(ply)
-	if !game.SinglePlayer && ply:LookupPoseParameter("drc_speaking") != -1 then
-		local vol = math.Clamp(ply:VoiceVolume(), 0.05, 1)
+	if ply:LookupPoseParameter("drc_speaking") != -1 then
+		local vol = math.Clamp(ply:VoiceVolume() * ply:GetInfoNum("cl_drc_voip_input_mul", 1), 0.05, 1)
 		if ply.DesiredVoiceVal != nil then
 			ply.LerpedVoiceSmoother = Lerp(0.9, ply.LerpedVoiceSmoother or vol, vol)
-			ply.LerpedVoiceVal = Lerp(1 * ply.LerpedVoiceSmoother, ply.LerpedVoiceVal or ply.DesiredVoiceVal, ply.DesiredVoiceVal)
+			ply.LerpedVoiceVal = Lerp(3 * ply.LerpedVoiceSmoother, ply.LerpedVoiceVal or ply.DesiredVoiceVal, ply.DesiredVoiceVal)
 		end
 		if ply.IsUsingVoice == true then
-			ply.DesiredVoiceVal = Lerp(0.5, ply.DesiredVoiceVal or vol * 3, vol * 3)
+			ply.DesiredVoiceVal = Lerp(0.99, ply.DesiredVoiceVal or vol * 3, vol * 3)
 		else
 			ply.DesiredVoiceVal = -0.05
 		end
@@ -690,6 +733,7 @@ function DRC:UpdateThirdPersonEditorMenu()
 		Derma.sliderz:SetValue(DRC.ThirdPerson.EditorSettings.Offset.Z)
 		Derma.sliderfov:SetValue(DRC.ThirdPerson.EditorSettings.BaseFOV)
 		Derma.sliderlerppos:SetValue(DRC.ThirdPerson.EditorSettings.LerpPos)
+		Derma.sliderlerpposads:SetValue(DRC.ThirdPerson.EditorSettings.LerpPos_ADS)
 		Derma.sliderlerpang:SetValue(DRC.ThirdPerson.EditorSettings.LerpAngle)
 		Derma.ddorigin:SetValue(DRC.ThirdPerson.EditorSettings.BasePoint)
 		Derma.ddfocal:SetValue(DRC.ThirdPerson.EditorSettings.FocalPoint)
@@ -716,7 +760,9 @@ function DRC:CreateThirdPersonPresetMenu(parent, iseditor)
 	loadbutton:SetEnabled(false)
 	loadbutton.DoClick = function()
 		DRC.ThirdPerson.LoadedSettings.LerpPos = 1
+		DRC.ThirdPerson.LoadedSettings.LerpPos_ADS = 0.5
 		DRC.ThirdPerson.LoadedSettings.LerpAngle = 1
+		if !SelectedPreset.LerpPos_ADS then SelectedPreset.LerpPos_ADS = 0.5 end
 		table.CopyFromTo(SelectedPreset, DRC.ThirdPerson.LoadedSettings)
 		if iseditor == true then table.CopyFromTo(SelectedPreset, DRC.ThirdPerson.EditorSettings) DRC:UpdateThirdPersonEditorMenu() end
 		RunConsoleCommand("cl_drc_thirdperson_preset", SelectedPresetName)
@@ -934,17 +980,15 @@ function ThirdPersonModEnabled(ply)
 	if drctpcheck1 == true or drctpcheck2 == true or drctpcheck3 == true or drctpcheck4 == true or drctpcheck5 == true then return true else return false end
 end
 
-function DRC:ThirdPersonEnabled(ply)
+function DRC:ThirdPersonEnabled(ply, ignoredrc)
 	if ThirdPersonModEnabled(ply) == true then return true end
 	if ply:GetViewEntity() != ply then return true end
-	if DRC:IsDraconicThirdPersonEnabled(ply) == true then return true end
 	if pac then if pace.IsActive() == true then return true end end
 	local curswep = ply:GetActiveWeapon()
-	if curswep.ASTWTWO == true then return true end
-	if ply:GetNWString("Draconic_ThirdpersonForce") == "On" then return true end
-	if ply:GetNWString("Draconic_ThirdpersonForce") == "Off" then return false end
+	if curswep.ASTWTWO == true && GetConVar("cl_drc_thirdperson_override_astw2"):GetInt() == 0 then return true end
+	if ignoredrc == true then return false end
 	if DRC.SV.drc_disable_thirdperson == 1 then return false end
-	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true else return false end
+	if DRC:IsDraconicThirdPersonEnabled(ply) == true then return true end
 	return false
 end
 
@@ -954,7 +998,8 @@ function DRC:ShouldDoDRCThirdPerson(ply)
 	if pac then if pace.IsActive() == true then return false end end
 	local curswep = ply:GetActiveWeapon()
 	if curswep.Draconic && curswep.Thirdperson == true then return true end
-	if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+	if curswep.ASTWTWO && GetConVar("cl_drc_thirdperson_override_astw2"):GetInt() == 1 then return true end
+	if GetConVar("cl_drc_thirdperson"):GetInt() == 1 then return true end
 	return false
 end
 
@@ -964,11 +1009,11 @@ function DRC:IsDraconicThirdPersonEnabled(ply)
 	local curswep = ply:GetActiveWeapon()
 	if !IsValid(curswep) then
 		if DRC.SV.drc_disable_thirdperson == 1 then return false end
-		if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+		if GetConVar("cl_drc_thirdperson"):GetInt() == 1 then return true end
 	else
-		if curswep.Draconic == true && curswep.Thirdperson == true then return true end
+		if (curswep.Draconic == true && curswep.Thirdperson == true) or curswep.ASTWTWO && GetConVar("cl_drc_thirdperson_override_astw2"):GetInt() == 1 then return true end
 		if DRC.SV.drc_disable_thirdperson == 1 then return false end
-		if GetConVar("cl_drc_thirdperson"):GetFloat() == 1 then return true end
+		if GetConVar("cl_drc_thirdperson"):GetInt() == 1 then return true end
 	end
 	return false
 end
@@ -1009,6 +1054,37 @@ function DRC:GetCalcViewShake()
 	return shake, shakevert/10, shake/7.5
 end
 
+function DRC:GetCamoPreference(weapon)
+	local archive = file.Read("draconic/weaponcamos.json", "DATA")
+	if !archive then
+		local tbl = {}
+		tbl[weapon:GetClass()] = camo
+		local json = util.TableToJSON(tbl)
+		file.Write("draconic/weaponcamos.json", json)
+		return nil
+	else
+		local tbl = util.JSONToTable(archive)
+		return tbl[weapon:GetClass()]
+	end
+	
+	return nil
+end
+
+function DRC:ArchiveCamoPreference(ply, weapon, camo)
+	local archive = file.Read("draconic/weaponcamos.json", "DATA")
+	if !archive then
+		local tbl = {}
+		tbl[weapon:GetClass()] = camo
+		local json = util.TableToJSON(tbl)
+		file.Write("draconic/weaponcamos.json", json)
+	else
+		local tbl = util.JSONToTable(archive)
+		tbl[weapon:GetClass()] = camo
+		local json = util.TableToJSON(tbl)
+		file.Write("draconic/weaponcamos.json", json)
+	end
+end
+
 net.Receive("DRC_WeaponAttachSwitch_Sync", function()
 	local wpn = net.ReadEntity()
 	local req = net:ReadString()
@@ -1030,6 +1106,7 @@ net.Receive("DRC_WeaponCamoSwitch_Sync", function()
 	local name = net:ReadString()
 	
 	wpn:SetCamo(mat, name)
+	DRC:ArchiveCamoPreference(wpn:GetOwner(), wpn, mat)
 	
 --	surface.PlaySound(DRC.Inspection.Theme.Sounds.Select)
 end)
@@ -1042,7 +1119,7 @@ hook.Add("PlayerBindPress", "DRC_ClientsideHotkeys", function(ply, bind, pressed
 	if !IsValid(ply) or !ply:Alive() then return end
 	local wpn = ply:GetActiveWeapon()
 	
-	if bind == "+zoom" && wpn.Draconic && wpn:GetNWBool("Inspecting") == true then
+	if bind == "+zoom" && wpn.Draconic && wpn:GetNW2Bool("Inspecting") == true then
 		if wpn:CanCustomize() then DRC:ToggleAttachmentMenu(wpn, true, false) end
 	return true end
 end)
@@ -1108,7 +1185,7 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 		end
 		
 		local swepmul = 50
-		local loading, inspecting, idle, melee, firing = wpn.PlayingLoadAnimation, wpn:GetNWBool("InspectCamLerp"), (wpn.OwnerActivity == "standidle" or wpn.OwnerActivity == "crouchidle"), wpn:GetNWBool("IsDoingMelee"), wpn.PlayingShootAnimation
+		local loading, inspecting, idle, melee, firing = wpn.PlayingLoadAnimation, wpn:GetNW2Bool("InspectCamLerp"), (wpn.OwnerActivity == "standidle" or wpn.OwnerActivity == "crouchidle"), wpn:GetNW2Bool("IsDoingMelee"), wpn.PlayingShootAnimation
 		local swepmuls = {
 			["idle"] = math.Clamp(wpn.CameraStabilityIdle, 0.1, 5),
 			["move"] = math.Clamp(wpn.CameraStabilityMove, 0.1, 5),
@@ -1207,6 +1284,55 @@ hook.Add("CalcView", "!DrcLerp", function(ply, origin, ang, fov, zn, zf)
 end)
 
 
+drc_rollval_lerp = 0
+drc_mxval_lerp = 0
+drc_myval_lerp = 0
+drc_vel_lerp = 0
+hook.Add("PreDrawViewModel", "drc_predrawvm", function(vm, ply, wpn, flags)
+	if wpn.Draconic then
+		if !wpn.dang then wpn.dang = Angle() end
+		if !wpn.proxydang then wpn.proxydang = Angle() end
+		if !wpn.oang then wpn.oang = Angle() end
+		if !wpn.LLTime then wpn.LLTime = 0 end
+		if !wpn.rollval then wpn.rollval = 0 end
+		if !wpn.mxval then wpn.mxval = 0 end
+		if !wpn.myval then wpn.myval = 0 end
+		local vel = math.Clamp(ply:GetVelocity():LengthSqr()*0.00005, 0, 4)
+		local sd = wpn.SightsDown
+		local sightkill = 0
+		if sd == true then sightkill = 0 else sightkill = 1 end
+		
+		local realft = FrameTime()
+		local rate = 66
+		local thyme = 1-math.exp(-rate*realft)
+		thyme = thyme * 0.5
+		if game.IsDedicated() then thyme = thyme*2 end -- bandaid
+		
+		drc_rollval_lerp = Lerp(thyme*0.15, drc_rollval_lerp or wpn.rollval, wpn.rollval)
+		drc_mxval_lerp = Lerp(thyme*0.15, drc_mxval_lerp or wpn.mxval, wpn.mxval)
+		drc_myval_lerp = Lerp(thyme*0.15, drc_myval_lerp or wpn.myval, wpn.myval)
+		drc_rollval_lerp = drc_rollval_lerp * sightkill
+		drc_vel_lerp = Lerp(thyme*0.15, drc_vel_lerp or vel, vel)
+		
+		if wpn.ShouldWalkBlend == false then
+			drc_mxval_lerp = Lerp(0.5, drc_mxval_lerp or 0, 0)
+			drc_myval_lerp = Lerp(0.5, drc_myval_lerp or 0, 0)
+			drc_vel_lerp = Lerp(0.5, drc_vel_lerp or 0, 0)
+		end
+		local velmul
+		if ply:Crouching() then velmul = 3 else velmul = 0.5 end
+		
+		vm:SetPoseParameter("drc_movement", drc_vel_lerp*velmul)
+		vm:SetPoseParameter("drc_move_x", drc_mxval_lerp)
+		vm:SetPoseParameter("drc_move_y", drc_myval_lerp)
+		
+		local holdang = LocalPlayer():EyeAngles()
+		local inputang = Angle(DRC.MoveInfo.Mouse[2], -DRC.MoveInfo.Mouse[1], 0)*0.05
+		wpn.dang = LerpAngle((thyme * wpn.SS * 0.05), wpn.dang, inputang*1.5)--holdang - wpn.oang)
+		wpn.proxydang = LerpAngle((thyme*20 * wpn.SS * 0.05), wpn.proxydang, inputang)
+	end
+end)
+
 function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 	if IsValid(wpn) && wpn.Draconic then
 		local ply = wpn:GetOwner()
@@ -1215,11 +1341,7 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 				local calcpos, calcang = wpn:GetViewModelPosition(ogpos, ogang)
 				local newpos, newang = calcpos, calcang
 				if calcpos && calcang && newpos && newang then
-					local velinput = math.Clamp(ply:GetVelocity():Length()/100, 0, 3)
-					local wl = ply:WaterLevel()
 					local sd = wpn.SightsDown
-					local sightkill = 0
-					if sd == true then sightkill = 0 else sightkill = 1 end
 					if !wpn.dang then wpn.dang = Angle() end
 					if !wpn.proxydang then wpn.proxydang = Angle() end
 					if !wpn.oang then wpn.oang = Angle() end
@@ -1238,74 +1360,40 @@ function DRCSwepSway(wpn, vm, ogpos, ogang, pos, ang)
 					
 					rollmul = (rollmul * wpn.VelInterp) * wpn.RollingPower
 					
-					local rollval, xval, yval
 					if ply:KeyDown(IN_MOVELEFT) then
-						rollval = -3.35 * rollmul
-						xval = -1
+						wpn.rollval = -3.35 * rollmul
+						wpn.mxval = -1
 					elseif ply:KeyDown(IN_MOVERIGHT) then
-						rollval = 3.35 * rollmul
-						xval = 1
+						wpn.rollval = 3.35 * rollmul
+						wpn.mxval = 1
 					else
-						rollval = 0
-						xval = 0
+						wpn.rollval = 0
+						wpn.mxval = 0
 					end
 					
-				--	rollval = rollval + DRC.MoveInfo.Mouse[1]*0.05
-					
 					if ply:KeyDown(IN_FORWARD) then
-						yval = 1
+						wpn.myval = 1
 					elseif ply:KeyDown(IN_BACK) then
-						yval = -1
+						wpn.myval = -1
 					else
-						yval = 0
+						wpn.myval = 0
 					end
 					
 					if vm:SelectWeightedSequence(ACT_RUN) == -1 then
 						if ply:KeyDown(IN_SPEED) then
-							rollval = rollval/2
+							wpn.rollval = wpn.rollval/2
 						end
-					end
-					
-					local rft = 0.002
-					local realft = RealFrameTime()
-					rollval_lerp = Lerp(rft*5, rollval_lerp or rollval, rollval)
-					drc_xval_lerp = Lerp(rft*10, drc_xval_lerp or xval, xval)
-					drc_yval_lerp = Lerp(rft*10, drc_yval_lerp or yval, yval)
-					rollval_lerp = rollval_lerp * sightkill
-					local vel = math.Clamp(ply:GetVelocity():LengthSqr()*0.00005, 0, 4)
-					drc_vel_lerp = Lerp(rft*10, drc_vel_lerp or vel, vel)
-					
-					if wpn.ShouldWalkBlend == false then
-						drc_xval_lerp = Lerp(0.5, drc_xval_lerp or 0, 0)
-						drc_yval_lerp = Lerp(0.5, drc_yval_lerp or 0, 0)
-						drc_vel_lerp = Lerp(0.5, drc_vel_lerp or 0, 0)
-					end
-					local velmul
-					if ply:Crouching() then velmul = 3 else velmul = 0.5 end
-					
-					vm:SetPoseParameter("drc_movement", drc_vel_lerp*velmul)
-					vm:SetPoseParameter("drc_move_x", drc_xval_lerp)
-					vm:SetPoseParameter("drc_move_y", drc_yval_lerp)
-					
-					local holdang = LocalPlayer():EyeAngles()
-					local inputang = Angle(DRC.MoveInfo.Mouse[2], -DRC.MoveInfo.Mouse[1], 0)*0.05
-					wpn.dang = LerpAngle((rft*200 * wpn.SS * 0.05), wpn.dang, inputang)--holdang - wpn.oang)
-					wpn.proxydang = LerpAngle((realft*200 * wpn.SS * 0.05), wpn.proxydang, inputang)
-					if RealTime() > wpn.LLTime + (FrameTime() * 0.001) then
-						wpn.LLTime = RealTime()
-						wpn.oang = ogang
-						wpn.dang = wpn.dang * (1-wpn.SightInt)
 					end
 					
 					if sd then wpn.dang = wpn.dang * 0.85 end
 					
-					local dynang = Angle(wpn.dang.x * -wpn.SS/1.25, wpn.dang.y * wpn.SS/2, wpn.dang.z + rollval_lerp)*2
+					local dynang = Angle(wpn.dang.x * -wpn.SS/1.25, wpn.dang.y * wpn.SS/2, wpn.dang.z + drc_rollval_lerp)*2
 
 					newpos:Add(ang:Right() * dynang.y*wpn.SS/6)
 				--	newpos:Add(ang:Forward() * dynang.y)
 					newpos:Add(ang:Up() * -dynang.x*wpn.SS/6)
 					
-					wpn.dynmove = {["Ang"] = dynang, ["Pos"] = newpos, ["Roll"] = rollval_lerp}
+					wpn.dynmove = {["Ang"] = dynang, ["Pos"] = newpos, ["Roll"] = wpn.drc_rollval_lerp}
 				end
 			end
 		end
@@ -1365,8 +1453,8 @@ local function GetBaseOffsets(wpn, setpos, setangle)
 	local sk = ply:KeyDown(IN_SPEED)
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 	local sprint = sk && mk && (wpn.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1)
-	local passive = wpn:GetNWBool("Passive", false) && DRC.SV.drc_passives >= 1
-	local inspect = wpn:GetNWBool("Inspecting") && DRC.SV.drc_inspections >= 1
+	local passive = wpn:GetNW2Bool("Passive", false) && DRC.SV.drc_passives >= 1
+	local inspect = wpn:GetNW2Bool("Inspecting") && DRC.SV.drc_inspections >= 1
 	lerppower = rft * 7
 	if DRC.SV.drc_force_sprint == 2 then sprint = false end
 	local mul2 = 1
@@ -1445,8 +1533,8 @@ function DRCSwepOffset(wpn, vm)
 	local sk = ply:KeyDown(IN_SPEED)
 	local mk = (ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 	local sprint = sk && mk && (wpn.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1)
-	local passive = wpn:GetNWBool("Passive", false) && DRC.SV.drc_passives >= 1
-	local inspect = wpn:GetNWBool("Inspecting") && DRC.SV.drc_inspections >= 1
+	local passive = wpn:GetNW2Bool("Passive", false) && DRC.SV.drc_passives >= 1
+	local inspect = wpn:GetNW2Bool("Inspecting") && DRC.SV.drc_inspections >= 1
 	lerppower = FrameTime() * 7
 	if DRC.SV.drc_force_sprint == 2 then sprint = false end
 	
@@ -1738,6 +1826,33 @@ concommand.Add("draconic_menu", function()
 	DRCMenu(LocalPlayer())
 end)
 
+function DRC:ThirdPerson_PokeLiveAngle(ply)
+	local wpn = ply:GetActiveWeapon()
+	local settings = wpn.ThirdPersonProfileOverride or DRC.ThirdPerson.LoadedSettings
+	local ct = CurTime()
+	
+	if !DRC.CalcView.Thirdperson then DRC.CalcView.Thirdperson = {} end
+	if !DRC.CalcView.Ang then DRC.CalcView.Ang = Angle() end
+	if !DRC.CalcView.Ang_Stored then DRC.CalcView.Ang_Stored = Angle() end
+	if !DRC.CalcView.DirectionalAng then DRC.CalcView.DirectionalAng = Angle() end
+	if !DRC.CalcView.Live then DRC.CalcView.Live = false end
+	if !DRC.CalcView.PokeTime then DRC.CalcView.PokeTime = ct end
+	if DRC.CalcView.ThirdPerson.PokeTime == nil then DRC.CalcView.ThirdPerson.PokeTime = ct end
+	if wpn.ThirdpersonForceFreelook == true or settings.ForceFreelook == true then
+		DRC.CalcView.ThirdPerson.Live = false
+		DRC.CalcView.ThirdPerson.FreelookForced = true
+		DRC.CalcView.ThirdPerson.Poked = true
+		DRC.CalcView.ThirdPerson.PokeTime = ct
+		return
+	else DRC.CalcView.ThirdPerson.FreelookForced = false
+	end
+	if ct < DRC.CalcView.ThirdPerson.PokeTime then return end
+	DRC.CalcView.ThirdPerson.Live = true
+	DRC.CalcView.ThirdPerson.Poked = true
+	local delay = DRC.ThirdPerson.LerpedSettings.FreecamDelay or 0
+	DRC.CalcView.ThirdPerson.PokeTime = ct + delay
+end
+
 function DRC:ToggleThirdperson(soft)
 	local ply = LocalPlayer()
 	DRC.CalcView.ThirdPerson.LerpedFinalPos = ply:EyePos()
@@ -1890,7 +2005,7 @@ local function drc_DebugUI()
 		
 		if curswep.Draconic == true then
 			local vm
-			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNWInt("LoadedAmmo"), 4) ..")/".. maxammo .." | Ammo", "DermaDefault", width * 0.975, height * 0.855, color_white, TEXT_ALIGN_RIGHT )
+			draw.DrawText( "".. ammo .."(".. math.Round(curswep:GetNW2Int("LoadedAmmo"), 4) ..")/".. maxammo .." | Ammo", "DermaDefault", width * 0.975, height * 0.855, color_white, TEXT_ALIGN_RIGHT )
 			draw.DrawText( "".. math.Round(curswep:GetHeat(), 4) .."% | Heat", "DermaDefault", width * 0.975, height * 0.855+12, color_white, TEXT_ALIGN_RIGHT )
 			draw.DrawText( "".. curswep.Category .." - ".. curswep:GetPrintName() .."", "DermaDefault", width * 0.975, height * 0.855-12, color_white, TEXT_ALIGN_RIGHT )
 			draw.DrawText( "".. curswep.OwnerActivity .."", "TargetID", width * 0.5, height * 0.8 + 24, color_white, TEXT_ALIGN_CENTER )
@@ -1910,7 +2025,7 @@ local function drc_DebugUI()
 			
 			draw.DrawText( "Firing Anim: ".. tostring(curswep.PlayingShootAnimation) .."", "DermaDefault", 32, height * 0.5 + 214, color_white, TEXT_ALIGN_LEFT )
 			draw.DrawText( "Loading Anim: ".. tostring(curswep.PlayingLoadAnimation) .."", "DermaDefault", 32, height * 0.5 + 226, color_white, TEXT_ALIGN_LEFT )
-			draw.DrawText( "Inspect Anim: ".. tostring(curswep:GetNWBool("InspectCamLerp")) .."", "DermaDefault", 32, height * 0.5 + 238, color_white, TEXT_ALIGN_LEFT )
+			draw.DrawText( "Inspect Anim: ".. tostring(curswep:GetNW2Bool("InspectCamLerp")) .."", "DermaDefault", 32, height * 0.5 + 238, color_white, TEXT_ALIGN_LEFT )
 			
 			local col1 = Color(255, 255, 255, 175)
 			local col2 = Color(255, 255, 255, 75)

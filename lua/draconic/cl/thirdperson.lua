@@ -17,8 +17,9 @@ DRC.ThirdPerson.EditorSettings = {
 	["UseBaseOffsets"] = true,
 	["AllowFreeLook"] = true,
 	["Offset"] = Vector(0, 0, 0),
-	["LerpAngle"] = 0,
-	["LerpPos"] = 0.1,
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
 	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
@@ -26,6 +27,9 @@ DRC.ThirdPerson.EditorSettings = {
 	["ForceFreelook"] = false,
 	["FreecamDelay"] = 3,
 	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
 }
 
 DRC.ThirdPerson.LoadedSettings = {
@@ -34,8 +38,9 @@ DRC.ThirdPerson.LoadedSettings = {
 	["UseBaseOffsets"] = true,
 	["AllowFreeLook"] = true,
 	["Offset"] = Vector(25, 0, 0),
-	["LerpAngle"] = 0,
-	["LerpPos"] = 0.1,
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
 	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
@@ -43,6 +48,9 @@ DRC.ThirdPerson.LoadedSettings = {
 	["ForceFreelook"] = false,
 	["FreecamDelay"] = 3,
 	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
 }
 DRC.ThirdPerson.LerpedSettings = {
 	["Length"] = 100,
@@ -50,8 +58,9 @@ DRC.ThirdPerson.LerpedSettings = {
 	["UseBaseOffsets"] = true,
 	["AllowFreeLook"] = true,
 	["Offset"] = Vector(25, 0, 0),
-	["LerpAngle"] = 0,
-	["LerpPos"] = 0.1,
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
 	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
@@ -59,6 +68,9 @@ DRC.ThirdPerson.LerpedSettings = {
 	["ForceFreelook"] = false,
 	["FreecamDelay"] = 3,
 	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
 }
 
 DRC.ThirdPerson.DefaultSettings = {
@@ -67,8 +79,9 @@ DRC.ThirdPerson.DefaultSettings = {
 	["UseBaseOffsets"] = true,
 	["AllowFreeLook"] = true,
 	["Offset"] = Vector(25, 0, 0),
-	["LerpAngle"] = 0,
-	["LerpPos"] = 0.1,
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
 	["LerpTransition"] = 1,
 	["BaseFOV"] = 75,
 	["FocalPoint"] = 0, -- 0 player view, 1 hitpos, 2 head angle
@@ -76,7 +89,182 @@ DRC.ThirdPerson.DefaultSettings = {
 	["ForceFreelook"] = false,
 	["FreecamDelay"] = 3,
 	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
 }
+
+DRC.ThirdPerson.ASTWInterpreter = {
+	["Length"] = 100,
+	["Height"] = 25,
+	["UseBaseOffsets"] = false,
+	["AllowFreeLook"] = false,
+	["Offset"] = Vector(25, 0, 0),
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
+	["LerpTransition"] = 1,
+	["BaseFOV"] = 75,
+	["FocalPoint"] = 0,
+	["BasePoint"] = 0,
+	["ForceFreelook"] = false,
+	["FreecamDelay"] = 3,
+	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
+}
+DRC.ThirdPerson.ASTWInterpreter_Aim = {
+	["Length"] = 100,
+	["Height"] = 25,
+	["UseBaseOffsets"] = false,
+	["AllowFreeLook"] = false,
+	["Offset"] = Vector(25, 0, 0),
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
+	["LerpTransition"] = 1,
+	["BaseFOV"] = 75,
+	["FocalPoint"] = 0,
+	["BasePoint"] = 0,
+	["ForceFreelook"] = false,
+	["FreecamDelay"] = 3,
+	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
+}
+DRC.ThirdPerson.ASTWInterpreter_Crouch = {
+	["Length"] = 100,
+	["Height"] = 25,
+	["UseBaseOffsets"] = false,
+	["AllowFreeLook"] = false,
+	["Offset"] = Vector(25, 0, 0),
+	["LerpAngle"] = 0.5,
+	["LerpPos"] = 1.33,
+	["LerpPos_ADS"] = 0.5,
+	["LerpTransition"] = 1,
+	["BaseFOV"] = 75,
+	["FocalPoint"] = 0,
+	["BasePoint"] = 0,
+	["ForceFreelook"] = false,
+	["FreecamDelay"] = 3,
+	["ForceDirectional"] = false,
+	["LockPitch"] = false,
+	["Entity"] = nil,
+	["EntityAngles"] = false,
+}
+
+local astwtodrcorigins = { -- 0 pelvis, 1 eyes, 2 origin
+	[0] = 1,
+	[1] = 2,
+	[2] = 2,
+	[3] = 0
+}
+function DRC:ReInterpretASTW()
+	local enforced = GetConVar("astw2_force_camera"):GetBool()
+	local length, height, baseoffest, lerpspeed, basefov
+	local length_aim, height_aim, baseoffest_aim, lerpspeed_aim
+	local length_cr, height_cr, baseoffest_cr, lerpspeed_cr
+	local origin, origin_aim, origin_cr
+	local alwaysaim = GetConVar("astw2_always_aim"):GetBool()
+	
+	-- Passive: ccp | Aim: cc | Sprint: ccs | Crouch: ccc
+	if !enforced then
+		length = -GetConVar("astw2_ccp_forward"):GetFloat()
+		height = GetConVar("astw2_ccp_up"):GetFloat()
+		baseoffest = Vector(0, -GetConVar("astw2_ccp_right"):GetFloat(), 0)
+		lerpspeed = 1.8-GetConVar("astw2_ccp_lerp"):GetFloat()
+		basefov = GetConVar("astw2_camera_fov"):GetFloat()
+		origin = astwtodrcorigins[GetConVar("astw2_ccp_attachment"):GetInt()]
+		
+		length_aim = -GetConVar("astw2_cc_forward"):GetFloat()
+		height_aim = GetConVar("astw2_cc_up"):GetFloat()
+		baseoffest_aim = Vector(0, -GetConVar("astw2_cc_right"):GetFloat(), 0)
+		lerpspeed_aim = 1.8-GetConVar("astw2_cc_lerp"):GetFloat()
+		origin_aim = astwtodrcorigins[GetConVar("astw2_cc_attachment"):GetInt()]
+		
+		length_cr = -GetConVar("astw2_ccc_forward"):GetFloat()
+		height_cr = GetConVar("astw2_ccc_up"):GetFloat()
+		baseoffest_cr = Vector(0, -GetConVar("astw2_ccc_right"):GetFloat(), 0)
+		lerpspeed_cr = 1.8-GetConVar("astw2_ccc_lerp"):GetFloat()
+		origin_cr = astwtodrcorigins[GetConVar("astw2_ccc_attachment"):GetInt()]
+	else
+		length = -GetConVar("astw2_ccp_forward_f"):GetFloat()
+		height = GetConVar("astw2_ccp_up_f"):GetFloat()
+		baseoffest = Vector(0, -GetConVar("astw2_ccp_right_f"):GetFloat(), 0)
+		lerpspeed = 1.8-GetConVar("astw2_ccp_lerp_f"):GetFloat()
+		basefov = GetConVar("astw2_forced_fieldofview"):GetFloat()
+		origin = astwtodrcorigins[GetConVar("astw2_cc_attachment"):GetInt()]
+		
+		length_aim = -GetConVar("astw2_cc_forward_f"):GetFloat()
+		height_aim = GetConVar("astw2_cc_up_f"):GetFloat()
+		baseoffest_aim = Vector(0, -GetConVar("astw2_cc_right_f"):GetFloat(), 0)
+		lerpspeed_aim = 1.8-GetConVar("astw2_cc_lerp_f"):GetFloat()
+		origin_aim = astwtodrcorigins[GetConVar("astw2_cc_attachment_f"):GetInt()]
+		
+		length_cr = -GetConVar("astw2_ccc_forward_f"):GetFloat()
+		height_cr = GetConVar("astw2_ccc_up_f"):GetFloat()
+		baseoffest_cr = Vector(0, -GetConVar("astw2_ccc_right_f"):GetFloat(), 0)
+		lerpspeed_cr = 1.8-GetConVar("astw2_ccc_lerp_f"):GetFloat()
+		origin_cr = astwtodrcorigins[GetConVar("astw2_ccc_attachment_f"):GetInt()]
+	end
+	
+	DRC.ThirdPerson.ASTWInterpreter = {
+		["Length"] = length,
+		["Height"] = height,
+		["UseBaseOffsets"] = false,
+		["AllowFreeLook"] = alwaysaim,
+		["Offset"] = baseoffest,
+		["LerpAngle"] = 0.1,
+		["LerpPos"] = lerpspeed,
+		["LerpPos_ADS"] = lerpspeed,
+		["LerpTransition"] = 1,
+		["BaseFOV"] = basefov,
+		["FocalPoint"] = 0,
+		["BasePoint"] = origin,
+		["ForceFreelook"] = false,
+		["FreecamDelay"] = 3,
+		["ForceDirectional"] = false,
+	}
+	
+	DRC.ThirdPerson.ASTWInterpreter_Aim = {
+		["Length"] = length_aim,
+		["Height"] = height_aim,
+		["UseBaseOffsets"] = false,
+		["AllowFreeLook"] = alwaysaim,
+		["Offset"] = baseoffest_aim,
+		["LerpAngle"] = 0.1,
+		["LerpPos"] = lerpspeed_aim,
+		["LerpPos_ADS"] = lerpspeed_aim,
+		["LerpTransition"] = 1,
+		["BaseFOV"] = basefov,
+		["FocalPoint"] = 0,
+		["BasePoint"] = origin_aim,
+		["ForceFreelook"] = false,
+		["FreecamDelay"] = 3,
+		["ForceDirectional"] = false,
+	}
+	
+	DRC.ThirdPerson.ASTWInterpreter_Crouch = {
+		["Length"] = length_cr,
+		["Height"] = height_cr,
+		["UseBaseOffsets"] = false,
+		["AllowFreeLook"] = alwaysaim,
+		["Offset"] = baseoffest_cr,
+		["LerpAngle"] = 0.1,
+		["LerpPos"] = lerpspeed_cr,
+		["LerpPos_ADS"] = lerpspeed_cr,
+		["LerpTransition"] = 1,
+		["BaseFOV"] = basefov,
+		["FocalPoint"] = 0,
+		["BasePoint"] = origin_cr,
+		["ForceFreelook"] = false,
+		["FreecamDelay"] = 3,
+		["ForceDirectional"] = false,
+	}
+end
+if ASTW2_INSTALLED then DRC:ReInterpretASTW() end
 
 local lastload = GetConVar("cl_drc_thirdperson_preset"):GetString()
 if lastload && lastload != "" && file.Find("draconic/thirdperson/".. lastload ..".json", "DATA") != nil then
@@ -87,40 +275,6 @@ if lastload && lastload != "" && file.Find("draconic/thirdperson/".. lastload ..
 		table.CopyFromTo(tbl, DRC.ThirdPerson.EditorSettings)
 		DRC:UpdateThirdPersonEditorMenu()
 	end
-end
-
-function DRC:ThirdPerson_PokeLiveAngle(ply)
-	local wpn = ply:GetActiveWeapon()
-	local settings = wpn.ThirdPersonProfileOverride or DRC.ThirdPerson.LoadedSettings
-	if !DRC.CalcView.Thirdperson then DRC.CalcView.Thirdperson = {} end
-	if !DRC.CalcView.Ang then DRC.CalcView.Ang = Angle() end
-	if !DRC.CalcView.Ang_Stored then DRC.CalcView.Ang_Stored = Angle() end
-	if !DRC.CalcView.DirectionalAng then DRC.CalcView.DirectionalAng = Angle() end
-	if !DRC.CalcView.Live then DRC.CalcView.Live = false end
-	if !DRC.CalcView.PokeTime then DRC.CalcView.PokeTime = CurTime() end
-	if DRC.CalcView.ThirdPerson.PokeTime == nil then DRC.CalcView.ThirdPerson.PokeTime = CurTime() end
-	if wpn.ThirdpersonForceFreelook == true or settings.ForceFreelook == true then
-		DRC.CalcView.ThirdPerson.Live = false
-		DRC.CalcView.ThirdPerson.FreelookForced = true
-		DRC.CalcView.ThirdPerson.Poked = true
-		DRC.CalcView.ThirdPerson.PokeTime = CurTime()
-		return
-	else DRC.CalcView.ThirdPerson.FreelookForced = false
-	end
-	if CurTime() < DRC.CalcView.ThirdPerson.PokeTime then return end
-	DRC.CalcView.ThirdPerson.Live = true
-	DRC.CalcView.ThirdPerson.Poked = true
-	local delay = DRC.ThirdPerson.LerpedSettings.FreecamDelay or 0
-	DRC.CalcView.ThirdPerson.PokeTime = CurTime() + delay
-	
-	timer.Simple(engine.TickInterval() + 0.01, function()
-		if settings.AllowFreeLook == true then DRC.CalcView.ThirdPerson.Poked = false end
-	end)
-	timer.Simple(delay + 0.01, function()
-		if CurTime() > DRC.CalcView.ThirdPerson.PokeTime then
-			DRC.CalcView.ThirdPerson.Live = false
-		end
-	end)
 end
 
 local fullranges = { -- This is going to probably give someone an aneurysm
@@ -155,24 +309,45 @@ local MovementCorrection = {
 	["NS"] = 0,
 }
 
+local controlx, controly
 hook.Add("CreateMove", "!drc_cacheusercmd", function(cmd)
 	DRC.MoveInfo = {
-		["Mouse"] = { cmd:GetMouseX(), cmd:GetMouseY() },
+		["Mouse"] = { controlx, controly },
 		["Forward"] = cmd:GetForwardMove(),
 		["Side"] = cmd:GetSideMove(),
 	}
 end)
 
+hook.Add("InputMouseApply", "!drc_controllerthirdperson", function(cmd, x, y, ang)
+	controlx = x
+	controly = y
+	if GetConVar("joystick"):GetBool() == true then
+		if GetConVar("joy_inverty"):GetBool() == true then controly = -y end
+		local xsens, ysens = GetConVar("joy_yawsensitivity"):GetFloat()*0.25, GetConVar("joy_pitchsensitivity"):GetFloat()*0.25
+		controlx = controlx * -xsens
+		controly = controly * ysens
+	end
+end)
+-- why does the controller system that emulates the mouse not automatically feed into user commands for mouse???
+
 hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 	local ply = DRC.LocalPlayer
 	if !IsValid(ply) then return end
-	if ply:Alive() then
+	
+	local indrctp = DRC.ThirdPersonIO > 0.001
+	
+	
+	--if settings.AllowFreeLook == true then DRC.CalcView.ThirdPerson.Poked = false end
+	if CurTime() > DRC.CalcView.ThirdPerson.PokeTime then
+		DRC.CalcView.ThirdPerson.Live = false
+	end
+	
+	if ply:Alive() && indrctp then
 		local wpn = ply:GetActiveWeapon()
-		if DRC:IsDraconicThirdPersonEnabled(ply) != true then return end
 		local settings = wpn.ThirdPersonProfileOverride or DRC.ThirdPerson.LoadedSettings
 		if !settings.LerpTransition then settings.LerpTransition = 1 end
 		for k,v in pairs(settings) do -- used to interpolate profile changes for scripted systems that utilize profile overrides.
-			if !isbool(v) && !isstring(v) then
+			if !isbool(v) && !isstring(v) && !isentity(v) then
 				DRC.ThirdPerson.LerpedSettings[k] = Lerp(RealFrameTime()*(5*settings.LerpTransition), DRC.ThirdPerson.LerpedSettings[k] or v, v)
 			else
 				DRC.ThirdPerson.LerpedSettings[k] = v
@@ -187,22 +362,21 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 			DRC:ThirdPerson_PokeLiveAngle(ply)
 		end
 		
+		local lockpitch = settings.LockPitch == true && ply:GetMoveType() == MOVETYPE_WALK
+		
 		local sens = ply:GetFOV() / 100
 		
-		DRC.MoveInfo.Mouse.X = (DRC.MoveInfo.Mouse[1] * 0.03) * sens
-		DRC.MoveInfo.Mouse.Y = (DRC.MoveInfo.Mouse[2] * 0.03) * sens
-		
-		if !DRC.CalcView then DRC.CalcView = {} end
-		if !DRC.CalcView.ThirdPerson then DRC.CalcView.ThirdPerson = {} end
-		if !DRC.CalcView.ThirdPerson.Ang then DRC.CalcView.ThirdPerson.Ang = Angle() end
-		
-		DRC.CalcView.ThirdPerson.Ang = DRC.CalcView.ThirdPerson.Ang + Angle(DRC.MoveInfo.Mouse.Y, -DRC.MoveInfo.Mouse.X, 0)
-		DRC.CalcView.ThirdPerson.Ang.X = math.Clamp(DRC.CalcView.ThirdPerson.Ang.X, -85, 90)
+		DRC.MoveInfo.Mouse.X = (DRC.MoveInfo.Mouse[1] * GetConVar("m_yaw"):GetFloat()) * sens
+		DRC.MoveInfo.Mouse.Y = (DRC.MoveInfo.Mouse[2] * GetConVar("m_pitch"):GetFloat()) * sens
+		local mx, my = DRC.MoveInfo.Mouse.X, DRC.MoveInfo.Mouse.Y
 		
 		local pokers = {
 			ply:KeyDown(IN_ATTACK),
 			ply:KeyDown(IN_ATTACK2),
 			ply:KeyDown(IN_USE),
+			ply:KeyReleased(IN_ATTACK),
+			ply:KeyReleased(IN_ATTACK2),
+			ply:KeyReleased(IN_USE),
 		}
 		
 		if settings.ForceDirectional != true then
@@ -214,10 +388,37 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 		if DRC.MoveInfo.Forward != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
 		if DRC.MoveInfo.Side != 0 then DRC:ThirdPerson_PokeLiveAngle(ply) end
 		
+		if !DRC.CalcView then DRC.CalcView = {} end
+		if !DRC.CalcView.ThirdPerson then DRC.CalcView.ThirdPerson = {} end
+		if !DRC.CalcView.ThirdPerson.Ang then DRC.CalcView.ThirdPerson.Ang = cmd:GetViewAngles() end
+		
+		DRC.CalcView.ThirdPerson.Ang = DRC.CalcView.ThirdPerson.Ang + Angle(my, -mx, 0)
+		DRC.CalcView.ThirdPerson.Ang.X = math.Clamp(DRC.CalcView.ThirdPerson.Ang.X, -85, 89)
+		
+		local vy = ((DRC.CalcView.ThirdPerson.StoredAng.y+180)%360)-180
+		DRC.CalcView.ThirdPerson.StoredAng = Angle(DRC.CalcView.ThirdPerson.StoredAng.x, vy, DRC.CalcView.ThirdPerson.StoredAng.z)
+		
+		if DRC.CalcView.ThirdPerson.Live == false && (settings.AllowFreeLook or DRC.CalcView.ThirdPerson.FreelookForced) then
+			local atu = DRC.CalcView.ThirdPerson.StoredAng or cmd:GetViewAngles()
+		--	cmd:SetViewAngles(atu)
+			return
+		end
+
+		if DRC.CalcView.ThirdPerson.Directional && !DRC.CalcView.ThirdPerson.FreelookForced then
+			local locked = (DRC.CalcView.ThirdPerson.StoredAng or cmd:GetViewAngles()) + DRC.CalcView.ThirdPerson.DirectionalAng
+		--	cmd:SetViewAngles(locked)
+			DRC.CalcView.ThirdPerson.Ang_Stored = locked
+		elseif DRC.CalcView.ThirdPerson.Poked then
+		--	cmd:SetViewAngles(DRC.CalcView.ThirdPerson.Ang)
+		else
+			DRC.CalcView.ThirdPerson.Ang = cmd:GetViewAngles()
+			DRC.CalcView.ThirdPerson.StoredAng = DRC.CalcView.ThirdPerson.Ang
+		end
+		
 		if IsValid(wpn) then
 			local ht = wpn:GetHoldType()
 			
-			if fullranges[ht] && wpn.ThirdpersonNoFreelook != true && settings.AllowFreeLook == true then
+			if (fullranges[ht] or settings.ForceDirectional == true) && wpn.ThirdpersonNoFreelook != true && settings.AllowFreeLook == true then
 				DRC.CalcView.ThirdPerson.Directional = true
 				
 				local Compass = {
@@ -243,9 +444,17 @@ hook.Add("CreateMove", "!drc_thirdpersoncontrol", function(cmd)
 				cmd:SetSideMove(0)
 				
 				if moving then DRC.CalcView.ThirdPerson.DirectionalEyeAngles = ply:EyeAngles() end
+				if lockpitch == true && DRC.CalcView.ThirdPerson.DirectionalEyeAngles then
+					DRC.CalcView.ThirdPerson.DirectionalAng.x = 0
+					DRC.CalcView.ThirdPerson.DirectionalEyeAngles.x = 0
+				end
 			else
 				DRC.CalcView.ThirdPerson.DirectionalAng = Angle()
 				DRC.CalcView.ThirdPerson.DirectionalEyeAngles = ply:EyeAngles()
+				if lockpitch == true && DRC.CalcView.ThirdPerson.DirectionalEyeAngles then
+					DRC.CalcView.ThirdPerson.DirectionalAng.x = 0
+					DRC.CalcView.ThirdPerson.DirectionalEyeAngles.x = 0
+				end
 			end
 		
 			if DRC:SightsDown(wpn) then
@@ -277,19 +486,33 @@ hook.Add("PrePlayerDraw", "!drc_thirdpersonlook", function(ply)
 	end
 end)
 
+DRC.ThirdPersonIO = 0
+local transitiontick = 0
 hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 	if !IsValid(DRC.LocalPlayer) then return end
 	if !ply:Alive() then return end
-	if ply:InVehicle() then return end
 	local wpn = DRC.LocalPlayer:GetActiveWeapon()
 	local sd, scoped = DRC:SightsDown(wpn)
 	if !wpn.Draconic && sd then return
 	elseif wpn.Draconic && scoped && sd then return end
 	
-	if DRC:ThirdPersonEnabled(ply) == true then
-		if !DRC:ShouldDoDRCThirdPerson(ply) then return end
+	local rft = RealFrameTime()
+	local real = RealTime()
+	local dodrctp = DRC:ShouldDoDRCThirdPerson(ply)
+	local toadd = 0.033
+	if !dodrctp then toadd = -toadd end
+	
+	if real > transitiontick then
+		toadd = toadd*50*rft
+		DRC.ThirdPersonIO = math.Clamp(DRC.ThirdPersonIO + toadd, 0, 1)
+		transitiontick = real + 0.001
+	end
+	
+	if DRC.ThirdPersonIO > 0.001 then
+		DRC.CalcView.ThirdPerson.LerpedFinalPos = DRC.CalcView.ThirdPerson.LerpedFinalPos or ply:EyePos()
+		DRC.CalcView.ThirdPerson.LerpedFinalAng = DRC.CalcView.ThirdPerson.LerpedFinalAng or ply:EyeAngles()
+		DRC.CalcView.ThirdPerson.StoredAng = DRC.CalcView.ThirdPerson.StoredAng or ply:EyeAngles()
 		local wpn = ply:GetActiveWeapon()
-		if wpn.ASTWTWO && GetConVar("cl_drc_thirdperson"):GetFloat() == 0 then return end
 		local PSMul = ply:GetModelScale()
 		local root = DRC.LocalPlayer:LookupBone("ValveBiped.Bip01_Pelvis")
 		local bpos
@@ -299,9 +522,8 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		local ep = ply:EyePos()
 		local pos = ply:GetPos()
 		
-		local rft = RealFrameTime()
-		
 		local settings = DRC.ThirdPerson.LerpedSettings
+		local lockpitch = settings.LockPitch == true && ply:GetMoveType() == MOVETYPE_WALK
 		local basepoint = math.Round(settings.BasePoint)
 		if DRC.CalcView.ThirdPerson.EditorOpen == true then settings = DRC.ThirdPerson.EditorSettings end
 		local attcheck
@@ -328,13 +550,18 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 			end
 		end
 		
+		local etu = ply
+		local override = IsValid(settings.Entity)
+		if override then
+			etu = settings.Entity
+			bpos = etu:GetPos()
+			pos = etu:GetPos()
+			ep = etu:EyePos()
+		end
+		
 		if !DRC.ThirdPerson.CamLerp then DRC.ThirdPerson.CamLerp = Vector() end
---		DRC.ThirdPerson.CamLerp.z = Lerp(rft*15, DRC.ThirdPerson.CamLerp.z or bpos.z, bpos.z)
---		bpos.z = DRC.ThirdPerson.CamLerp.z
 		bpos.x = pos.x
 		bpos.y = pos.y
-		
-	--	bpos = DRC.LocalPlayer:GetPos() + DRC.LocalPlayer:OBBCenter()
 		
 		local ht = "default"
 		if IsValid(wpn) then ht = string.lower(wpn:GetHoldType()) end
@@ -344,22 +571,91 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		local doffset = 0
 		local flipshoulder = GetConVar("cl_drc_thirdperson_flipside"):GetFloat() == 1
 		
+		local function autoflip(theoff)
+			local refpos = ep
+			local refang = Angle(0, etu:EyeAngles().y, 0)
+			local forward = refang:Forward()
+			local right = refang:Right()
+			
+			local function SideClear(off)
+				local trace = util.TraceHull({
+					start = refpos,
+					endpos = refpos + off,
+					mins = Vector(-6, -6, -6),
+					maxs = Vector(6, 6, 6),
+					filter = etu
+				})
+				return trace
+			end
+			
+			local sideoffset = math.abs(theoff.y)*3
+			local RightCheck = SideClear(right * sideoffset+forward*15)
+			local LeftCheck  = SideClear(-right * sideoffset+forward*15)
+			local ForwardTrace = util.TraceLine({ start = refpos, endpos = refpos + forward * 400, filter = etu })
+			local RightTrace = util.TraceLine({ start = refpos, endpos = refpos + right * 25, filter = etu })
+			local CornerTrace = util.TraceLine({ start = refpos, endpos = refpos + right * 50 + forward * 100, filter = etu })
+			
+			if GetConVar("cl_drc_debugmode"):GetInt() != 0 then
+				if LeftCheck then
+					local l = ClientsideModel("models/hunter/blocks/cube025x025x025.mdl", RENDERGROUP_TRANSLUCENT)
+					l:SetRenderMode(RENDERMODE_TRANSADD)
+					l:SetMaterial("models/debug/debugwhite")
+					if !LeftCheck.Hit then l:SetColor(Color(0,255,0,127)) else l:SetColor(Color(255,0,0,127)) end
+					l:SetPos(LeftCheck.HitPos)
+					l:SetAngles(refang)
+					l:Spawn()
+					l:Remove()
+				end
+				
+				if RightCheck then
+					local l = ClientsideModel("models/hunter/blocks/cube025x025x025.mdl")
+					l:SetRenderMode(RENDERMODE_TRANSADD)
+					l:SetMaterial("models/debug/debugwhite")
+					if !RightCheck.Hit then l:SetColor(Color(0,255,0,127)) else l:SetColor(Color(255,0,0,127)) end
+					l:SetPos(RightCheck.HitPos)
+					l:SetAngles(refang)
+					l:Spawn()
+					l:Remove()
+				end
+			end
+			
+			local rtf = RightTrace.Fraction < 0.333
+			local irtf = RightTrace.Fraction > 0.333
+			
+			if ForwardTrace.Hit or RightTrace.Hit or CornerTrace.Hit then
+				if !RightCheck.Hit && LeftCheck.Hit then
+					theoff = Vector(theoff.x, theoff.y, theoff.z)
+				elseif !LeftCheck.Hit && RightCheck.Hit then
+					theoff = Vector(theoff.x, -theoff.y, theoff.z)
+				end
+			end
+			return theoff
+		end
+		
+		local autoswitch = GetConVar("cl_drc_thirdperson_autoflip"):GetInt() == 1
 		if settings.UseBaseOffsets == true then
 			offset = (DRC.ThirdPerson.DefaultOffsets[ht] * PSMul) or (DRC.ThirdPerson.DefaultOffsets["duel"] * PSMul)
-		
-			if flipshoulder then
-				offset = (Vector(DRC.ThirdPerson.DefaultOffsets[ht].x, -DRC.ThirdPerson.DefaultOffsets[ht].y, DRC.ThirdPerson.DefaultOffsets[ht].z) * PSMul) or (Vector(DRC.ThirdPerson.DefaultOffsets["duel"].x, -DRC.ThirdPerson.DefaultOffsets["duel"].y, DRC.ThirdPerson.DefaultOffsets["duel"].z) * PSMul)
+			
+			if autoswitch then offset = autoflip(offset)
+				else
+				if flipshoulder then
+					offset = (Vector(DRC.ThirdPerson.DefaultOffsets[ht].x, -DRC.ThirdPerson.DefaultOffsets[ht].y, DRC.ThirdPerson.DefaultOffsets[ht].z) * PSMul) or (Vector(DRC.ThirdPerson.DefaultOffsets["duel"].x, -DRC.ThirdPerson.DefaultOffsets["duel"].y, DRC.ThirdPerson.DefaultOffsets["duel"].z) * PSMul)
+				end
 			end
 			doffset = offset.x
 			offset.x = 0
 		else
 			offset = settings.Offset * PSMul
-			if flipshoulder then
-				offset = Vector(offset.x, -offset.y, offset.z)
+			
+			if autoswitch then offset = autoflip(offset)
+			else
+				if flipshoulder then
+					offset = Vector(offset.x, -offset.y, offset.z)
+				end
 			end
 		end
 		
-		if wpn.ThirdpersonOffset && (wpn:GetNWBool("Passive") != true) then offset = wpn.ThirdpersonOffset end
+		if wpn.ThirdpersonOffset && (wpn:GetNW2Bool("Passive") != true) then offset = wpn.ThirdpersonOffset end
 		
 		offset_lerp = LerpVector(rft * 10, offset_lerp or offset, offset)
 		doffset_lerp = Lerp(rft * 10, doffset_lerp or doffset, doffset)
@@ -388,7 +684,11 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		
 		if DRC.CalcView.ThirdPerson.Live == true then
 			if DRC.CalcView.ThirdPerson.Directional == true && DRC.CalcView.ThirdPerson.FreelookForced == false then
-				ply:SetEyeAngles(ea + DRC.CalcView.ThirdPerson.DirectionalAng)
+				if lockpitch == true then
+					ply:SetEyeAngles(Angle(0,ea.y,ea.z) + DRC.CalcView.ThirdPerson.DirectionalAng)
+				else
+					ply:SetEyeAngles(ea + DRC.CalcView.ThirdPerson.DirectionalAng)
+				end
 				DRC.CalcView.ThirdPerson.Ang_Stored = ea
 			else
 				if DRC.CalcView.ThirdPerson.Poked == true then
@@ -407,11 +707,9 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		hitposaim = hitposaim.Normal:Angle()
 		
 		local AAAA = math.Clamp(0.5/rft, 1, 100)
-		local lpos, lang = (rft * AAAA) * settings.LerpPos, (rft*2 * AAAA) * settings.LerpAngle
-		
-		if !DRC.CalcView.ThirdPerson.LerpedFinalPos then DRC.CalcView.ThirdPerson.LerpedFinalPos = ply:EyePos() end
-	--	DRC.CalcView.ThirdPerson.LerpedZPos = Lerp(lpos*15, tr.HitPos.z or DRC.CalcView.ThirdPerson.LerpedZPos, DRC.CalcView.ThirdPerson.LerpedZPos)
-	--	tr.HitPos.z = DRC.CalcView.ThirdPerson.LerpedZPos
+		local ltu = settings.LerpPos
+		if sd then ltu = settings.LerpPos_ADS end
+		local lpos, lang = (rft * AAAA) * ltu, (rft*2 * AAAA) * settings.LerpAngle
 		
 		local wallb = 0
 		if tr.Hit then wallb = 1 end
@@ -424,45 +722,44 @@ hook.Add("CalcView", "!drc_thirdperson", function(ply, pos, angles, fov)
 		
 		DRC.CalcView.ThirdPerson.LerpedFinalPos = LerpVector(lpos, DRC.CalcView.ThirdPerson.WallLerp or DRC.CalcView.ThirdPerson.LerpedFinalPos, DRC.CalcView.ThirdPerson.LerpedFinalPos)
 		
-	--	if settings.FocalPoint == 2 then
-	--		hitposaim = ply:GetAttachment(ply:LookupAttachment("eyes")).Ang
-	--	end
-		
 		if !DRC.CalcView.ThirdPerson.LerpedFinalAng then DRC.CalcView.ThirdPerson.LerpedFinalAng = ply:EyeAngles() end
 		DRC.CalcView.ThirdPerson.LerpedFinalAng = LerpAngle(lang, DRC.CalcView.ThirdPerson.Ang or DRC.CalcView.ThirdPerson.LerpedFinalAng, DRC.CalcView.ThirdPerson.LerpedFinalAng)
 		if !DRC.CalcView.ThirdPerson.LerpedHitPosAng then DRC.CalcView.ThirdPerson.LerpedHitPosAng = ply:EyeAngles() end
 		DRC.CalcView.ThirdPerson.LerpedHitPosAng = LerpAngle(lang, hitposaim or DRC.CalcView.ThirdPerson.LerpedHitPosAng, DRC.CalcView.ThirdPerson.LerpedHitPosAng)
 		
-		local ea2 = ply:EyeAngles()
-		if !DRC.CalcView.ThirdPerson.LerpedHitPosCorrection then DRC.CalcView.ThirdPerson.LerpedHitPosCorrection = ea2 end
-		DRC.CalcView.ThirdPerson.LerpedHitPosCorrection = LerpAngle(lang, (Angle(ea2.x,ea2.y*2,0)-Angle(hitposaim.x, hitposaim.y*2, 0)) or DRC.CalcView.ThirdPerson.LerpedHitPosCorrection, DRC.CalcView.ThirdPerson.LerpedHitPosCorrection)
+		local vp = ply:GetViewPunchAngles()
+		local punch = (Angle(vp.x,vp.y,vp.z) * (1/DRC:GetFOVScale()))
+		if !wpn.ASTWTWO then punch = punch*0.33 end -- viewpunch is almost 3x as strong when called in lua, don't ask me why
 		
-		if DRC:ThirdPersonEnabled(ply) == true then
-			view = {}
+		DRC.CalcView.ThirdPerson.LerpedFinalAng:Add(punch)
+		
+		local view = {}
+		if settings.FocalPoint == 1 then
+			local ea2 = etu:EyeAngles()
+			if !DRC.CalcView.ThirdPerson.LerpedHitPosCorrection then DRC.CalcView.ThirdPerson.LerpedHitPosCorrection = ea2 end
+			DRC.CalcView.ThirdPerson.LerpedHitPosCorrection = LerpAngle(lang, (Angle(ea2.x,ea2.y*2,0)-Angle(hitposaim.x, hitposaim.y*2, 0)) or DRC.CalcView.ThirdPerson.LerpedHitPosCorrection, DRC.CalcView.ThirdPerson.LerpedHitPosCorrection)
 			
-			if settings.FocalPoint == 1 then
-				view.origin = DRC.CalcView.ThirdPerson.LerpedFinalPos
-				view.angles = DRC.CalcView.ThirdPerson.LerpedFinalAng + (ea2 - DRC.CalcView.ThirdPerson.LerpedHitPosAng) - DRC.CalcView.ThirdPerson.LerpedHitPosCorrection
-	--		elseif settings.FocalPoint == 2 then view.angles = DRC.CalcView.ThirdPerson.LerpedHitPosAng + Angle(-20, 0, 0)
-			else
-				view.origin = DRC.CalcView.ThirdPerson.LerpedFinalPos
-				view.angles = DRC.CalcView.ThirdPerson.LerpedFinalAng
-			end
-			view.fov = settings.BaseFOV * (ply:GetFOV() / 100)
-			view.drawviewer = true
+			view.origin = DRC.CalcView.ThirdPerson.LerpedFinalPos
+			view.angles = DRC.CalcView.ThirdPerson.LerpedFinalAng + (ea2 - DRC.CalcView.ThirdPerson.LerpedHitPosAng) - DRC.CalcView.ThirdPerson.LerpedHitPosCorrection
 		else
-			view = {}
-			view.origin = origin
-			view.angles = ang3
-			view.fov = fov
-			view.drawviewer = false
-			view.znear = 1
+			view.origin = DRC.CalcView.ThirdPerson.LerpedFinalPos
+			view.angles = DRC.CalcView.ThirdPerson.LerpedFinalAng
 		end
+		view.fov = settings.BaseFOV * (ply:GetFOV() / 100)
+		view.drawviewer = true
 		
 		local shake, shakevert, shakeroll = DRC:GetCalcViewShake()
 		view.origin = view.origin + (view.angles:Right() * shake)
 		view.origin = view.origin + (view.angles:Up() * shakevert)
 		view.angles.z = shakeroll
+		
+		if override && settings.EntityAngles == true then
+			DRC.CalcView.ThirdPerson.Ang = etu:GetAngles()
+			view.angles = etu:GetAngles()
+		end
+		
+		view.origin = LerpVector(DRC.ThirdPersonIO, ep, view.origin)
+		view.fov = Lerp(DRC.ThirdPersonIO, ply:GetFOV(), view.fov)
 		
 		return view
 	end

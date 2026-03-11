@@ -17,9 +17,12 @@ DRC.ReflectionModifier = 1
 local cmexcept1 = string.find(cmap, "shwrm")
 local cmexcept2 = string.find(cmap, "showroom")
 
+local notcmexcept = DRC.ReflectionModifier_IsBadMap > 0
+
 local cmexceptionmade = cmexcept1 != nil or cmexcept2 != nil
 
 function DRC:CubemapCheck()
+	if notcmexcept then return false end
 	if cmexceptionmade == true then return true end
 	if (DRC:DebugModeEnabled() && GetConVar("cl_drc_debug_cubefallbacks"):GetFloat() == 1) or (GetConVar("cl_drc_accessibility_amduser"):GetFloat() == 1) then return false end
 	if #drc_cubesamples > 1 then return true else return false end
@@ -107,7 +110,6 @@ local function GetPlayerColour(src, channel)
 			local vals = DRC:GetColours(src, true)
 			local pull = translation[channel]
 			if vals then col = vals[pull] end
-		--	print(src, channel, col, pull, vals.Energy)
 		end
 	--	print(src, channel, col)
 	elseif channel == "None" then
@@ -149,8 +151,8 @@ local function LightPollEntity(ent, mat)
 	if !ent.DRCLightPolling[mat] then ent.DRCLightPolling[mat] = "" end
 	
 	if ent.DRCInitialLightPoll == false then QueuePoll(ent) CalcPoll(ent) ent.DRCInitialLightPoll = true end
-	if RealTime() < ent.DRCLightPolling["LightPollTime"] then local v = ent.DRCLightPolling["LightTint"] return v, (v.x + v.y + v.z) * 0.333 end
-	if ent:GetPos() == ent.DRCLightPolling["LightPollLastPos"] then QueuePoll(ent) v = ent.DRCLightPolling["LightTint"] return v, (v.x + v.y + v.z) * 0.333
+	if RealTime() < ent.DRCLightPolling["LightPollTime"] then local v = ent.DRCLightPolling["LightTint"] if v != nil then return v, (v.x + v.y + v.z) * 0.333 end end
+	if ent:GetPos() == ent.DRCLightPolling["LightPollLastPos"] then QueuePoll(ent) v = ent.DRCLightPolling["LightTint"] if v != nil then return v, (v.x + v.y + v.z) * 0.333 end
 	else ent.DRCLightPolling["LightPollLastPos"] = ent:GetPos() end
 	QueuePoll(ent)
 	CalcPoll(ent)
@@ -1464,10 +1466,10 @@ matproxy.Add( {
 		
 		local et = "unknown"
 		if ent:IsNPC() then et = "npc" end
-		if ent.Preview == tue then et = "previewmodel" end
+		if ent.Preview == true then et = "previewmodel" end
 		if ent:GetOwner():IsPlayer() then et = "scripted" end
 		if ent:IsWeapon() then et = "weapon" end
-		if ent:EntIndex() == lply:GetViewModel():EntIndex() then et = "viewmodel" end
+		if lply.GetViewModel && ent:EntIndex() == lply:GetViewModel():EntIndex() then et = "viewmodel" end -- we love validity
 		if ent:GetParent():IsWeapon() then et = "SCKElement" end
 		if ent:IsPlayer() then et = "ply" end
 		
@@ -1500,9 +1502,9 @@ matproxy.Add( {
 			SID = plyent:SteamID64()
 		end
 		
-		if !IsValid(plyent) then
-			mat:SetTexture("$basetexture", "models/effects/vol_light001")
-			mat:SetTexture("$bumpmap", "models/effects/vol_light001")
+		if !IsValid(plyent) or ent:IsRagdoll() then
+			mat:SetTexture("$basetexture", "models/vuthakral/black-0")
+			mat:SetTexture("$bumpmap", "models/vuthakral/flatnormal-0")
 			mat:SetFloat("$translucent", 1)
 			mat:SetFloat("$cloakpassenabled", 1)
 			mat:SetFloat("$cloakfactor", 1)
@@ -1534,9 +1536,9 @@ matproxy.Add( {
 		end
 		
 		if !SID then
-			mat:SetTexture("$basetexture", "models/effects/vol_light001")
-			if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
-		--	mat:SetTexture("$detail", "models/effects/vol_light001")
+			mat:SetTexture("$basetexture", "models/vuthakral/black-0")
+			if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/vuthakral/black-0") end
+		--	mat:SetTexture("$detail", "models/vuthakral/black-0")
 			mat:SetFloat("$translucent", 1)
 			mat:SetFloat("$cloakpassenabled", 1)
 			mat:SetFloat("$cloakfactor", 1)
@@ -1546,36 +1548,36 @@ matproxy.Add( {
 		
 		local c1 = false
 		if et == "viewmodel" or et == "weapon" or et == "SCKElement" then
-			if display_weapons == 0 then
-				mat:SetTexture("$basetexture", "models/effects/vol_light001")
-				if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
+			if display_weapons == false then
+				mat:SetTexture("$basetexture", "models/vuthakral/black-0")
+				if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/vuthakral/black-0") end
 				ent.nodetail_spray = false
 				if mat:GetTexture("$detail"):GetName() == "error" then ent.nodetail_spray = true end
-				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/effects/vol_light001") end
+				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/vuthakral/flatnormal-0") end
 				mat:SetFloat("$translucent", 1)
 				mat:SetFloat("$cloakpassenabled", 1)
 				mat:SetFloat("$cloakfactor", 1)
 			return end
 		end
 		if et == "npc" or et == "scripted" then
-			if display_generic == 0 then
-				mat:SetTexture("$basetexture", "models/effects/vol_light001")
-				if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
+			if display_generic == false then
+				mat:SetTexture("$basetexture", "models/vuthakral/black-0")
+				if self.DoExponent == 1 then mat:SetTexture("$phongexponenttexture", "models/vuthakral/black-0") end
 				ent.nodetail_spray = false
 				if mat:GetTexture("$detail"):GetName() == "error" then ent.nodetail_spray = true end
-				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/effects/vol_light001") end
+				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/vuthakral/flatnormal-0") end
 				mat:SetFloat("$translucent", 1)
 				mat:SetFloat("$cloakpassenabled", 1)
 				mat:SetFloat("$cloakfactor", 1)
 			return end
 		end
 		if et == "ply" or et == "previewmodel" then
-			if display_player == 0 then
-				mat:SetTexture("$basetexture", "models/effects/vol_light001")
-				if self.exponent then mat:SetTexture("$phongexponenttexture", "models/effects/vol_light001") end
+			if display_player == false then
+				mat:SetTexture("$basetexture", "models/vuthakral/black-0")
+				if self.exponent then mat:SetTexture("$phongexponenttexture", "models/vuthakral/black-0") end
 				ent.nodetail_spray = false
 				if mat:GetTexture("$detail"):GetName() == "error" then ent.nodetail_spray = true end
-				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/effects/vol_light001") end
+				if ent.nodetail_spray == true then mat:SetTexture("$bumpmap", "models/vuthakral/flatnormal-0") end
 				mat:SetFloat("$translucent", 1)
 				mat:SetFloat("$cloakpassenabled", 1)
 				mat:SetFloat("$cloakfactor", 1)
@@ -1610,7 +1612,7 @@ matproxy.Add( {
 		
 		ent.nobump_spray = false
 		if mat:GetTexture("$bumpmap"):GetName() == "error" then ent.nobump_spray = true else ent.nobump_spray = false end
-		if mat:GetTexture("$bumpmap"):GetName() == "models/effects/vol_light001" then mat:SetTexture("$bumpmap", "dev/bump_normal") end
+		if mat:GetTexture("$bumpmap"):GetName() == "models/vuthakral/flatnormal-0" then mat:SetTexture("$bumpmap", "dev/bump_normal") end
 		if ent.nobump_spray == true then mat:SetTexture("$bumpmap", "dev/bump_normal") end
 	end
 } )
@@ -2070,6 +2072,7 @@ local function Read(mat, ent, mini, maxi)
 		elseif ent.GetVehicle && ent:GetVehicle():GetOwner().LFS or ent:GetVehicle():GetOwner().LVS then -- entity in scripted vehicle seat
 			val = calc(math.Clamp(math.Clamp(ent:GetVehicle():GetOwner():GetVelocity():Length(),1, 999999)/funcmax, 0, 1))
 		end
+	elseif input == "voice" && ent:IsPlayer() then val = ent.LerpedVoiceVal
 	elseif input == "nwbool" then
 		local b = ent:GetNWBool(mod)
 		if b == true then val = Vector(1) else val = Vector(0) end
@@ -2134,6 +2137,7 @@ local matreturns = { -- 0 vector, 1 string, 2 bool, 3 number, 4 texture, 5 matri
 	["$refractamount"] = 3,
 	["$refracttint"] = 0,
 	["$basetexturetransform"] = 5, -- need to implement proper matrix support
+	["$detailtexturetransform"] = 5, -- need to implement proper matrix support
 	["$frame"] = 3,
 	-- These few below technically don't exist, but are the most common used for translations
 	["$angle"] = 3,

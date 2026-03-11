@@ -60,7 +60,7 @@ local function CreateSlider(parent, pos, axis, label, tooltip)
 	elseif axis == "y" then cur = DRC.ThirdPerson.EditorSettings.Offset.Y
 	elseif axis == "z" then cur = DRC.ThirdPerson.EditorSettings.Offset.Z
 	elseif axis == "fov" then cur = DRC.ThirdPerson.EditorSettings.BaseFOV maxi = 120 mini = 20
-	elseif axis == "LerpPos" then cur = DRC.ThirdPerson.EditorSettings.LerpPos maxi = 0.999 mini = 0
+	elseif axis == "LerpPos" then cur = DRC.ThirdPerson.EditorSettings.LerpPos maxi = 2 mini = 0
 	elseif axis == "LerpAngle" then cur = DRC.ThirdPerson.EditorSettings.LerpAngle maxi = 0.999 mini = 0
 	elseif axis == "Height" then cur = DRC.ThirdPerson.EditorSettings.Height maxi = 100 mini = -100
 	elseif axis == "Length" then cur = DRC.ThirdPerson.EditorSettings.Length maxi = 200 mini = 0 end
@@ -166,26 +166,27 @@ function DRC:OpenThirdpersonEditor(ply)
 	
 	Derma.sliderfov = CreateSlider(Derma, Vector(15, 250), "fov", "Base FOV", "NOT EXACT FOV. This is relative to your fov_desired, and should scale accordingly on its own.")
 	
-	Derma.sliderlerppos = CreateSlider(Derma, Vector(15, 280), "LerpPos", "Position interpolation", "(Recommended 0.1 minimum) The ''smoothing'' done to the camera's position.")
-	Derma.sliderlerpang = CreateSlider(Derma, Vector(15, 310), "LerpAngle", "Angle interpolation", "The ''smoothing'' done to the camera's angles. High values recommended for hitpos focus.")
+	Derma.sliderlerppos = CreateSlider(Derma, Vector(15, 280), "LerpPos", "Position interpolation", "The ''smoothing'' done to the camera's position.")
+	Derma.sliderlerpposads = CreateSlider(Derma, Vector(15, 310), "LerpPos", "Position int. in ADS", "The ''smoothing'' done to the camera's position while using any weapons' sights.")
+	Derma.sliderlerpang = CreateSlider(Derma, Vector(15, 340), "LerpAngle", "Angle interpolation", "The ''smoothing'' done to the camera's angles. High values recommended for hitpos focus.")
 	
 	Derma.ddorigin = CreateDropDown(Derma, Vector(25, 60), "BasePoint", {"Origin", "Pelvis", "Head", "Center"}, "The originating point for the camera.\n0: Pelvis\n1: Head\n2: Center (This is the center of your player's object space, and won't bob with animations.)")
 	Derma.ddfocal = CreateDropDown(Derma, Vector(25, 140), "FocalPoint", {"Focus", "Player view", "Hit position", "Head angle (not implemented)"}, "The ''focal point'' of your camera.\n0: Player view (eye angles)\n1: Hit position\n2: Head Angle (not implemented yet)")
 	
-	CreateButton(Derma, Vector(25, 350), Vector(100, 20), "Reset to default", function()
+	CreateButton(Derma, Vector(25, 380), Vector(100, 20), "Reset to default", function()
 		DRC:ThirdPersonResetToDefault()
 	end, "Reset the editor to the default thirdperson settings.")
 	
-	CreateButton(Derma, Vector(125, 350), Vector(150, 20), "(Debug) Copy settings", function()
+	CreateButton(Derma, Vector(125, 380), Vector(150, 20), "(Debug) Copy settings", function()
 		SetClipboardText(util.TableToJSON(DRC.ThirdPerson.EditorSettings, true))
 	end, "Copy the editor's settings to your clipboard.")
 	
-	CreateButton(Derma, Vector(25, 370), Vector(250, 20), "Save & apply NEW preset", function()
+	CreateButton(Derma, Vector(25, 400), Vector(250, 20), "Save & apply NEW preset", function()
 		DRC:SaveThirdPersonPrompt(true)
 	end, "Saves a preset as a NEW FILE, or will overwrite an existing one if you enter a duplicate name.\nIf you want to directly overwrite a previous save, use the green button next to a preset's name.")
 	
 	local loader = vgui.Create("DPanel", Derma)
-	loader:SetPos(0, 400)
+	loader:SetPos(0, 420)
 	loader:SetSize(Derma:GetWide(), 320)
 	loader.Paint = function(self, w, h)
 		draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))

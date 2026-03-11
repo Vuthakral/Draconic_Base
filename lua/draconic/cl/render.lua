@@ -22,7 +22,7 @@ hook.Add("Think", "DRC_Lighting", function()
 					DRC:DLight(v, v:GetPos(), v.GlowColor, v.GlowSize, 0.1, false, 1, v.GlowStyle)
 				else
 					if IsValid(v) && v.GetParent then
-						if IsValid(v:GetParent()) && v:GetParent():GetActiveWeapon() == v then
+						if IsValid(v:GetParent()) && v:GetParent().GetActiveWeapon && v:GetParent():GetActiveWeapon() == v then
 							if v.Glow == true && CLIENT then
 								local RightHand = ply:LookupAttachment("anim_attachment_RH")
 								local pos = Vector()
@@ -59,7 +59,7 @@ hook.Add("Think", "DRC_Lighting", function()
 	if !IsValid(DRC.CalcView.MuzzleLamp) then
 	--	DRC.CalcView.MuzzleLamp = ents.CreateClientside("draconic_ptex_base")
 		local lighttable = {
-			["Texture"] 	= "",
+			["Texture"] 	= "models/vuthakral/black-0",
 			["NearZ"] 		= 1,
 			["FarZ"] 		= 300,
 			["FOV"]			= 140,
@@ -86,7 +86,7 @@ hook.Add("Think", "DRC_Lighting", function()
 		ent:SetPos(attinfo.Pos)
 		ent:SetAngles(attinfo.Ang)
 	--	ent.Light:SetColor( Color(255, 150, 25) )
-		if wpn.Draconic && wpn.IntegratedLight_Enabled == true && wpn:GetNWBool("IntegratedLightState") == true then
+		if wpn.Draconic && wpn.IntegratedLight_Enabled == true && wpn:GetNW2Bool("IntegratedLightState") == true then
 			local colmain = wpn.IntegratedLight_Colour
 			local col = Color(colmain.r, colmain.g, colmain.b, 25 * colmain.a)
 			local bright = (col.a/30) * (1 - math.Clamp(DRC.MapInfo.MapAmbientAvg, 0.15, 1))
@@ -123,8 +123,8 @@ hook.Add("Think", "DRC_Lighting", function()
 				if !IsValid(wpn.FlashlightVolume) then wpn.FlashlightVolume = DRC:LightVolume(wpn, "muzzle", volcol, wpn.IntegratedLight_VolLength, frac*0.005, 50, nil, wpn.IntegratedLight_VolMaterial) end
 			end
 		end
-		if wpn:GetNWBool("IntegratedLightState") == true then
-			if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() && wpn:GetNWBool("IntegratedLightState") == false then ent.Enabled = false end end
+		if wpn:GetNW2Bool("IntegratedLightState") == true then
+			if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() && wpn:GetNW2Bool("IntegratedLightState") == false then ent.Enabled = false end end
 		else
 			if DRC.CalcView.MuzzleLamp_Time then if DRC.CalcView.MuzzleLamp_Time < CurTime() then ent.Enabled = false end end
 			if wpn.IntegratedLight_DoVolume == true then
@@ -268,9 +268,6 @@ hook.Add("GetMotionBlurValues", "drc_modifiedmotionblur", function(horizontal, v
 		kick = kick*0.001
 		ply.ForwardBlurAdditive = Lerp(0.01 * wpn.ForwardDecayMul or 1, ply.ForwardBlurAdditive or ply.ForwardBlurAdditive-kick, 0)
 		ply.RotationalBlurAdditive = Lerp(0.025 * wpn.RotationalDecayMul or 1, ply.RotationalBlurAdditive or ply.RotationalBlurAdditive-kick, 0)
-	--	ply:ChatPrint(ply.RotationalBlurAdditive)
-		
---		if wpn:CanUseSights() == false then forward = 0 return forward end
 		
 		local w = ScrW()
 		local h = ScrH()
@@ -290,7 +287,6 @@ hook.Add("GetMotionBlurValues", "drc_modifiedmotionblur", function(horizontal, v
 			else
 				forward = forward + (ss * 0.0175) / (wpn.Secondary.IronFOV * ratio * 0.01) * wpn.Secondary.SightsBlurMul
 			end
-		  --  rotational = rotational + 0.05 * math.sin( CurTime() * 3 )
 		end
 		
 		if wpn.SightsDown == false or wpn.IsOverheated == true then
@@ -306,28 +302,27 @@ hook.Add("PrePlayerDraw", "DRC_AggresiveCull_Players", function(ply, fl)
 	if GetConVar("cl_drc_perf_aggressiveculling_players"):GetInt() == 1 && DRC:AggressiveCull(ply, 3, 2) == true then return true end
 end)
 
-local function AggressiveCullEntity(ent)
-	if DRC.AggressiveCulls[ent] == true && DRC:AggressiveCull(ent) == true then return true end
-end
-
 hook.Add("Think", "DRC_AggressiveCulling", function()
-	if next(DRC.AggressiveCulls) && IsValid(DRC.LocalPlayer) then
+	if #DRC.AggressiveCulls > 0 && IsValid(DRC.LocalPlayer) then
 		local b = GetConVar("cl_drc_perf_aggressiveculling_misc"):GetFloat()
-		
+
 		DRC.AggCullFOV = DRC.LocalPlayer:GetFOV()
 		local fov_desired = GetConVar("fov_desired"):GetInt()
 		DRC.AggCullFOVCheck = DRC.AggCullFOV < fov_desired * 0.8
-		
-		for k,v in pairs(DRC.AggressiveCulls) do
+
+		for i = #DRC.AggressiveCulls, 1, -1 do
+			local v = DRC.AggressiveCulls[i]
 			if IsValid(v) then
 				if b == 0 then
 					v:SetNoDraw(false)
 				else
 					local culled = DRC:AggressiveCull(v, 1, 2)
-					if v:GetNoDraw() != culled then v:SetNoDraw(culled) end
+					if v:GetNoDraw() ~= culled then
+						v:SetNoDraw(culled)
+					end
 				end
 			else
-				 DRC.AggressiveCulls[k] = nil
+				table.remove(DRC.AggressiveCulls, i)
 			end
 		end
 	end

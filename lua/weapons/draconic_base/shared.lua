@@ -1,5 +1,5 @@
 AddCSLuaFile()
---[[     I M P O R T A N T
+--[[	 I M P O R T A N T
 
 Please go to the wiki for this, and don't just rip settings from the base.
 http://vuthakral.com/draconic/
@@ -329,11 +329,11 @@ function SWEP:IsEquipment()
 end
 
 -- nZombies
-SWEP.NZWonderWeapon        	= false    -- Is this a Wonder-Weapon? If true, only one player can have it at a time. Cheats aren't stopped, though.
--- SWEP.NZRePaPText        	= "your text here"    -- When RePaPing, what should be shown? Example: Press E to your text here for 2000 points.
---SWEP.NZPaPReplacement     = ""    -- If Pack-a-Punched, replace this gun with the entity class shown here.
-SWEP.NZPreventBox        	= false    -- If true, this gun won't be placed in random boxes GENERATED. Users can still place it in manually.
-SWEP.NZTotalBlackList    	= false    -- if true, this gun can't be placed in the box, even manually, and can't be bought off a wall, even if placed manually. Only code can give this gun.
+SWEP.NZWonderWeapon			= false	-- Is this a Wonder-Weapon? If true, only one player can have it at a time. Cheats aren't stopped, though.
+-- SWEP.NZRePaPText			= "your text here"	-- When RePaPing, what should be shown? Example: Press E to your text here for 2000 points.
+--SWEP.NZPaPReplacement	 = ""	-- If Pack-a-Punched, replace this gun with the entity class shown here.
+SWEP.NZPreventBox			= false	-- If true, this gun won't be placed in random boxes GENERATED. Users can still place it in manually.
+SWEP.NZTotalBlackList		= false	-- if true, this gun can't be placed in the box, even manually, and can't be bought off a wall, even if placed manually. Only code can give this gun.
 SWEP.Primary.MaxAmmo 		= 600 -- nZombis max ammo
 
 -- nZombies Pack-a-Punch stats. Multiplier values. So 1 = 100% of weapon value. Utilizes Draconic's bullet profiles for advanced config.
@@ -377,6 +377,7 @@ SWEP.PlayingLoadAnimation	= false
 SWEP.PlayingShootAnimation	= false
 SWEP.Loading 				= false
 SWEP.ManuallyReloading 		= false
+SWEP.ManualReloadInterrupt	= false
 SWEP.PistolSlide 			= 1
 SWEP.NPCBursting 			= false
 SWEP.NPCBurstTime			= 0
@@ -385,6 +386,7 @@ SWEP.DualSettings 			= {}
 SWEP.SightSwapCD 			= false
 SWEP.SightsSwapCD 			= 0
 SWEP.LastFireTime 			= 0
+SWEP.LastFireMode 			= 0
 SWEP.LastFireAnimTime 		= 0
 SWEP.PassiveHealing			= ""
 SWEP.AmmoRegen				= ""
@@ -395,6 +397,7 @@ SWEP.OwnerActivity 			= "standidle"
 SWEP.IsDoingMelee 			= false
 SWEP.SymmetricalModel		= false
 SWEP.EffectGracePeriod 		= 0
+SWEP.Readied				= false
 SWEP.BurstQueue = {}
 SWEP.MeleeQueue = {}
 SWEP.DynOffsetPos = Vector()
@@ -402,6 +405,11 @@ SWEP.DynOffsetAng = Vector()
 SWEP.WeaponSkinSubMaterials = {}
 SWEP.WeaponSkinProxyMaterials = {}
 SWEP.CurrentMuzzle = nil
+SWEP.StatsToPull = {}
+SWEP.PTable = {}
+
+SWEP.InInspect = false
+SWEP.InPassive = false
 
 function SWEP:DoDrawCrosshair( x, y )
 	return true
@@ -431,8 +439,8 @@ function SWEP:Initialize()
 	
 	self.Readied = false
 	self:SetHoldType(self.HoldType)
-	self:SetNWBool("Passive", false)
-	self:SetNWBool("Inspecting", false)
+	self:SetNW2Bool("Passive", false)
+	self:SetNW2Bool("Inspecting", false)
 	self:CreateIdleSound()
 	self.VARSightPos = self.IronSightsPos
 	self.VARSightAng = self.IronSightsAng
@@ -513,7 +521,7 @@ function SWEP:Initialize()
 				[1] = {"muzzle", nil, nil},
 			}
 		end
-		self:SetNWInt("CurrentMuzzle", 1)
+		self:SetNW2Int("CurrentMuzzle", 1)
 	else
 		self.SpreadCone = 15
 	end
@@ -613,7 +621,7 @@ function SWEP:Initialize()
 	end
 	
 	if self.Primary.Ammo != nil then
-		self:SetNWInt("LoadedAmmo", self:Clip1() )
+		self.LoadedAmmo = self:Clip1()
 	end
 	
 	timer.Simple(0, function()
@@ -682,47 +690,69 @@ end
 
 function SWEP:InitialFireMode()
 	if self.Primary.Automatic == false then
-		self:SetNWString("FireMode", "Semi")
-		self:SetNWInt("CurFireMode", 1)
+		self:SetNW2String("FireMode", "Semi")
+		self:SetNW2Int("CurFireMode", 1)
 	elseif self.Primary.Automatic == true && self.FireModes_CanAuto == true then
-		self:SetNWString("FireMode", "Auto")
-		self:SetNWInt("CurFireMode", 2)
+		self:SetNW2String("FireMode", "Auto")
+		self:SetNW2Int("CurFireMode", 2)
 	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == true && self.FireModes_CanAuto == false then
-		self:SetNWString("FireMode", "Burst")
-		self:SetNWInt("CurFireMode", 3)
+		self:SetNW2String("FireMode", "Burst")
+		self:SetNW2Int("CurFireMode", 3)
 		self.Primary.Automatic = false
 	elseif self.Primary.Automatic == true && self.FireModes_CanBurst == false && self.FireModes_CanAuto == false && self.FireModes_CanSemi == true then
-		self:SetNWString("FireMode", "Semi")
-		self:SetNWInt("CurFireMode", 1)
+		self:SetNW2String("FireMode", "Semi")
+		self:SetNW2Int("CurFireMode", 1)
 		self.Primary.Automatic = false
 	else 
-		self:SetNWString("FireMode", "Semi")
-		self:SetNWInt("CurFireMode", 1)
+		self:SetNW2String("FireMode", "Semi")
+		self:SetNW2Int("CurFireMode", 1)
 	end
 	
 	if self.FireModes_CanBurst == true && self.FireModes_CanAuto == false && self.FireModes_CanSemi == false then
-		self:SetNWString("FireMode", "Burst")
-		self:SetNWInt("CurFireMode", 3)
+		self:SetNW2String("FireMode", "Burst")
+		self:SetNW2Int("CurFireMode", 3)
 	end
 end
 
+function SWEP:TickStates()
+	self.InPassive = self:GetNW2Bool("Passive", false) && DRC.SV.drc_passives >= 1
+	self.InInspect = self:GetNW2Bool("Inspecting") && DRC.SV.drc_inspections >= 1
+end
+
 function SWEP:Think()
-	if game.SinglePlayer() then self:CallOnClient("Think") end
+	local sp = game.SinglePlayer()
+	if sp then self:CallOnClient("Think") end
 	local ply = self:GetOwner()
 	if !IsValid(ply) or DRC:Health(ply) < 0.01 then return end
+	local isply = ply.KeyDown
 	local plyinfo = DRC:GetPlayerInfo(ply)
 	local ct = CurTime()
-	local ekd = ply.KeyDown && ply:KeyDown(IN_USE)
+	local ekd = isply && ply:KeyDown(IN_USE)
+	
+	local primcharge = self.Primary.UsesCharge
+	local seccharge = self.Secondary.UsesCharge
+	local loaded = self:GetLoadedAmmo() > 0
+	local overheated = self:GetNW2Bool("Overheated", false) == true
+	local passive = self:GetNW2Bool("Passive", false) == true
 	
 	self:DoCustomThink()
-	self:ManageAnims(ply, ct, plyinfo)
-	if self.EnableHeat == true then self:DisperseHeat() end
+	self:TickStates()
+	self:ManageTriggers(ply)
+	if !sp && SERVER then self:ManageAnims(ply, ct, plyinfo) else self:ManageAnims(ply, ct, plyinfo) end
+	if isply then self:ManageSights(ply, ct) end
+	self:ManageCharge(ply, primcharge, seccharge, loaded, primcharge, seccharge)
+	self:ManageLoopingSounds(ply, ct, passive, overheated, loaded, primcharge, seccharge)
 	
+	if self.EnableHeat == true then self:DisperseHeat() end
+	if isply && self.ManuallyReloading == true && ply:KeyDown(IN_ATTACK) then self.ManualReloadInterrupt = true end
 	if ct > self.LockoutTime then self.Idle = 1 else self.Idle = 0 end
+	
+	local sprint = false
 	
 	if ply:IsPlayer() then
 		local cv, wl = plyinfo.crouching, plyinfo.waterlevel
-		local move, run, sprint = plyinfo.moving, plyinfo.running, plyinfo.sprinting
+		local move, run = plyinfo.moving, plyinfo.running
+		sprint = plyinfo.sprinting
 		
 		if run && !cv && wl <= 2 then if sprint then self.OwnerActivity = "sprinting" else self.OwnerActivity = "running" end
 		elseif run && cv && wl <= 2 then if sprint then self.OwnerActivity = "crouchsprinting" else self.OwnerActivity = "crouchrunning" end
@@ -732,19 +762,21 @@ function SWEP:Think()
 		elseif !run && wl > 2 then self.OwnerActivity = "swimidle" end
 	end
 	
-	local primcharge = self.Primary.UsesCharge
-	local seccharge = self.Secondary.UsesCharge
-	local loaded = self:GetLoadedAmmo() > 0
-	local overheated = self:GetNWBool("Overheated") == true
-	local passive = self:GetNWBool("Passive") == true
+	self:ManageHoldtype(sprint, self.InPassive, self.InInspect)
 	
-	self:ManageSights(ply, ct)
-	self:ManageCharge(ply, primcharge, seccharge, loaded, primcharge, seccharge)
-	self:ManageLoopingSounds(ply, ct, passive, overheated, loaded, primcharge, seccharge)
+	if game.SinglePlayer() && (isply && (ply:KeyDown(IN_ATTACK) or ply:KeyDown(IN_ATTACK2))) then -- I LOVE SOURCE I LOVE PREDICTION FUCKING KILL ME
+		local clip = self:Clip1()
+		if self.LastClipCL == nil then
+			self.LastClipCL = clip
+		elseif clip < self.LastClipCL then
+			self.LastHitPos = ply:GetEyeTrace().HitPos
+		end
+		self.LastClipCL = clip
+	end
 	
 	if CLIENT then
 		if ply != LocalPlayer() then
-			local b = self:GetNWBool("IntegratedLightState")
+			local b = self:GetNW2Bool("IntegratedLightState")
 			if self.IntegratedLight_DoVolume == true && b == true then
 				local att = self:LookupAttachment("muzzle")
 				local attinfo = self:GetAttachment(att)
@@ -764,21 +796,19 @@ function SWEP:Think()
 		end
 	end
 	
-	if self.MeleeQueue && IsFirstTimePredicted() then
-		if #self.MeleeQueue <= 0 then self:ClearMeleeQueue() end -- apparently a table with 0 elements isn't empty?
-		if !table.IsEmpty(self.MeleeQueue) then
-			self.IsDoingMelee = true
-			for i=1,#self.MeleeQueue do
-				local info = self.MeleeQueue[i]
-				if info && CurTime() >= info[1] then
+	if self.MeleeQueue then
+		local MeleeFinished = true
+		for i, info in ipairs(self.MeleeQueue) do
+			if !info.Swung then
+				MeleeFinished = false
+				if CurTime() >= info[1] then
 					local swing = info[2]
 					self:MeleeImpact(swing, Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), swing.x[1], swing.x[2]), Lerp(math.Round(i / (1 / engine.TickInterval() - 1), 3), swing.y[1], swing.y[2]), i, "primary")
-					self.MeleeQueue[i] = nil
+					info.Swung = true
 				end
 			end
-		else
-			self.IsDoingMelee = false
 		end
+		if MeleeFinished then self:ClearMeleeQueue() end
 	end
 	
 	if self.BurstQueue then
@@ -800,7 +830,6 @@ function SWEP:Think()
 		end
 		if #self.BurstQueue <= 0 then self:ClearBurstQueue() end
 	end
-	
 	
 	if !ekd && ply:IsPlayer() then
 		if !self.IsMelee && self:GetLoadedAmmo() > 0 then
@@ -832,7 +861,7 @@ function SWEP:Think()
 					end
 				else
 					if self.QueuedTrigger == true && thyme > nf then
-						self:PrimaryAttack()
+						self:TriggerPrimary()
 						self.QueuedTrigger = false
 					end
 				end
@@ -844,7 +873,7 @@ function SWEP:Think()
 	
 	if self.IntegratedLight_Enabled == true && !ply:IsPlayer() then
 		local b = DRC.SV.drc_npc_uses_integratedlights
-		local state = self:GetNWBool("IntegratedLightState", false)
+		local state = self:GetNW2Bool("IntegratedLightState", false)
 		if b == 1 && state != true then self:ToggleIntegratedLight(true) end
 	end
 end
@@ -892,7 +921,7 @@ function SWEP:ManageSights(ply, ct)
 		if self.SightsDown != self:GetNWBool("SightsDown") then self.SightsDown = self:GetNWBool("SightsDown") end
 		local sd = self.SightsDown
 		local ekey = ply:KeyDown(IN_USE)
-		if ply:KeyPressed(IN_ATTACK2) == true && sd == false && self:GetNWBool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ekey then
+		if ply:KeyPressed(IN_ATTACK2) && sd == false && self:GetNW2Bool("Inspecting") == false && self.IronCD == false && self.Passive == false && !ekey then
 			self:SetIronsights(true, self.Owner)
 			
 			self:AdjustMouseSensitivity()
@@ -901,7 +930,7 @@ function SWEP:ManageSights(ply, ct)
 			if CLIENT && self.Secondary.IronInFP != nil then
 				surface.PlaySound(Sound(self.Secondary.IronInFP))
 			end
-		elseif ply:KeyReleased(IN_ATTACK2) == true && sd == true && self.IronCD == false && !ekey then
+		elseif ply:KeyReleased(IN_ATTACK2) && sd == true && self.IronCD == false && !ekey then
 			self:SetIronsights(false, self.Owner)
 			
 			self:IronCoolDown()
@@ -939,19 +968,118 @@ function SWEP:ManageSights(ply, ct)
 	end
 end
 
+function SWEP:DryFire()
+	if self:GetNextPrimaryFire() > CurTime() then return false end
+	if SERVER && self:GetLoadedAmmo() <= 0 then self:EmitSound(self.Primary.EmptySound) end
+	self:SetNextPrimaryFire(CurTime() + 0.3)
+	
+	local sd = self.SightsDown
+	local emptyseq = self:SelectWeightedSequence(ACT_VM_DRYFIRE)
+	local adsemptyseq = self:SelectWeightedSequence(ACT_VM_DEPLOYED_IRON_DRYFIRE)
+
+	if sd then
+		if adsemptyseq != -1 then self:PlayAnim(ACT_VM_DEPLOYED_IRON_DRYFIRE, true)
+		else self:PlayAnim(ACT_VM_DRYFIRE, true) end
+	else
+		self:PlayAnim(ACT_VM_DRYFIRE, true)
+	end
+end
+
+function SWEP:TriggerPrimary()
+	local ply = self:GetOwner()
+	local canprimary = self:CanPrimaryAttack()
+	if !canprimary then self:DryFire() end
+	local fm = self:GetFireMode()
+	if fm != 3 then self:CallShoot(0) else self:DoBurstAttack() end
+	
+	if self:GetNW2Bool("Passive") == true then
+		self:TogglePassive()
+		self:SetNextPrimaryFire(CurTime() + 0.3)
+		return false
+	end
+	
+	local fireseq = self:SelectWeightedSequence(ACT_VM_PRIMARYATTACK)
+	local firetime = self:SequenceDuration(fireseq)
+	
+	local function LNS()
+		timer.Simple(0, function() self.Loading = true end)
+		timer.Simple(firetime, function() if IsValid(self) && IsValid(ply) && ply:Alive() then self:LoadNextShot() end end)
+	end
+	
+	if self.LoadAfterShot == true && self.LoadAfterReloadEmpty == true && self:GetLoadedAmmo() > 0 then LNS()
+	elseif self.LoadAfterShot == true &&  self.LoadAfterReloadEmpty == false && self:GetLoadedAmmo() > 0 then LNS()
+	elseif self.LoadAfterShot == true && self:GetLoadedAmmo() <= 0 then self.Loading = false end
+end
+
+function SWEP:TriggerSecondary(ply)
+	local cansecondary = self:CanSecondaryAttack()
+	if !cansecondary then self:DryFire() return end
+	self:CallShoot(1)
+end
+
+function SWEP:ManageTriggers(ply)
+	if !ply:IsPlayer() then return end
+	if self.IsMelee == true then return end
+	local loading = self.Loading == true or self.ManuallyReloading == true
+	if loading then self.LastM1Down = false self.LastM2Down = false return end
+	
+	local m1p, m1d = ply:KeyPressed(IN_ATTACK), ply:KeyDown(IN_ATTACK)
+	local m2p, m2d = ply:KeyPressed(IN_ATTACK2), ply:KeyDown(IN_ATTACK2)
+	local ekd = ply:KeyDown(IN_USE)
+	local tm, tm2 = self.Primary.TriggerMode, self.Secondary.TriggerMode
+	local dpc, dsc = self.Primary.UsesCharge, self.Secondary.UsesCharge
+	local gunmelee = self:CanGunMelee()
+	local fm = self:GetFireMode()
+	
+	local pc, sc = self.Primary.UsesCharge, self.Secondary.UsesCharge
+	local charge = self.ChargeType
+	local chargeresponses = DRCD.Weapons.chargeresponses
+	
+	if !pc then
+		if self.Primary.Automatic == false or fm != 2 then
+			if !ekd then
+				if !m1d && self.LastM1Down && tm == 1 then self:PrimaryAttack() end
+			else
+				if m1p && gunmelee && self:CanGunMelee() then self:DoGunMelee() end
+			end
+		else
+			if ekd && m1p && gunmelee then self:DoGunMelee() end
+		end
+	else
+		if ekd && m1p && gunmelee then self:DoGunMelee() end
+	end
+	
+	if !sc then
+		if self.Secondary.Automatic == false or fm != 2 then
+			if !ekd then
+				if !m2d && self.LastM2Down && tm == 1 then self:SecondaryAttack() end
+			end
+		end
+	else
+		if ekd && m1p && gunmelee then self:DoGunMelee() end
+	end
+
+	self.LastM1Down = m1d
+	self.LastM2Down = m2d
+end
+
 function SWEP:ManageCharge(ply, primcharge, seccharge, loaded)
 	local canoc = self:CanOvercharge()
 	local charge = self.ChargeType
 	local chargeresponses = DRCD.Weapons.chargeresponses
+	local canp, cans = self:CanPrimaryAttack(), self:CanSecondaryAttack()
 	
 	if ply:IsPlayer() && primcharge && loaded && self:CanPrimaryAttack() then
 		local m1d = ply:KeyDown(IN_ATTACK)
 		local m1r = ply:KeyReleased(IN_ATTACK)
+		local m1p = ply:KeyPressed(IN_ATTACK)
+		local ukd = ply:KeyDown(IN_USE)
 		
 		if m1r && self:CanOvercharge() then
 			if chargeresponses[charge][2] != nil then self:CallShoot(2) end
-		elseif m1r && !canoc then
-			if chargeresponses[charge][1] != nil then self:CallShoot(0) end
+		end
+		if !ukd && m1r && !canoc && canp then
+			if chargeresponses[charge][1] != nil then self:TriggerPrimary() end
 		end
 		
 		if m1d && canoc then
@@ -1083,12 +1211,23 @@ function SWEP:CanGunMelee()
 	if !self:CanMelee() then return false end
 	local ply = self:GetOwner()
 	local sights = self.SightsDown
-	local passive = self:GetNWBool("Passive")
-	local inspection = self:GetNWBool("Inspecting")
+	local passive = self:GetNW2Bool("Passive")
+	local inspection = self:GetNW2Bool("Inspecting")
+	if self:GetNextPrimaryFire() > CurTime() then return false end
 	
 	if self.Primary.CanMelee == false then return false end
 	if inspection == true then return false end
 	if sights == false && passive == false then return true else return false end
+end
+
+function SWEP:ManageHoldtype(sprint, passive, inspect)
+	if passive or sprint then
+		self:DoPassiveHoldtype()
+	elseif inspect == true then
+		self:DoInspectHoldtype()
+	else
+		if self:GetHoldType() != self.HoldType then self:SetHoldType(self.HoldType) end
+	end
 end
 
 local LoadingAnims = {
@@ -1171,9 +1310,6 @@ function SWEP:ManageAnims(ply, ct, info)
 	
 	if !self:IsIdle() then return end
 
-	local oa = self.OwnerActivity
-	local cv = ply:Crouching()
-	local slowvar = ply:Crouching() or ply:KeyDown(IN_WALK)
 	local walking, sprinting = info.moving, info.sprinting
 
 	if DRC.SV.drc_force_sprint == 2 then sprinting = false end
@@ -1212,7 +1348,7 @@ function SWEP:ManageAnims(ply, ct, info)
 		self.JumpWait = ct + jumpdur
 	end
 	
-	if DRC:FloorDist(ply, 25) < 1 or ply:IsOnGround() then
+	if DRC:FloorDist(ply, true) < 1 or ply:IsOnGround() then
 		if self.JumpWait > ct then self.JumpWait = 0 end
 		self.ShouldWalkBlend = true
 	else
@@ -1236,10 +1372,13 @@ function SWEP:ManageAnims(ply, ct, info)
 	end
 	
 	if animact != self.AnimToPlay && (ct >= self.JumpWait) then self.IdleTimer = ct end
-		
+	
 	if self.IdleTimer <= ct then
 		if idleanim == -1 then return end
-		self:PlayAnim(self.AnimToPlay)
+		if self.LastIdleAnim != self.AnimToPlay then
+			self:PlayAnim(self.AnimToPlay)
+			self.LastIdleAnim = self.AnimToPlay
+		end
 	end
 end
 
@@ -1258,24 +1397,14 @@ if CLIENT then
 		if ply:IsWorld() then return end
 		
 		local plycache = ply.DRC_Info_Cache
-
-		
 		local sk = plycache.Sprint --ply:KeyDown(IN_SPEED)
 		local mk = plycache.N or plycache.S or plycache.E or plycache.W --(ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT) or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))
 		local sprint = sk && mk && (self.DoesPassiveSprint == true or DRC.SV.drc_force_sprint == 1)
-		local passive = self:GetNWBool("Passive", false) && DRC.SV.drc_passives >= 1
-		local inspect = self:GetNWBool("Inspecting") && DRC.SV.drc_inspections >= 1
+		local passive = self.InPassive
+		local inspect = self.InInspect
 		local eyeangforward = ply:EyeAngles()
 		local sd = self.SightsDown
 		if DRC.SV.drc_force_sprint == 2 then sprint = false end
-		
-		if passive or sprint then
-			self:DoPassiveHoldtype()
-		elseif inspect == true then
-			self:DoInspectHoldtype()
-		else
-			if self:GetHoldType() != self.HoldType then self:SetHoldType(self.HoldType) end
-		end
 		
 		local vel = math.Clamp(ply:GetVelocity():LengthSqr()/36100, 0, 1)
 		self.VelInterp = Lerp(0.1, self.VelInterp or vel, vel)
@@ -1355,11 +1484,11 @@ function SWEP:Deploy()
 	vm:SetPlaybackRate( 1 )
 	self:SetIronsights(false)
 	self.SightsDown = false
-	if self:GetNWBool("Passive") == true then self:TogglePassive() end
+	if self:GetNW2Bool("Passive") == true then self:TogglePassive() end
 	self.Idle = 1
 	self.IsTaunting = 0
 	self.Inspecting = false
-	self:SetNWBool("Inspecting", false)
+	self:SetNW2Bool("Inspecting", false)
 	self.EmptyReload = 0
 	self.ManuallyReloading 	= false
 	self.Loading			= false
@@ -1404,21 +1533,41 @@ function SWEP:Deploy()
 		self:GetMovementValues()
 	end
 	
-	if self.Primary.Ammo != nil then self:SetNWInt("LoadedAmmo", self:Clip1()) end
+	if self.Primary.Ammo != nil then self.LoadedAmmo = self:Clip1() end
 	
 	if ply:IsPlayer() && self.HealthRegen == true then self:RegeneratingHealth(ply) end
 	if self.SpecialScripted != true then
 		if ply:IsPlayer() then
 			self:BloomScore()
-			timer.Simple(0.1, function() if !ply:Alive() or !IsValid(ply) or !IsValid(self) then return end self:CallOnClient( "BloomScore" ) end)
+			timer.Simple(0.1, function() if !ply:Alive() or !IsValid(ply) or !IsValid(self) then return end self:CallOnClient("BloomScore") end)
 		end
 	end
 
-	self:SetNWFloat("HeatDispersePower", 1)
+	self:SetNW2Float("HeatDispersePower", 1)
 	
 	if self.Primary.UsesCharge == true or self.Secondary.UsesCharge == true then
 		self:DisperseCharge()
 	end
+	
+	if CLIENT && self.InitialDeploy != true && ply == DRC.LocalPlayer then
+		local camo = DRC:GetCamoPreference(self)
+		
+		if camo != nil then
+			local mat = DRC.WeaponSkins[camo]
+			if !mat then mat = self.WeaponSkinSpecialMats[camo] end
+			
+			if mat then
+				net.Start("DRC_WeaponCamoSwitch")
+				net.WriteEntity(self)
+				net.WriteEntity(DRC.LocalPlayer)
+				net.WriteString(camo)
+				net.WriteString(mat.name)
+				net.SendToServer()
+			end
+		end
+	end
+	
+	self.InitialDeploy = true
 return true
 end
 
@@ -1484,14 +1633,14 @@ function SWEP:Holster(wpn)
 	self.IdleTimer = CurTime()
 	
 	self:DoCustomHolster()
-	--self:SetNWBool("Ironsights", false )
+	--self:SetNW2Bool("Ironsights", false )
 	self.SightsDown = false
-	self:SetNWBool("Inspecting", false)
+	self:SetNW2Bool("Inspecting", false)
 	
 	self:ClearBurstQueue()
 	self:ClearSubMaterials()
 	
-	self:SetNWBool("IntegratedLightState", false)
+	self:SetNW2Bool("IntegratedLightState", false)
 	
 	if self.ChargeSound then self:StopSound(self.ChargeSound) end
 	if self.Primary.LoopingFireSound then self:StopSound(self.Primary.LoopingFireSound) end
@@ -1550,10 +1699,10 @@ function SWEP:RestoreMovement()
 	if DRC.SV.drc_movement > 1 then return end
 	local ply = self:GetOwner()
 
-		local ogs = ply:GetNWFloat("PlayerOGSpeed")
-		local ogw = ply:GetNWFloat("PlayerOGWalk")
-		local ogj = ply:GetNWFloat("PlayerOGJump")
-		local ogc = ply:GetNWFloat("PlayerOGCrouch")
+		local ogs = ply:GetNW2Float("PlayerOGSpeed")
+		local ogw = ply:GetNW2Float("PlayerOGWalk")
+		local ogj = ply:GetNW2Float("PlayerOGJump")
+		local ogc = ply:GetNW2Float("PlayerOGCrouch")
 		
 		if ogs == nil or ogs == 0 then return end
 		if ogw == nil or ogw == 0 then return end
@@ -1592,7 +1741,7 @@ function SWEP:Inspect()
 
 	
 	self.Inspecting = true
-	self:SetNWBool("InspectCamLerp", true)
+	self:SetNW2Bool("InspectCamLerp", true)
 	if !IsFirstTimePredicted() then return end
 	self:DoCustomInspect()
 	local inspectanim = self:SelectWeightedSequence(ACT_VM_FIDGET)
@@ -1607,7 +1756,7 @@ end
 
 function SWEP:EnableInspection()
 	self.Inspecting = false
-	self:SetNWBool("InspectCamLerp", false)
+	self:SetNW2Bool("InspectCamLerp", false)
 end
 
 function SWEP:Taunt()
@@ -1641,20 +1790,19 @@ function SWEP:DoImpactEffect(tr, dt)
 	return false
 end
 
-function SWEP:DrawWeaponSelection( x, y, wide, tall, alpha )
-
+function SWEP:DrawWeaponSelection(x, y, wide, tall, alpha)
 	if isnumber(self.WepSelectIcon) then
 		surface.SetTexture(self.WepSelectIcon)
 	elseif isstring(self.WepSelectIcon) then
 		surface.SetTexture(surface.GetTextureID( self.WepSelectIcon ))
 	end
-	surface.SetDrawColor( 255, 255, 255, alpha )
+	surface.SetDrawColor(255, 255, 255, alpha)
 
 
 	alpha = 150
-	surface.DrawTexturedRect( x + (wide/4), y + (tall / 16),  (wide*0.5) , ( wide / 2 ) )
+	surface.DrawTexturedRect(x+(wide*0.25), y+(tall*0.0625), (wide*0.5), (wide*0.5))
 	
-	self:PrintWeaponInfo( x + wide, y + tall/2, alpha )
+	self:PrintWeaponInfo(x+wide, y+tall*0.5, alpha)
 end
 
 function SWEP:PrintWeaponInfo( x, y, alpha )
@@ -1691,10 +1839,8 @@ function SWEP:PrintWeaponInfo( x, y, alpha )
 end
 
 function SWEP:AdjustMouseSensitivity()
-	--if self:GetNWBool("ironsights") == true then
-	if self:GetNWBool("SightsDown") == true then
+	if self.SightsDown == true then
 		return self:GetOwner():GetFOV() / 100
-	--elseif self:GetNWBool("ironsights") == false then
 	else
 		return 1
 	end
@@ -1704,12 +1850,13 @@ function SWEP:CanUseSights()
 	local ply = self:GetOwner()
 	if !ply:IsPlayer() then return end
 	if ply:InVehicle() then return nil end
-	local oh = self:GetNWBool("Overheated")
+	if self.IsMelee == true then return false end
+	local oh = self:GetNW2Bool("Overheated")
 	
 	if self.IsDoingMelee == true then self:SetIronsights(false) return false end
 	
 	if IsValid(ply:GetVehicle()) then self:SetIronsights(false) return false end
-	if self:GetNWBool("Passive") == true then return false end
+	if self:GetNW2Bool("Passive") == true then return false end
 	
 	if self.Loading == true then self:SetIronsights(false) return false end
 	
@@ -1790,7 +1937,7 @@ end
 function SWEP:GetShootPosition()
 	local pos, ang
 	
-	if CLIENT then -- We're drawing the view model
+	if CLIENT then
 		if LocalPlayer() == self:GetOwner() and GetViewEntity() == LocalPlayer() then
 			local vm = LocalPlayer():GetViewModel()
 			pos, ang = vm:GetBonePosition(0)
@@ -1798,7 +1945,7 @@ function SWEP:GetShootPosition()
 				+ ang:Forward() * -5 -- Left
 				+ ang:Right() * 1.5 -- Down
 				+ ang:Up() * 20 -- Forward
-		else -- We're drawing the world model
+		else
 			local ply = self:GetOwner()
 			
 			if !self.flameThrowerHand then
@@ -1814,7 +1961,7 @@ function SWEP:GetShootPosition()
 		end
 	end
 
-	if SERVER then -- Mainly used for positioning our fire balls
+	if SERVER then
 
 		pos = self:GetOwner():GetShootPos()
 		ang = self:GetOwner():EyeAngles()
@@ -1855,33 +2002,33 @@ function SWEP:ShootFire()
 end
 
 local BaseGameAmmoTypes = {
-	"AR2",
-	"AR2AltFire",
-	"Pistol",
-	"SMG1",
-	"357",
-	"XBowBolt",
-	"Buckshot",
-	"RPG_Round",
-	"SMG1_Grenade",
-	"Grenade",
-	"slam",
-	"AlyxGun",
-	"SniperRound",
-	"SniperPenetrateRound",
-	"Thumper",
-	"Gravity",
-	"Battery",
-	"GaussEnergy",
-	"CombineCannon",
-	"AirboatGun",
-	"StriderMinigun",
-	"HelicopterGun",
-	"9mmRound",
-	"MP5_Grenade",
-	"Hornet",
-	"StriderMinigunDirect",
-	"CombineHeavyCannon",
+	["AR2"] = true,
+	["AR2AltFire"] = true,
+	["Pistol"] = true,
+	["SMG1"] = true,
+	["357"] = true,
+	["XBowBolt"] = true,
+	["Buckshot"] = true,
+	["RPG_Round"] = true,
+	["SMG1_Grenade"] = true,
+	["Grenade"] = true,
+	["slam"] = true,
+	["AlyxGun"] = true,
+	["SniperRound"] = true,
+	["SniperPenetratedRound"] = true,
+	["Thumper"] = true,
+	["Gravity"] = true,
+	["Battery"] = true,
+	["GaussEnergy"] = true,
+	["CombineCannon"] = true,
+	["AirboatGun"] = true,
+	["StriderMinigun"] = true,
+	["HelicopterGun"] = true,
+	["9mmRound"] = true,
+	["MP5_Grenade"] = true,
+	["Hornet"] = true,
+	["StriderMinigunDirect"] = true,
+	["CombineHeavyCannon"] = true,
 }
 
 function SWEP:SetupAttachments(att, slot, emptymag, initializing)
@@ -1896,6 +2043,8 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 		self:SetLoadedAmmo(0)
 	end
 	
+	local basegameammo = DRC.SV.drc_forcebasegameammo == 0
+	
 	if initializing == true && slot == "AmmunitionTypes" then
 		local bandaid1 = {
 			["drc_att_bprofile_generic"] = "drc_abp_generic",
@@ -1908,8 +2057,6 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 			end
 		end
 		
-		local basegameammo = DRC.SV.drc_forcebasegameammo == 0
-	
 		ammo = scripted_ents.GetStored(self.AttachmentTable.AmmunitionTypes[1])
 		local ammotype = ammo.t.BulletTable.AmmoType
 		local basegameammotype = ammo.t.BulletTable.FallbackBaseAmmoType
@@ -1917,7 +2064,7 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 			if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = ammotype end
 			if self.PrimaryStats.OriginalAmmo == "replaceme" then self.PrimaryStats.OriginalAmmo = ammotype end
 		else
-			if !CTFK(BaseGameAmmoTypes, basegameammotype) then
+			if !BaseGameAmmoTypes[basegameammotype] then
 				if self.Primary.Ammo == "replaceme" then self.Primary.Ammo = "Pistol" end
 				if self.PrimaryStats.OriginalAmmo == "replaceme" then self.PrimaryStats.OriginalAmmo = "Pistol" end
 			else
@@ -1932,7 +2079,7 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 		if basegameammo && !self.IsBatteryBased then
 			self.Primary.Ammo = ammotype
 		else
-			if !CTFK(BaseGameAmmoTypes, basegameammotype) && !self.IsBatteryBased then
+			if !BaseGameAmmoTypes[basegameammotype] && !self.IsBatteryBased then
 				self.Primary.Ammo = "Pistol"
 			else
 				self.Primary.Ammo = basegameammotype
@@ -1944,6 +2091,8 @@ function SWEP:SetupAttachments(att, slot, emptymag, initializing)
 		if old.AttachTable && old.AttachTable.OnDetach then
 			old.AttachTable.OnDetach({self, attachment})
 		end
+		
+		DRC:CallGesture(self:GetOwner(), GESTURE_SLOT_CUSTOM, ACT_DEEPIDLE2)
 	end
 	
 	self.ActiveAttachments = {
@@ -2062,13 +2211,23 @@ end
 
 
 function SWEP:SetupDataTables()
-	self:SetNWFloat("Charge", 0)
-	self:SetNWBool("Passive", false)
-	self:SetNWBool("Inspecting", false)
-	self:SetNWBool("ThirdpersonForceFreelook", false)
-	self:SetNWInt("CurrentMuzzle", 1)
+	local ct = CurTime()
+	self:SetNW2Float("Charge", 0)
+	self:SetNW2Bool("Passive", false)
+	self:SetNW2Bool("Inspecting", false)
+	self:SetNW2Bool("ThirdpersonForceFreelook", false)
+	self:SetNW2Int("CurrentMuzzle", 1)
+	self:SetNW2Float("LastShot", 0)
+	if !self.LoadedAmmo then self.LoadedAmmo = 0 end
+	if !self.LastShotCL then self.LastShotCL = 0 end
 	
 	self.AttachmentStats = {}
+	self.InfoStats = {
+		Name = self.PrintName,
+		InfoName = self.InfoName,
+		Manufacturer = self.Manufacturer,
+		Description = self.InfoDescription
+	}
 	
 	if self.IsMelee == false then
 	self.PrimaryStats = {
@@ -2205,14 +2364,6 @@ function SWEP:SetupDataTables()
 	}
 	end
 	
-	self.InfoStats = {
-		Name = self.PrintName,
-		InfoName = self.InfoName,
-		Manufacturer = self.Manufacturer,
-		Description = self.InfoDescription
-	}
-	
---	if self.IsBatteryBased == nil or self.IsBatteryBased == false then return end
 	self.BatteryStats = {
 		HPS = self.HPS,
 		OCHPS = self.OCHPS,
@@ -2253,6 +2404,9 @@ function SWEP:PlayAnim(act, preventstuff, important)
 	if seq == -1 then return end
 	local ct = CurTime()
 	local seqdur = self:SequenceDuration(seq)
+	
+	self.LastIdleAnim = nil
+	
 	if self.WorldModel == self.ViewModel then
 		local ply, vm = self:GetOwner()
 		if IsValid(ply) && ply:IsPlayer() then vm = ply:GetViewModel() end
@@ -2280,7 +2434,7 @@ end
 
 function SWEP:ToggleIntegratedLight(b)
 	local ply = self:GetOwner()
-	local bool = self:GetNWBool("IntegratedLightState", false)
+	local bool = self:GetNW2Bool("IntegratedLightState", false)
 	if b == nil then b = bool else b = !b end
 	
 	local dur = self:SequenceDuration(self:SelectWeightedSequence(ACT_OBJ_STARTUP)) * self.IntegratedLight_ToggleFrac
@@ -2289,10 +2443,10 @@ function SWEP:ToggleIntegratedLight(b)
 	timer.Simple(dur, function()
 		if !IsValid(self) then return end
 		if b == false then
-			self:SetNWBool("IntegratedLightState", true)
+			self:SetNW2Bool("IntegratedLightState", true)
 			self:EmitSound(self.IntegratedLight_OnSound)
 		else
-			self:SetNWBool("IntegratedLightState", false)
+			self:SetNW2Bool("IntegratedLightState", false)
 			self:EmitSound(self.IntegratedLight_OffSound)
 		end
 	end)
@@ -2363,7 +2517,7 @@ function SWEP:GetNPCBurstSettings()
 	if fm == "" then self:InitialFireMode() end -- Sometimes NPCs spawning with guns can break stuff like this. Don't ask me why, I don't know either.
 	
 	if (ply:IsNPC() or ply:IsNextBot()) && self.FireModes_CanBurst == true then
-		self:SetNWString("FireMode", "Burst")
+		self:SetNW2String("FireMode", "Burst")
 	end
 	
 	local mini, maxi, delay = nil, nil, nil
@@ -2432,7 +2586,7 @@ end
 
 function SWEP:PreDrawViewModel(vm, wep, ply)
 	if game.SinglePlayer() then self:CallOnClient("PreDrawViewModel") end
-	if ply:GetNWBool("DRC_Interacting") == true then return true end
+	if ply:GetNW2Bool("DRC_Interacting") == true then return true end
 	
 	local ammo = wep:Clip1()
 	local slide = self.PistolSlide
@@ -3004,7 +3158,7 @@ function SWEP:HasViewModel()
 	if self.ViewModel == "" or self.ViewModel == nil then return false else return true end
 end
 
-function SWEP:Precache()	
+function SWEP:Precache()
 end
 
 function SWEP:DoCustomPrimary() -- called regardless of whether or not CanPrimaryAttack passes.
@@ -3024,19 +3178,19 @@ function SWEP:ClearSchedule()
 end
 
 function SWEP:ShootBullets() -- Iv04 Nextbot "taunt enemy corpse with weapon" compat
-	self:DoShoot("Primary")
+	self:DoShoot(0)
 end
 
 function SWEP:FiringEffects() -- Iv04 Nextbot "taunt enemy corpse with weapon" compat
-	self:DoEffects("Primary")
+	self:DoEffects(0)
 end
 
 function SWEP:NZMaxAmmo() -- nZombies Ammo
-    local ammo_type = self:GetPrimaryAmmoType() or self.Primary.Ammo
+	local ammo_type = self:GetPrimaryAmmoType() or self.Primary.Ammo
 
-    if SERVER then
-        self.Owner:SetAmmo( self.Primary.MaxAmmo, ammo_type )
-    end
+	if SERVER then
+		self.Owner:SetAmmo( self.Primary.MaxAmmo, ammo_type )
+	end
 end
 
 function SWEP:OnPaP() -- nZombies Pack-a-Punch

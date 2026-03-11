@@ -90,7 +90,7 @@ function DRC:EMP(src, tgt, thyme, sound, effect)
 	end
 	
 	if tgt:GetNWBool("DRC_Shielded") == true then
-		DRC:PopShield(tgt)
+		DRC:PopShield(tgt, true, true)
 	end
 	
 	tgt:SetNWBool("EMPed", true)
@@ -227,12 +227,14 @@ net.Receive("DRC_ApplyPlayermodel", function(len, ply)
 	local pname = player_manager.TranslateToPlayerModelName(model)
 	
 	ent:SetModel(model)
-	ent:SetSkin(skin)
-	for k,v in pairs(bgs) do
-		ent:SetBodygroup(k-1, v)
+	if skin then ent:SetSkin(skin) end
+	if bgs then
+		for k,v in pairs(bgs) do
+			ent:SetBodygroup(k-1, v)
+		end
 	end
 	if ent:GetInfo("cl_playerhands") == "disabled" then ent:GetHands():SetModel(player_manager.TranslatePlayerHands(pname).model) end
-	DRC:RefreshColours(ent)
+	if colours then DRC:RefreshColours(ent) end
 	DRC:RefreshCamoMats(ent, true)
 	
 	ent:SetNWString("DRCVoiceSet", vs)
@@ -265,6 +267,7 @@ end)
 resource.AddFile ( 'materials/overlays/draconic_scope.png' )
 util.AddNetworkString("DRCSound")
 util.AddNetworkString("OtherPlayerWeaponSwitch")
+util.AddNetworkString("PlayerSwitchWeaponSinglePlayer")
 util.AddNetworkString("DRCNetworkGesture")
 util.AddNetworkString("DRCNetworkedAddText")
 util.AddNetworkString("DRC_SyncSpray")
@@ -294,8 +297,10 @@ util.AddNetworkString("DRC_WeaponAttachClose")
 util.AddNetworkString("DRC_WeaponAttachForceOpen")
 util.AddNetworkString("DRC_WeaponAttachSyncInventory")
 util.AddNetworkString("DRC_ReflectionModifier")
+util.AddNetworkString("DRC_ReflectionModifier_BadMap")
 util.AddNetworkString("DRC_SyncServerVar")
 util.AddNetworkString("DRC_SyncAggCull")
+util.AddNetworkString("DRC_Interact")
 
 hook.Add("EntityRemoved", "drc_KillShieldTimer", function(ent)
 	if !ent.DRCShield_UID then return end
@@ -370,7 +375,7 @@ hook.Add("EntityTakeDamage", "DRC_EntityTakeDamageHook", function(tgt, dmg)
 			DRC:ShieldEffects(tgt, dmg)
 			return true
 		else
-			DRC:PopShield(tgt)
+			DRC:PopShield(tgt, true, true)
 			DRC:ShieldEffects(tgt, dmg)
 		end
 	end
@@ -542,7 +547,7 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 	local microlife = maxhp/10
 	
 	if enum == DMG_FALL then
-		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_FallDamage") then
+		if !DRC:IsVSentenceValid(vic.DRCVoiceSet, "Pain", "Death_FallDamage") then
 			DRC:SpeakSentence(vic, "Pain", "Death")
 		else
 			DRC:SpeakSentence(vic, "Pain", "Death_FallDamage")
@@ -552,7 +557,7 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 	if IsValid(infl) then
 		local veh = DRC:IsVehicle(infl)
 		if veh or att:GetClass() == "npc_antlionguard" or infl:GetClass() == "npc_antlionguard" then
-			if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Splatter") then
+			if !DRC:IsVSentenceValid(vic.DRCVoiceSet, "Pain", "Death_Splatter") then
 				DRC:SpeakSentence(vic, "Pain", "Death")
 			else
 				DRC:SpeakSentence(vic, "Pain", "Death_Splatter")
@@ -561,7 +566,7 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 	end
 	
 	if velocity > 650 && (att:IsWorld() or att == vic) then
-		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Falling") then
+		if !DRC:IsVSentenceValid(vic.DRCVoiceSet, "Pain", "Death_Falling") then
 			DRC:SpeakSentence(vic, "Pain", "Death")
 		else
 			DRC:SpeakSentence(vic, "Pain", "Death_Falling")
@@ -569,19 +574,19 @@ hook.Add("DoPlayerDeath", "VoiceSets_Death", function(vic, att, dmg)
 	return end
 	
 	if damage < microlife then
-		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Light") then
+		if !DRC:IsVSentenceValid(vic.DRCVoiceSet, "Pain", "Death_Light") then
 			DRC:SpeakSentence(vic, "Pain", "Death")
 		else
 			DRC:SpeakSentence(vic, "Pain", "Death_Light")
 		end
 	elseif damage > microlife && damage < quarterlife then
-		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Medium") then
+		if !DRC:IsVSentenceValid(vic.DRCVoiceSet, "Pain", "Death_Medium") then
 			DRC:SpeakSentence(vic, "Pain", "Death")
 		else
 			DRC:SpeakSentence(vic, "Pain", "Death_Medium")
 		end
 	elseif damage >= quarterlife then
-		if !DRC:IsVSentenceValid(DRC:GetVoiceSet(vic), "Pain", "Death_Major") then
+		if !DRC:IsVSentenceValid(vic.DRCVoiceSet, "Pain", "Death_Major") then
 			DRC:SpeakSentence(vic, "Pain", "Death")
 		else
 			DRC:SpeakSentence(vic, "Pain", "Death_Major")
@@ -598,14 +603,14 @@ hook.Add("PlayerDeath", "Draconic_FunnyPlayerCorpses", function(ply, infl, att)
 end)
 
 hook.Add("PlayerSpawn", "VoiceSets_Spawn", function(vic, trans)
-	local vs = DRC:GetVoiceSet(vic)
+	local vs = vic.DRCVoiceSet
 	if vs == nil then return end
 	DRC:SpeakSentence(vic, "Respawn")
 end)
 
 
 hook.Add("PostEntityTakeDamage", "VoiceSets_Damage", function(ent, dmg, took)	
-	if took == true && DRC:GetVoiceSet(ent) != nil then
+	if took == true && ent.DRCVoiceSet != nil then
 		DRC:DamageSentence(ent, dmg:GetDamage(), dmg)
 	end
 	
@@ -647,7 +652,7 @@ hook.Add("EntityTakeDamage", "VoiceSets_VehicleChecks", function(tgt, dmg)
 	if att:IsPlayer() then
 		if DRC:IsVehicle(att) then att = att:GetDriver() end
 		if att.GetVehicle && att:GetVehicle() == infl && tgt:Health() - dmg:GetDamage() <= 0 then
-			if DRC:IsVSentenceValid(DRC:GetVoiceSet(att), "Reactions", "Splatter") then
+			if DRC:IsVSentenceValid(att.DRCVoiceSet, "Reactions", "Splatter") then
 				DRC:SpeakSentence(att, "Reactions", "Splatter")
 			end
 		end
@@ -656,11 +661,11 @@ end)
 
 local function VoiceSetVehicleLine(ply, veh, inout)
 	if inout == true then 
-		if DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Actions", "Vehicle_Enter") then
+		if DRC:IsVSentenceValid(ply.DRCVoiceSet, "Actions", "Vehicle_Enter") then
 			DRC:SpeakSentence(ply, "Actions", "Vehicle_Enter")
 		end
 	else
-		if DRC:IsVSentenceValid(DRC:GetVoiceSet(ply), "Actions", "Vehicle_Exit") then
+		if DRC:IsVSentenceValid(ply.DRCVoiceSet, "Actions", "Vehicle_Exit") then
 			DRC:SpeakSentence(ply, "Actions", "Vehicle_Exit")
 		end
 	end
@@ -683,7 +688,7 @@ hook.Add("PostEntityTakeDamage", "VoiceSets_PostKill", function(tgt, dmg, b)
 		local str = "kill_".. class ..""
 		local hp = DRC:Health(tgt)
 		if hp <= 0 then
-			local vs = DRC:GetVoiceSet(dmg:GetAttacker())
+			local vs = dmg:GetAttacker().DRCVoiceSet
 			if veh2 && dmg:GetDamageType() == DMG_VEHICLE then
 				if DRC:IsVSentenceValid(vs, "Reactions", "kill_Splatter") && (veh2 && veh == veh2) then
 					timer.Simple(math.Rand(0.5,1), function() DRC:SpeakSentence(att, "Reactions", "kill_Splatter") end)
@@ -721,7 +726,7 @@ end)
 
 hook.Add("PlayerTick", "DRC_VoiceSetsBreathing", function(ply)
 	if !ply:Alive() then return end
-	local vs = DRC:GetVoiceSet(ply)
+	local vs = ply.DRCVoiceSet
 	if vs != nil && DRC.VoiceSets[vs].Breathing != nil then
 		local ct = CurTime()
 		if !ply.NextVSBreathTime then ply.NextVSBreathTime = 0 end
@@ -777,7 +782,7 @@ end)
 
 hook.Add("PlayerTick", "DRC_VoiceSetsIdling", function(ply)
 	if !ply:Alive() then return end
-	local vs = DRC:GetVoiceSet(ply)
+	local vs = ply.DRCVoiceSet
 	if vs != nil && DRC.VoiceSets[vs].Idle != nil then
 		local ct = CurTime()
 		if !ply.NextVSIdleTime then ply.NextVSIdleTime = 0 end
@@ -966,6 +971,7 @@ util.AddNetworkString("DRC_RenderSphere")
 
 function DRC:RenderTrace(tr, colour, thyme)
 	if !game.SinglePlayer() then return end
+	if !DRC:InDebugMode() then return end
 	
 	local tbl = {tr, colour, thyme}
 	net.Start("DRC_RenderTrace")
@@ -975,6 +981,7 @@ end
 
 function DRC:RenderSphere(origin, radius, colour, thyme)
 	if !game.SinglePlayer() then return end
+	DRC:InDebugMode()
 	
 	local tbl = {origin, radius, colour, thyme}
 	net.Start("DRC_RenderSphere")

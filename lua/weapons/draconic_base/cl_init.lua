@@ -51,21 +51,23 @@ function SWEP:FormatViewModelAttachment(nFOV, vOrigin, bFrom --[[= false]])
 end
 
 function SWEP:GetWeaponAttachment(att)
-	if !self.VMA then 
-		local attinfo = {}
-		attinfo.Pos = Vector()
-		attinfo.Ang = Angle()
-		attinfo.ID = 0
-		attinfo.ent = self
-	return attinfo end
 	local ply = self:GetOwner()
 	local ent = self
 	
 	if ply:IsPlayer() then
 		local tp = DRC:ThirdPersonEnabled(ply)
 		if ply == LocalPlayer() && !tp then ent = ply:GetViewModel() end
+		
+		if !tp && !self.VMA then 
+			local attinfo = {}
+			attinfo.Pos = Vector()
+			attinfo.Ang = Angle()
+			attinfo.ID = 0
+			attinfo.ent = self
+		return attinfo end
 	end
 	local attinfo = ent:GetAttachment(ent:LookupAttachment(att))
+	if !attinfo then return end
 	local newpos, newang = attinfo.Pos, attinfo.Ang
 	if ply:IsPlayer() && ent == ply:GetViewModel() then
 		newpos = self.VMA[att].pos
@@ -97,6 +99,7 @@ function SWEP:EffectChain(tbl, ed)
 		timer.Simple(thyme, function() if IsValid(self) then
 			if ply:GetActiveWeapon() != self then return end
 			local attinfo = self:GetWeaponAttachment(k)
+			if !attinfo then return end
 			if !ed then
 				effectdata:SetOrigin(attinfo.Pos)
 				effectdata:SetStart(attinfo.Pos)

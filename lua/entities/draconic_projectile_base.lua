@@ -339,6 +339,13 @@ function ENT:GetObjVelocity()
 	end
 end
 
+function ENT:SetPhysGravity(b)
+	if !IsValid(self) or !IsValid(self:GetPhysicsObject()) then return end
+	local phys = self:GetPhysicsObject()
+	if b == true then self.Gravity = true phys:EnableGravity(true)
+	else self.Gravity = false phys:EnableGravity(false) end
+end
+
 function ENT:PhysicsUpdate()
 	if !IsValid(self) then return end
 	local phys = self:GetPhysicsObject()
@@ -414,12 +421,8 @@ function ENT:PhysicsUpdate()
 				phys:SetVelocity(phys:GetAngles():Forward() * self.InitialSpeed)
 			end
 		elseif isvector(tgt) then
-			local tr = util.TraceLine({
-				start = phys:GetPos(),
-				endpos = tgt,
-			})
-			
-			local ang = tr.Normal:Angle()
+			local dir = (tgt - phys:GetPos()):GetNormalized()
+			local ang = dir:Angle()
 			
 			local angx = math.ApproachAngle(self:GetAngles().x, ang.x, self.TrackFraction)
 			local angy = math.ApproachAngle(self:GetAngles().y, ang.y, self.TrackFraction)
@@ -571,6 +574,8 @@ function ENT:Initialize()
 	self:SetNWBool("Stuck", false)
 	
 	self.Initialized = true
+	
+	self:SetAutomaticFrameAdvance(true)
 	
 	if SERVER then
 		timer.Simple(self.LifeTime, function()
@@ -1008,9 +1013,9 @@ function ENT:ReleasePressure(pressure, radius)
 		local class = v:GetClass()
 		local phys = v:GetPhysicsObject()
 		
-		if class == self:GetClass() && self.DoNotAffectSimilar == false && self.Gravity == true then
+		if (class == self:GetClass() && self.DoNotAffectSimilar == false) then
 			if IsValid(v) && IsValid(phys) then phys:SetVelocity(phys:GetVelocity() + ((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100) / phys:GetMass()) end
-		else
+		elseif class != self:GetClass() then
 			if IsValid(phys) and !(v:IsPlayer() or v:IsNPC() or v:IsNextBot()) then
 				phys:SetVelocity((v:GetPos()-pos)*self.MSPressure/(v:GetPos()):Distance(pos) * 100)
 			elseif DRC:IsCharacter(v) then

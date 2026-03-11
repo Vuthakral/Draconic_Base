@@ -47,7 +47,7 @@ if SERVER then
 		timer.Simple(10, function() DRC.MapInfo.NavMesh = navmesh.GetAllNavAreas() end)
 	end)
 	
-	concommand.Add("drc_reflectionamount", function(ply, cmd, args)
+	concommand.Add("drc_reflections_amount", function(ply, cmd, args)
 		if !args or !args[1] or !isnumber(tonumber(args[1])) then print("Please supply a number value.") return end
 		if !file.Exists("draconic", "DATA") then file.CreateDir("draconic") end
 		local ftu = file.Read("draconic/reflectionmodifiers.json", "DATA")
@@ -65,6 +65,27 @@ if SERVER then
 		
 		net.Start("DRC_ReflectionModifier")
 		net.WriteFloat(tonumber(args[1]))
+		net.Broadcast()
+	end)
+	
+	concommand.Add("drc_reflections_badmap", function(ply, cmd, args)
+		if !args or !args[1] or !isnumber(tonumber(args[1])) then print("Specify 1 or 0. For maps that force-disable cubemaps or their author forgot to compile them.\nPlease note that due to how the engine works, if you need to do this you may also need to set 'drc_reflections_amount' to an absurdly high number.") return end
+		if !file.Exists("draconic", "DATA") then file.CreateDir("draconic") end
+		local ftu = file.Read("draconic/reflectionmodifiers_badmaps.json", "DATA")
+		if !ftu then
+			local tbl = {}
+			tbl[string.lower(game.GetMap())] = tonumber(math.Round(args[1]))
+			local json = util.TableToJSON(tbl)
+			file.Write("draconic/reflectionmodifiers_badmaps.json", json)
+		else
+			local tbl = util.JSONToTable(ftu)
+			tbl[string.lower(game.GetMap())] = math.Round(args[1])
+			local json = util.TableToJSON(tbl)
+			file.Write("draconic/reflectionmodifiers_badmaps.json", json)
+		end
+		
+		net.Start("DRC_ReflectionModifier_BadMap")
+		net.WriteFloat(tonumber(math.Round(args[1])))
 		net.Broadcast()
 	end)
 end
@@ -140,7 +161,7 @@ DRC.SurfacePropsEngine = {
 }
 
 -- First entry in table is used for sound references, anything else is for particle systems.
--- Sound references: cardboard, computer, dirt, flesh, glass, metal, metalhollow, metaldrum, metalvent, mud, plastic, rubber, rubble, sand, snow, tile, wood, stone
+-- Sound references: bugshell, cardboard, computer, dirt, flesh, glass, metal, metalhollow, metaldrum, metalvent, mud, plastic, rubber, rubble, sand, snow, tile, wood, stone
 -- All existing references: cardboard, computer, bugshell, dirt, dust, flesh, gas, glass, liquid, metal, metaldrum, metalhollow, paint, plastic, rubble, sand, shards, snow, synth, tile, wood, stone
 DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth, plastic, gas, liquid, computer, cardboard
 	["MAT_DEFAULT"] = {"stone", "dust"}, -- engine
@@ -162,6 +183,7 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_PLASTIC"] = {"plastic", "dust"}, -- hl2
 	["MAT_PLASTIC_BARREL"] = {"plastic", "dust"}, -- hl2
 	["MAT_PLASTIC_BARREL_BUOYANT"] = {"plastic", "dust"}, -- hl2
+	["MAT_PLASTIC_BARREL_VERYBUOYANT"] = {"plastic", "dust"}, -- HL:S
 	["MAT_PLASTIC_BOX"] = {"plastic", "dust"}, -- hl2
 	["MAT_PAINTCAN"] = {"metal", "paint"}, -- hl2
 	["MAT_POPCAN"] = {"metal", "liquid"}, -- hl2
@@ -177,7 +199,7 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_METAL_MEDIUM"] = {"metal"}, -- Vindictus
 	["MAT_GRATE"] = {"metal"}, -- engine
 	["MAT_METALGRATE"] = {"metal"}, -- engine
-	["MAT_METALVEHICLE"] = {"metal", "metalhollow"}, -- hl2
+	["MAT_METALVEHICLE"] = {"metal", "metalhollow"}, -- CS:S
 	["MAT_METALVENT"] = {"metal", "metalhollow"}, -- engine
 	["MAT_CHAINLINK"] = {"chainlink"}, -- engine
 	["MAT_WARPSHIELD"] = {"metal"}, -- hl2
@@ -189,6 +211,8 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_SLIPPERYMETAL"] = {"metal"}, -- engine
 	["MAT_METALPANEL"] = {"metal"}, -- hl2
 	["MAT_METAL_BARREL"] = {"metaldrum"}, -- hl2
+	["MAT_METAL_BARREL_HL"] = {"metaldrum"}, -- HL:S
+	["MAT_METAL_BARRELLIGHT_HL"] = {"metaldrum"}, -- HL:S
 	["MAT_FLOATING_METAL_BARREL"] = {"metaldrum"}, -- hl2
 	["MAT_METAL_BOX"] = {"metal"}, -- hl2
 	["MAT_COMPUTER"] = {"computer"}, -- hl2
@@ -207,6 +231,7 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_WADE"] = {"water", "liquid"}, -- engine
 	["MAT_WATER"] = {"water", "liquid"}, -- engine
 	["MAT_FOLIAGE"] = {"wood", "dirt"}, -- engine
+	["MAT_HAY"] = {"wood", "dirt"}, -- CS:S
 	["MAT_HEDGEROW"] = {"wood", "dirt"}, -- CS:S
 	["MAT_WOOD"] = {"wood", "dirt"}, -- engine
 	["MAT_WOOD_SMALL"] = {"wood", "dirt"}, -- Vindictus
@@ -214,7 +239,7 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_WOOD_FURNITURE"] = {"wood"}, -- hl2
 	["MAT_WOOD_SOLID"] = {"wood"}, -- hl2
 	["MAT_WOOD_CRATE"] = {"wood"}, -- hl2
-	["MAT_WOOD_BOX"] = {"wood"}, -- CS:S
+	["MAT_WOOD_BOX"] = {"wood"}, -- hl2
 	["MAT_WOOD_PLANK"] = {"wood"}, -- hl2
 	["MAT_WOOD_PANEL"] = {"wood"}, -- hl2
 	["MAT_WOOD_LOWDENSITY"] = {"wood"}, -- CS:S (?)
@@ -239,6 +264,8 @@ DRC.SurfacePropDefinitions = { -- Todo for dynamic particles: flesh, tile, synth
 	["MAT_GLASS_BOTTLE"] = {"glass", "shards"}, -- hl2
 	["MAT_RUBBER"] = {"rubber", "plastic"}, -- engine
 	["MAT_RUBBERTIRE"] = {"rubber", "plastic"}, -- hl2
+	["MAT_JEEPTIRE"] = {"rubber", "plastic"}, -- DOD:S
+	["MAT_JALOPYTIRE"] = {"rubber", "plastic"}, -- ep2
 	["MAT_CARDBOARD"] = {"cardboard", "dust"}, -- hl2
 	["MAT_CARPET"] = {"fabric"}, -- CS:S
 	["MAT_FABRIC"] = {"fabric"}, -- CS:S
@@ -948,10 +975,8 @@ function DRC:MismatchWarn(ply, ent)
 	local diff, str = (DRC:GetVersion() - ent.DRCVersion) * 100, "version"
 	if math.floor(diff) != 1 then str = "versions" end
 	
-	local str2 = nil
-	if game.SinglePlayer() then
-		str2 = "Contact ".. ent.Author .." and please ask them nicely to update it."
-	else str2 = "Contact the server operator and please ask them nicely to check for updates." end
+	if !game.SinglePlayer() then return end
+	local str2 = "Contact ".. ent.Author .." and please ask them nicely to update it."
 	
 	local msg = {Color(200, 200, 200), "".. ent.PrintName .." is ", Color(255, 0, 0), "outdated ", Color(200, 200, 200), "by ".. diff .." ".. str .."! (".. ent.DRCVersion .." vs ".. DRC:GetVersion() ..") ".. str2 ..""}
 	
@@ -1068,7 +1093,6 @@ function DRC:UnLerp(point, v1, v2)
 	frac = math.Clamp(frac, 0, 1)
 	return frac
 end
-
 
 function DRC:GetColours(ent, rgb)
 	if !IsValid(ent) then return end
@@ -1261,20 +1285,37 @@ function DRC:SetNWVar(ent, key, val)
 	end
 end
 
+local nodoors = {
+	["prop_door_rotating"] = true,
+	["func_door"] = true,
+}
+
 function DRC:SetAggressiveCull(ent, b)
+	if nodoors[ent:GetClass()] then return end
 	ent:SetNWBool("DRC_AggresivelyCulled", b)
-	
+
 	if SERVER then
 		net.Start("DRC_SyncAggCull")
 		net.WriteEntity(ent)
 		net.WriteBool(b)
 		net.Broadcast()
 	else
-		if b == true then DRC.AggressiveCulls[ent] = ent else DRC.AggressiveCulls[ent] = nil end
-		if b == false then ent:SetNoDraw(b) end
+		if b then
+			if !table.HasValue(DRC.AggressiveCulls, ent) then
+				table.insert(DRC.AggressiveCulls, ent)
+			end
+		else
+			for i = #DRC.AggressiveCulls, 1, -1 do
+				if DRC.AggressiveCulls[i] == ent then
+					table.remove(DRC.AggressiveCulls, i)
+					break
+				end
+			end
+			ent:SetNoDraw(false)
+		end
 	end
-	
-	if b == false then ent:SetNoDraw(b) end
+
+	if b == false then ent:SetNoDraw(false) end
 end
 
 function DRC:AddText(ply, varargs)
@@ -1293,11 +1334,11 @@ function DRC:EmitSound(source, near, far, distance, hint, listener)
 	else
 		if IsValid(source) && near && (SERVER && IsFirstTimePredicted()) then source:EmitSound(near, nil, nil, nil, nil, nil, nil) end
 	end
-
+	
 	if CLIENT then return end
 	net.Start("DRCSound")
 	net.WriteEntity(source)
-	net.WriteVector(source:GetPos())
+	net.WriteVector(source:GetPos() or nil)
 	if distance then net.WriteFloat(distance) end
 	if near then net.WriteString(near) end
 	if far then net.WriteString(far) end
@@ -1309,27 +1350,6 @@ end
 function DRC:TraceAngle(start, nd)
 	return (nd - start):Angle()
 end
-
-function DRC:Interact(ply, ent, movement, mouse)
-	if !IsValid(ply) then return end
-	if !ply:Alive() then return end
-	
-	if IsValid(ent) then ply:SetNWEntity("Interacted_Entity", ent) end
-	if movement == nil then movement = false end
-	if mouse == nil then mouse = false end
-	ply:SetNWBool("DRC_Interacting", true)
-	ply:SetNWBool("DRC_Interacting_StopMovement", movement)
-	ply:SetNWBool("DRC_Interacting_StopMouse", mouse)
-	ply:SetNWAngle("DRC_Interacting_EyeAngle", ply:EyeAngles())
-end
-
-function DRC:BreakInteraction(ply, ent)
-	if IsValid(ent) then ply:SetNWEntity("Interacted_Entity", nil) end
-	ply:SetNWBool("DRC_Interacting", false)
-	ply:SetNWBool("DRC_Interacting_StopMovement", false)
-	ply:SetNWBool("DRC_Interacting_StopMouse", false)
-end
-
 
 if !DRC.ProjectedLights then DRC.ProjectedLights = {} end
 function DRC:ProjectedTexture(ent, att, tbl)
@@ -1774,6 +1794,11 @@ hook.Add("PlayerInitialSpawn", "DRC_InitialSpawnHook", function(ply)
 			net.Start("DRC_ReflectionModifier")
 			net.WriteFloat(tbl[string.lower(game.GetMap())] or 1)
 			net.Send(ply)
+			timer.Simple(0, function() -- kill me
+				net.Start("DRC_ReflectionModifier_BadMap")
+				net.WriteFloat(tbl[string.lower(game.GetMap())] or 0)
+				net.Send(ply)
+			end)
 		end
 	end)
 end)
@@ -1837,12 +1862,56 @@ hook.Add("PlayerSpawn", "drc_DoPlayerSettings", function(ply, transition)
 	end
 end)
 
+function DRC:Interact(ply, ent, movement, mouse)
+	if !SERVER then return end
+	if !IsValid(ply) then return end
+	if !ply:Alive() then return end
+	
+	if movement == nil then movement = false end
+	if mouse == nil then mouse = false end
+	
+	net.Start("DRC_Interact")
+	if IsValid(ent) then net.WriteEntity(ent) else net.WriteEntity(NULL) end
+	net.WriteBool(true)
+	net.WriteBool(movement)
+	net.WriteBool(mouse)
+	net.WriteAngle(ply:EyeAngles())
+	net.Broadcast()
+	
+	if IsValid(ent) then ply.DRC_Interacted_Entity = ent else ply.DRC_Interacted_Entity = NULL end
+	ply.DRC_Interacting = true
+	ply.DRC_Interacting_StopMovement = movement
+	ply.DRC_Interacting_StopMouse = mouse
+	ply.DRC_Interacting_EyeAngle = ply:EyeAngles()
+end
+
+function DRC:BreakInteraction(ply, ent)
+	if !SERVER then return end
+
+	net.Start("DRC_Interact")
+	net.WriteEntity(NULL)
+	net.WriteBool(false)
+	net.WriteBool(false)
+	net.WriteBool(false)
+	net.WriteAngle(Angle())
+	net.Broadcast()
+	
+	ply.DRC_Interacted_Entity = NULL
+	ply.DRC_Interacting = false
+	ply.DRC_Interacting_StopMovement = false
+	ply.DRC_Interacting_StopMouse = false
+	ply.DRC_Interacting_EyeAngle = ply:EyeAngles()
+end
+
 hook.Add("StartCommand", "drc_InteractionBlocks", function(ply, cmd)
 	if ply:Alive() then 
-		local bool1 = ply:GetNWBool("DRC_Interacting")
-		local bool2 = ply:GetNWBool("DRC_Interacting_StopMovement")
-		local bool3 = ply:GetNWBool("DRC_Interacting_StopMouse")
-		local ent = ply:GetNWEntity("Interacted_Entity", ply)
+		local bool1 = ply.DRC_Interacting
+		local bool2 = ply.DRC_Interacting_StopMovement
+		local bool3 = ply.DRC_Interacting_StopMouse
+		local ent = ply.DRC_Interacted_Entity
+		
+		if !ply.MouseInputVector then ply.MouseInputVector = Vector() end
+		ply.MouseInputVector = Vector(cmd:GetMouseX(), -cmd:GetMouseY(), 0)
 		
 		if bool1 then
 			if cmd:KeyDown(IN_ATTACK) then
@@ -1952,6 +2021,7 @@ end)
 
 hook.Add("CreateClientsideRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	if !IsValid(ply) then return end
+--	rag:SetOwner(ply)
 	
 	local colours = DRC:GetColours(ply, false)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
@@ -1971,6 +2041,7 @@ end)
 
 hook.Add("CreateEntityRagdoll", "drc_playerragdollcolours", function(ply, rag)
 	if !IsValid(ply) then return end
+--	rag:SetOwner(ply)
 	
 	local colours = DRC:GetColours(ply, false)
 	rag:SetNWVector("PlayerColour_DRC", colours.Player)
@@ -2088,12 +2159,11 @@ end
 
 hook.Add("UpdateAnimation", "DRC_MoveBlendWithoutRootMotion", function(ply, vel, msgs)
 	if ply:LookupPoseParameter("drc_move_x") != -1 && ply:LookupPoseParameter("drc_move_y") != -1 then
-	local x, y, z = DRC:GetVelocityPose(ply, false)
-			
-	ply:SetPoseParameter("drc_move_x", x)
-	ply:SetPoseParameter("drc_move_y", y)
-	if CLIENT then ply:InvalidateBoneCache() end
-	return true
+		local x, y, z = DRC:GetVelocityPose(ply, false)
+				
+		ply:SetPoseParameter("drc_move_x", x)
+		ply:SetPoseParameter("drc_move_y", y)
+		if CLIENT then ply:InvalidateBoneCache() end
 	end
 end)
 
@@ -2172,7 +2242,14 @@ local function PlayReadyAnim(ply, anim)
 end
 
 hook.Add( "PlayerSwitchWeapon", "drc_weaponswitchanim", function(ply, ow, nw)
+	if CLIENT then if ply == DRC.LocalPlayer then DRC:ToggleThirdperson(true) end end 
 	if !SERVER then return end
+	
+	if game.SinglePlayer() then
+		net.Start("PlayerSwitchWeaponSinglePlayer")
+		net.Send(ply)
+	end
+	
 	if nw.ARC9 && GetConVar("arc9_tpik"):GetFloat() == 1 then return end
 	local neww = nw:GetClass()
 	
@@ -2231,7 +2308,7 @@ net.Receive("DRC_Nuke", function(len, ply)
 	local ent = net.ReadEntity()
 	if !IsValid(ent) then return end
 	if !ent:IsAdmin() then
-		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_Nuke' net message but they aren't an admin! This is a known (and now patched) exploit which has been reported implemented into a few scripts.") end
+		if SERVER then DRC:CheaterWarning(ply, "This player's client attempted to call the 'DRC_Nuke' net message but they aren't an admin! This is a known (and now patched) exploit which exists in a few exploited clients.") end
 	return end
 	if ply:IsAdmin() then
 		DRC.LastNukeTime = ct
@@ -2311,7 +2388,7 @@ end
 
 local batteryammo = {
 	Name = "ammo_drc_battery",
-	Text = "Don't give yourself this ammo. It will only break your weapons.",
+	Text = "Current Weapon Ammo",
 	DMG = DMG_BULLET,
 	DamagePlayer = 0,
 	DamageNPC = 0,
@@ -2705,13 +2782,6 @@ if SERVER then
 			ed:SetStart(dinfo:GetDamagePosition())
 			ed:SetEntity(ent)
 			util.Effect(ent:GetNWString("DRC_Shield_ImpactEffect"), ed)
-		elseif hp <= 0 && ent:GetNWBool("DRC_ShieldDown") == false then
-			DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_DepleteSound"), nil, 1500)
-			local ed = EffectData()
-			ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
-			ed:SetStart(ent:GetPos() + ent:OBBCenter())
-			ed:SetEntity(ent)
-			util.Effect(ent:GetNWString("DRC_Shield_DepleteEffect"), ed)
 		end
 	end
 	
@@ -2790,12 +2860,25 @@ if SERVER then
 	end
 end
 
-function DRC:PopShield(ent)
+function DRC:ShieldPopEffect(ent)
+	DRC:EmitSound(ent, ent:GetNWString("DRC_Shield_DepleteSound"), nil, 1500)
+	local ed = EffectData()
+	ed:SetOrigin(ent:GetPos() + ent:OBBCenter())
+	ed:SetStart(ent:GetPos() + ent:OBBCenter())
+	ed:SetEntity(ent)
+	util.Effect(ent:GetNWString("DRC_Shield_DepleteEffect"), ed)
+end
+
+function DRC:PopShield(ent, dodelay, isfromtakedamage)
 	if ent.DoCustomShieldBreak then tgt:DoCustomShieldBreak(dmg) end
 	ent:SetNWInt("DRC_ShieldHealth", 0)
 	ent:SetNWInt("DRC_ShieldHealth_Extra", 0)
+	DRC:ShieldPopEffect(ent)
 	
 	DRC:SpeakSentence(ent, "Reactions", "Shield_Down", true)
+	
+	if CLIENT or isfromtakedamage then return end
+	if dodelay == true then ent:TakeDamage(0, nil, nil) end
 end
 
 function DRC:GetShield(ent)
@@ -3186,7 +3269,7 @@ end
 
 function DRC:SetVoiceSet(ent, id, enforced)
 	if !DRC.VoiceSets[id] then ent:SetNWString("DRCVoiceSet", "None") return end
-	if !enforced then ent:SetNWString("DRCVoiceSet", id) end
+	if !enforced then ent.DRCVoiceSet = id ent:SetNWString("DRCVoiceSet", id) end
 	if enforced then timer.Simple(0, function() ent:SetNWString("DRCVoiceSet_Enforced", id) end) end
 end
 
@@ -3515,6 +3598,7 @@ function IsInWorld( pos ) -- yoinked from example on https://wiki.facepunch.com/
 end
 
 function DRC:FloorDist(e, sqr, edgecheck, floorbound)
+--	tr = util.QuickTrace(e:GetPos(), -e:GetRenderAngles():Up(), function(ent) if ent != e then return true end end)
 	local tr = util.TraceLine({
 		start = e:GetPos(),
 		endpos = e:GetPos() - Vector(0, 0, 100000000),
@@ -3572,6 +3656,29 @@ function DRC:FloorDist(e, sqr, edgecheck, floorbound)
 	
 	local dist = floorgetdist(e, sqr, tr)
 	return dist, edge, floorhull
+end
+
+-- if someone is browsing my code and has no clue what this is:
+-- this is a function that handles limited-update (i.e. only 5 times per second) stuff within a think context
+-- it automatically assigns a randomized offset, so the code doesn't run for dozens to hundres of things
+-- on that exact tick, instead spreading them out across the available engine tickrate to prevent spikes.
+function DRC:TickGate(ent, id, tps)
+	if FrameTime() == 0 then return false end
+	ent.drc_tickgate = ent.drc_tickgate or {}
+
+	local rate = math.floor(1/engine.TickInterval()+0.5)
+	local ticks = math.max(1, math.floor(rate/tps))
+	local data = ent.drc_tickgate[id]
+
+	if !data or data.ticks != ticks then
+		data = {
+			["ticks"] = ticks,
+			["offset"] = ent:EntIndex() % ticks
+		}
+		ent.drc_tickgate[id] = data
+	end
+
+	return (engine.TickCount() + data.offset) % data.ticks == 0
 end
 
 function DRC:ChangeCHandModel(tbl)
@@ -4002,7 +4109,7 @@ DRC.GamemodeCompat = {
 	["terrortown"] = true,
 }
 
-hook.Add( "AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
+hook.Add("AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
 	if !IsValid(ply) or !IsValid(ent) or !ply:Alive() then return end
 	local curswep = ply:GetActiveWeapon()
 	if !IsValid(curswep) then return end
@@ -4020,115 +4127,136 @@ hook.Add( "AllowPlayerPickup", "drc_PreventAnnoyance", function( ply, ent )
 		end)
 		return false
 	end
-end )
+end)
 
+if !DRC.PickupWeapons then DRC.PickupWeapons = {} end
+if !DRC.BatteryWeapons then DRC.BatteryWeapons = {} end
 function ViableWeaponCheck(ply)
 if (!IsValid(ply) or !ply:Alive()) && !ply:InVehicle() then return end
-	local curswep = ply:GetActiveWeapon()
-	if !IsValid(curswep) then return end
+	local active = ply:GetActiveWeapon()
+	if !IsValid(active) then return end
 	
-	ply.ViableWeapons = {}
-	ply.PickupWeapons = {}
+	local pos = ply:GetPos()
+	local wpn, dist, typ = NULL, 50*50, nil
+	
+	for k,pickup in pairs(DRC.BatteryWeapons) do
+		local active = ply:GetActiveWeapon()
+		if IsValid(pickup) && active:GetClass() == pickup:GetClass() && !IsValid(pickup:GetOwner()) && pickup:GetLoadedAmmo() > active:GetLoadedAmmo() then
+			if pos:DistToSqr(pickup:GetPos()) < dist then
+				wpn = pickup
+				typ = 0
+			end
+		end
+	end
+	
+	for k,pickup in pairs(DRC.PickupWeapons) do
+		if IsValid(pickup) && !IsValid(pickup:GetOwner()) then
+			if pos:DistToSqr(pickup:GetPos()) < dist then
+				wpn = pickup
+				typ = 1
+			end
+		end
+	end
+	
+	ply.DRC_WeaponPickup = wpn
+	ply:SetNWEntity("DRC_WeaponPickup", wpn)
+	ply:SetNWInt("DRC_PickupMode", typ)
+	
+	--[[ top 10 disgusting implementations I wish I had a time machine to tell my 2019 self were awful ideas, number 10:
+--	ply.ViableWeapons = {}
+--	ply.PickupWeapons = {}
 	local entsearch = ents.FindInSphere(ply:GetPos(), 50)
 	for k,v in pairs(entsearch) do
 		if v:IsWeapon() then 
 			if v:GetOwner():IsWorld() or v:GetOwner() == nil or !IsValid(v:GetOwner()) then
 				if v.Draconic != nil then
 					if v.CanBeSwapped == true then
-						if v:GetClass() == curswep:GetClass() then
-							if v:GetNWInt("LoadedAmmo") > curswep:GetNWInt("LoadedAmmo") then
+						if v:GetClass() == wpn:GetClass() then
+							if v:GetNWInt("LoadedAmmo") > wpn:GetNWInt("LoadedAmmo") then
 								table.insert(ply.ViableWeapons, v)
 							end
 						end
 					end
 					if v.PickupOnly == true then
-						table.insert(ply.PickupWeapons, v)
+						--table.insert(ply.PickupWeapons, v)
+						ply.PickupWeapons[k] = v
 					end
 				end
 			end
-		elseif !v:IsWeapon() then table.RemoveByValue(entsearch, v)
 		end
 	end
+	]]
 end
 
 local SwapCD = 0
-local ViableCheckCD = 0
-hook.Add( "PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
+hook.Add("PlayerTick", "drc_PlayerTickEvents", function(ply, cmd)
 	if (!IsValid(ply) or !ply:Alive()) && !ply:InVehicle() then return end
 	local curswep = ply:GetActiveWeapon()
+	local ct = CurTime()
 	
-	if CurTime() > ViableCheckCD then
+	if DRC:TickGate(ply, "viableweaponcheck", 5) then
 		ViableWeaponCheck(ply)
-		ViableCheckCD = CurTime() + 0.066
 	end
 	
 	if !ply.TurnCD then ply.TurnCD = 0 end
 	if !ply.SwapCD then ply.SwapCD = 0 end
 	
-	if CurTime() > ply.TurnCD then
-		local rang, pang, inv = ply:GetRenderAngles(), ply:EyeAngles(), false
-		
-		if pang.y < 0 then inv = false else inv = true end
-		
-		rang = math.abs(math.Round(rang.y))
-		pang = math.abs(math.Round(pang.y))
-		local meth = rang - pang
-		local w, a, s, d = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT)
-		
-		if (!w && !a && !s && !d) && (math.abs(meth) > 45) then
-			local lt, rt = ACT_GESTURE_TURN_LEFT45, ACT_GESTURE_TURN_RIGHT45
-			if ply:Crouching() then lt, rt = ACT_GESTURE_TURN_LEFT45_FLAT, ACT_GESTURE_TURN_RIGHT45_FLAT end
+	if ct > ply.TurnCD then
+--		local vr = (vrmod && vrmod.IsPlayerInVR && vrmod:IsPlayerInVR(ply))
+--		if !vr then
+			local rang, pang, inv = ply:GetRenderAngles(), ply:EyeAngles(), false
 			
-			local anim = lt
-			if inv then
-				if meth > 0 then anim = rt else anim = lt end
-			else
-				if meth < 0 then anim = rt else anim = lt end
-			end
-			if ply:SelectWeightedSequence(anim) == -1 then return end
+			if pang.y < 0 then inv = false else inv = true end
 			
-			DRC:CallGesture(ply, GESTURE_SLOT_JUMP, anim, true)
-			ply.TurnCD = CurTime() + 0.5
-			if ply:GetMoveType() == MOVETYPE_WALK && DRC:FloorDist(ply) < 15 then
-				local fs = DRC:GetFootsteps(ply)
-				local ss, so, vol, om = SelectFootstep(ply, true, fs, false, false, false, false)
-				if ss && vol then
-					vol = 100 * vol
-					ply:EmitSound(ss, vol)
-					timer.Simple(0.4, function() if IsValid(ply) then
-						ss = SelectFootstep(ply, true, fs, false, false, false, false)
+			rang = math.abs(math.Round(rang.y))
+			pang = math.abs(math.Round(pang.y))
+			local meth = rang - pang
+			local w, a, s, d = ply:KeyDown(IN_FORWARD), ply:KeyDown(IN_MOVELEFT), ply:KeyDown(IN_BACK), ply:KeyDown(IN_MOVERIGHT)
+			
+			if (!w && !a && !s && !d) && (math.abs(meth) > 45) then
+				local lt, rt = ACT_GESTURE_TURN_LEFT45, ACT_GESTURE_TURN_RIGHT45
+				if ply:Crouching() then lt, rt = ACT_GESTURE_TURN_LEFT45_FLAT, ACT_GESTURE_TURN_RIGHT45_FLAT end
+				
+				local anim = lt
+				if inv then
+					if meth > 0 then anim = rt else anim = lt end
+				else
+					if meth < 0 then anim = rt else anim = lt end
+				end
+				if ply:SelectWeightedSequence(anim) == -1 then return end
+				
+				DRC:CallGesture(ply, GESTURE_SLOT_JUMP, anim, true)
+				ply.TurnCD = ct + 0.5
+				if ply:GetMoveType() == MOVETYPE_WALK && DRC:FloorDist(ply) < 15 then
+					local fs = DRC:GetFootsteps(ply)
+					local ss, so, vol, om = SelectFootstep(ply, true, fs, false, false, false, false)
+					if ss && vol then
+						vol = 100 * vol
 						ply:EmitSound(ss, vol)
-					end end)
+						timer.Simple(0.4, function() if IsValid(ply) then
+							ss = SelectFootstep(ply, true, fs, false, false, false, false)
+							ply:EmitSound(ss, vol)
+						end end)
+					end
 				end
 			end
-		end
-		
+--		end
 	end
 	
-	if CurTime() < ply.SwapCD then return end
-	if !ply.PickupWeapons then ply.PickupWeapons = {} end
-	if !ply.ViableWeapons then ply.ViableWeapons = {} end
-	if !table.IsEmpty(ply.PickupWeapons) then
+	if ct < ply.SwapCD then return end
+	
+	local pickup = ply.DRC_WeaponPickup
+	if IsValid(pickup) then
 		if ply:KeyDown(IN_USE) && SERVER then
 			if curswep.LoopFireSound != nil then curswep.LoopFireSound:Stop() end
 			if curswep.PickupOnly == true then ply:DropWeapon(curswep) end
-			ply:PickupWeapon(ply.PickupWeapons[1])
-			ply:SelectWeapon(ply.PickupWeapons[1])
-			ply.PickupWeapons[1]:SetOwner(ply)
-			ply.SwapCD = CurTime() + 0.25
-		end
-	elseif !table.IsEmpty(ply.ViableWeapons) then
-		if ply:KeyDown(IN_USE) && SERVER then
-			if curswep.LoopFireSound != nil then curswep.LoopFireSound:Stop() end
-			if curswep.PickupOnly == true then ply:DropWeapon(curswep) end
-			ply:DropWeapon(curswep)
-			ply:PickupWeapon(ply.ViableWeapons[1])
-			ply:SelectWeapon(ply.ViableWeapons[1])
-			ply.ViableWeapons[1]:SetOwner(ply)
-			ply.SwapCD = CurTime() + 0.25
+			ply:PickupWeapon(pickup)
+			ply:SelectWeapon(pickup)
+			pickup:SetOwner(ply)
+			ply.SwapCD = ct + 0.25
 		end
 	end
-end )
+end)
 
 hook.Add("PlayerGiveSWEP", "drc_GivePickupOnlyWeapon", function(ply, wpn, swep)
 	local wep = weapons.GetStored(wpn)
@@ -4165,6 +4293,15 @@ end)
 hook.Add("OnEntityCreated", "drc_OnEntityCreated", function(ent)
 	if !IsValid(ent) then return end
 	
+	timer.Simple(0, function()
+		if !IsValid(ent) then return end
+		if !IsValid(ent:GetOwner()) then return end
+		local ply = ent:GetOwner()
+		
+		ent:SetNWEntity("SpraySrc", ply)
+		ent:SetNWEntity("Spawner", ply)
+	end)
+	
 	if CLIENT then ent.DRCInitialLightPoll = false end
 	
 	if ent:IsNPC() or ent:IsNextBot() then
@@ -4175,13 +4312,13 @@ hook.Add("OnEntityCreated", "drc_OnEntityCreated", function(ent)
 	if !ent:IsWeapon() then return end
 	if ent:IsWeapon() && ent.Draconic != true then return end
 	
-	timer.Simple(0, function()
+	timer.Simple(0, function() -- inherit droppable colours on weapons from player who spawned the weapon
 		if !IsValid(ent) then return end
 		if !IsValid(ent:GetOwner()) then return end
 		local ply = ent:GetOwner()
 		
 		if ply:IsPlayer() then
-			ent:SetNWEntity("SpraySrc", ply)
+			
 			local colours = DRC:GetColours(ply, false)
 			ent:SetNWVector("PlayerColour_DRC", colours.Player)
 			ent:SetNWVector("WeaponColour_DRC", colours.Weapon)
@@ -4189,8 +4326,6 @@ hook.Add("OnEntityCreated", "drc_OnEntityCreated", function(ent)
 			ent:SetNWVector("ColourTintVec2", colours.Tint2)
 			ent:SetNWVector("EyeTintVec", colours.Eye)
 			ent:SetNWVector("EnergyTintVec", colours.Energy)
-			
-			ent:SetNWEntity("Spawner", ply)
 		else
 			local colours = {
 				["Player"] = Vector(127, 127, 127),
@@ -4215,7 +4350,13 @@ hook.Add("PlayerAmmoChanged", "drc_StopImpulse101FromBreakingBatteries", functio
 	if id == batteryammo && new > 110 then
 --		if CLIENT then DRC:Notify(nil, "hint", "critical", "Don't give yourself this ammo type! You'll only break your battery-based weapon!", NOTIFY_HINT, 5) end
 		ply:SetAmmo(old, batteryammo)
-		timer.Simple(0.2, function() ply:SetAmmo(old, batteryammo) end)
+		timer.Simple(0.2, function()
+			if new == 9999 then
+				ply:GetActiveWeapon():SetLoadedAmmo(ply:GetActiveWeapon().Primary.DefaultClip)
+			else
+				ply:SetAmmo(old, batteryammo)
+			end
+		end)
 	end
 end)
 
@@ -4297,12 +4438,16 @@ hook.Add("OnEntityCreated", "DRC_WeaponTracker", function(ent)
 	if ent:IsWeapon() then
 		if weapons.IsBasedOn(ent:GetClass(), "draconic_base") then
 			DRC.ActiveWeapons[tostring(ent)] = ent
+			if ent.IsBatteryBased == true then DRC.BatteryWeapons[tostring(ent)] = ent end
+			if ent.PickupOnly == true then DRC.PickupWeapons[tostring(ent)] = ent end
 		end
 	return end
 end)
 
 hook.Add("EntityRemoved", "DRC_WeaponTracker_Remove", function(ent)
 	if DRC.ActiveWeapons[tostring(ent)] then DRC.ActiveWeapons[tostring(ent)] = nil end
+	if DRC.BatteryWeapons[tostring(ent)] then DRC.BatteryWeapons[tostring(ent)] = nil end
+	if DRC.PickupWeapons[tostring(ent)] then DRC.PickupWeapons[tostring(ent)] = nil end
 end)
 
 hook.Add("CalcMainActivity", "DRC_BarnacleGrab", function(ply, vel)
@@ -4351,7 +4496,6 @@ if SERVER then
 end
 
 local OldScreenshake = util.ScreenShake -- Intercepting screenshake so that it can be emulated in custom CalcView hooks.
-
 if !DRC.DisableHardScreenshake then DRC.DisableHardScreenshake = false end -- Set to true whenever you need this to happen, just be sure to set it back to false when you're done.
 function util.ScreenShake(pos, amp, freq, dur, radi, inair)
 	if SERVER then
@@ -4359,7 +4503,6 @@ function util.ScreenShake(pos, amp, freq, dur, radi, inair)
 			if v:IsPlayer() then
 				local tab = {pos, amp, freq, dur, radi}
 				local str = "".. tostring(pos) .."(-)".. amp .."(-)".. freq .."(-)".. dur .."(-)".. radi ..""
-			--	print(str)
 				if tab then DRC:NetworkScreenShake(v, tab) end
 			end
 		end

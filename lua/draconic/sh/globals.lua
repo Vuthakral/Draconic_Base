@@ -29,14 +29,18 @@ DRCD.Weapons = {
 	},
 }
 
-
-
 -- ### Convars
 DRC.Convars_CL = {}
 DRC.Convars_SV = {}
 
 function DRC:DebugModeAllowed()
 	if DRC.SV.drc_allowdebug != 0 then return true else return false end
+end
+
+function DRC:InDebugMode()
+	if SERVER then return end
+	if DRC:DebugModeAllowed() == false then return false end
+	if GetConVar("cl_drc_debugmode"):GetInt() > 0 then return true end
 end
 
 DRC.SV = {}
@@ -82,9 +86,10 @@ DRC:ServerVar("drc_attachments_autounlock", "When enabled, weapons will spawn wi
 DRC:ServerVar("drc_inspections", "Enables or disables the ability to access the inspection mode, which shows weapon stats & allows weapon customization.", 1, 0, 1)
 DRC:ServerVar("drc_inspect_hideHUD", "Enables or disables the ability to see the inspection menu.", 0, 0, 1)
 DRC:ServerVar("drc_forcebasegameammo", "Force Draconic weaapons to use standard base-game ammunition. (Requires weapon respawn on toggle)", 0, 0, 1)
-DRC:ServerVar("drc_infiniteammo", "0 Off | 1 Infinite | 2 Bottomless Mag", 0, 0, 2)
+DRC:ServerVar("drc_infiniteammo", "0: Off | 1: Infinite | 2: Bottomless Mag", 0, 0, 2)
 DRC:ServerVar("drc_disable_crosshairs", "Enable/Disable SWEP base crosshairs for all clients. Clients can still disable them on their own, but this can prevent them from using them.", 0, 0, 1)
 DRC:ServerVar("drc_viewdrag", "Enables or disables first person camera drag effects with animations.", 1, 0, 1)
+DRC:ServerVar("drc_spreadstyle", "0 (default): Standard spread calculations where moving makes spread increase faster & larger (like most games) | 1: Arcade-like spread calculations for all Draconic weapons where spread is universal regardless of movement.", 0, 0, 1)
 
 DRC:ServerVar("drc_funnyplayercorpses", "I added this just to force players to spawn drc_corpse on death as a means of testing.", 0, 0, 1)
 
@@ -167,14 +172,18 @@ if CLIENT then
 	if GetConVar("cl_drc_testvar_8") == nil then CreateConVar("cl_drc_testvar_8", 0, {FCVAR_USERINFO}, "This variable is used to toggle experimental features, please use the menu to change these settings.", 0, 1) end
 	if GetConVar("cl_drc_testvar_9") == nil then CreateConVar("cl_drc_testvar_9", 0, {FCVAR_USERINFO}, "This variable is used to toggle experimental features, please use the menu to change these settings.", 0, 1) end
 	if GetConVar("cl_drc_thirdperson") == nil then CreateConVar("cl_drc_thirdperson", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/Disable Draconic Thirdperson.", 0, 1) end
-	if GetConVar("cl_drc_thirdperson_flipside") == nil then CreateConVar("cl_drc_thirdperson_flipside", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Flip the thirdperson side the view is on.", 0, 1)	end
+	if GetConVar("cl_drc_thirdperson_autoflip") == nil then CreateConVar("cl_drc_thirdperson_autoflip", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Automatically switch which side the camera is offset by when looking around corners or up against walls.", 0, 1)	end
+	if GetConVar("cl_drc_thirdperson_flipside") == nil then CreateConVar("cl_drc_thirdperson_flipside", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Flip the thirdperson side the view is on (if automatic is disabled).", 0, 1)	end
 	if GetConVar("cl_drc_thirdperson_disable_freelook") == nil then CreateConVar("cl_drc_thirdperson_disable_freelook", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Disable freelook movement in third person.", 0, 1)	end
 	if GetConVar("cl_drc_thirdperson_preset") == nil then CreateConVar("cl_drc_thirdperson_preset", "", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Last loaded preset. Used to automatically select this at session start.") end
+	if GetConVar("cl_drc_thirdperson_override_astw2") == nil then CreateConVar("cl_drc_thirdperson_override_astw2", 0, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Whether to run automatically on ASTW2 weapons & use its values.") end
 	DRC.Convars_CL.ForceEFP = false
 
 --	if GetConVar("cl_drc_sway") == nil then CreateConVar("cl_drc_sway", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Enable/disable predictive-aim weapon swaying", 0, 1)end
 	if GetConVar("cl_drc_voiceset") == nil then CreateConVar("cl_drc_voiceset", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "VoiceSet to use. (Can be overriden by servers.)") end
 	if GetConVar("cl_drc_voiceset_automatic") == nil then CreateConVar("cl_drc_voiceset_automatic", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Automatatically update your VoiceSet to what playermodel authors assign.", 0, 1) end
+	
+	if GetConVar("cl_drc_voip_input_mul") == nil then CreateConVar("cl_drc_voip_input_mul", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Multiply the value at which Draconic interprets your voice chat volume, in case it's too weak or too strong.", 0, 10) end
 	
 	if GetConVar("cl_drc_footstepset") == nil then CreateConVar("cl_drc_footstepset", "None", {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Footstep set to use. (Can be overriden by servers.)") end
 	if GetConVar("cl_drc_footstepset_automatic") == nil then CreateConVar("cl_drc_footstepset_automatic", 1, {FCVAR_USERINFO, FCVAR_ARCHIVE}, "Automatatically update your footstep sounds to what playermodel authors assign.", 0, 1) end
@@ -261,9 +270,11 @@ local keypresses = {
 	[IN_USE] = "Use",
 }
 hook.Add("KeyPress", "DRC_Input_Cache_In", function(ply, key)
+	if !ply.DRC_Info_Cache then ply.DRC_Info_Cache = {} end
 	if keypresses[key] then ply.DRC_Info_Cache[keypresses[key]] = true end
 end)
 hook.Add("KeyRelease", "DRC_Input_Cache_Out", function(ply, key)
+	if !ply.DRC_Info_Cache then ply.DRC_Info_Cache = {} end
 	if keypresses[key] then ply.DRC_Info_Cache[keypresses[key]] = false end
 end)
 hook.Add("Think", "DRC_Input_Cache_Think", function()

@@ -128,6 +128,7 @@ SWEP.Secondary.Ammo = ""
 SWEP.Secondary.ClipSize = 1
 SWEP.Secondary.DefaultClip = 1
 SWEP.IsMelee = true
+SWEP.DummyAttachmentTable = {}
 
 SWEP.NextMeleeAI = 0
 function SWEP:CanPrimaryAttackNPC()
@@ -168,7 +169,7 @@ function SWEP:PrimaryAttack()
 	if !self:CanPrimaryAttack() then return end
 	self:DoCustomPrimary()
 	if self.Primary.Disabled == true then return end
-	if self:GetNWBool("Inspecting") == true then return end
+	if self:GetNW2Bool("Inspecting") == true then return end
 	local ply = self:GetOwner()
 	if !ply:IsPlayer() then self:PrimaryAttackNPC() return end
 	local cv = ply:Crouching()
@@ -183,7 +184,7 @@ function SWEP:PrimaryAttack()
 		if self.Primary.LungeAutomatic == true then
 			if IsValid(target) && DRC:IsCharacter(target) then
 				if(ply:GetPos():Distance(target:GetPos()) < self.Primary.LungeMaxDist) then
-					if cv == false && self:GetNWBool("Passive") == false then
+					if cv == false && self:GetNW2Bool("Passive") == false then
 						self:DoPrimaryLunge()
 						elseif cv == true && CanCrouchAttack == true then
 						self:DoPrimaryLunge()
@@ -191,9 +192,9 @@ function SWEP:PrimaryAttack()
 					end
 				elseif(ply:GetPos():Distance(target:GetPos()) > self.Primary.LungeMaxDist) then
 					if cv == false then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -203,9 +204,9 @@ function SWEP:PrimaryAttack()
 								end
 							end
 						elseif cv == true && CanCrouchAttack == true then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -219,9 +220,9 @@ function SWEP:PrimaryAttack()
 				end
 			elseif !IsValid(target) then
 				if cv == false then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -231,9 +232,9 @@ function SWEP:PrimaryAttack()
 								end
 							end
 					elseif cv == true && CanCrouchAttack == true then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -258,9 +259,9 @@ function SWEP:PrimaryAttack()
 					if ply:KeyDown(IN_USE) then
 						self:DoPrimaryLunge()
 					elseif !ply:KeyDown(IN_USE) then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -271,9 +272,9 @@ function SWEP:PrimaryAttack()
 							end
 					end
 				elseif(ply:GetPos():Distance(target:GetPos()) > self.Primary.LungeMaxDist) then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -284,9 +285,9 @@ function SWEP:PrimaryAttack()
 							end
 				end
 			elseif IsValid( target ) then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -296,9 +297,9 @@ function SWEP:PrimaryAttack()
 								end
 							end
 			else
-				if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+				if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 					self:DoPrimaryAttack()
-				elseif self:GetNWBool("Passive") == false then
+				elseif self:GetNW2Bool("Passive") == false then
 					self:ShootFire()
 				if SERVER then
 					if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -312,9 +313,9 @@ function SWEP:PrimaryAttack()
 
 	elseif self.Primary.CanLunge == false then
 		if cv == false then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -324,9 +325,9 @@ function SWEP:PrimaryAttack()
 								end
 							end
 			elseif cv == true && CanCrouchAttack == true then
-							if self.Primary.isvFire == false && self:GetNWBool("Passive") == false then
+							if self.Primary.isvFire == false && self:GetNW2Bool("Passive") == false then
 								self:DoPrimaryAttack()
-							elseif self:GetNWBool("Passive") == false then
+							elseif self:GetNW2Bool("Passive") == false then
 							self:ShootFire()
 								if SERVER then
 									if (self.Owner:KeyPressed(IN_ATTACK) || !self.LoopingFireSound) then
@@ -450,7 +451,7 @@ function SWEP:SecondaryAttack()
 	if !IsValid(self) or !IsValid(self.Owner) then return end
 	self:DoCustomSecondary()
 	if self.Secondary.Disabled == true then return end
-	if self:GetNWBool("Inspecting") == true then return end
+	if self:GetNW2Bool("Inspecting") == true then return end
 	local ply = self:GetOwner()
 	local cv = ply:Crouching()
 	local usekey = ply:KeyDown(IN_USE)
@@ -467,7 +468,7 @@ function SWEP:SecondaryAttack()
 				if sprintkey && usekey && attackkey then
 					self:TogglePassive()
 				elseif sprintkey && usekey then
-				elseif self:GetNWBool("Passive") == false then
+				elseif self:GetNW2Bool("Passive") == false then
 					self:DoSecondaryAttack()
 				end
 			else 
@@ -479,7 +480,7 @@ function SWEP:SecondaryAttack()
 				if (self.LoopingFireSoundSecondary) then self.LoopingFireSoundSecondary:Play() end
 			end
 		elseif cv == true && CanCrouchAttack == true then
-			if self.Secondary.isvFire == false && self:GetNWBool("Passive") == false then
+			if self.Secondary.isvFire == false && self:GetNW2Bool("Passive") == false then
 				self:DoSecondaryAttack()
 			else 
 			self:ShootFire()
@@ -588,13 +589,13 @@ function SWEP:TogglePassive()
 	if self.Passive == false then
 		self.Passive = true
 		self:DoPassiveHoldtype()
-		self:SetNWBool("Passive", true)
-		if self:GetNWBool("ironsights") == true then 
+		self:SetNW2Bool("Passive", true)
+		if self:GetNW2Bool("ironsights") == true then 
 			ply:SetFOV(0, self.Secondary.ScopeZoomTime)
-			self:SetNWBool("ironsights", false)
+			self:SetNW2Bool("ironsights", false)
 		else end
 		ply:EmitSound("draconic.IronOutGeneric")
-		if self:GetNWBool("Inspecting") == true then
+		if self:GetNW2Bool("Inspecting") == true then
 			self:ToggleInspectMode()
 		end
 	else
@@ -602,7 +603,7 @@ function SWEP:TogglePassive()
 		self.Idle = 0
 		self:SetHoldType(self.HoldType)
 		self.Passive = false
-		self:SetNWBool("Passive", false)
+		self:SetNW2Bool("Passive", false)
 		ply:EmitSound("draconic.IronInGeneric")
 		timer.Simple(0.42, function()
 			self.Loading = false 

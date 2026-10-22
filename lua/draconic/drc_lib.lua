@@ -3148,7 +3148,7 @@ hook.Add("OnPlayerHitGround", "DRC_Footsteps_Landing", function(ply, water, floa
 	if fs then
 		local n,s,e,w = IN_FORWARD, IN_BACK, IN_MOVERIGHT, IN_MOVELEFT
 		local inp = ply:KeyDown(n) or ply:KeyDown(s) or ply:KeyDown(e) or ply:KeyDown(w)
-		local beh = fs.LandingBehaviour or 0
+		local beh = DRC.FootSteps[fs].LandingBehaviour or 0
 		if beh == 0 && !inp then
 			landingsound(ply, fs)
 		elseif beh == 1 then 
